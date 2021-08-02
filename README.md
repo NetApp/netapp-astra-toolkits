@@ -1,3 +1,7 @@
+# NetApp Astra SDK
+
+For more information see [the docs](./docs)
+
 Prerequisites:
 
         All the compute clusters are being managed by Astra.
