@@ -27,13 +27,31 @@ class getConfig:
     def __init__(self):
 
         path = sys.argv[0] or inspect.getfile(getConfig)
-        configPath = os.path.join(os.getcwd(), "config.yaml")
-        try:
-            with open(configPath, "r") as f:
-                self.conf = yaml.safe_load(f)
-        except OSError as e:
-            print("Caught OSError: %s" % e)
-            sys.exit(1)
+        for loc in (
+            os.path.realpath(os.path.dirname(path)),
+            os.path.join(os.path.expanduser("~"), ".config", "astra-toolkits"),
+            "/etc/astra-toolkits",
+            os.environ.get("ASTRATOOLKITS_CONF"),
+        ):
+            configPath = (os.path.join(loc, "config.yaml"))
+            try:
+                if loc:
+                    if os.path.isfile(configPath):
+                        with open(configPath, "r") as f:
+                            self.conf = yaml.safe_load(f)
+                            break
+            except IOError:
+                pass
+            except yaml.YAMLError:
+                print("%s not valid YAML" % configPath)
+                continue
+
+        for item in ["astra_project", "uid", "headers"]:
+            try:
+                assert self.conf.get(item) is not None
+            except AssertionError:
+                print("astra_project is a required field in %s" % configPath)
+                sys.exit(3)
 
         self.base = "https://%s.astra.netapp.io/accounts/%s/" % (
             self.conf.get("astra_project"),
