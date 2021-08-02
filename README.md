@@ -1,34 +1,62 @@
 # NetApp Astra SDK
 
-For more information see [the docs](./docs)
+Brief introduction to the NetApp Astra SDK, including an overview of how it works and who it's intended to help. No more than 2 paragraphs.
 
-Prerequisites:
+## Installation
 
-        All the compute clusters are being managed by Astra.
+Overview of the install process.
 
-       Install docker and docker run  -it jpaetzel0614/k8scloudcontrol:1.0 /bin/bash
+### Prerequisites
 
-       Clone the repo: git clone -b docker https://bitbucket.ngage.netapp.com/scm/~jpaetzel/netapp-astra-toolkits.git
-       cd netapp-astra-toolkits
+* Docker and Python installed on your local computer (versions?)
+* All the compute clusters exist and are being managed by Astra.
 
-       Set up your kube config to successfully run kubectl commands
+### Install
 
-       Modify config.yaml to taste
+Set up your kubeconfig to successfully run kubectl commands against your cluster with a command like:
 
-"""
+```Shell
+export KUBECONFIG=/path/to/kubeconfig
+```
+
+Launch the prepared Docker image. Docker will automatically download the image if you don't already have it on your system.
+
+```Shell
+sudo docker run -it jpaetzel0614/k8scloudcontrol:1.0 /bin/bash
+```
+NOTE: From this point forward, you will be working in the Docker container which you just launched. Anything you do from here on will not be saved after you exit Docker. Be sure to take notes and save copies of files elsewhere if necessary.
+
+Clone the NetApp Astra SDK repo.
+
+```Shell
+git clone https://github.com/NetApp/netapp-astra-toolkits.git
+```
+Move into the repo directory.
+
+```Shell
+cd netapp-astra-toolkits
+```
+
+Edit the `config.yaml` file to reflect your account information.
+
+```Shell
 headers:
-  Authorization: Bearer <TOKEN_CONTENTS>
-uid: <REDACTED> # Get from the Astra UI
-astra_project: preview # Used to generate the astra URL
-"""
+  Authorization: Bearer [API token]
+uid: [Your Astra Account ID]
+astra_project: preview
+```
+Run the following commands to add the required Python elements:
 
-Run the following commands:
-
+```Shell
 virtualenv toolkit
 source toolkit/bin/activate
 pip install -r requirements.txt
+```
 
-./toolkit.py deploy wordpress <appname> <namespacename>
+You can now use `./toolkit.py` to invoke the NetApp Astra SDK. For example, list your Astra clusters with the command:
 
-This will deploy WordPress into the namespace <namespace> with the name
-given by <appname>.
+```Shell
+./toolkit.py list clusters
+```
+
+See [the documentation](./docs) for more info.
