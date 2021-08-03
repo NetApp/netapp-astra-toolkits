@@ -27,24 +27,31 @@ class getConfig:
     def __init__(self):
 
         path = sys.argv[0] or inspect.getfile(getConfig)
+        self.conf = None
         for loc in (
             os.path.realpath(os.path.dirname(path)),
             os.path.join(os.path.expanduser("~"), ".config", "astra-toolkits"),
             "/etc/astra-toolkits",
             os.environ.get("ASTRATOOLKITS_CONF"),
         ):
-            configPath = (os.path.join(loc, "config.yaml"))
+            if loc:
+                configPath = (os.path.join(loc, "config.yaml"))
+            else:
+                continue
             try:
-                if loc:
-                    if os.path.isfile(configPath):
-                        with open(configPath, "r") as f:
-                            self.conf = yaml.safe_load(f)
-                            break
+                if os.path.isfile(configPath):
+                    with open(configPath, "r") as f:
+                        self.conf = yaml.safe_load(f)
+                        break
             except IOError:
-                pass
+                continue
             except yaml.YAMLError:
                 print("%s not valid YAML" % configPath)
                 continue
+
+        if self.conf is None:
+            print("config.yaml not found.")
+            sys.exit(4)
 
         for item in ["astra_project", "uid", "headers"]:
             try:
