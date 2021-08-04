@@ -1,14 +1,14 @@
-# NetApp Astra SDK
+# NetApp Astra Control SDK
 
-The NetApp Astra SDK is designed to provide guidance for working with the NetApp Astra API.
+The NetApp Astra Control SDK is designed to provide guidance for working with the NetApp Astra API.
 
-You can use the `astraSDK.py` script out of the box, and as a set of example recommended code and processes, "cookbook" style. The `toolkit.py` script is a helpful sandbox tool for learning how to use the Astra API.
+You can use the `astraSDK.py` script out of the box, and as a set of example recommended code and processes, "cookbook" style. The `toolkit.py` script is a helpful sandbox tool for learning how to use the Astra Control API.
 
 We don't recommend the use of `toolkit.py` in production, but the code is heavily-documented, so you can see how the parts come together, and use it as a starting point for your own code.
 
 ## Installation
 
-The NetApp Astra Toolkit runs in a Docker container. This makes it easy for you to launch and use the Toolkit, because the prepared Docker image has all the dependencies and requirements configured and ready to go.
+The NetApp Astra Control Toolkit runs in a Docker container. This makes it easy for you to launch and use the Toolkit, because the prepared Docker image has all the dependencies and requirements configured and ready to go.
 
 The Docker container is effectively independent from your desktop computer. This means:
 
@@ -32,7 +32,7 @@ NOTE: From this point forward, you will be working in the Docker container you j
 
 Set up your kubeconfig to successfully run kubectl commands against your cluster with the appropriate command (e.g. `export KUBECONFIG=/path/to/kubeconfig`, `gcloud container clusters get-credentials`, or `az aks get-credentials`).
 
-Clone the NetApp Astra SDK repo.
+Clone the NetApp Astra Control SDK repo.
 
 ```Shell
 git clone https://github.com/NetApp/netapp-astra-toolkits.git
@@ -44,19 +44,19 @@ Move into the repo directory.
 cd netapp-astra-toolkits
 ```
 
-Edit the `config.yaml` file to add your NetApp Astra account information.
+Edit the `config.yaml` file to add your NetApp Astra Control account information.
 
 * `Authorization: Bearer`: Your API token
-* `uid`: Your Astra Account ID
-* `astra_project`: Your Astra instance (`preview` or `demo`)
+* `uid`: Your Astra Control Account ID
+* `astra_project`: Your Astra Control instance (`preview` or `demo`)
 
-You can find this information in your NetApp Astra account profile. Click the user icon in the upper right-hand corner, then choose **API Access** from the drop-down menu which appears.
+You can find this information in your NetApp Astra Control account profile. Click the user icon in the upper right-hand corner, then choose **API Access** from the drop-down menu which appears.
 
-![Locate your Astra profile](./docs/img/astra-profile.png)
+![Locate your Astra Control profile](./docs/img/astra-profile.png)
 
-Copy and paste your Astra account ID into the `config.yaml` file.
+Copy and paste your Astra Control account ID into the `config.yaml` file.
 
-![Locate your Astra account ID](./docs/img/astra-account-info.png)
+![Locate your Astra Control account ID](./docs/img/astra-account-info.png)
 
 To get your API token, click **+ Generate API token**. Generate a new API token, then copy and paste the token into the `config.yaml`
 
@@ -79,7 +79,7 @@ source toolkit/bin/activate
 pip install -r requirements.txt
 ```
 
-You can now use `./toolkit.py` to invoke the NetApp Astra SDK. For example, list your Astra clusters with the command:
+You can now use `./toolkit.py` to invoke the NetApp Astra Control SDK. For example, list your Astra clusters with the command:
 
 ```Shell
 ./toolkit.py list clusters
