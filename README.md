@@ -1,6 +1,10 @@
 # NetApp Astra SDK
 
-Brief introduction to the NetApp Astra SDK, including an overview of how it works and who it's intended to help. No more than 2 paragraphs.
+The NetApp Astra SDK is designed to provide guidance for working with the NetApp Astra API.
+
+You can use the `astraSDK.py` script out of the box, and as a set of example recommended code and processes, "cookbook" style. The `toolkit.py` script is a helpful sandbox tool for learning how to use the Astra API.
+
+We don't recommend the use of `toolkit,py` in production, but the code is heavily-documented, so you can see how the parts come together, and use it as a starting point for your own code.
 
 ## Installation
 
@@ -13,7 +17,7 @@ The Docker container is effectively independent from your desktop computer. This
 
 ### Prerequisites
 
-* Docker and Python installed on your local computer (versions?)
+* Docker installed on your desktop computer.
 * All the compute clusters exist and are being managed by Astra.
 
 ### Install
@@ -26,6 +30,8 @@ sudo docker run -it jpaetzel0614/k8scloudcontrol:1.0 /bin/bash
 
 NOTE: From this point forward, you will be working in the Docker container you just launched.
 
+Set up your kubeconfig to successfully run kubectl commands against your cluster with the appropriate command (e.g. `export KUBECONFIG=/path/to/kubeconfig`, `gcloud container clusters get-credentials`, or `az aks get-credentials`).
+
 Clone the NetApp Astra SDK repo.
 
 ```Shell
@@ -37,8 +43,6 @@ Move into the repo directory.
 ```Shell
 cd netapp-astra-toolkits
 ```
-
-Set up your kubeconfig to successfully run kubectl commands against your cluster with the appropriate command (e.g. `export KUBECONFIG=/path/to/kubeconfig`, `gcloud container clusters get-credentials`, or `az aks get-credentials`).
 
 Edit the `config.yaml` file to add your NetApp Astra account information.
 
