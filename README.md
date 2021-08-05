@@ -1,10 +1,10 @@
 # NetApp Astra Control Python SDK
 
-The NetApp Astra Control Python SDK is designed to provide guidance for working with the NetApp Astra API.
+The NetApp Astra Control Python SDK is designed to provide guidance for working with the NetApp Astra Control API.
 
 You can use the `astraSDK.py` library out of the box, and as a set of example recommended code and processes, "cookbook" style. The `toolkit.py` script is a helpful sandbox tool for learning how to use the Astra API.
 
-We don't recommend the use of `toolkit,py` in production, but the code is heavily-documented, so you can see how the parts come together, and use it as a starting point for your own code.
+We don't recommend the use of `toolkit.py` in production, but the code is heavily-documented, so you can see how the parts come together, and use it as a starting point for your own code.
 
 ## Installation
 
