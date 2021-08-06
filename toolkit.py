@@ -196,8 +196,21 @@ class toolkit:
             if self.k not in self.preApps.keys()
         }
         for self.app in self.appsToManage:
-            print("Managing: %s" % self.app)
-            astraSDK.manageApp(self.app).main()
+            # Spin on managing apps.  Astra Control won't allow switching an
+            # app that is in the pending state to managed.  So we retry endlessly
+            # with the assumption that eventually the app will switch from
+            # pending to running and the manageapp call will succeed.
+            # (Note this is taking > 8 minutes in Q2)
+            print("Managing: %s." % self.app, end="")
+            sys.stdout.flush()
+            rv = astraSDK.manageApp(self.app).main()
+            while not rv:
+                print(".", end="")
+                sys.stdout.flush()
+                time.sleep(3)
+                rv = astraSDK.manageApp(self.app).main()
+            print("Success.")
+            sys.stdout.flush()
 
         # Find the appID of the namespace we just created
         # Since we switched everything we had discovered to managed we'll list all the
