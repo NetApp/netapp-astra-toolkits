@@ -1,8 +1,8 @@
-# NetApp Astra SDK Docs
+# NetApp Astra Control SDK Docs
 
 A temporary place to store and review the docs until they find a permanent home.
 
-See [the main README](./README.md) for information on how to install the NetApp Astra SDK.
+See [the main README](./README.md) for information on how to install the NetApp Astra Control SDK.
 
 * [Clone](clone.md)
 * [Create](create.md)
