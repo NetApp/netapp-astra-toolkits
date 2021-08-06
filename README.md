@@ -12,12 +12,13 @@ The NetApp Astra Control Toolkit can be run in a Docker container. This makes it
 
 ### Prerequisites
 
-To run the NetApp Astra Control Toolkit using the prepared Docker image (recommended) you need:
+To use the prepared Docker image (recommended) to run the NetApp Astra Control Toolkit:
 
-* Docker installed on your desktop computer.
 * One or more running compute clusters managed by NetApp Astra Control.
+* Required software installed:
+    * Docker 20.10.7+
 
-To run the NetApp Astra Control Toolkit manually on your desktop computer you need:
+To manually run the NetApp Astra Control Toolkit:
 
 * One or more running compute clusters managed by NetApp Astra Control.
 * Required software installed:
