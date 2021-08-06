@@ -15,12 +15,19 @@ The NetApp Astra Control Toolkit can be run in a Docker container. This makes it
 To run the NetApp Astra Control Toolkit using the prepared Docker image (recommended) you need:
 
 * Docker installed on your desktop computer.
-* All the compute clusters exist and are being managed by Astra.
+* One or more running compute clusters managed by NetApp Astra Control.
 
 To run the NetApp Astra Control Toolkit manually on your desktop computer you need:
 
-* All the compute clusters exist and are being managed by Astra.
-* Required software versions installed (coming soon)
+* One or more running compute clusters managed by NetApp Astra Control.
+* Required software installed:
+    * Python 3.5+
+    * Pip 21.1.2+
+    * Virtualenv 20.4.7+
+    * Git 2.30.2+
+    * Kubectl 1.17+
+    * Azure CLI (`az`) 2.25.0+ or Google Cloud SDK (`gcloud`) 345.0.0+
+    * Helm 3.2.1+
 
 ### Install Using Docker (Recommended)
 
