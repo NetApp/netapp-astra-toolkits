@@ -1,0 +1,13 @@
+usage: toolkit.py [-h] {deploy,clone,restore,list,create,manageapp} ...
+
+positional arguments:
+  {deploy,clone,restore,list,create,manageapp}
+                        subcommand help
+    deploy              deploy a bitnami chart
+    clone (restore)     clone a namespace to a destination cluster
+    list                List all items in a class
+    create              Create an object
+    manageapp           Switch a discovered app to managed
+
+optional arguments:
+  -h, --help            show this help message and exit

@@ -1,0 +1,10 @@
+usage: toolkit.py list [-h] {apps,backups,clusters} ...
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+objectType:
+  {apps,backups,clusters}
+    apps                list apps
+    backups             list backups
+    clusters            list clusters
