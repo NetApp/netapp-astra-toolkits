@@ -1,13 +1,13 @@
-usage: toolkit.py [-h] {deploy,clone,restore,list,create,manageapp} ...
+usage: toolkit.py [ARGUMENT]... [OPTION]...
 
-positional arguments:
-  {deploy,clone,restore,list,create,manageapp}
-                        subcommand help
-    deploy              deploy a bitnami chart
-    clone (restore)     clone a namespace to a destination cluster
-    list                List all items in a class
-    create              Create an object
-    manageapp           Switch a discovered app to managed
+Arguments:
+    deploy              Deploy a Bitnami chart.
+    clone (restore)     Clone a namespace to a destination cluster.
+    list                List all items in a class.
+    create              Create an object.
+    manageapp           Switch a discovered app to managed.
+    
+Options:
+  -h, --help            Show this help message and exit.
 
-optional arguments:
-  -h, --help            show this help message and exit
+Full documentation at <https://github.com/NetApp/netapp-astra-toolkits/tree/main/docs>
