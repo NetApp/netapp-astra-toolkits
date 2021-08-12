@@ -1,12 +1,37 @@
-usage: toolkit.py deploy [-h]
-                         {bitnami-common,airflow,apache,argo-cd,aspnet-core,cassandra,cert-manager,common,concourse,consul,contour,dataplatform-bp1,dataplatform-bp2,discourse,dokuwiki,drupal,ejbca,elasticsearch,etcd,external-dns,fluentd,ghost,grafana,grafana-operator,grafana-tempo,haproxy,harbor,influxdb,jasperreports,jenkins,joomla,jupyterhub,kafka,keycloak,kiam,kibana,kong,kube-prometheus,kube-state-metrics,kubeapps,kubernetes-event-exporter,kubewatch,logstash,magento,mariadb,mariadb-cluster,mariadb-galera,mean,mediawiki,memcached,metallb,metrics-server,minio,mongodb,mongodb-sharded,moodle,mxnet,mysql,nats,nginx,nginx-ingress-controller,node,node-exporter,oauth2-proxy,odoo,opencart,orangehrm,osclass,owncloud,parse,phabricator,phpbb,phpmyadmin,postgresql,postgresql-ha,prestashop,prometheus-operator,pytorch,rabbitmq,redis,redis-cluster,redmine,solr,spark,spring-cloud-dataflow,sugarcrm,suitecrm,tensorflow-inception,tensorflow-resnet,testlink,thanos,tomcat,wavefront,wavefront-adapter-for-istio,wavefront-hpa-adapter,wavefront-prometheus-storage-adapter,wildfly,wordpress,zookeeper}
-                         app namespace
+Deploy a Bitnami Helm chart on one or more running compute clusters managed by NetApp Astra Control. Takes as an argument the Bitnami Helm chart you wish to deploy.
 
-positional arguments:
-  {bitnami-common,airflow,apache,argo-cd,aspnet-core,cassandra,cert-manager,common,concourse,consul,contour,dataplatform-bp1,dataplatform-bp2,discourse,dokuwiki,drupal,ejbca,elasticsearch,etcd,external-dns,fluentd,ghost,grafana,grafana-operator,grafana-tempo,haproxy,harbor,influxdb,jasperreports,jenkins,joomla,jupyterhub,kafka,keycloak,kiam,kibana,kong,kube-prometheus,kube-state-metrics,kubeapps,kubernetes-event-exporter,kubewatch,logstash,magento,mariadb,mariadb-cluster,mariadb-galera,mean,mediawiki,memcached,metallb,metrics-server,minio,mongodb,mongodb-sharded,moodle,mxnet,mysql,nats,nginx,nginx-ingress-controller,node,node-exporter,oauth2-proxy,odoo,opencart,orangehrm,osclass,owncloud,parse,phabricator,phpbb,phpmyadmin,postgresql,postgresql-ha,prestashop,prometheus-operator,pytorch,rabbitmq,redis,redis-cluster,redmine,solr,spark,spring-cloud-dataflow,sugarcrm,suitecrm,tensorflow-inception,tensorflow-resnet,testlink,thanos,tomcat,wavefront,wavefront-adapter-for-istio,wavefront-hpa-adapter,wavefront-prometheus-storage-adapter,wildfly,wordpress,zookeeper}
-                        chart to deploy
-  app                   name of app
-  namespace             Namespace to deploy into (must not already exist)
+Usage: toolkit.py deploy [ARGUMENT] [APP NAME] [NAMESPACE] [OPTION]
 
-optional arguments:
-  -h, --help            show this help message and exit
+Valid arguments include:
+  cassandra         Apache Cassandra distributed database management system
+  ghost             Ghost blog publishing platform
+  grafana           Grafana metrics dashboard and graph editor
+  mariadb           MariaDB database server
+  mongodb           MongoDB document-oriented (NoSQL) database
+  nginx             NGINX reverse proxy and web server
+  postgresql        PostgreSQL object-relational database management system (ORDBMS)
+  prestashop        Prestashop e-commerce solution
+  redis             Redis advanced key-value cache and store (NoSQL)
+  wordpress         WordPress content management system (CMS)
+
+For the full list of Bitnami Helm charts you can deploy using this command, see the official GitHub repo: https://github.com/bitnami/charts/tree/master/bitnami
+
+You must specify the app name and namespace:
+
+  App name          The name you wish to give this app deployment.
+  Namespace         The namespace you wish to create and deploy into. This namespace must not already exist.
+
+Options:
+  -h, --help            Show this help message and exit.
+
+EXAMPLE
+
+If you want to:
+  * Deploy the MariaDB app from the "mariadb" Bitnami Helm chart
+  * Name the app "testdb"
+  * Create the namespace "testns"
+  * Deploy the app into the new "testns" namespace
+
+Use the command:
+
+  ./toolkit.py deploy mariadb testdb testns
