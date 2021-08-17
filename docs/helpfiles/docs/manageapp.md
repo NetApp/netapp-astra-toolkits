@@ -1,3 +1,0 @@
-# Manage App
-
-coming soon
