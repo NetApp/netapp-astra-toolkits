@@ -1,10 +1,19 @@
-usage: toolkit.py create [-h] {backup,protectionpolicy,snapshot} ...
+Create a backup, protection policy, or snapshot on one or more running compute clusters managed by NetApp Astra Control.
 
-optional arguments:
-  -h, --help            show this help message and exit
+Usage: toolkit.py create [ARGUMENT] [OPTION]
 
-objectType:
-  {backup,protectionpolicy,snapshot}
-    backup              create backup
-    protectionpolicy    create protectionpolicy
-    snapshot            create snapshot
+Arguments:
+  backup            Create a backup
+  protectionpolicy  Create a protection policy
+  snapshot          Create a snapshot
+
+Options:
+  -h, --help            Show this help message and exit.
+
+EXAMPLES
+
+Getting Help
+
+Read the help message for creating a backup:
+
+  ./toolkit.py create backup -h

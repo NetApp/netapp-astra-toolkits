@@ -1,0 +1,2 @@
+HTTPSConnectionPool(host='example.astra.netapp.io', port=443): Max retries exceeded with url: /accounts/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/topology/v1/apps?include=name%2Cid%2CclusterName%2CclusterID%2Cnamespace%2Cstate%2CmanagedState%2CappDefnSource (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f30c6b58310>: Failed to establish a new connection: [Errno -2] Name does not resolve'))
+(toolkit) b
