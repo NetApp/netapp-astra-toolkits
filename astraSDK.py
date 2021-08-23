@@ -264,12 +264,16 @@ class getApps:
             if not self.quiet:
                 print(self.ret.status_code)
                 print(self.ret.reason)
-                return False
-            else:
-                return False
+            return False
 
 
 class getBackups:
+    """Iterate over every managed app, and list all of it's backups.
+    Failure reporting is not implimented, failure to list backups for
+    one (or more) of N many apps just results in an empty list of backups
+    for that app.
+    """
+
     def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig().main()
@@ -278,6 +282,16 @@ class getBackups:
         self.apps = getApps().main()
 
     def main(self):
+        """self.apps = {'739e7b1f-a71a-42bd-ac6f-db3ff9131133':
+            ['jp3k', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
+             'jp3k', 'running', 'managed', 'namespace'],
+        '697d2a64-61f0-4958-b746-13248be6e6a1':
+            ['wp-mariadb', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
+             'jp3k', 'running', 'managed', 'helm'],
+        'ee7e683c-7532-4f79-9c4b-3e26d8ece391':
+            ['wp-wordpress', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
+             'jp3k', 'running', 'managed', 'helm']}
+        """
         self.backups = {}
         for self.app in self.apps:
             self.endpoint = "k8s/v1/managedApps/%s/appBackups" % self.app  # appID
@@ -302,13 +316,35 @@ class getBackups:
                 print("API HTTP Status Code: %s" % self.ret.status_code)
                 print()
             if self.ret.ok:
-                self.results = self.ret.json()
+                try:
+                    self.results = self.ret.json()
+                    print("self.results: %s" % self.results)
+                except ValueError:
+                    print("response contained invalid JSON")
+                    continue
+                # Remember this is on a per AppID basis
+                """self.results:
+                     {'items':
+                        [['hourly-rlezp-xsxmz',
+                          '493c862d-71a9-4d47-87d3-eab9006c726f',
+                          'completed', {'labels': [],
+                                        'creationTimestamp': '2021-08-16T17:00:01Z',
+                                        'modificationTimestamp': '2021-08-16T17:00:01Z',
+                                        'createdBy': '70fa19ad-eb95-4d1c-b5fb-76b7f4214e6c'}]],
+                                        'metadata': {}}
+                """
                 self.backups[self.app] = {}
                 for item in self.results["items"]:
                     self.backupName = item[0]
                     self.backupID = item[1]
                     self.backupState = item[2]
+                    # Strip off the trailing Z from the timestamp.  We know it's UTC and the
+                    # python library we use to process datetimes doesn't handle the
+                    # Zulu time convention that Astra gives us.
                     self.backupTimeStamp = item[3].get("creationTimestamp")[:-1]
+                    # TODO: the backupName is just a label and Astra can have
+                    # multiple backups of an app with the same name.
+                    # This should be switched to have the backupID as the key.
                     if self.backupName not in self.backups[self.app]:
                         self.backups[self.app][self.backupName] = [
                             self.backupID,
@@ -336,6 +372,11 @@ class getBackups:
 
 
 class takeBackup:
+    """Take a backup of an app.  An AppID and backupName is provided and
+    either the result JSON is returned or the backupID of the newly created
+    backup is returned."""
+
+    # TODO: switch from output=True to quiet=True to match the new style.
     def __init__(self, output=True):
         self.output = output
         self.conf = getConfig().main()
@@ -361,7 +402,11 @@ class takeBackup:
             raise SystemExit(e)
 
         if self.ret.ok:
-            self.results = self.ret.json()
+            try:
+                self.results = self.ret.json()
+            except ValueError as e:
+                print("response contained invalid JSON: %s" % e)
+                self.results = None
             if self.output:
                 print(self.results)
             else:
@@ -370,11 +415,28 @@ class takeBackup:
             if self.output:
                 print(self.ret.status_code)
                 print(self.ret.reason)
-            else:
-                return False
+            return False
 
 
 class cloneApp:
+    """Clone a backup into a new app, in a new namespace.  Note that Astra doesn't
+    currently support in place restores.
+
+    If backupID is provided sourceAppID is optional.
+    The sourceClusterID is something you'd think would be optional, but it
+    is required as well.  Even worse, Astra knows what the (only) correct answer
+    is and requires you to provide it anyways.
+
+    Namespace is the new namespace that Astra will create to put the new app into.
+    It must not exist on the destination cluster or the clone will fail.
+
+    clusterID identifies the cluster for the new clone.  It's perfectly legal to
+    clone an app to the same cluster it is running on; in which case clusterID ==
+    sourceClusterID.
+
+    This class doesn't try to validate anything you pass it, if you give it garbage
+    for any parameters the clone operation will fail.
+    """
     def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig.getConfig().main()
@@ -414,7 +476,12 @@ class cloneApp:
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
         if self.ret.ok:
-            self.results = self.ret.json()
+            try:
+                self.results = self.ret.json()
+            except ValueError as e:
+                print("response contained invalid JSON: %s" % e)
+                self.results = None
+
             if not self.quiet:
                 print(self.results)
             else:
@@ -423,12 +490,16 @@ class cloneApp:
             if not self.quiet:
                 print(self.ret.status_code)
                 print(self.ret.reason)
-                sys.exit(1)
-            else:
-                return False
+            return False
 
 
 class getClusters:
+    """List clusters that are managed by Astra.  Not that the Q2 release included
+    API endpoints that can get this infor directly from Astra.  The technique used
+    here iterates over apps running in the cluster and compiles a list of clusters
+    by looking at the cluster info for each app.
+    Note that the API endpoint used doesn't just look at managedApps, so there
+    doesn't need to be user apps installed for this technique to work."""
     def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig().main()
@@ -436,6 +507,8 @@ class getClusters:
         self.headers = self.conf.get("headers")
 
     def main(self):
+        # Q2 installs have a much better endpoint for this
+        # TODO: detect version and use appropriate endpoint
         self.endpoint = "topology/v1/apps"
         self.url = self.base + self.endpoint
 
@@ -459,7 +532,11 @@ class getClusters:
             print("API HTTP Status Code: %s" % self.ret.status_code)
             print()
         if self.ret.ok:
-            self.results = self.ret.json()
+            try:
+                self.results = self.ret.json()
+            except ValueError as e:
+                print("response contained invalid JSON: %s" % e)
+                self.results = None
             self.clusters = {}
             for item in self.results["items"]:
                 if item[1] not in self.clusters:
@@ -475,12 +552,20 @@ class getClusters:
             return self.clusters
         else:
             if not self.quiet:
-                sys.exit(1)
-            else:
-                return False
+                print(self.ret.status_code)
+                print(self.ret.reason)
+            return False
 
 
 class createProtectionpolicy:
+    """Create a backup or snapshot policy on an appID.
+    The rules of how dayOfWeek, dayOfMonth, hour, and minute
+    need to be set vary based on whether granularity is set to
+    hourly, daily, weekly, or monthly
+    This class does no validation of the arguments, leaving that
+    to the API call itself.  toolkit.py can be used as a guide as to
+    what the API requirements are in case the swagger isn't sufficient.
+    """
     def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig().main()
@@ -524,22 +609,23 @@ class createProtectionpolicy:
             raise SystemExit(e)
 
         if self.ret.ok:
-            self.results = self.ret.json()
+            try:
+                self.results = self.ret.json()
+            except ValueError as e:
+                print("response contained invalid JSON: %s" % e)
+                self.results = None
             if not self.quiet:
                 print(self.results)
-                return True
-            else:
-                return True
+            return True
         else:
             if not self.quiet:
                 print(self.ret.status_code)
                 print(self.ret.reason)
-                return False
-            else:
-                return False
+            return False
 
 
 class manageApp:
+    """This class switches a discovered app to a managed app."""
     def __init__(self, appID, quiet=True):
         self.quiet = quiet
         self.appID = appID
@@ -566,20 +652,25 @@ class manageApp:
             raise SystemExit(e)
 
         if self.ret.ok:
-            self.results = self.ret.json()
+            try:
+                self.results = self.ret.json()
+            except ValueError as e:
+                print("response contained invalid JSON: %s" % e)
+                self.results = None
             if not self.quiet:
                 print(self.results)
-            else:
-                return True
+            return True
         else:
             if not self.quiet:
                 print(self.ret.status_code)
                 print(self.ret.reason)
-            else:
-                return False
+            return False
 
 
 class takeSnap:
+    """Take a snapshot of an app.  An AppID and snapName is provided and
+    either the result JSON is returned or the snapID of the newly created
+    backup is returned."""
     def __init__(self, output=True):
         self.output = output
         self.conf = getConfig().main()
@@ -606,7 +697,11 @@ class takeSnap:
             raise SystemExit(e)
 
         if self.ret.ok:
-            self.results = self.ret.json()
+            try:
+                self.results = self.ret.json()
+            except ValueError as e:
+                print("response contained invalid JSON: %s" % e)
+                self.results = None
             if self.output:
                 print(self.results)
             else:
@@ -615,11 +710,15 @@ class takeSnap:
             if self.output:
                 print(self.ret.status_code)
                 print(self.ret.reason)
-            else:
-                return False
+            return False
 
 
 class getSnaps:
+    """Iterate over every managed app, and list all of it's snapshots.
+    Failure reporting is not implimented, failure to list snapshots for
+    one (or more) of N many apps just results in an empty list of snapshots
+    for that app.
+    """
     def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig().main()
@@ -663,7 +762,12 @@ class getSnaps:
                 print("API HTTP Status Code: %s" % self.ret.status_code)
                 print()
             if self.ret.ok:
-                self.results = self.ret.json()
+                try:
+                    self.results = self.ret.json()
+                    print("self.results: %s" % self.results)
+                except ValueError:
+                    print("response contained invalid JSON")
+                    continue
                 self.snaps[self.app] = {}
                 for item in self.results["items"]:
                     self.appName = item[0]
