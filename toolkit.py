@@ -677,7 +677,7 @@ if __name__ == "__main__":
     #######
 
     args = parser.parse_args()
-    print("args: %s" % args)
+    # print("args: %s" % args)
     if hasattr(args, "granularity"):
         if args.granularity == "hourly":
             if args.hour:
