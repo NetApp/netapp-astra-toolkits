@@ -69,30 +69,31 @@ def updateHelm():
     ignore_errors=True here because helm repo list returns 1 if there are no
     repos configured"""
     ret = run("helm repo list -o yaml", captureOutput=True, ignoreErrors=True)
-    repoName = None
+    repos = {"https://charts.gitlab.io": None,
+             "https://charts.bitnami.com/bitnami": None}
     if ret != 1:
         retYaml = yaml.load(ret, Loader=yaml.SafeLoader)
         # [{'name': 'stable', 'url': 'https://charts.helm.sh/stable'},
         #  {'name': 'bitnami', 'url': 'https://charts.bitnami.com/bitnami'}
         # ]
-        repoUrlToMatch = "https://charts.bitnami.com/bitnami"
-        for item in retYaml:
-            if item.get("url") == repoUrlToMatch:
-                repoName = item.get("name")
-    if not repoName:
-        # TODO: the repo name "bitnami" isn't safe to use, they could have an
-        # arbitrary repo named bitnami already configured
-        run("helm repo add bitnami https://charts.bitnami.com/bitnami")
-        repoName = "bitnami"
-    else:
-        run("helm repo update")
-        pass
-    charts = run("helm -o yaml search repo %s" % repoName, captureOutput=True)
-    chartsYaml = yaml.load(charts, Loader=yaml.SafeLoader)
-    chartsList = []
-    for line in chartsYaml:
-        chartsList.append(line.get("name").split("/")[1])
-    return chartsList, repoName
+        for repoUrlToMatch in repos:
+            for item in retYaml:
+                if item.get("url") == repoUrlToMatch:
+                    repos[repoUrlToMatch] = item.get("name")
+    for k, v in repos.items():
+        if not v:
+            repoName = k.split(".")[1]
+            run("helm repo add %s %s" % (repoName, k))
+            repos[k] = repoName
+            
+    run("helm repo update")
+    chartsDict = {}
+    for val in repos.values():
+        charts = run("helm -o yaml search repo %s" % val, captureOutput=True)
+        chartsYaml = yaml.load(charts, Loader=yaml.SafeLoader)
+        for line in chartsYaml:
+            chartsDict[(line.get("name").split("/")[1])] = val
+    return chartsDict
 
 
 def run(command, captureOutput=False, ignoreErrors=False):
@@ -366,7 +367,11 @@ if __name__ == "__main__":
     appList = []
     if len(sys.argv) > 1:
         if sys.argv[1] == "deploy":
-            charts_list, repo_name = updateHelm()
+            chartsDict = updateHelm()
+            charts_list = []
+            for k in chartsDict:
+                charts_list.append(k)
+
         elif sys.argv[1] == "clone" or sys.argv[1] == "restore":
             namespaces = astraSDK.getApps(source="namespace").main()
             namespaces_list = [x for x in namespaces.keys()]
@@ -717,7 +722,8 @@ if __name__ == "__main__":
 
     ret = toolkit()
     if args.subcommand == "deploy":
-        ret.deploy(args.chart, repo_name, args.app, args.namespace)
+        print(args.chart, chartsDict[args.chart], args.app, args.namespace)
+        ret.deploy(args.chart, chartsDict[args.chart], args.app, args.namespace)
     elif args.subcommand == "list":
         if args.objectType == "apps":
             astraSDK.getApps(
