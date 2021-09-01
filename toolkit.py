@@ -69,8 +69,10 @@ def updateHelm():
     ignore_errors=True here because helm repo list returns 1 if there are no
     repos configured"""
     ret = run("helm repo list -o yaml", captureOutput=True, ignoreErrors=True)
-    repos = {"https://charts.gitlab.io": None,
-             "https://charts.bitnami.com/bitnami": None}
+    repos = {
+        "https://charts.gitlab.io": None,
+        "https://charts.bitnami.com/bitnami": None,
+    }
     if ret != 1:
         retYaml = yaml.load(ret, Loader=yaml.SafeLoader)
         # [{'name': 'stable', 'url': 'https://charts.helm.sh/stable'},
@@ -85,7 +87,7 @@ def updateHelm():
             repoName = k.split(".")[1]
             run("helm repo add %s %s" % (repoName, k))
             repos[k] = repoName
-            
+
     run("helm repo update")
     chartsDict = {}
     for val in repos.values():
@@ -164,16 +166,34 @@ class toolkit:
     def __init__(self):
         self.conf = astraSDK.getConfig().main()
 
-    def deploy(self, chartName, repoName, appName, nameSpace):
+    def deploy(self, chartName, repoName, appName, nameSpace, domain, email):
         """Deploy a helm chart <chartName>, from helm repo <repoName>
         naming the app <appName> into <nameSpace>"""
+
+        if chartName == "gitlab":
+            assert domain is not None
+            assert email is not None
 
         # pre_apps, post_apps and apps_to_manage are hoops we jump through
         # so we only switch apps to managed that we install.
         self.preApps = astraSDK.getApps(discovered=True, namespace=nameSpace).main()
         run("kubectl create namespace %s" % nameSpace)
         run("kubectl config set-context --current --namespace=%s" % nameSpace)
-        run("helm install %s %s/%s" % (appName, repoName, chartName))
+        if chartName == "gitlab":
+            run(
+                "helm install %s %s/%s --timeout 600s "
+                "--set certmanager-issuer.email=%s "
+                "--set global.hosts.domain=%s "
+                "--set global.hosts.gitlab.name=gl-nginx-ingress-controller.%s "
+                "--set global.hosts.registry.name=registry.%s "
+                "--set global.hosts.minio.name=minio.%s "
+                "--set prometheus.alertmanager.persistentVolume.enabled=false "
+                "--set prometheus.server.persistentVolume.enabled=false "
+                "--set gitlab.gitaly.persistence.enabled=false"
+                % (appName, repoName, chartName, email, domain, domain, domain, domain)
+            )
+        else:
+            run("helm install %s %s/%s" % (appName, repoName, chartName))
         print("Waiting for Astra to discover apps.", end="")
         sys.stdout.flush()
         time.sleep(3)
@@ -385,10 +405,14 @@ if __name__ == "__main__":
         elif sys.argv[1] == "backup":
             namespaces = astraSDK.getApps(source="namespace").main()
             namespaces_list = [x for x in namespaces.keys()]
-        elif sys.argv[1] == "create" and len(sys.argv) > 2 and (
-            sys.argv[2] == "backup"
-            or sys.argv[2] == "protectionpolicy"
-            or sys.argv[2] == "snapshot"
+        elif (
+            sys.argv[1] == "create"
+            and len(sys.argv) > 2
+            and (
+                sys.argv[2] == "backup"
+                or sys.argv[2] == "protectionpolicy"
+                or sys.argv[2] == "snapshot"
+            )
         ):
             appList = [x for x in astraSDK.getApps().main()]
         elif sys.argv[1] == "manageapp":
@@ -429,14 +453,10 @@ if __name__ == "__main__":
     # subcommands "list" and "create" have subcommands as well
     #######
     subparserList = parserList.add_subparsers(
-        title="objectType",
-        dest="objectType",
-        required=True
+        title="objectType", dest="objectType", required=True
     )
     subparserCreate = parserCreate.add_subparsers(
-        title="objectType",
-        dest="objectType",
-        required=True
+        title="objectType", dest="objectType", required=True
     )
     #######
     # end of subcommand "list" and "create" subcomands
@@ -622,6 +642,18 @@ if __name__ == "__main__":
     parserDeploy.add_argument(
         "namespace", help="Namespace to deploy into (must not already exist)"
     )
+    parserDeploy.add_argument(
+        "--domain",
+        "-d",
+        required=False,
+        help="Default domain to pass gitlab deployment",
+    )
+    parserDeploy.add_argument(
+        "--email",
+        "-e",
+        required=False,
+        help="Email address for self-signed certs (gitlab only)",
+    )
     #######
     # end of deploy args and flags
     #######
@@ -722,8 +754,17 @@ if __name__ == "__main__":
 
     ret = toolkit()
     if args.subcommand == "deploy":
-        print(args.chart, chartsDict[args.chart], args.app, args.namespace)
-        ret.deploy(args.chart, chartsDict[args.chart], args.app, args.namespace)
+        if hasattr(args, "domain"):
+            domain = args.domain
+        else:
+            domain = None
+        if hasattr(args, "email"):
+            email = args.email
+        else:
+            email = None
+        ret.deploy(
+            args.chart, chartsDict[args.chart], args.app, args.namespace, domain, email
+        )
     elif args.subcommand == "list":
         if args.objectType == "apps":
             astraSDK.getApps(
