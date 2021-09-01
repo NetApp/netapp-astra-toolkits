@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="netapp-astra-toolkits",
-    version="1.0",
+    version="1.2",
     scripts=["toolkit.py"],
     py_modules=["astraSDK"],
     data_files=[("config", ["config.yaml"])],
