@@ -58,7 +58,8 @@ Edit the `config.yaml` file to add your NetApp Astra Control account information
 
 * `Authorization: Bearer`: Your API token
 * `uid`: Your Astra Control Account ID
-* `astra_project`: Your Astra Control instance (`preview` or `demo`)
+* `astra_project`: Your Astra Control instance (`preview` or `demo` ACC users put a FQDN here)
+* `verifySSL`: True or False, useful for self-signed certs. (If this field isn't included it's treated as true)
 
 You can find this information in your NetApp Astra Control account profile. Click the user icon in the upper right-hand corner, then choose **API Access** from the drop-down menu which appears.
 
