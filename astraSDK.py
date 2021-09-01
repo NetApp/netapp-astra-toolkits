@@ -22,6 +22,7 @@ import time
 import yaml
 from termcolor import colored
 import requests
+from urllib3 import disable_warnings
 
 
 class getConfig:
@@ -75,14 +76,30 @@ class getConfig:
                 print("astra_project is a required field in %s" % configFile)
                 sys.exit(3)
 
-        self.base = "https://%s.astra.netapp.io/accounts/%s/" % (
-            self.conf.get("astra_project"),
-            self.conf.get("uid"),
-        )
+        if "." in self.conf.get("astra_project"):
+            self.base = "https://%s/accounts/%s/" % (
+                self.conf.get("astra_project"),
+                self.conf.get("uid"),
+            )
+        else:
+            self.base = "https://%s.astra.netapp.io/accounts/%s/" % (
+                self.conf.get("astra_project"),
+                self.conf.get("uid"),
+            )
         self.headers = self.conf.get("headers")
 
+        if self.conf.get("verifySSL") is False:
+            disable_warnings()
+            self.verifySSL = False
+        else:
+            self.verifySSL = True
+
     def main(self):
-        return {"base": self.base, "headers": self.headers}
+        return {
+            "base": self.base,
+            "headers": self.headers,
+            "verifySSL": self.verifySSL,
+        }
 
 
 class getApps:
@@ -106,6 +123,7 @@ class getApps:
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
         self.discovered = discovered
         self.source = source
         self.namespace = namespace
@@ -127,7 +145,11 @@ class getApps:
             print(colored("API URL: %s" % self.url, "green"))
         try:
             self.ret = requests.get(
-                self.url, data=self.data, headers=self.headers, params=self.params
+                self.url,
+                data=self.data,
+                headers=self.headers,
+                params=self.params,
+                verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
@@ -279,6 +301,7 @@ class getBackups:
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
         self.apps = getApps().main()
 
     def main(self):
@@ -307,7 +330,11 @@ class getBackups:
                 print(colored("API URL: %s" % self.url, "green"))
             try:
                 self.ret = requests.get(
-                    self.url, data=self.data, headers=self.headers, params=self.params
+                    self.url,
+                    data=self.data,
+                    headers=self.headers,
+                    params=self.params,
+                    verify=self.verifySSL,
                 )
             except requests.exceptions.RequestException as e:
                 raise SystemExit(e)
@@ -382,6 +409,7 @@ class takeBackup:
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
@@ -396,7 +424,11 @@ class takeBackup:
         }
         try:
             self.ret = requests.post(
-                self.url, json=self.data, headers=self.headers, params=self.params
+                self.url,
+                json=self.data,
+                headers=self.headers,
+                params=self.params,
+                verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
@@ -437,11 +469,13 @@ class cloneApp:
     This class doesn't try to validate anything you pass it, if you give it garbage
     for any parameters the clone operation will fail.
     """
+
     def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig.getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/astra-managedApp+json"
 
@@ -471,7 +505,11 @@ class cloneApp:
 
         try:
             self.ret = requests.post(
-                self.url, json=self.data, headers=self.headers, params=self.params
+                self.url,
+                json=self.data,
+                headers=self.headers,
+                params=self.params,
+                verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
@@ -500,11 +538,13 @@ class getClusters:
     by looking at the cluster info for each app.
     Note that the API endpoint used doesn't just look at managedApps, so there
     doesn't need to be user apps installed for this technique to work."""
+
     def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
 
     def main(self):
         # Q2 installs have a much better endpoint for this
@@ -523,7 +563,11 @@ class getClusters:
             print()
         try:
             self.ret = requests.get(
-                self.url, data=self.data, headers=self.headers, params=self.params
+                self.url,
+                data=self.data,
+                headers=self.headers,
+                params=self.params,
+                verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
@@ -566,11 +610,13 @@ class createProtectionpolicy:
     to the API call itself.  toolkit.py can be used as a guide as to
     what the API requirements are in case the swagger isn't sufficient.
     """
+
     def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
         self.headers["accept"] = "application/astra-schedule+json"
         self.headers["Content-Type"] = "application/astra-schedule+json"
 
@@ -603,7 +649,11 @@ class createProtectionpolicy:
         }
         try:
             self.ret = requests.post(
-                self.url, json=self.data, headers=self.headers, params=self.params
+                self.url,
+                json=self.data,
+                headers=self.headers,
+                params=self.params,
+                verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
@@ -626,12 +676,14 @@ class createProtectionpolicy:
 
 class manageApp:
     """This class switches a discovered app to a managed app."""
+
     def __init__(self, appID, quiet=True):
         self.quiet = quiet
         self.appID = appID
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/managedApp+json"
 
@@ -646,7 +698,11 @@ class manageApp:
         }
         try:
             self.ret = requests.post(
-                self.url, json=self.data, headers=self.headers, params=self.params
+                self.url,
+                json=self.data,
+                headers=self.headers,
+                params=self.params,
+                verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
@@ -671,11 +727,13 @@ class takeSnap:
     """Take a snapshot of an app.  An AppID and snapName is provided and
     either the result JSON is returned or the snapID of the newly created
     backup is returned."""
+
     def __init__(self, output=True):
         self.output = output
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
         self.headers["accept"] = "application/astra-appSnap+json"
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
@@ -691,7 +749,11 @@ class takeSnap:
         }
         try:
             self.ret = requests.post(
-                self.url, json=self.data, headers=self.headers, params=self.params
+                self.url,
+                json=self.data,
+                headers=self.headers,
+                params=self.params,
+                verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
@@ -719,11 +781,13 @@ class getSnaps:
     one (or more) of N many apps just results in an empty list of snapshots
     for that app.
     """
+
     def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
         self.apps = getApps().main()
 
     def main(self):
@@ -753,7 +817,11 @@ class getSnaps:
                 print()
             try:
                 self.ret = requests.get(
-                    self.url, data=self.data, headers=self.headers, params=self.params
+                    self.url,
+                    data=self.data,
+                    headers=self.headers,
+                    params=self.params,
+                    verify=self.verifySSL,
                 )
             except requests.exceptions.RequestException as e:
                 raise SystemExit(e)
