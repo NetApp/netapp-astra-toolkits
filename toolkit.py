@@ -522,6 +522,20 @@ if __name__ == "__main__":
     subparserListClusters.add_argument(
         "-q", "--quiet", default=False, action="store_true", help="Supress output"
     )
+    subparserListClusters.add_argument(
+        "-m",
+        "--managed",
+        default=False,
+        action="store_true",
+        help="Hide managed clusters",
+    )
+    subparserListClusters.add_argument(
+        "-u",
+        "--unmanaged",
+        default=False,
+        action="store_true",
+        help="Hide unmanaged clusters",
+    )
     #######
     # end of list clusters args and flags
     #######
@@ -790,7 +804,9 @@ if __name__ == "__main__":
         elif args.objectType == "backups":
             astraSDK.getBackups(quiet=args.quiet).main()
         elif args.objectType == "clusters":
-            astraSDK.getClusters(quiet=args.quiet).main()
+            astraSDK.getClusters(
+                quiet=args.quiet, hideManaged=args.managed, hideUnmanaged=args.unmanaged
+            ).main()
         elif args.objectType == "clouds":
             astraSDK.getClouds(quiet=args.quiet).main()
     elif args.subcommand == "create":

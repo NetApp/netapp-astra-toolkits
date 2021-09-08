@@ -532,73 +532,81 @@ class cloneApp:
 
 
 class getClusters:
-    """List clusters that are managed by Astra.  Not that the Q2 release included
-    API endpoints that can get this infor directly from Astra.  The technique used
-    here iterates over apps running in the cluster and compiles a list of clusters
-    by looking at the cluster info for each app.
-    Note that the API endpoint used doesn't just look at managedApps, so there
-    doesn't need to be user apps installed for this technique to work."""
+    """Iterate over the clouds and list the clusters in each."""
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, hideManaged=False, hideUnmanaged=False):
         self.quiet = quiet
+        self.hideManaged = hideManaged
+        self.hideUnmanaged = hideUnmanaged
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
         self.verifySSL = self.conf.get("verifySSL")
+        self.clouds = getClouds(quiet=True).main()
 
     def main(self):
-        # Q2 installs have a much better endpoint for this
-        # TODO: detect version and use appropriate endpoint
-        self.endpoint = "topology/v1/apps"
-        self.url = self.base + self.endpoint
+        self.clusters = {}
+        for self.cloud in self.clouds:
+            self.endpoint = "topology/v1/clouds/%s/clusters" % self.cloud
+            self.url = self.base + self.endpoint
+            self.data = {}
+            self.params = {}
 
-        self.data = {}
-        self.params = {"include": "clusterName,clusterID,clusterType"}
-
-        if not self.quiet:
-            print()
-            print("Listing clusters...")
-            print()
-            print(colored("API URL: %s" % self.url, "green"))
-            print()
-        try:
-            self.ret = requests.get(
-                self.url,
-                data=self.data,
-                headers=self.headers,
-                params=self.params,
-                verify=self.verifySSL,
-            )
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
-
-        if not self.quiet:
-            print("API HTTP Status Code: %s" % self.ret.status_code)
-            print()
-        if self.ret.ok:
-            try:
-                self.results = self.ret.json()
-            except ValueError as e:
-                print("response contained invalid JSON: %s" % e)
-                self.results = None
-            self.clusters = {}
-            for item in self.results["items"]:
-                if item[1] not in self.clusters:
-                    self.clusters[item[1]] = [item[0], item[2]]
             if not self.quiet:
-                print("clusters:")
-                for item in self.clusters:
-                    print(
-                        "\tclusterName: %s\t clusterID: %s\tclusterType: %s"
-                        % (self.clusters[item][0], item, self.clusters[item][1])
-                    )
                 print()
-            return self.clusters
-        else:
+                print("Getting clusters in cloud %s (%s)..." % (self.cloud, self.clouds[self.cloud][0]))
+                print()
+                print(colored("API URL: %s" % self.url, "green"))
+                print()
+            try:
+                self.ret = requests.get(
+                    self.url,
+                    data=self.data,
+                    headers=self.headers,
+                    params=self.params,
+                    verify=self.verifySSL,
+                )
+            except requests.exceptions.RequestException as e:
+                raise SystemExit(e)
+
             if not self.quiet:
-                print(self.ret.status_code)
-                print(self.ret.reason)
-            return False
+                print("API HTTP Status Code: %s" % self.ret.status_code)
+                print()
+            if self.ret.ok:
+                try:
+                    self.results = self.ret.json()
+                except ValueError as e:
+                    print("response contained invalid JSON: %s" % e)
+                    self.results = None
+                for item in self.results["items"]:
+                    if item.get("id") not in self.clusters:
+                        if self.hideManaged:
+                            if item.get("managedState") == "managed":
+                                continue
+                        if self.hideUnmanaged:
+                            if item.get("managedState") == "unmanaged":
+                                continue
+                        self.clusters[item.get("id")] = [
+                            item.get("name"),
+                            item.get("clusterType"),
+                            item.get("managedState"),
+                            self.cloud
+                        ]
+        if not self.quiet:
+            print("clusters:")
+            for item in self.clusters:
+                print(
+                    "\tclusterName: %s\t clusterID: %s\tclusterType: %s\tmanagedState: %s"
+                    % (
+                        self.clusters[item][0],
+                        item,
+                        self.clusters[item][1],
+                        self.clusters[item][2],
+                    )
+                )
+            print()
+        else:
+            return self.clusters
 
 
 class createProtectionpolicy:
