@@ -477,6 +477,10 @@ if __name__ == "__main__":
         "clusters",
         help="list clusters",
     )
+    subparserListClouds = subparserList.add_parser(
+        "clouds",
+        help="list clouds",
+    )
     #######
     # end of list 'X'
     #######
@@ -520,6 +524,16 @@ if __name__ == "__main__":
     )
     #######
     # end of list clusters args and flags
+    #######
+
+    #######
+    # list clouds args and flags
+    #######
+    subparserListClouds.add_argument(
+        "-q", "--quiet", default=False, action="store_true", help="Supress output"
+    )
+    #######
+    # end of list clouds args and flags
     #######
 
     #######
@@ -777,6 +791,8 @@ if __name__ == "__main__":
             astraSDK.getBackups(quiet=args.quiet).main()
         elif args.objectType == "clusters":
             astraSDK.getClusters(quiet=args.quiet).main()
+        elif args.objectType == "clouds":
+            astraSDK.getClouds(quiet=args.quiet).main()
     elif args.subcommand == "create":
         if args.objectType == "backup":
             doProtectionTask(args.objectType, args.appID, args.name)

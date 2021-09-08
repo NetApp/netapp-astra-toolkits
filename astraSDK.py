@@ -865,3 +865,71 @@ class getSnaps:
             print(self.snaps)
         else:
             return self.snaps
+
+
+class getClouds:
+    def __init__(self, quiet=True):
+        self.quiet = quiet
+        self.conf = getConfig().main()
+        self.base = self.conf.get("base")
+        self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
+
+    def main(self):
+        self.endpoint = "topology/v1/clouds"
+        self.url = self.base + self.endpoint
+
+        self.data = {}
+        self.params = {"include": "id,name,state"}
+
+        if not self.quiet:
+            print()
+            print("Listing clouds...")
+            print()
+            print(colored("API URL: %s" % self.url, "green"))
+            print()
+        try:
+            self.ret = requests.get(
+                self.url,
+                data=self.data,
+                headers=self.headers,
+                params=self.params,
+                verify=self.verifySSL,
+            )
+        except requests.exceptions.RequestException as e:
+            raise SystemExit(e)
+
+        if not self.quiet:
+            print("API HTTP Status Code: %s" % self.ret.status_code)
+            print()
+        if self.ret.ok:
+            try:
+                self.results = self.ret.json()
+            except ValueError as e:
+                print("response contained invalid JSON: %s" % e)
+                self.results = None
+            self.clouds = {}
+            for item in self.results["items"]:
+                if item.get("id") not in self.clouds:
+                    self.clouds[item.get("id")] = [
+                        item.get("name"),
+                        item.get("cloudType"),
+                    ]
+            if not self.quiet:
+                print("clouds:")
+                for item in self.clouds:
+                    print(
+                        "\tcloudName: %s\t cloudID: %s\tcloudType: %s"
+                        % (
+                            self.clouds[item][0],
+                            item,
+                            self.clouds[item][1],
+                        )
+                    )
+                print()
+            return self.clouds
+        else:
+            if not self.quiet:
+                print(self.ret.status_code)
+                print(self.ret.reason)
+            return False
