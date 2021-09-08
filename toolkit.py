@@ -415,8 +415,9 @@ if __name__ == "__main__":
             )
         ):
             appList = [x for x in astraSDK.getApps().main()]
-        elif sys.argv[1] == "manageapp":
-            appList = [x for x in astraSDK.getApps(discovered=True).main()]
+        elif sys.argv[1] == "manage":
+            if sys.argv[2] == "app":
+                appList = [x for x in astraSDK.getApps(discovered=True).main()]
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(
         dest="subcommand", required=True, help="subcommand help"
@@ -441,16 +442,16 @@ if __name__ == "__main__":
         "create",
         help="Create an object",
     )
-    parserManageapp = subparsers.add_parser(
-        "manageapp",
-        help="Switch a discovered app to managed",
+    parserManage = subparsers.add_parser(
+        "manage",
+        help="Manage an object",
     )
     #######
     # End of top level subcommands
     #######
 
     #######
-    # subcommands "list" and "create" have subcommands as well
+    # subcommands "list", "create", and "manage" have subcommands as well
     #######
     subparserList = parserList.add_subparsers(
         title="objectType", dest="objectType", required=True
@@ -458,8 +459,11 @@ if __name__ == "__main__":
     subparserCreate = parserCreate.add_subparsers(
         title="objectType", dest="objectType", required=True
     )
+    subparserManage = parserManage.add_subparsers(
+        title="objectType", dest="objectType", required=True
+    )
     #######
-    # end of subcommand "list" and "create" subcomands
+    # end of subcommand "list", "create", and "manage" subcommands
     #######
 
     #######
@@ -656,6 +660,36 @@ if __name__ == "__main__":
     #######
 
     #######
+    # manage 'X'
+    #######
+    subparserManageApp = subparserManage.add_parser(
+        "app",
+        help="manage app",
+    )
+    subparserManageCluster = subparserManage.add_parser(
+        "cluster",
+        help="manage cluster",
+    )
+    #######
+    # end of manage 'X'
+    #######
+
+    #######
+    # manage app args and flags
+    #######
+    subparserManageApp.add_argument(
+        "appID",
+        choices=appList,
+        help="appID of app to move from discovered to managed",
+    )
+    subparserManageApp.add_argument(
+        "-q", "--quiet", default=False, action="store_true", help="Supress output"
+    )
+    #######
+    # end of manage app args and flags
+    #######
+
+    #######
     # deploy args and flags
     #######
     parserDeploy.add_argument(
@@ -724,21 +758,6 @@ if __name__ == "__main__":
     )
     #######
     # end of clone args and flags
-    #######
-
-    #######
-    # manageapp args and flags
-    #######
-    parserManageapp.add_argument(
-        "appID",
-        choices=appList,
-        help="appID of app to move from discovered to managed",
-    )
-    parserManageapp.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
-    )
-    #######
-    # end of manageapp args and flags
     #######
 
     args = parser.parse_args()
@@ -826,8 +845,9 @@ if __name__ == "__main__":
         elif args.objectType == "snapshot":
             doProtectionTask(args.objectType, args.appID, args.name)
 
-    elif args.subcommand == "manageapp":
-        astraSDK.manageApp(appID=args.appID, quiet=args.quiet).main()
+    elif args.subcommand == "manage":
+        if args.objectType == "app":
+            astraSDK.manageApp(appID=args.appID, quiet=args.quiet).main()
     elif args.subcommand == "clone" or args.subcommand == "restore":
         if not args.clusterID:
             print("Select destination cluster for the clone")
