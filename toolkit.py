@@ -385,6 +385,8 @@ if __name__ == "__main__":
     backup_list = []
     dest_cluster_list = []
     appList = []
+    clusterList = []
+    storageClassList = []
     if len(sys.argv) > 1:
         if sys.argv[1] == "deploy":
             chartsDict = updateHelm()
@@ -418,6 +420,25 @@ if __name__ == "__main__":
         elif sys.argv[1] == "manage":
             if sys.argv[2] == "app":
                 appList = [x for x in astraSDK.getApps(discovered=True).main()]
+            elif sys.argv[2] == "cluster":
+                clusterList = []
+                clusterDict = astraSDK.getClusters(quiet=True).main()
+                for cluster in clusterDict:
+                    if clusterDict[cluster][2] == "unmanaged":
+                        clusterList.append(cluster)
+                storageClassDict = astraSDK.getStorageClasses(quiet=True).main()
+                storageClassList = []
+                for cloud in storageClassDict:
+                    for cluster in storageClassDict[cloud]:
+                        if (
+                            len(sys.argv) > 3
+                            and sys.argv[3] in clusterList
+                            and cluster != sys.argv[3]
+                        ):
+                            continue
+                        for sc in storageClassDict[cloud][cluster]:
+                            storageClassList.append(sc)
+
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(
         dest="subcommand", required=True, help="subcommand help"
@@ -704,6 +725,26 @@ if __name__ == "__main__":
     #######
 
     #######
+    # manage cluster args and flags
+    #######
+    subparserManageCluster.add_argument(
+        "clusterID",
+        choices=clusterList,
+        help="clusterID of the cluster to manage",
+    )
+    subparserManageCluster.add_argument(
+        "storageClassID",
+        choices=storageClassList,
+        help="Default storage class ID",
+    )
+    subparserManageCluster.add_argument(
+        "-q", "--quiet", default=False, action="store_true", help="Supress output"
+    )
+    #######
+    # end of manage cluster args and flags
+    #######
+
+    #######
     # deploy args and flags
     #######
     parserDeploy.add_argument(
@@ -864,6 +905,10 @@ if __name__ == "__main__":
     elif args.subcommand == "manage":
         if args.objectType == "app":
             astraSDK.manageApp(appID=args.appID, quiet=args.quiet).main()
+        if args.objectType == "cluster":
+            astraSDK.manageCluster(
+                args.clusterID, args.storageClassID, quiet=args.quiet
+            ).main()
     elif args.subcommand == "clone" or args.subcommand == "restore":
         if not args.clusterID:
             print("Select destination cluster for the clone")

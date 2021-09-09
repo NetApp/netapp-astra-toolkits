@@ -1039,3 +1039,54 @@ class getStorageClasses:
                             )
                         )
         return self.storageClasses
+
+
+class manageCluster:
+    """This class switches an unmanaged cluster to a managed cluster"""
+
+    def __init__(self, clusterID, storageClassID, quiet=False):
+        self.quiet = quiet
+        self.clusterID = clusterID
+        self.storageClassID = storageClassID
+        self.conf = getConfig().main()
+        self.base = self.conf.get("base")
+        self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
+        self.headers["accept"] = "application/astra-managedCluster+json"
+        self.headers["Content-Type"] = "application/managedCluster+json"
+
+    def main(self):
+        self.endpoint = "topology/v1/managedClusters"
+        self.url = self.base + self.endpoint
+        self.params = {}
+        self.data = {
+            "defaultStorageClass": self.storageClassID,
+            "id": self.clusterID,
+            "type": "application/astra-managedCluster",
+            "version": "1.0",
+        }
+        try:
+            self.ret = requests.post(
+                self.url,
+                json=self.data,
+                headers=self.headers,
+                params=self.params,
+                verify=self.verifySSL,
+            )
+        except requests.exceptions.RequestException as e:
+            raise SystemExit(e)
+
+        if self.ret.ok:
+            try:
+                self.results = self.ret.json()
+            except ValueError as e:
+                print("response contained invalid JSON: %s" % e)
+                self.results = None
+            if not self.quiet:
+                print(self.results)
+            return True
+        else:
+            if not self.quiet:
+                print(self.ret.status_code)
+                print(self.ret.reason)
+            return False
