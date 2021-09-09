@@ -485,6 +485,10 @@ if __name__ == "__main__":
         "clouds",
         help="list clouds",
     )
+    subparserListStorageClasses = subparserList.add_parser(
+        "storageclasses",
+        help="list storageclasses",
+    )
     #######
     # end of list 'X'
     #######
@@ -552,6 +556,16 @@ if __name__ == "__main__":
     )
     #######
     # end of list clouds args and flags
+    #######
+
+    #######
+    # list storageclasses args and flags
+    #######
+    subparserListStorageClasses.add_argument(
+        "-q", "--quiet", default=False, action="store_true", help="Supress output"
+    )
+    #######
+    # end of list storageclasses args and flags
     #######
 
     #######
@@ -828,6 +842,8 @@ if __name__ == "__main__":
             ).main()
         elif args.objectType == "clouds":
             astraSDK.getClouds(quiet=args.quiet).main()
+        elif args.objectType == "storageclasses":
+            astraSDK.getStorageClasses(quiet=args.quiet).main()
     elif args.subcommand == "create":
         if args.objectType == "backup":
             doProtectionTask(args.objectType, args.appID, args.name)

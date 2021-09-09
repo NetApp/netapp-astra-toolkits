@@ -554,7 +554,10 @@ class getClusters:
 
             if not self.quiet:
                 print()
-                print("Getting clusters in cloud %s (%s)..." % (self.cloud, self.clouds[self.cloud][0]))
+                print(
+                    "Getting clusters in cloud %s (%s)..."
+                    % (self.cloud, self.clouds[self.cloud][0])
+                )
                 print()
                 print(colored("API URL: %s" % self.url, "green"))
                 print()
@@ -590,7 +593,7 @@ class getClusters:
                             item.get("name"),
                             item.get("clusterType"),
                             item.get("managedState"),
-                            self.cloud
+                            self.cloud,
                         ]
         if not self.quiet:
             print("clusters:")
@@ -941,3 +944,98 @@ class getClouds:
                 print(self.ret.status_code)
                 print(self.ret.reason)
             return False
+
+
+class getStorageClasses:
+    def __init__(self, quiet=True):
+        self.quiet = quiet
+        self.conf = getConfig().main()
+        self.base = self.conf.get("base")
+        self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
+        self.clouds = getClouds().main()
+        self.clusters = getClusters().main()
+
+    def main(self):
+        self.storageClasses = {}
+        for self.cloud in self.clouds:
+            self.storageClasses[self.cloud] = {}
+            for self.cluster in self.clusters:
+                # exclude invalid combinations of cloud/cluster
+                if self.clusters[self.cluster][3] != self.cloud:
+                    continue
+                self.storageClasses[self.cloud][self.cluster] = {}
+                self.endpoint = "topology/v1/clouds/%s/clusters/%s/storageClasses" % (
+                    self.cloud,
+                    self.cluster,
+                )
+                self.url = self.base + self.endpoint
+
+                self.data = {}
+                self.params = {}
+
+                if not self.quiet:
+                    print()
+                    print(
+                        "Listing StorageClasses for cluster: %s in cloud: %s"
+                        % (self.cluster, self.cloud)
+                    )
+                    print()
+                    print(colored("API URL: %s" % self.url, "green"))
+                    print(colored("API Method: GET", "green"))
+                    print(colored("API Headers: %s" % self.headers, "green"))
+                    print(colored("API data: %s" % self.data, "green"))
+                    print(colored("API params: %s" % self.params, "green"))
+                    print()
+                    time.sleep(1)
+                    print("Making API Call", end="", flush=True)
+                    for i in range(3):
+                        print(".", end="", flush=True)
+                        time.sleep(1)
+                    print()
+                try:
+                    self.ret = requests.get(
+                        self.url,
+                        data=self.data,
+                        headers=self.headers,
+                        params=self.params,
+                        verify=self.verifySSL,
+                    )
+                except requests.exceptions.RequestException as e:
+                    raise SystemExit(e)
+
+                if not self.quiet:
+                    print("API HTTP Status Code: %s" % self.ret.status_code)
+                    print()
+                if self.ret.ok:
+                    try:
+                        self.results = self.ret.json()
+                    except ValueError:
+                        print("response contained invalid JSON")
+                        continue
+                    for entry in self.results.get("items"):
+                        self.storageClasses[self.cloud][self.cluster][
+                            entry.get("id")
+                        ] = entry.get("name")
+
+        if not self.quiet:
+            for self.cloud in self.storageClasses:
+                print("cloud: %s (%s)" % (self.cloud, self.clouds[self.cloud][0]))
+                for self.cluster in self.storageClasses[self.cloud]:
+                    print(
+                        "\tcluster: %s (%s)"
+                        % (self.cluster, self.clusters[self.cluster][0])
+                    )
+                    for self.storageClass in self.storageClasses[self.cloud][
+                        self.cluster
+                    ]:
+                        print(
+                            "\t\tstorage class: %s (%s)"
+                            % (
+                                self.storageClass,
+                                self.storageClasses[self.cloud][self.cluster][
+                                    self.storageClass
+                                ],
+                            )
+                        )
+        return self.storageClasses
