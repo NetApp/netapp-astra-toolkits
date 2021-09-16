@@ -472,7 +472,7 @@ class cloneApp:
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig.getConfig().main()
+        self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
         self.verifySSL = self.conf.get("verifySSL")
