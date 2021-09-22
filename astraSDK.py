@@ -345,7 +345,6 @@ class getBackups:
             if self.ret.ok:
                 try:
                     self.results = self.ret.json()
-                    print("self.results: %s" % self.results)
                 except ValueError:
                     print("response contained invalid JSON")
                     continue
@@ -843,7 +842,6 @@ class getSnaps:
             if self.ret.ok:
                 try:
                     self.results = self.ret.json()
-                    print("self.results: %s" % self.results)
                 except ValueError:
                     print("response contained invalid JSON")
                     continue
