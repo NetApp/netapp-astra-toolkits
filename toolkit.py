@@ -498,13 +498,17 @@ if __name__ == "__main__":
         "backups",
         help="list backups",
     )
+    subparserListClouds = subparserList.add_parser(
+        "clouds",
+        help="list clouds",
+    )
     subparserListClusters = subparserList.add_parser(
         "clusters",
         help="list clusters",
     )
-    subparserListClouds = subparserList.add_parser(
-        "clouds",
-        help="list clouds",
+    subparserListSnapshots = subparserList.add_parser(
+        "snapshots",
+        help="list snapshots",
     )
     subparserListStorageClasses = subparserList.add_parser(
         "storageclasses",
@@ -546,6 +550,16 @@ if __name__ == "__main__":
     #######
 
     #######
+    # list clouds args and flags
+    #######
+    subparserListClouds.add_argument(
+        "-q", "--quiet", default=False, action="store_true", help="Supress output"
+    )
+    #######
+    # end of list clouds args and flags
+    #######
+
+    #######
     # list clusters args and flags
     #######
     subparserListClusters.add_argument(
@@ -570,13 +584,13 @@ if __name__ == "__main__":
     #######
 
     #######
-    # list clouds args and flags
+    # list snapshots args and flags
     #######
-    subparserListClouds.add_argument(
+    subparserListSnapshots.add_argument(
         "-q", "--quiet", default=False, action="store_true", help="Supress output"
     )
     #######
-    # end of list clouds args and flags
+    # end of list snapshots args and flags
     #######
 
     #######
@@ -877,12 +891,14 @@ if __name__ == "__main__":
             ).main()
         elif args.objectType == "backups":
             astraSDK.getBackups(quiet=args.quiet).main()
+        elif args.objectType == "clouds":
+            astraSDK.getClouds(quiet=args.quiet).main()
         elif args.objectType == "clusters":
             astraSDK.getClusters(
                 quiet=args.quiet, hideManaged=args.managed, hideUnmanaged=args.unmanaged
             ).main()
-        elif args.objectType == "clouds":
-            astraSDK.getClouds(quiet=args.quiet).main()
+        elif args.objectType == "snapshots":
+            astraSDK.getSnaps(quiet=args.quiet).main()
         elif args.objectType == "storageclasses":
             astraSDK.getStorageClasses(quiet=args.quiet).main()
     elif args.subcommand == "create":
