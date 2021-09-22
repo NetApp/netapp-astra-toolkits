@@ -417,7 +417,7 @@ if __name__ == "__main__":
             )
         ):
             appList = [x for x in astraSDK.getApps().main()]
-        elif sys.argv[1] == "manage":
+        elif sys.argv[1] == "manage" and len(sys.argv) > 2:
             if sys.argv[2] == "app":
                 appList = [x for x in astraSDK.getApps(discovered=True).main()]
             elif sys.argv[2] == "cluster":
