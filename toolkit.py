@@ -546,6 +546,9 @@ if __name__ == "__main__":
     # list backups args and flags
     #######
     subparserListBackups.add_argument(
+        "-a", "--app", default=None, help="Only show backups from this app"
+    )
+    subparserListBackups.add_argument(
         "-q", "--quiet", default=False, action="store_true", help="Supress output"
     )
     #######
@@ -589,6 +592,9 @@ if __name__ == "__main__":
     #######
     # list snapshots args and flags
     #######
+    subparserListSnapshots.add_argument(
+        "-a", "--app", default=None, help="Only show snapshots from this app"
+    )
     subparserListSnapshots.add_argument(
         "-q", "--quiet", default=False, action="store_true", help="Supress output"
     )
@@ -894,7 +900,7 @@ if __name__ == "__main__":
                 cluster=args.cluster,
             ).main()
         elif args.objectType == "backups":
-            astraSDK.getBackups(quiet=args.quiet).main()
+            astraSDK.getBackups(quiet=args.quiet, appFilter=args.app).main()
         elif args.objectType == "clouds":
             astraSDK.getClouds(quiet=args.quiet).main()
         elif args.objectType == "clusters":
@@ -902,7 +908,7 @@ if __name__ == "__main__":
                 quiet=args.quiet, hideManaged=args.managed, hideUnmanaged=args.unmanaged
             ).main()
         elif args.objectType == "snapshots":
-            astraSDK.getSnaps(quiet=args.quiet).main()
+            astraSDK.getSnaps(quiet=args.quiet, appFilter=args.app).main()
         elif args.objectType == "storageclasses":
             astraSDK.getStorageClasses(quiet=args.quiet).main()
     elif args.subcommand == "create":

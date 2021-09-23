@@ -346,13 +346,14 @@ class getBackups:
     for that app.
     """
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, appFilter=None):
         self.quiet = quiet
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
         self.verifySSL = self.conf.get("verifySSL")
         self.apps = getApps().main()
+        self.appFilter = appFilter
 
     def main(self):
         """self.apps = {'739e7b1f-a71a-42bd-ac6f-db3ff9131133':
@@ -367,6 +368,9 @@ class getBackups:
         """
         self.backups = {}
         for self.app in self.apps:
+            if self.appFilter:
+                if self.apps[self.app][0] != self.appFilter:
+                    continue
             self.endpoint = "k8s/v1/managedApps/%s/appBackups" % self.app  # appID
             self.url = self.base + self.endpoint
 
@@ -842,17 +846,21 @@ class getSnaps:
     for that app.
     """
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, appFilter=None):
         self.quiet = quiet
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
         self.verifySSL = self.conf.get("verifySSL")
         self.apps = getApps().main()
+        self.appFilter = appFilter
 
     def main(self):
         self.snaps = {}
         for self.app in self.apps:
+            if self.appFilter:
+                if self.apps[self.app][0] != self.appFilter:
+                    continue
             self.endpoint = "k8s/v1/managedApps/%s/appSnaps" % self.app
             self.url = self.base + self.endpoint
 
