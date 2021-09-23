@@ -535,6 +535,9 @@ if __name__ == "__main__":
     subparserListApps.add_argument(
         "-n", "--namespace", default=None, help="Only show apps from this namespace"
     )
+    subparserListApps.add_argument(
+        "-c", "--cluster", default=None, help="Only show apps from this cluster"
+    )
     #######
     # end of list apps args and flags
     #######
@@ -888,6 +891,7 @@ if __name__ == "__main__":
                 discovered=args.unmanaged,
                 source=args.source,
                 namespace=args.namespace,
+                cluster=args.cluster,
             ).main()
         elif args.objectType == "backups":
             astraSDK.getBackups(quiet=args.quiet).main()

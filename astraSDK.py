@@ -118,7 +118,9 @@ class getApps:
     One thing this class won't do is list all of the managed and unmanaged apps.
     """
 
-    def __init__(self, quiet=True, discovered=False, source=None, namespace=None):
+    def __init__(
+        self, quiet=True, discovered=False, source=None, namespace=None, cluster=None
+    ):
         self.quiet = quiet
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
@@ -127,6 +129,7 @@ class getApps:
         self.discovered = discovered
         self.source = source
         self.namespace = namespace
+        self.cluster = cluster
 
     def main(self):
         self.endpoint = "topology/v1/apps"
@@ -225,47 +228,94 @@ class getApps:
             else:
                 managedFilter = "managed"
 
-            # There's really 8 cases here.  managed or unmanaged, each with four combinations
-            # of self.source and self.namespace
+            # There's really 16 cases here.  managed or unmanaged, each with eight combinations
+            # of self.source, self.namespace, and self.cluster
             # self.source    |y|n|
             # self.namespace |y|n|
+            # self.cluster   |y|n|
             if self.source:
                 if self.namespace:
-                    # case 1: filter on source and namespace
-                    self.apps_cooked = {
-                        k: v
-                        for (k, v) in self.apps.items()
-                        if v[0] not in systemApps
-                        and v[3] == self.namespace
-                        and v[5] == managedFilter
-                        and v[6] == self.source
-                    }
+                    if self.cluster:
+                        # case 1: filter on source, namespace, and cluster
+                        self.apps_cooked = {
+                            k: v
+                            for (k, v) in self.apps.items()
+                            if v[0] not in systemApps
+                            and v[1] == self.cluster
+                            and v[3] == self.namespace
+                            and v[5] == managedFilter
+                            and v[6] == self.source
+                        }
+                    else:
+                        # case 2: filter on source, namespace
+                        self.apps_cooked = {
+                            k: v
+                            for (k, v) in self.apps.items()
+                            if v[0] not in systemApps
+                            and v[3] == self.namespace
+                            and v[5] == managedFilter
+                            and v[6] == self.source
+                        }
                 else:
-                    # case 2: filter on source
-                    self.apps_cooked = {
-                        k: v
-                        for (k, v) in self.apps.items()
-                        if v[0] not in systemApps
-                        and v[5] == managedFilter
-                        and v[6] == self.source
-                    }
+                    if self.cluster:
+                        # case 3: filter on source, cluster
+                        self.apps_cooked = {
+                            k: v
+                            for (k, v) in self.apps.items()
+                            if v[0] not in systemApps
+                            and v[1] == self.cluster
+                            and v[5] == managedFilter
+                            and v[6] == self.source
+                        }
+                    else:
+                        # case 4: filter on source
+                        self.apps_cooked = {
+                            k: v
+                            for (k, v) in self.apps.items()
+                            if v[0] not in systemApps
+                            and v[5] == managedFilter
+                            and v[6] == self.source
+                        }
             else:
-                # case 3: filter on namespace
                 if self.namespace:
-                    self.apps_cooked = {
-                        k: v
-                        for (k, v) in self.apps.items()
-                        if v[0] not in systemApps
-                        and v[3] == self.namespace
-                        and v[5] == managedFilter
-                    }
+                    if self.cluster:
+                        # case 5: filter on namespace, cluster
+                        if self.namespace:
+                            self.apps_cooked = {
+                                k: v
+                                for (k, v) in self.apps.items()
+                                if v[0] not in systemApps
+                                and v[1] == self.cluster
+                                and v[3] == self.namespace
+                                and v[5] == managedFilter
+                            }
+                    else:
+                        # case 6: filter on namespace
+                        if self.namespace:
+                            self.apps_cooked = {
+                                k: v
+                                for (k, v) in self.apps.items()
+                                if v[0] not in systemApps
+                                and v[3] == self.namespace
+                                and v[5] == managedFilter
+                            }
                 else:
-                    # case 4: not filtering on source OR namespace
-                    self.apps_cooked = {
-                        k: v
-                        for (k, v) in self.apps.items()
-                        if v[0] not in systemApps and v[5] == managedFilter
-                    }
+                    if self.cluster:
+                        # case 7: filtering on cluster, but not source or namespace
+                        self.apps_cooked = {
+                            k: v
+                            for (k, v) in self.apps.items()
+                            if v[0] not in systemApps
+                            and v[1] == self.cluster
+                            and v[5] == managedFilter
+                        }
+                    else:
+                        # case 8: not filtering on source, namespace, OR cluster
+                        self.apps_cooked = {
+                            k: v
+                            for (k, v) in self.apps.items()
+                            if v[0] not in systemApps and v[5] == managedFilter
+                        }
 
             if not self.quiet:
                 print("apps:")
