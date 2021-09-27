@@ -17,8 +17,10 @@
 
 import astraSDK
 import argparse
+import os
 import subprocess
 import sys
+import tempfile
 import time
 import yaml
 
@@ -72,6 +74,7 @@ def updateHelm():
     repos = {
         "https://charts.gitlab.io": None,
         "https://charts.bitnami.com/bitnami": None,
+        "https://charts.cloudbees.com/public/cloudbees": None,
     }
     if ret != 1:
         retYaml = yaml.load(ret, Loader=yaml.SafeLoader)
@@ -192,6 +195,81 @@ class toolkit:
                 "--set gitlab.gitaly.persistence.enabled=false"
                 % (appName, repoName, chartName, email, domain, domain, domain, domain)
             )
+        elif chartName == "cloudbees-core":
+            run(
+                "helm install %s %s/%s --set ingress-nginx.Enabled=true"
+                % (appName, repoName, chartName)
+            )
+            # I could've included straight up YAML here but that seemed..the opposite of elegent.
+            cbPatch = {
+                "kind": "StatefulSet",
+                "spec": {
+                    "template": {
+                        "spec": {
+                            "containers": [
+                                {
+                                    "name": "jenkins",
+                                    "securityContext": {"runAsUser": 1000},
+                                }
+                            ],
+                            "initContainers": [
+                                {
+                                    "name": "init-chown",
+                                    "image": "alpine",
+                                    "env": [
+                                        {
+                                            "name": "JENKINS_HOME",
+                                            "value": "/var/jenkins_home",
+                                        },
+                                        {"name": "MARKER", "value": ".cplt2-5503"},
+                                        {"name": "UID", "value": "1000"},
+                                    ],
+                                    "command": [
+                                        "sh",
+                                        "-c",
+                                        "if [ ! -f $JENKINS_HOME/$MARKER ]; then chown $UID:$UID -R $JENKINS_HOME; touch $JENKINS_HOME/$MARKER; chown $UID:$UID $JENKINS_HOME/$MARKER; fi",
+                                    ],
+                                    "volumeMounts": [
+                                        {
+                                            "mountPath": "/var/jenkins_home",
+                                            "name": "jenkins-home",
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    }
+                },
+            }
+            # Convert the inline data structure into YAML so that
+            # kubectl patch can consume it
+            cbPatchYaml = yaml.dump(cbPatch)
+            tmp = tempfile.NamedTemporaryFile()
+            tmp.write(bytes(cbPatchYaml, 'utf-8'))
+            tmp.seek(0)
+            # Use os.system a few times  because run() simply isn't up to the task
+            try:
+                # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
+                # were used
+                ret = os.system('kubectl patch statefulset.apps/cjoc -p "$(cat %s)"' % tmp.name)
+            except OSError as e:
+                print("Exception: %s" % e)
+                sys.exit(11)
+            if ret:
+                print("os.system exited with RC: %s" % ret)
+                sys.exit(12)
+            tmp.close()
+            try:
+                os.system(
+                    "kubectl scale sts cjoc --replicas=0 && "
+                    "sleep 10 && kubectl scale sts cjoc --replicas=1"
+                )
+            except OSError as e:
+                print("Exception: %s" % e)
+                sys.exit(13)
+            if ret:
+                print("os.system exited with RC: %s" % ret)
+                sys.exit(14)
         else:
             run("helm install %s %s/%s" % (appName, repoName, chartName))
         print("Waiting for Astra to discover apps.", end="")
