@@ -507,7 +507,8 @@ class cloneApp:
     """Clone a backup into a new app, in a new namespace.  Note that Astra doesn't
     currently support in place restores.
 
-    If backupID is provided sourceAppID is optional.
+    Either backupID or sourceAppID is required.
+
     The sourceClusterID is something you'd think would be optional, but it
     is required as well.  Even worse, Astra knows what the (only) correct answer
     is and requires you to provide it anyways.
@@ -535,12 +536,14 @@ class cloneApp:
     def main(
         self,
         cloneName,
-        backupID,
         clusterID,
         sourceClusterID,
         namespace,
+        backupID=None,
         sourceAppID=None,
     ):
+        assert backupID or sourceAppID
+
         self.endpoint = "k8s/v1/managedApps"
         self.url = self.base + self.endpoint
         self.params = {}
@@ -548,13 +551,14 @@ class cloneApp:
             "type": "application/astra-managedApp",
             "version": "1.0",
             "name": cloneName,
-            "backupID": backupID,
             "clusterID": clusterID,
             "sourceClusterID": sourceClusterID,
             "namespace": namespace,
         }
         if sourceAppID:
             self.data["sourceAppID"] = sourceAppID
+        if backupID:
+            self.data["backupID"] = backupID
 
         try:
             self.ret = requests.post(
