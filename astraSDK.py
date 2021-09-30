@@ -118,26 +118,20 @@ class getApps:
     One thing this class won't do is list all of the managed and unmanaged apps.
     """
 
-    def __init__(
-        self, quiet=True, discovered=False, source=None, namespace=None, cluster=None
-    ):
+    def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
         self.verifySSL = self.conf.get("verifySSL")
-        self.discovered = discovered
-        self.source = source
-        self.namespace = namespace
-        self.cluster = cluster
 
-    def main(self):
-        self.endpoint = "topology/v1/apps"
-        self.params = {
+    def main(self, discovered=False, source=None, namespace=None, cluster=None):
+        endpoint = "topology/v1/apps"
+        params = {
             "include": "name,id,clusterName,clusterID,namespace,state,managedState,appDefnSource"
         }
-        self.url = self.base + self.endpoint
-        self.data = {}
+        url = self.base + endpoint
+        data = {}
 
         # self.quiet = True if the CLI was run with -q or
         # we've been imported and called as a library
@@ -147,11 +141,11 @@ class getApps:
             print()
             print(colored("API URL: %s" % self.url, "green"))
         try:
-            self.ret = requests.get(
-                self.url,
-                data=self.data,
+            ret = requests.get(
+                url,
+                data=data,
                 headers=self.headers,
-                params=self.params,
+                params=params,
                 verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
@@ -160,12 +154,12 @@ class getApps:
         if not self.quiet:
             print("API HTTP Status Code: %s" % self.ret.status_code)
             print()
-        if self.ret.ok:
+        if ret.ok:
             try:
-                self.results = self.ret.json()
+                results = ret.json()
             except ValueError:
                 print("Results contained illegal JSON")
-                self.results = None
+                results = None
             """
             "name,id,clusterName,clusterID,namespace,state,managedState,appDefnSource"
             self.results = {'items':
@@ -192,14 +186,14 @@ class getApps:
                   'jp3k', 'running', 'unmanaged', 'helm']],
                             'metadata': {}}
             """
-            self.apps = {}
-            for self.item in self.results.get("items"):
-                # make self.item[1] the key in self.apps
-                if self.item[1] not in self.apps:
-                    self.appID = self.item.pop(1)
-                    self.apps[self.appID] = self.item
+            apps = {}
+            for item in results.get("items"):
+                # make item[1] the key in self.apps
+                if item[1] not in apps:
+                    appID = item.pop(1)
+                    apps[appID] = item
             """
-            self.apps:
+            apps:
                 {'65ae3322-a1d1-4287-8d01-a3180e7d4ff4':
                     ['kube-system', 'cluster-1-jp', '29df26ee-7a8e-4ed9-a76c-d49f39d54185',
                      'kube-system', 'running', 'unmanaged', 'other'],
@@ -223,119 +217,119 @@ class getApps:
                      'jp3k', 'running', 'unmanaged', 'helm']}
             """
             systemApps = ["trident", "kube-system"]
-            if self.discovered:
+            if discovered:
                 managedFilter = "unmanaged"
             else:
                 managedFilter = "managed"
 
             # There's really 16 cases here.  managed or unmanaged, each with eight combinations
-            # of self.source, self.namespace, and self.cluster
-            # self.source    |y|n|
-            # self.namespace |y|n|
-            # self.cluster   |y|n|
-            if self.source:
-                if self.namespace:
-                    if self.cluster:
+            # of source, namespace, and cluster
+            # source    |y|n|
+            # namespace |y|n|
+            # cluster   |y|n|
+            if source:
+                if namespace:
+                    if cluster:
                         # case 1: filter on source, namespace, and cluster
-                        self.apps_cooked = {
+                        appsCooked = {
                             k: v
-                            for (k, v) in self.apps.items()
+                            for (k, v) in apps.items()
                             if v[0] not in systemApps
-                            and v[1] == self.cluster
-                            and v[3] == self.namespace
+                            and v[1] == cluster
+                            and v[3] == namespace
                             and v[5] == managedFilter
-                            and v[6] == self.source
+                            and v[6] == source
                         }
                     else:
                         # case 2: filter on source, namespace
-                        self.apps_cooked = {
+                        appsCooked = {
                             k: v
-                            for (k, v) in self.apps.items()
+                            for (k, v) in apps.items()
                             if v[0] not in systemApps
-                            and v[3] == self.namespace
+                            and v[3] == namespace
                             and v[5] == managedFilter
-                            and v[6] == self.source
+                            and v[6] == source
                         }
                 else:
-                    if self.cluster:
+                    if cluster:
                         # case 3: filter on source, cluster
-                        self.apps_cooked = {
+                        appsCooked = {
                             k: v
-                            for (k, v) in self.apps.items()
+                            for (k, v) in apps.items()
                             if v[0] not in systemApps
-                            and v[1] == self.cluster
+                            and v[1] == cluster
                             and v[5] == managedFilter
-                            and v[6] == self.source
+                            and v[6] == source
                         }
                     else:
                         # case 4: filter on source
-                        self.apps_cooked = {
+                        appsCooked = {
                             k: v
-                            for (k, v) in self.apps.items()
+                            for (k, v) in apps.items()
                             if v[0] not in systemApps
                             and v[5] == managedFilter
-                            and v[6] == self.source
+                            and v[6] == source
                         }
             else:
-                if self.namespace:
-                    if self.cluster:
+                if namespace:
+                    if cluster:
                         # case 5: filter on namespace, cluster
-                        if self.namespace:
-                            self.apps_cooked = {
+                        if namespace:
+                            appsCooked = {
                                 k: v
-                                for (k, v) in self.apps.items()
+                                for (k, v) in apps.items()
                                 if v[0] not in systemApps
-                                and v[1] == self.cluster
-                                and v[3] == self.namespace
+                                and v[1] == cluster
+                                and v[3] == namespace
                                 and v[5] == managedFilter
                             }
                     else:
                         # case 6: filter on namespace
-                        if self.namespace:
-                            self.apps_cooked = {
+                        if namespace:
+                            appsCooked = {
                                 k: v
-                                for (k, v) in self.apps.items()
+                                for (k, v) in apps.items()
                                 if v[0] not in systemApps
-                                and v[3] == self.namespace
+                                and v[3] == namespace
                                 and v[5] == managedFilter
                             }
                 else:
-                    if self.cluster:
+                    if cluster:
                         # case 7: filtering on cluster, but not source or namespace
-                        self.apps_cooked = {
+                        appsCooked = {
                             k: v
-                            for (k, v) in self.apps.items()
+                            for (k, v) in apps.items()
                             if v[0] not in systemApps
-                            and v[1] == self.cluster
+                            and v[1] == cluster
                             and v[5] == managedFilter
                         }
                     else:
                         # case 8: not filtering on source, namespace, OR cluster
-                        self.apps_cooked = {
+                        appsCooked = {
                             k: v
-                            for (k, v) in self.apps.items()
+                            for (k, v) in apps.items()
                             if v[0] not in systemApps and v[5] == managedFilter
                         }
 
             if not self.quiet:
                 print("apps:")
-                for self.item in self.apps_cooked:
+                for item in appsCooked:
                     print(
                         "\tappName: %s\t appID: %s\t clusterName: %s\t namespace: %s\t state: %s"
                         % (
-                            self.apps_cooked[self.item][0],
-                            self.item,
-                            self.apps_cooked[self.item][1],
-                            self.apps_cooked[self.item][3],
-                            self.apps_cooked[self.item][4],
+                            appsCooked[item][0],
+                            item,
+                            appsCooked[item][1],
+                            appsCooked[item][3],
+                            appsCooked[item][4],
                         )
                     )
                 print()
-            return self.apps_cooked
+            return appsCooked
         else:
             if not self.quiet:
-                print(self.ret.status_code)
-                print(self.ret.reason)
+                print(ret.status_code)
+                print(ret.reason)
             return False
 
 

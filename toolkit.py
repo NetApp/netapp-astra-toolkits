@@ -177,9 +177,10 @@ class toolkit:
             assert domain is not None
             assert email is not None
 
-        # pre_apps, post_apps and apps_to_manage are hoops we jump through
+        getApps = astraSDK.getApps()
+        # preApps, postApps and appsToManage are hoops we jump through
         # so we only switch apps to managed that we install.
-        self.preApps = astraSDK.getApps(discovered=True, namespace=nameSpace).main()
+        preApps = getApps.main(discovered=True, namespace=nameSpace)
         run("kubectl create namespace %s" % nameSpace)
         run("kubectl config set-context --current --namespace=%s" % nameSpace)
         if chartName == "gitlab":
@@ -245,13 +246,15 @@ class toolkit:
             # kubectl patch can consume it
             cbPatchYaml = yaml.dump(cbPatch)
             tmp = tempfile.NamedTemporaryFile()
-            tmp.write(bytes(cbPatchYaml, 'utf-8'))
+            tmp.write(bytes(cbPatchYaml, "utf-8"))
             tmp.seek(0)
-            # Use os.system a few times  because run() simply isn't up to the task
+            # Use os.system a few times because run() simply isn't up to the task
             try:
                 # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
                 # were used
-                ret = os.system('kubectl patch statefulset.apps/cjoc -p "$(cat %s)"' % tmp.name)
+                ret = os.system(
+                    'kubectl patch statefulset.apps/cjoc -p "$(cat %s)"' % tmp.name
+                )
             except OSError as e:
                 print("Exception: %s" % e)
                 sys.exit(11)
@@ -275,39 +278,33 @@ class toolkit:
         print("Waiting for Astra to discover apps.", end="")
         sys.stdout.flush()
         time.sleep(3)
-        self.postApps = astraSDK.getApps(discovered=True, namespace=nameSpace).main()
+        postApps = getApps.main(discovered=True, namespace=nameSpace)
 
-        while self.preApps == self.postApps:
+        while preApps == postApps:
             # It takes Astra some time to realize new apps have been installed
             print(".", end="")
             sys.stdout.flush()
             time.sleep(3)
-            self.postApps = astraSDK.getApps(
-                discovered=True, namespace=nameSpace
-            ).main()
+            postApps = getApps.main(discovered=True, namespace=nameSpace)
         print("Discovery complete!")
         sys.stdout.flush()
 
         # self.apps_to_manage will be logically self.post_apps - self.pre_apps
-        self.appsToManage = {
-            self.k: self.v
-            for (self.k, self.v) in self.postApps.items()
-            if self.k not in self.preApps.keys()
-        }
-        for self.app in self.appsToManage:
+        appsToManage = {k: v for (k, v) in postApps.items() if k not in preApps.keys()}
+        for app in appsToManage:
             # Spin on managing apps.  Astra Control won't allow switching an
             # app that is in the pending state to managed.  So we retry endlessly
             # with the assumption that eventually the app will switch from
             # pending to running and the manageapp call will succeed.
             # (Note this is taking > 8 minutes in Q2)
-            print("Managing: %s." % self.app, end="")
+            print("Managing: %s." % app, end="")
             sys.stdout.flush()
-            rv = astraSDK.manageApp(self.app).main()
+            rv = astraSDK.manageApp(app).main()
             while not rv:
                 print(".", end="")
                 sys.stdout.flush()
                 time.sleep(3)
-                rv = astraSDK.manageApp(self.app).main()
+                rv = astraSDK.manageApp(app).main()
             print("Success.")
             sys.stdout.flush()
 
@@ -318,22 +315,20 @@ class toolkit:
         sys.stdout.flush()
         loop = True
         while loop:
-            self.appID = None
-            self.applist = astraSDK.getApps(
-                source="namespace", namespace=nameSpace
-            ).main()
-            for self.item in self.applist:
-                if self.applist[self.item][0] == nameSpace:
-                    self.appID = self.item
+            appID = None
+            applist = getApps.main(source="namespace", namespace=nameSpace)
+            for item in applist:
+                if applist[item][0] == nameSpace:
+                    appID = item
                     print("Found")
                     sys.stdout.flush()
                     loop = False
                     break
-            if self.appID is None:
+            if appID is None:
                 print("appID wasn't found")
                 sys.stdout.flush()
                 # So what this tells you is that astra wasn't finished discovering apps
-                # when self.preApps became != self.postApps
+                # when preApps became != postApps
                 # (Astra doesn't discover things atomically)
                 # potification:
                 # We may have found the namespace and there might be other apps Astra didn't
@@ -349,10 +344,10 @@ class toolkit:
                     # reallyPostApps is a bad name.  It will contain a discovered app that is
                     # a namespace and has a specific name.  There will only ever be one app
                     # that matches.
-                    self.reallyPostApps = astraSDK.getApps(
+                    reallyPostApps = getApps.main(
                         discovered=True, source="namespace", namespace=nameSpace
-                    ).main()
-                    if not self.reallyPostApps:
+                    )
+                    if not reallyPostApps:
                         time.sleep(3)
                         print(".", end="")
                         sys.stdout.flush()
@@ -360,38 +355,38 @@ class toolkit:
                         print("Discovered.")
                         sys.stdout.flush()
                         break
-                for self.appID in self.reallyPostApps:
-                    print("Managing: %s" % self.appID)
-                    astraSDK.manageApp(self.appID).main()
+                for appID in reallyPostApps:
+                    print("Managing: %s" % appID)
+                    astraSDK.manageApp(appID).main()
                 loop = False
         # and then create a protection policy on that namespace (using it's appID)
-        self.backupRetention = "1"
-        self.snapshotRetention = "1"
-        self.minute = "0"
-        self.cpp = astraSDK.createProtectionpolicy(quiet=True)
-        self.cppData = {
+        backupRetention = "1"
+        snapshotRetention = "1"
+        minute = "0"
+        cpp = astraSDK.createProtectionpolicy(quiet=True)
+        cppData = {
             "hourly": {"dayOfWeek": "*", "dayOfMonth": "*", "hour": "*"},
             "daily": {"dayOfWeek": "*", "dayOfMonth": "*", "hour": "2"},
             "weekly": {"dayOfWeek": "0", "dayOfMonth": "*", "hour": "2"},
             "monthly": {"dayOfWeek": "*", "dayOfMonth": "1", "hour": "2"},
         }
-        for self.period in self.cppData:
-            print("Setting %s protection policy on %s" % (self.period, self.appID))
-            self.dayOfWeek = self.cppData[self.period]["dayOfWeek"]
-            self.dayOfMonth = self.cppData[self.period]["dayOfMonth"]
-            self.hour = self.cppData[self.period]["hour"]
-            cppRet = self.cpp.main(
-                self.period,
-                self.snapshotRetention,
-                self.backupRetention,
-                self.dayOfWeek,
-                self.dayOfMonth,
-                self.hour,
-                self.minute,
-                self.appID,
+        for period in cppData:
+            print("Setting %s protection policy on %s" % (period, appID))
+            dayOfWeek = cppData[period]["dayOfWeek"]
+            dayOfMonth = cppData[period]["dayOfMonth"]
+            hour = cppData[period]["hour"]
+            cppRet = cpp.main(
+                period,
+                snapshotRetention,
+                backupRetention,
+                dayOfWeek,
+                dayOfMonth,
+                hour,
+                minute,
+                appID,
             )
             if cppRet is False:
-                raise SystemExit("cpp.main(%s...) returned False" % self.period)
+                raise SystemExit("cpp.main(%s...) returned False" % period)
 
     def clone(
         self,
@@ -473,7 +468,7 @@ if __name__ == "__main__":
                 charts_list.append(k)
 
         elif sys.argv[1] == "clone" or sys.argv[1] == "restore":
-            namespaces = astraSDK.getApps(source="namespace").main()
+            namespaces = astraSDK.getApps().main(source="namespace")
             namespaces_list = [x for x in namespaces.keys()]
             dest_cluster = astraSDK.getClusters().main()
             dest_cluster_list = [x for x in dest_cluster.keys()]
@@ -483,7 +478,7 @@ if __name__ == "__main__":
                 for backupItem in backups[appID]:
                     backup_list.append(backups[appID][backupItem][0])
         elif sys.argv[1] == "backup":
-            namespaces = astraSDK.getApps(source="namespace").main()
+            namespaces = astraSDK.getApps().main(source="namespace")
             namespaces_list = [x for x in namespaces.keys()]
         elif (
             sys.argv[1] == "create"
@@ -497,7 +492,7 @@ if __name__ == "__main__":
             appList = [x for x in astraSDK.getApps().main()]
         elif sys.argv[1] == "manage" and len(sys.argv) > 2:
             if sys.argv[2] == "app":
-                appList = [x for x in astraSDK.getApps(discovered=True).main()]
+                appList = [x for x in astraSDK.getApps().main(discovered=True)]
             elif sys.argv[2] == "cluster":
                 clusterList = []
                 clusterDict = astraSDK.getClusters(quiet=True).main()
@@ -970,13 +965,12 @@ if __name__ == "__main__":
         )
     elif args.subcommand == "list":
         if args.objectType == "apps":
-            astraSDK.getApps(
-                quiet=args.quiet,
+            astraSDK.getApps(quiet=args.quiet).main(
                 discovered=args.unmanaged,
                 source=args.source,
                 namespace=args.namespace,
                 cluster=args.cluster,
-            ).main()
+            )
         elif args.objectType == "backups":
             astraSDK.getBackups(quiet=args.quiet, appFilter=args.app).main()
         elif args.objectType == "clouds":
