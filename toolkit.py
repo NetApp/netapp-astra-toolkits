@@ -972,7 +972,7 @@ if __name__ == "__main__":
                 cluster=args.cluster,
             )
         elif args.objectType == "backups":
-            astraSDK.getBackups(quiet=args.quiet, appFilter=args.app).main()
+            astraSDK.getBackups(quiet=args.quiet).main(appFilter=args.app)
         elif args.objectType == "clouds":
             astraSDK.getClouds(quiet=args.quiet).main()
         elif args.objectType == "clusters":

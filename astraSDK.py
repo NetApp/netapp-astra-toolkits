@@ -340,16 +340,15 @@ class getBackups:
     for that app.
     """
 
-    def __init__(self, quiet=True, appFilter=None):
+    def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
         self.verifySSL = self.conf.get("verifySSL")
         self.apps = getApps().main()
-        self.appFilter = appFilter
 
-    def main(self):
+    def main(self, appFilter=None):
         """self.apps = {'739e7b1f-a71a-42bd-ac6f-db3ff9131133':
             ['jp3k', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
              'jp3k', 'running', 'managed', 'namespace'],
@@ -360,44 +359,44 @@ class getBackups:
             ['wp-wordpress', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
              'jp3k', 'running', 'managed', 'helm']}
         """
-        self.backups = {}
-        for self.app in self.apps:
-            if self.appFilter:
-                if self.apps[self.app][0] != self.appFilter:
+        backups = {}
+        for app in self.apps:
+            if appFilter:
+                if self.apps[app][0] != appFilter:
                     continue
-            self.endpoint = "k8s/v1/managedApps/%s/appBackups" % self.app  # appID
-            self.url = self.base + self.endpoint
+            endpoint = "k8s/v1/managedApps/%s/appBackups" % app  # appID
+            url = self.base + endpoint
 
-            self.data = {}
-            self.params = {"include": "name,id,state,metadata"}
+            data = {}
+            params = {"include": "name,id,state,metadata"}
 
             if not self.quiet:
                 print()
-                print("Listing Backups for %s %s" % (self.app, self.apps[self.app][0]))
+                print("Listing Backups for %s %s" % (app, self.apps[app][0]))
                 print()
-                print(colored("API URL: %s" % self.url, "green"))
+                print(colored("API URL: %s" % url, "green"))
             try:
-                self.ret = requests.get(
-                    self.url,
-                    data=self.data,
+                ret = requests.get(
+                    url,
+                    data=data,
                     headers=self.headers,
-                    params=self.params,
+                    params=params,
                     verify=self.verifySSL,
                 )
             except requests.exceptions.RequestException as e:
                 raise SystemExit(e)
 
             if not self.quiet:
-                print("API HTTP Status Code: %s" % self.ret.status_code)
+                print("API HTTP Status Code: %s" % ret.status_code)
                 print()
-            if self.ret.ok:
+            if ret.ok:
                 try:
-                    self.results = self.ret.json()
+                    results = ret.json()
                 except ValueError:
                     print("response contained invalid JSON")
                     continue
                 # Remember this is on a per AppID basis
-                """self.results:
+                """results:
                      {'items':
                         [['hourly-rlezp-xsxmz',
                           '493c862d-71a9-4d47-87d3-eab9006c726f',
@@ -407,42 +406,42 @@ class getBackups:
                                         'createdBy': '70fa19ad-eb95-4d1c-b5fb-76b7f4214e6c'}]],
                                         'metadata': {}}
                 """
-                self.backups[self.app] = {}
-                for item in self.results["items"]:
-                    self.backupName = item[0]
-                    self.backupID = item[1]
-                    self.backupState = item[2]
+                backups[app] = {}
+                for item in results["items"]:
+                    backupName = item[0]
+                    backupID = item[1]
+                    backupState = item[2]
                     # Strip off the trailing Z from the timestamp.  We know it's UTC and the
                     # python library we use to process datetimes doesn't handle the
                     # Zulu time convention that Astra gives us.
-                    self.backupTimeStamp = item[3].get("creationTimestamp")[:-1]
+                    backupTimeStamp = item[3].get("creationTimestamp")[:-1]
                     # TODO: the backupName is just a label and Astra can have
                     # multiple backups of an app with the same name.
                     # This should be switched to have the backupID as the key.
-                    if self.backupName not in self.backups[self.app]:
-                        self.backups[self.app][self.backupName] = [
-                            self.backupID,
-                            self.backupState,
-                            self.backupTimeStamp,
+                    if backupName not in backups[app]:
+                        backups[app][backupName] = [
+                            backupID,
+                            backupState,
+                            backupTimeStamp,
                         ]
                 if not self.quiet:
                     print("Backups:")
-                    for self.item in self.backups[self.app]:
+                    for item in backups[app]:
                         print(
                             "\tbackupName: %s\t backupID: %s\t backupState: %s"
                             % (
-                                self.item,
-                                self.backups[self.app][self.item][0],
-                                self.backups[self.app][self.item][1],
+                                item,
+                                backups[app][item][0],
+                                backups[app][item][1],
                             )
                         )
                         print()
             else:
                 continue
         if not self.quiet:
-            print(self.backups)
+            print(backups)
         else:
-            return self.backups
+            return backups
 
 
 class takeBackup:
