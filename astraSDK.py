@@ -449,7 +449,6 @@ class takeBackup:
     either the result JSON is returned or the backupID of the newly created
     backup is returned."""
 
-    # TODO: switch from output=True to quiet=True to match the new style.
     def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig().main()
