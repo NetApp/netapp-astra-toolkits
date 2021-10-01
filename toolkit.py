@@ -130,7 +130,7 @@ def doProtectionTask(protectionType, appID, name):
     """Take a snapshot/backup of appID giving it name <name>
     Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
     if protectionType == "backup":
-        protectionID = astraSDK.takeBackup(output=False).main(appID, name)
+        protectionID = astraSDK.takeBackup().main(appID, name)
     elif protectionType == "snapshot":
         protectionID = astraSDK.takeSnap(output=False).main(appID, name)
 
