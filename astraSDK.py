@@ -689,10 +689,10 @@ class createProtectionpolicy:
         minute,
         appID,
     ):
-        self.endpoint = "k8s/v1/managedApps/%s/schedules" % appID
-        self.url = self.base + self.endpoint
-        self.params = {}
-        self.data = {
+        endpoint = "k8s/v1/managedApps/%s/schedules" % appID
+        url = self.base + endpoint
+        params = {}
+        data = {
             "type": "application/astra-schedule",
             "version": "1.0",
             "backupRetention": backupRetention,
@@ -706,29 +706,29 @@ class createProtectionpolicy:
             "snapshotRetention": snapshotRetention,
         }
         try:
-            self.ret = requests.post(
-                self.url,
-                json=self.data,
+            ret = requests.post(
+                url,
+                json=data,
                 headers=self.headers,
-                params=self.params,
+                params=params,
                 verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
 
-        if self.ret.ok:
+        if ret.ok:
             try:
-                self.results = self.ret.json()
+                results = ret.json()
             except ValueError as e:
                 print("response contained invalid JSON: %s" % e)
-                self.results = None
+                results = None
             if not self.quiet:
-                print(self.results)
+                print(results)
             return True
         else:
             if not self.quiet:
-                print(self.ret.status_code)
-                print(self.ret.reason)
+                print(ret.status_code)
+                print(ret.reason)
             return False
 
 
