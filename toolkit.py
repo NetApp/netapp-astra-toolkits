@@ -1004,9 +1004,9 @@ if __name__ == "__main__":
         if args.objectType == "app":
             astraSDK.manageApp(quiet=args.quiet).main(args.appID)
         if args.objectType == "cluster":
-            astraSDK.manageCluster(
-                args.clusterID, args.storageClassID, quiet=args.quiet
-            ).main()
+            astraSDK.manageCluster(quiet=args.quiet).main(
+                args.clusterID, args.storageClassID
+            )
     elif args.subcommand == "clone" or args.subcommand == "restore":
         if not args.clusterID:
             print("Select destination cluster for the clone")

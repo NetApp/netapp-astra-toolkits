@@ -1084,10 +1084,8 @@ class getStorageClasses:
 class manageCluster:
     """This class switches an unmanaged cluster to a managed cluster"""
 
-    def __init__(self, clusterID, storageClassID, quiet=False):
+    def __init__(self, quiet=False):
         self.quiet = quiet
-        self.clusterID = clusterID
-        self.storageClassID = storageClassID
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
@@ -1095,38 +1093,38 @@ class manageCluster:
         self.headers["accept"] = "application/astra-managedCluster+json"
         self.headers["Content-Type"] = "application/managedCluster+json"
 
-    def main(self):
-        self.endpoint = "topology/v1/managedClusters"
-        self.url = self.base + self.endpoint
-        self.params = {}
-        self.data = {
-            "defaultStorageClass": self.storageClassID,
-            "id": self.clusterID,
+    def main(self, clusterID, storageClassID):
+        endpoint = "topology/v1/managedClusters"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "defaultStorageClass": storageClassID,
+            "id": clusterID,
             "type": "application/astra-managedCluster",
             "version": "1.0",
         }
         try:
-            self.ret = requests.post(
-                self.url,
-                json=self.data,
+            ret = requests.post(
+                url,
+                json=data,
                 headers=self.headers,
-                params=self.params,
+                params=params,
                 verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
 
-        if self.ret.ok:
+        if ret.ok:
             try:
-                self.results = self.ret.json()
+                results = ret.json()
             except ValueError as e:
                 print("response contained invalid JSON: %s" % e)
-                self.results = None
+                results = None
             if not self.quiet:
-                print(self.results)
+                print(results)
             return True
         else:
             if not self.quiet:
-                print(self.ret.status_code)
-                print(self.ret.reason)
+                print(ret.status_code)
+                print(ret.reason)
             return False
