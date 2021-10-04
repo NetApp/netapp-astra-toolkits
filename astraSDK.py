@@ -583,82 +583,80 @@ class cloneApp:
 class getClusters:
     """Iterate over the clouds and list the clusters in each."""
 
-    def __init__(self, quiet=True, hideManaged=False, hideUnmanaged=False):
+    def __init__(self, quiet=True):
         self.quiet = quiet
-        self.hideManaged = hideManaged
-        self.hideUnmanaged = hideUnmanaged
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
         self.verifySSL = self.conf.get("verifySSL")
         self.clouds = getClouds(quiet=True).main()
 
-    def main(self):
-        self.clusters = {}
-        for self.cloud in self.clouds:
-            self.endpoint = "topology/v1/clouds/%s/clusters" % self.cloud
-            self.url = self.base + self.endpoint
-            self.data = {}
-            self.params = {}
+    def main(self, hideManaged=False, hideUnmanaged=False):
+        clusters = {}
+        for cloud in self.clouds:
+            endpoint = "topology/v1/clouds/%s/clusters" % cloud
+            url = self.base + endpoint
+            data = {}
+            params = {}
 
             if not self.quiet:
                 print()
                 print(
                     "Getting clusters in cloud %s (%s)..."
-                    % (self.cloud, self.clouds[self.cloud][0])
+                    % (cloud, self.clouds[cloud][0])
                 )
                 print()
-                print(colored("API URL: %s" % self.url, "green"))
+                print(colored("API URL: %s" % url, "green"))
                 print()
             try:
-                self.ret = requests.get(
-                    self.url,
-                    data=self.data,
+                ret = requests.get(
+                    url,
+                    data=data,
                     headers=self.headers,
-                    params=self.params,
+                    params=params,
                     verify=self.verifySSL,
                 )
             except requests.exceptions.RequestException as e:
                 raise SystemExit(e)
 
             if not self.quiet:
-                print("API HTTP Status Code: %s" % self.ret.status_code)
+                print("API HTTP Status Code: %s" % ret.status_code)
                 print()
-            if self.ret.ok:
+            if ret.ok:
                 try:
-                    self.results = self.ret.json()
+                    results = ret.json()
                 except ValueError as e:
                     print("response contained invalid JSON: %s" % e)
-                    self.results = None
-                for item in self.results["items"]:
-                    if item.get("id") not in self.clusters:
-                        if self.hideManaged:
+                    results = None
+                for item in results["items"]:
+                    if item.get("id") not in clusters:
+                        if hideManaged:
                             if item.get("managedState") == "managed":
                                 continue
-                        if self.hideUnmanaged:
+                        if hideUnmanaged:
                             if item.get("managedState") == "unmanaged":
                                 continue
-                        self.clusters[item.get("id")] = [
+                        clusters[item.get("id")] = [
                             item.get("name"),
                             item.get("clusterType"),
                             item.get("managedState"),
-                            self.cloud,
+                            cloud,
                         ]
         if not self.quiet:
             print("clusters:")
-            for item in self.clusters:
+            for item in clusters:
                 print(
                     "\tclusterName: %s\t clusterID: %s\tclusterType: %s\tmanagedState: %s"
                     % (
-                        self.clusters[item][0],
+                        clusters[item][0],
                         item,
-                        self.clusters[item][1],
-                        self.clusters[item][2],
+                        clusters[item][1],
+                        clusters[item][2],
                     )
                 )
             print()
         else:
-            return self.clusters
+            return clusters
 
 
 class createProtectionpolicy:

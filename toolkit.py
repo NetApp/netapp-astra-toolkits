@@ -976,9 +976,9 @@ if __name__ == "__main__":
         elif args.objectType == "clouds":
             astraSDK.getClouds(quiet=args.quiet).main()
         elif args.objectType == "clusters":
-            astraSDK.getClusters(
-                quiet=args.quiet, hideManaged=args.managed, hideUnmanaged=args.unmanaged
-            ).main()
+            astraSDK.getClusters(quiet=args.quiet).main(
+                hideManaged=args.managed, hideUnmanaged=args.unmanaged
+            )
         elif args.objectType == "snapshots":
             astraSDK.getSnaps(quiet=args.quiet, appFilter=args.app).main()
         elif args.objectType == "storageclasses":
