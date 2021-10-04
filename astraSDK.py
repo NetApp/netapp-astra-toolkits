@@ -139,7 +139,7 @@ class getApps:
             print()
             print("Listing Apps...")
             print()
-            print(colored("API URL: %s" % self.url, "green"))
+            print(colored("API URL: %s" % url, "green"))
         try:
             ret = requests.get(
                 url,
@@ -152,7 +152,7 @@ class getApps:
             raise SystemExit(e)
 
         if not self.quiet:
-            print("API HTTP Status Code: %s" % self.ret.status_code)
+            print("API HTTP Status Code: %s" % ret.status_code)
             print()
         if ret.ok:
             try:
@@ -735,9 +735,8 @@ class createProtectionpolicy:
 class manageApp:
     """This class switches a discovered app to a managed app."""
 
-    def __init__(self, appID, quiet=True):
+    def __init__(self, quiet=True):
         self.quiet = quiet
-        self.appID = appID
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
@@ -745,39 +744,39 @@ class manageApp:
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/managedApp+json"
 
-    def main(self):
-        self.endpoint = "k8s/v1/managedApps"
-        self.url = self.base + self.endpoint
-        self.params = {}
-        self.data = {
+    def main(self, appID):
+        endpoint = "k8s/v1/managedApps"
+        url = self.base + endpoint
+        params = {}
+        data = {
             "type": "application/astra-managedApp",
             "version": "1.1",
-            "id": self.appID,
+            "id": appID,
         }
         try:
-            self.ret = requests.post(
-                self.url,
-                json=self.data,
+            ret = requests.post(
+                url,
+                json=data,
                 headers=self.headers,
-                params=self.params,
+                params=params,
                 verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
 
-        if self.ret.ok:
+        if ret.ok:
             try:
-                self.results = self.ret.json()
+                results = ret.json()
             except ValueError as e:
                 print("response contained invalid JSON: %s" % e)
-                self.results = None
+                results = None
             if not self.quiet:
-                print(self.results)
+                print(results)
             return True
         else:
             if not self.quiet:
-                print(self.ret.status_code)
-                print(self.ret.reason)
+                print(ret.status_code)
+                print(ret.reason)
             return False
 
 

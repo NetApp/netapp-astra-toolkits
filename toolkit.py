@@ -299,12 +299,12 @@ class toolkit:
             # (Note this is taking > 8 minutes in Q2)
             print("Managing: %s." % app, end="")
             sys.stdout.flush()
-            rv = astraSDK.manageApp(app).main()
+            rv = astraSDK.manageApp().main(app)
             while not rv:
                 print(".", end="")
                 sys.stdout.flush()
                 time.sleep(3)
-                rv = astraSDK.manageApp(app).main()
+                rv = astraSDK.manageApp().main(app)
             print("Success.")
             sys.stdout.flush()
 
@@ -357,7 +357,7 @@ class toolkit:
                         break
                 for appID in reallyPostApps:
                     print("Managing: %s" % appID)
-                    astraSDK.manageApp(appID).main()
+                    astraSDK.manageApp().main(appID)
                 loop = False
         # and then create a protection policy on that namespace (using it's appID)
         backupRetention = "1"
@@ -1002,7 +1002,7 @@ if __name__ == "__main__":
 
     elif args.subcommand == "manage":
         if args.objectType == "app":
-            astraSDK.manageApp(appID=args.appID, quiet=args.quiet).main()
+            astraSDK.manageApp(quiet=args.quiet).main(args.appID)
         if args.objectType == "cluster":
             astraSDK.manageCluster(
                 args.clusterID, args.storageClassID, quiet=args.quiet
