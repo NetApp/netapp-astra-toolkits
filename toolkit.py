@@ -132,7 +132,7 @@ def doProtectionTask(protectionType, appID, name):
     if protectionType == "backup":
         protectionID = astraSDK.takeBackup().main(appID, name)
     elif protectionType == "snapshot":
-        protectionID = astraSDK.takeSnap(output=False).main(appID, name)
+        protectionID = astraSDK.takeSnap().main(appID, name)
 
     print("Starting %s of %s: " % (protectionType, appID))
     print("Waiting for %s to complete." % protectionType, end="")

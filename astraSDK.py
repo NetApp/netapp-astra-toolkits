@@ -785,8 +785,8 @@ class takeSnap:
     either the result JSON is returned or the snapID of the newly created
     backup is returned."""
 
-    def __init__(self, output=True):
-        self.output = output
+    def __init__(self, quiet=True):
+        self.quiet = quiet
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
@@ -795,40 +795,39 @@ class takeSnap:
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
     def main(self, appID, snapName):
-        self.endpoint = "k8s/v1/managedApps/%s/appSnaps" % appID
-        self.url = self.base + self.endpoint
-        print(self.url)
-        self.params = {}
-        self.data = {
+        endpoint = "k8s/v1/managedApps/%s/appSnaps" % appID
+        url = self.base + endpoint
+        params = {}
+        data = {
             "type": "application/astra-appSnap",
             "version": "1.0",
             "name": snapName,
         }
         try:
-            self.ret = requests.post(
-                self.url,
-                json=self.data,
+            ret = requests.post(
+                url,
+                json=data,
                 headers=self.headers,
-                params=self.params,
+                params=params,
                 verify=self.verifySSL,
             )
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
 
-        if self.ret.ok:
+        if ret.ok:
             try:
-                self.results = self.ret.json()
+                results = ret.json()
             except ValueError as e:
                 print("response contained invalid JSON: %s" % e)
-                self.results = None
-            if self.output:
-                print(self.results)
+                results = None
+            if not self.quiet:
+                print(results)
             else:
-                return self.results.get("id") or True
+                return results.get("id") or True
         else:
-            if self.output:
-                print(self.ret.status_code)
-                print(self.ret.reason)
+            if not self.quiet:
+                print(ret.status_code)
+                print(ret.reason)
             return False
 
 
