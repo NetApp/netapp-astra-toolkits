@@ -980,7 +980,7 @@ if __name__ == "__main__":
                 hideManaged=args.managed, hideUnmanaged=args.unmanaged
             )
         elif args.objectType == "snapshots":
-            astraSDK.getSnaps(quiet=args.quiet, appFilter=args.app).main()
+            astraSDK.getSnaps(quiet=args.quiet).main(appFilter=args.app)
         elif args.objectType == "storageclasses":
             astraSDK.getStorageClasses(quiet=args.quiet).main()
     elif args.subcommand == "create":

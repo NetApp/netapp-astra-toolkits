@@ -838,36 +838,35 @@ class getSnaps:
     for that app.
     """
 
-    def __init__(self, quiet=True, appFilter=None):
+    def __init__(self, quiet=True):
         self.quiet = quiet
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
         self.verifySSL = self.conf.get("verifySSL")
         self.apps = getApps().main()
-        self.appFilter = appFilter
 
-    def main(self):
-        self.snaps = {}
-        for self.app in self.apps:
-            if self.appFilter:
-                if self.apps[self.app][0] != self.appFilter:
+    def main(self, appFilter=None):
+        snaps = {}
+        for app in self.apps:
+            if appFilter:
+                if self.apps[app][0] != appFilter:
                     continue
-            self.endpoint = "k8s/v1/managedApps/%s/appSnaps" % self.app
-            self.url = self.base + self.endpoint
+            endpoint = "k8s/v1/managedApps/%s/appSnaps" % app
+            url = self.base + endpoint
 
-            self.data = {}
-            self.params = {"include": "name,id,state"}
+            data = {}
+            params = {"include": "name,id,state"}
 
             if not self.quiet:
                 print()
-                print("Listing Snapshots for %s" % self.app)
+                print("Listing Snapshots for %s" % app)
                 print()
-                print(colored("API URL: %s" % self.url, "green"))
+                print(colored("API URL: %s" % url, "green"))
                 print(colored("API Method: GET", "green"))
                 print(colored("API Headers: %s" % self.headers, "green"))
-                print(colored("API data: %s" % self.data, "green"))
-                print(colored("API params: %s" % self.params, "green"))
+                print(colored("API data: %s" % data, "green"))
+                print(colored("API params: %s" % params, "green"))
                 print()
                 time.sleep(1)
                 print("Making API Call", end="", flush=True)
@@ -876,44 +875,44 @@ class getSnaps:
                     time.sleep(1)
                 print()
             try:
-                self.ret = requests.get(
-                    self.url,
-                    data=self.data,
+                ret = requests.get(
+                    url,
+                    data=data,
                     headers=self.headers,
-                    params=self.params,
+                    params=params,
                     verify=self.verifySSL,
                 )
             except requests.exceptions.RequestException as e:
                 raise SystemExit(e)
 
             if not self.quiet:
-                print("API HTTP Status Code: %s" % self.ret.status_code)
+                print("API HTTP Status Code: %s" % ret.status_code)
                 print()
-            if self.ret.ok:
+            if ret.ok:
                 try:
-                    self.results = self.ret.json()
+                    results = ret.json()
                 except ValueError:
                     print("response contained invalid JSON")
                     continue
-                self.snaps[self.app] = {}
-                for item in self.results["items"]:
-                    self.appName = item[0]
-                    self.snapID = item[1]
-                    self.snapState = item[2]
-                    if self.appName not in self.snaps[self.app]:
-                        self.snaps[self.app][self.appName] = [
-                            self.snapID,
-                            self.snapState,
+                snaps[app] = {}
+                for item in results["items"]:
+                    appName = item[0]
+                    snapID = item[1]
+                    snapState = item[2]
+                    if appName not in snaps[app]:
+                        snaps[app][appName] = [
+                            snapID,
+                            snapState,
                         ]
                 if not self.quiet:
                     print("Snapshots:")
-                    for self.item in self.snaps[self.app]:
+                    for item in snaps[app]:
                         print(
                             "\tsnapshotName: %s\t snapshotID: %s\t snapshotState: %s"
                             % (
-                                self.item,
-                                self.snaps[self.app][self.item][0],
-                                self.snaps[self.app][self.item][1],
+                                item,
+                                snaps[app][item][0],
+                                snaps[app][item][1],
                             )
                         )
                         print()
@@ -921,9 +920,9 @@ class getSnaps:
                 continue
 
         if not self.quiet:
-            print(self.snaps)
+            print(snaps)
         else:
-            return self.snaps
+            return snaps
 
 
 class getClouds:
