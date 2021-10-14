@@ -17,6 +17,7 @@
 
 import astraSDK
 import argparse
+import dns.resolver
 import os
 import subprocess
 import sys
@@ -184,18 +185,99 @@ class toolkit:
         run("kubectl create namespace %s" % nameSpace)
         run("kubectl config set-context --current --namespace=%s" % nameSpace)
         if chartName == "gitlab":
+            myResolver = dns.resolver.Resolver()
+            myResolver.nameservers = ["8.8.8.8"]
+            try:
+                answer = myResolver.resolve("gitlab.%s" % domain)
+            except dns.resolver.NXDOMAIN as e:
+                print("Can't resolve gitlab.%s: %s" % (domain, e))
+                sys.exit(17)
+            for i in answer:
+                ip = i
             run(
                 "helm install %s %s/%s --timeout 600s "
                 "--set certmanager-issuer.email=%s "
                 "--set global.hosts.domain=%s "
-                "--set global.hosts.gitlab.name=gl-nginx-ingress-controller.%s "
-                "--set global.hosts.registry.name=registry.%s "
-                "--set global.hosts.minio.name=minio.%s "
                 "--set prometheus.alertmanager.persistentVolume.enabled=false "
                 "--set prometheus.server.persistentVolume.enabled=false "
-                "--set gitlab.gitaly.persistence.enabled=false"
-                % (appName, repoName, chartName, email, domain, domain, domain, domain)
+                "--set global.hosts.externalIP=%s"
+                % (appName, repoName, chartName, email, domain, ip)
             )
+            gitalyPatch = {
+                "kind": "StatefulSet",
+                "spec": {
+                    "template": {
+                        "spec": {
+                            "containers": [
+                                {
+                                    "name": "gitaly",
+                                    "securityContext": {"runAsUser": 1000},
+                                }
+                            ],
+                            "initContainers": [
+                                {
+                                    "name": "init-chown",
+                                    "image": "alpine",
+                                    "securityContext": {"runAsUser": 0},
+                                    "env": [
+                                        {
+                                            "name": "REPOS_HOME",
+                                            "value": "/home/git/repositories",
+                                        },
+                                        {"name": "MARKER", "value": ".cplt2-5503"},
+                                        {"name": "UID", "value": "1000"},
+                                    ],
+                                    "command": [
+                                        "sh",
+                                        "-c",
+                                        "if [ ! -f $REPOS_HOME/$MARKER ]; then chown $UID:$UID -R $REPOS_HOME; touch $REPOS_HOME/$MARKER; chown $UID:$UID $REPOS_HOME/$MARKER; fi",
+                                    ],
+                                    "volumeMounts": [
+                                        {
+                                            "mountPath": "/home/git/repositories",
+                                            "name": "repo-data",
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    }
+                },
+            }
+            # Convert the inline data structure into YAML so that
+            # kubectl patch can consume it
+            gitalyPatchYaml = yaml.dump(gitalyPatch)
+            tmp = tempfile.NamedTemporaryFile()
+            tmp.write(bytes(gitalyPatchYaml, "utf-8"))
+            tmp.seek(0)
+            # Use os.system a few times because run() simply isn't up to the task
+            try:
+                # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
+                # were used
+                ret = os.system(
+                    'kubectl patch statefulset.apps/%s-gitaly -p "$(cat %s)"'
+                    % (appName, tmp.name)
+                )
+            except OSError as e:
+                print("Exception: %s" % e)
+                sys.exit(11)
+            if ret:
+                print("os.system exited with RC: %s" % ret)
+                sys.exit(12)
+            tmp.close()
+            try:
+                os.system(
+                    "kubectl scale sts %s-gitaly --replicas=0 && "
+                    "sleep 10 && kubectl scale sts %s-gitaly --replicas=1"
+                    % (appName, appName)
+                )
+            except OSError as e:
+                print("Exception: %s" % e)
+                sys.exit(13)
+            if ret:
+                print("os.system exited with RC: %s" % ret)
+                sys.exit(14)
+
         elif chartName == "cloudbees-core":
             run(
                 "helm install %s %s/%s --set ingress-nginx.Enabled=true"
@@ -289,24 +371,27 @@ class toolkit:
         print("Discovery complete!")
         sys.stdout.flush()
 
-        # self.apps_to_manage will be logically self.post_apps - self.pre_apps
-        appsToManage = {k: v for (k, v) in postApps.items() if k not in preApps.keys()}
-        for app in appsToManage:
-            # Spin on managing apps.  Astra Control won't allow switching an
-            # app that is in the pending state to managed.  So we retry endlessly
-            # with the assumption that eventually the app will switch from
-            # pending to running and the manageapp call will succeed.
-            # (Note this is taking > 8 minutes in Q2)
-            print("Managing: %s." % app, end="")
-            sys.stdout.flush()
-            rv = astraSDK.manageApp().main(app)
-            while not rv:
-                print(".", end="")
+        if chartName != "gitlab":
+            # self.apps_to_manage will be logically self.post_apps - self.pre_apps
+            appsToManage = {
+                k: v for (k, v) in postApps.items() if k not in preApps.keys()
+            }
+            for app in appsToManage:
+                # Spin on managing apps.  Astra Control won't allow switching an
+                # app that is in the pending state to managed.  So we retry endlessly
+                # with the assumption that eventually the app will switch from
+                # pending to running and the manageapp call will succeed.
+                # (Note this is taking > 8 minutes in Q2)
+                print("Managing: %s." % app, end="")
                 sys.stdout.flush()
-                time.sleep(3)
                 rv = astraSDK.manageApp().main(app)
-            print("Success.")
-            sys.stdout.flush()
+                while not rv:
+                    print(".", end="")
+                    sys.stdout.flush()
+                    time.sleep(3)
+                    rv = astraSDK.manageApp().main(app)
+                print("Success.")
+                sys.stdout.flush()
 
         # Find the appID of the namespace we just created
         # Since we switched everything we had discovered to managed we'll list all the
@@ -316,12 +401,28 @@ class toolkit:
         loop = True
         while loop:
             appID = None
-            applist = getApps.main(source="namespace", namespace=nameSpace)
+            if chartName != "gitlab":
+                applist = getApps.main(source="namespace", namespace=nameSpace)
+            else:
+                applist = getApps.main(
+                    discovered=True, source="namespace", namespace=nameSpace
+                )
             for item in applist:
                 if applist[item][0] == nameSpace:
                     appID = item
                     print("Found")
                     sys.stdout.flush()
+                    if chartName == "gitlab":
+                        print("Managing: %s." % appID, end="")
+                        sys.stdout.flush()
+                        rv = astraSDK.manageApp().main(appID)
+                        while not rv:
+                            print(".", end="")
+                            sys.stdout.flush()
+                            time.sleep(3)
+                            rv = astraSDK.manageApp().main(appID)
+                        print("Success.")
+                        sys.stdout.flush()
                     loop = False
                     break
             if appID is None:
