@@ -166,11 +166,44 @@ def doProtectionTask(protectionType, appID, name):
         sys.stdout.flush()
 
 
+def stsPatch(patch, stsName):
+    """Patch and restart a statefulset"""
+    patchYaml = yaml.dump(patch)
+    tmp = tempfile.NamedTemporaryFile()
+    tmp.write(bytes(patchYaml, "utf-8"))
+    tmp.seek(0)
+    # Use os.system a few times because run() simply isn't up to the task
+    try:
+        # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
+        # were used
+        ret = os.system(
+            'kubectl patch statefulset.apps/%s -p "$(cat %s)"' % (stsName, tmp.name)
+        )
+    except OSError as e:
+        print("Exception: %s" % e)
+        sys.exit(11)
+    if ret:
+        print("os.system exited with RC: %s" % ret)
+        sys.exit(12)
+    tmp.close()
+    try:
+        os.system(
+            "kubectl scale sts %s --replicas=0 && "
+            "sleep 10 && kubectl scale sts %s --replicas=1" % (stsName, stsName)
+        )
+    except OSError as e:
+        print("Exception: %s" % e)
+        sys.exit(13)
+    if ret:
+        print("os.system exited with RC: %s" % ret)
+        sys.exit(14)
+
+
 class toolkit:
     def __init__(self):
         self.conf = astraSDK.getConfig().main()
 
-    def deploy(self, chartName, repoName, appName, nameSpace, domain, email):
+    def deploy(self, chartName, repoName, appName, nameSpace, domain, email, ssl):
         """Deploy a helm chart <chartName>, from helm repo <repoName>
         naming the app <appName> into <nameSpace>"""
 
@@ -194,15 +227,30 @@ class toolkit:
                 sys.exit(17)
             for i in answer:
                 ip = i
-            run(
-                "helm install %s %s/%s --timeout 600s "
-                "--set certmanager-issuer.email=%s "
-                "--set global.hosts.domain=%s "
-                "--set prometheus.alertmanager.persistentVolume.enabled=false "
-                "--set prometheus.server.persistentVolume.enabled=false "
-                "--set global.hosts.externalIP=%s"
-                % (appName, repoName, chartName, email, domain, ip)
-            )
+            if ssl:
+                run(
+                    "helm install %s %s/%s --timeout 600s "
+                    "--set certmanager-issuer.email=%s "
+                    "--set global.hosts.domain=%s "
+                    "--set prometheus.alertmanager.persistentVolume.enabled=false "
+                    "--set prometheus.server.persistentVolume.enabled=false "
+                    "--set global.hosts.externalIP=%s"
+                    % (appName, repoName, chartName, email, domain, ip)
+                )
+            else:
+                run(
+                    "helm install %s %s/%s --timeout 600s "
+                    "--set certmanager-issuer.email=%s "
+                    "--set global.hosts.domain=%s "
+                    "--set prometheus.alertmanager.persistentVolume.enabled=false "
+                    "--set prometheus.server.persistentVolume.enabled=false "
+                    "--set global.hosts.externalIP=%s "
+                    "--set certmanager.install=false "
+                    "--set global.ingress.configureCertmanager=false "
+                    "--set gitlab-runner.install=false"
+                    % (appName, repoName, chartName, email, domain, ip)
+                )
+            # I could've included straight up YAML here but that seemed..the opposite of elegent.
             gitalyPatch = {
                 "kind": "StatefulSet",
                 "spec": {
@@ -244,39 +292,7 @@ class toolkit:
                     }
                 },
             }
-            # Convert the inline data structure into YAML so that
-            # kubectl patch can consume it
-            gitalyPatchYaml = yaml.dump(gitalyPatch)
-            tmp = tempfile.NamedTemporaryFile()
-            tmp.write(bytes(gitalyPatchYaml, "utf-8"))
-            tmp.seek(0)
-            # Use os.system a few times because run() simply isn't up to the task
-            try:
-                # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
-                # were used
-                ret = os.system(
-                    'kubectl patch statefulset.apps/%s-gitaly -p "$(cat %s)"'
-                    % (appName, tmp.name)
-                )
-            except OSError as e:
-                print("Exception: %s" % e)
-                sys.exit(11)
-            if ret:
-                print("os.system exited with RC: %s" % ret)
-                sys.exit(12)
-            tmp.close()
-            try:
-                os.system(
-                    "kubectl scale sts %s-gitaly --replicas=0 && "
-                    "sleep 10 && kubectl scale sts %s-gitaly --replicas=1"
-                    % (appName, appName)
-                )
-            except OSError as e:
-                print("Exception: %s" % e)
-                sys.exit(13)
-            if ret:
-                print("os.system exited with RC: %s" % ret)
-                sys.exit(14)
+            stsPatch(gitalyPatch, "%s-gitaly" % appName)
 
         elif chartName == "cloudbees-core":
             run(
@@ -324,37 +340,8 @@ class toolkit:
                     }
                 },
             }
-            # Convert the inline data structure into YAML so that
-            # kubectl patch can consume it
-            cbPatchYaml = yaml.dump(cbPatch)
-            tmp = tempfile.NamedTemporaryFile()
-            tmp.write(bytes(cbPatchYaml, "utf-8"))
-            tmp.seek(0)
-            # Use os.system a few times because run() simply isn't up to the task
-            try:
-                # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
-                # were used
-                ret = os.system(
-                    'kubectl patch statefulset.apps/cjoc -p "$(cat %s)"' % tmp.name
-                )
-            except OSError as e:
-                print("Exception: %s" % e)
-                sys.exit(11)
-            if ret:
-                print("os.system exited with RC: %s" % ret)
-                sys.exit(12)
-            tmp.close()
-            try:
-                os.system(
-                    "kubectl scale sts cjoc --replicas=0 && "
-                    "sleep 10 && kubectl scale sts cjoc --replicas=1"
-                )
-            except OSError as e:
-                print("Exception: %s" % e)
-                sys.exit(13)
-            if ret:
-                print("os.system exited with RC: %s" % ret)
-                sys.exit(14)
+            stsPatch(cbPatch, "cjoc")
+
         else:
             run("helm install %s %s/%s" % (appName, repoName, chartName))
         print("Waiting for Astra to discover apps.", end="")
@@ -968,6 +955,13 @@ if __name__ == "__main__":
         required=False,
         help="Email address for self-signed certs (gitlab only)",
     )
+    parserDeploy.add_argument(
+        "-s",
+        "--ssl",
+        default=True,
+        action="store_false",
+        help="Create self signed SSL certs",
+    )
     #######
     # end of deploy args and flags
     #######
@@ -1061,8 +1055,18 @@ if __name__ == "__main__":
             email = args.email
         else:
             email = None
+        if hasattr(args, "ssl"):
+            ssl = args.ssl
+        else:
+            ssl = True
         ret.deploy(
-            args.chart, chartsDict[args.chart], args.app, args.namespace, domain, email
+            args.chart,
+            chartsDict[args.chart],
+            args.app,
+            args.namespace,
+            domain,
+            email,
+            ssl,
         )
     elif args.subcommand == "list":
         if args.objectType == "apps":
