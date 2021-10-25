@@ -358,6 +358,7 @@ class toolkit:
         print("Discovery complete!")
         sys.stdout.flush()
 
+        # Don't manage all the gitlab apps.  There's more of them than the free trial allows.
         if chartName != "gitlab":
             # self.apps_to_manage will be logically self.post_apps - self.pre_apps
             appsToManage = {
