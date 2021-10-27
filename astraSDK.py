@@ -315,13 +315,14 @@ class getApps:
                 print("apps:")
                 for item in appsCooked:
                     print(
-                        "\tappName: %s\t appID: %s\t clusterName: %s\t namespace: %s\t state: %s"
+                            "\tappName: %s\t appID: %s\t clusterName: %s\t namespace: %s\t state: %s\t source: %s"
                         % (
                             appsCooked[item][0],
                             item,
                             appsCooked[item][1],
                             appsCooked[item][3],
                             appsCooked[item][4],
+                            appsCooked[item][6],
                         )
                     )
                 print()
