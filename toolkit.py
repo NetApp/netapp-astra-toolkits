@@ -600,6 +600,14 @@ if __name__ == "__main__":
                             continue
                         for sc in storageClassDict[cloud][cluster]:
                             storageClassList.append(sc)
+        elif sys.argv[1] == "destroy" and len(sys.argv) > 2:
+            if sys.argv[2] == "backup" and len(sys.argv) > 3:
+                appList = [x for x in astraSDK.getApps().main()]
+                backups = astraSDK.getBackups().main()
+                for appID in backups:
+                    if appID == sys.argv[3]:
+                        for backupItem in backups[appID]:
+                            backup_list.append(backups[appID][backupItem][0])
 
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(
@@ -629,12 +637,16 @@ if __name__ == "__main__":
         "manage",
         help="Manage an object",
     )
+    parserDestroy = subparsers.add_parser(
+        "destroy",
+        help="Destroy an object",
+    )
     #######
     # End of top level subcommands
     #######
 
     #######
-    # subcommands "list", "create", and "manage" have subcommands as well
+    # subcommands "list", "create", "manage", and "destroy" have subcommands as well
     #######
     subparserList = parserList.add_subparsers(
         title="objectType", dest="objectType", required=True
@@ -645,8 +657,11 @@ if __name__ == "__main__":
     subparserManage = parserManage.add_subparsers(
         title="objectType", dest="objectType", required=True
     )
+    subparserDestroy = parserDestroy.add_subparsers(
+        title="objectType", dest="objectType", required=True
+    )
     #######
-    # end of subcommand "list", "create", and "manage" subcommands
+    # end of subcommand "list", "create", "manage", and "destroy" subcommands
     #######
 
     #######
@@ -910,6 +925,37 @@ if __name__ == "__main__":
     #######
 
     #######
+    # destroy 'X'
+    #######
+    subparserDestroyBackup = subparserDestroy.add_parser(
+        "backup",
+        help="destroy backup",
+    )
+    #######
+    # end of destroy 'X'
+    #######
+
+    #######
+    # destroy backup args and flags
+    #######
+    subparserDestroyBackup.add_argument(
+        "appID",
+        choices=appList,
+        help="appID of app to destroy backups from",
+    )
+    subparserDestroyBackup.add_argument(
+        "backupID",
+        choices=backup_list,
+        help="backupID to destroy",
+    )
+    subparserDestroyBackup.add_argument(
+        "-q", "--quiet", default=False, action="store_true", help="Supress output"
+    )
+    #######
+    # end of destroy backup args and flags
+    #######
+
+    #######
     # manage cluster args and flags
     #######
     subparserManageCluster.add_argument(
@@ -1113,6 +1159,15 @@ if __name__ == "__main__":
             astraSDK.manageCluster(quiet=args.quiet).main(
                 args.clusterID, args.storageClassID
             )
+    elif args.subcommand == "destroy":
+        if args.objectType == "backup":
+            rc = astraSDK.destroyBackup(quiet=args.quiet).main(
+                args.appID, args.backupID
+            )
+            if rc:
+                print("Backup %s destroyed" % args.backupID)
+            else:
+                print("Failed destroying backup: %s" % args.backupID)
     elif args.subcommand == "clone" or args.subcommand == "restore":
         if not args.clusterID:
             print("Select destination cluster for the clone")

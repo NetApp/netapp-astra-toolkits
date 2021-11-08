@@ -315,7 +315,8 @@ class getApps:
                 print("apps:")
                 for item in appsCooked:
                     print(
-                            "\tappName: %s\t appID: %s\t clusterName: %s\t namespace: %s\t state: %s\t source: %s"
+                        "\tappName: %s\t appID: %s\t clusterName: %s\t "
+                        "namespace: %s\t state: %s\t source: %s"
                         % (
                             appsCooked[item][0],
                             item,
@@ -489,6 +490,47 @@ class takeBackup:
                 print(results)
             else:
                 return results.get("id") or True
+        else:
+            if not self.quiet:
+                print(ret.status_code)
+                print(ret.reason)
+            return False
+
+
+class destroyBackup:
+    """Given an appID and backupID destroy the backup.  Note that this doesn't
+    unmanage a backup, it actively destroys it. There is no coming back from this."""
+
+    def __init__(self, quiet=True):
+        self.quiet = quiet
+        self.conf = getConfig().main()
+        self.base = self.conf.get("base")
+        self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
+        self.headers["accept"] = "application/astra-appBackup+json"
+        self.headers["Content-Type"] = "application/astra-appBackup+json"
+
+    def main(self, appID, backupID):
+        endpoint = "k8s/v1/managedApps/%s/appBackups/%s" % (appID, backupID)
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-appBackup",
+            "version": "1.0",
+        }
+        try:
+            ret = requests.delete(
+                url,
+                json=data,
+                headers=self.headers,
+                params=params,
+                verify=self.verifySSL,
+            )
+        except requests.exceptions.RequestException as e:
+            raise SystemExit(e)
+
+        if ret.ok:
+            return True
         else:
             if not self.quiet:
                 print(ret.status_code)
