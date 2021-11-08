@@ -545,6 +545,7 @@ if __name__ == "__main__":
     charts_list = []
     namespaces_list = []
     backup_list = []
+    snapshot_list = []
     dest_cluster_list = []
     appList = []
     clusterList = []
@@ -608,6 +609,13 @@ if __name__ == "__main__":
                     if appID == sys.argv[3]:
                         for backupItem in backups[appID]:
                             backup_list.append(backups[appID][backupItem][0])
+            if sys.argv[2] == "snapshot" and len(sys.argv) > 3:
+                appList = [x for x in astraSDK.getApps().main()]
+                snapshots = astraSDK.getSnaps().main()
+                for appID in snapshots:
+                    if appID == sys.argv[3]:
+                        for snapshotItem in snapshots[appID]:
+                            snapshot_list.append(snapshots[appID][snapshotItem][0])
 
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(
@@ -931,6 +939,10 @@ if __name__ == "__main__":
         "backup",
         help="destroy backup",
     )
+    subparserDestroySnapshot = subparserDestroy.add_parser(
+        "snapshot",
+        help="destroy snapshot",
+    )
     #######
     # end of destroy 'X'
     #######
@@ -953,6 +965,26 @@ if __name__ == "__main__":
     )
     #######
     # end of destroy backup args and flags
+    #######
+
+    #######
+    # destroy snapshot args and flags
+    #######
+    subparserDestroySnapshot.add_argument(
+        "appID",
+        choices=appList,
+        help="appID of app to destroy snapshot from",
+    )
+    subparserDestroySnapshot.add_argument(
+        "snapshotID",
+        choices=snapshot_list,
+        help="snapshotID to destroy",
+    )
+    subparserDestroySnapshot.add_argument(
+        "-q", "--quiet", default=False, action="store_true", help="Supress output"
+    )
+    #######
+    # end of destroy snapshot args and flags
     #######
 
     #######
@@ -1168,6 +1200,15 @@ if __name__ == "__main__":
                 print("Backup %s destroyed" % args.backupID)
             else:
                 print("Failed destroying backup: %s" % args.backupID)
+        elif args.objectType == "snapshot":
+            rc = astraSDK.destroySnapshot(quiet=args.quiet).main(
+                args.appID, args.snapshotID
+            )
+            if rc:
+                print("Snapshot %s destroyed" % args.snapshotID)
+            else:
+                print("Failed destroying snapshot: %s" % args.snapshotID)
+
     elif args.subcommand == "clone" or args.subcommand == "restore":
         if not args.clusterID:
             print("Select destination cluster for the clone")

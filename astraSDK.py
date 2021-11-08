@@ -968,6 +968,47 @@ class getSnaps:
             return snaps
 
 
+class destroySnapshot:
+    """Given an appID and snapID destroy the snapshot.  Note that this doesn't
+    unmanage a snapshot, it actively destroys it. There is no coming back from this."""
+
+    def __init__(self, quiet=True):
+        self.quiet = quiet
+        self.conf = getConfig().main()
+        self.base = self.conf.get("base")
+        self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
+        self.headers["accept"] = "application/astra-appSnap+json"
+        self.headers["Content-Type"] = "application/astra-appSnap+json"
+
+    def main(self, appID, snapID):
+        endpoint = "k8s/v1/managedApps/%s/appSnaps/%s" % (appID, snapID)
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-appSnap",
+            "version": "1.0",
+        }
+        try:
+            ret = requests.delete(
+                url,
+                json=data,
+                headers=self.headers,
+                params=params,
+                verify=self.verifySSL,
+            )
+        except requests.exceptions.RequestException as e:
+            raise SystemExit(e)
+
+        if ret.ok:
+            return True
+        else:
+            if not self.quiet:
+                print(ret.status_code)
+                print(ret.reason)
+            return False
+
+
 class getClouds:
     def __init__(self, quiet=True):
         self.quiet = quiet
