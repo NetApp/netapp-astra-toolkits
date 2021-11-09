@@ -102,7 +102,15 @@ class getConfig:
         }
 
 
-class getApps:
+class SDKCommon:
+    def __init__(self):
+        self.conf = getConfig().main()
+        self.base = self.conf.get("base")
+        self.headers = self.conf.get("headers")
+        self.verifySSL = self.conf.get("verifySSL")
+
+
+class getApps(SDKCommon):
     """List all apps known to Astra.
     Discovered=True means managedState="managed"
     Discovered=False means managedState="unmanaged"
@@ -120,10 +128,7 @@ class getApps:
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
 
     def main(self, discovered=False, source=None, namespace=None, cluster=None):
         endpoint = "topology/v1/apps"
@@ -335,7 +340,7 @@ class getApps:
             return False
 
 
-class getBackups:
+class getBackups(SDKCommon):
     """Iterate over every managed app, and list all of it's backups.
     Failure reporting is not implimented, failure to list backups for
     one (or more) of N many apps just results in an empty list of backups
@@ -344,10 +349,7 @@ class getBackups:
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.apps = getApps().main()
 
     def main(self, appFilter=None):
@@ -446,17 +448,14 @@ class getBackups:
             return backups
 
 
-class takeBackup:
+class takeBackup(SDKCommon):
     """Take a backup of an app.  An AppID and backupName is provided and
     either the result JSON is returned or the backupID of the newly created
     backup is returned."""
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
@@ -497,16 +496,13 @@ class takeBackup:
             return False
 
 
-class destroyBackup:
+class destroyBackup(SDKCommon):
     """Given an appID and backupID destroy the backup.  Note that this doesn't
     unmanage a backup, it actively destroys it. There is no coming back from this."""
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
@@ -538,7 +534,7 @@ class destroyBackup:
             return False
 
 
-class cloneApp:
+class cloneApp(SDKCommon):
     """Clone a backup into a new app, in a new namespace.  Note that Astra doesn't
     currently support in place restores.
 
@@ -561,10 +557,7 @@ class cloneApp:
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/astra-managedApp+json"
 
@@ -623,15 +616,12 @@ class cloneApp:
             return False
 
 
-class getClusters:
+class getClusters(SDKCommon):
     """Iterate over the clouds and list the clusters in each."""
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.clouds = getClouds(quiet=True).main()
 
     def main(self, hideManaged=False, hideUnmanaged=False):
@@ -702,7 +692,7 @@ class getClusters:
             return clusters
 
 
-class createProtectionpolicy:
+class createProtectionpolicy(SDKCommon):
     """Create a backup or snapshot policy on an appID.
     The rules of how dayOfWeek, dayOfMonth, hour, and minute
     need to be set vary based on whether granularity is set to
@@ -714,10 +704,7 @@ class createProtectionpolicy:
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.headers["accept"] = "application/astra-schedule+json"
         self.headers["Content-Type"] = "application/astra-schedule+json"
 
@@ -775,15 +762,12 @@ class createProtectionpolicy:
             return False
 
 
-class manageApp:
+class manageApp(SDKCommon):
     """This class switches a discovered app to a managed app."""
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/managedApp+json"
 
@@ -823,17 +807,14 @@ class manageApp:
             return False
 
 
-class takeSnap:
+class takeSnap(SDKCommon):
     """Take a snapshot of an app.  An AppID and snapName is provided and
     either the result JSON is returned or the snapID of the newly created
     backup is returned."""
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.headers["accept"] = "application/astra-appSnap+json"
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
@@ -874,7 +855,7 @@ class takeSnap:
             return False
 
 
-class getSnaps:
+class getSnaps(SDKCommon):
     """Iterate over every managed app, and list all of it's snapshots.
     Failure reporting is not implimented, failure to list snapshots for
     one (or more) of N many apps just results in an empty list of snapshots
@@ -883,10 +864,7 @@ class getSnaps:
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.apps = getApps().main()
 
     def main(self, appFilter=None):
@@ -968,16 +946,13 @@ class getSnaps:
             return snaps
 
 
-class destroySnapshot:
+class destroySnapshot(SDKCommon):
     """Given an appID and snapID destroy the snapshot.  Note that this doesn't
     unmanage a snapshot, it actively destroys it. There is no coming back from this."""
 
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.headers["accept"] = "application/astra-appSnap+json"
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
@@ -1009,13 +984,10 @@ class destroySnapshot:
             return False
 
 
-class getClouds:
+class getClouds(SDKCommon):
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
 
     def main(self):
         endpoint = "topology/v1/clouds"
@@ -1077,13 +1049,10 @@ class getClouds:
             return False
 
 
-class getStorageClasses:
+class getStorageClasses(SDKCommon):
     def __init__(self, quiet=True):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.clouds = getClouds().main()
         self.clusters = getClusters().main()
 
@@ -1165,15 +1134,12 @@ class getStorageClasses:
         return storageClasses
 
 
-class manageCluster:
+class manageCluster(SDKCommon):
     """This class switches an unmanaged cluster to a managed cluster"""
 
     def __init__(self, quiet=False):
         self.quiet = quiet
-        self.conf = getConfig().main()
-        self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        super().__init__()
         self.headers["accept"] = "application/astra-managedCluster+json"
         self.headers["Content-Type"] = "application/managedCluster+json"
 
