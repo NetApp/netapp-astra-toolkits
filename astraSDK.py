@@ -109,6 +109,33 @@ class SDKCommon:
         self.headers = self.conf.get("headers")
         self.verifySSL = self.conf.get("verifySSL")
 
+    def apicall(self, method, url, data, headers, params, verify):
+        """Make a call using the requests module.
+        method can be get, put, post, patch, or delete"""
+        try:
+            r = getattr(requests, method)
+        except AttributeError as e:
+            raise SystemExit(e)
+        try:
+            ret = r(
+                url,
+                json=data,
+                headers=headers,
+                params=params,
+                verify=verify
+            )
+        except requests.exceptions.RequestException as e:
+            raise SystemExit(e)
+        return ret
+
+    def jsonifyResults(self, requestsObject):
+        try:
+            results = requestsObject.json()
+        except ValueError as e:
+            print("response contained invalid JSON: %s" % e)
+            results = None
+        return results
+
 
 class getApps(SDKCommon):
     """List all apps known to Astra.
@@ -145,26 +172,14 @@ class getApps(SDKCommon):
             print("Listing Apps...")
             print()
             print(colored("API URL: %s" % url, "green"))
-        try:
-            ret = requests.get(
-                url,
-                data=data,
-                headers=self.headers,
-                params=params,
-                verify=self.verifySSL,
-            )
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+
+        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
         if not self.quiet:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
         if ret.ok:
-            try:
-                results = ret.json()
-            except ValueError:
-                print("Results contained illegal JSON")
-                results = None
+            results = super().jsonifyResults(ret)
             """
             "name,id,clusterName,clusterID,namespace,state,managedState,appDefnSource"
             self.results = {'items':
@@ -379,25 +394,17 @@ class getBackups(SDKCommon):
                 print("Listing Backups for %s %s" % (app, self.apps[app][0]))
                 print()
                 print(colored("API URL: %s" % url, "green"))
-            try:
-                ret = requests.get(
-                    url,
-                    data=data,
-                    headers=self.headers,
-                    params=params,
-                    verify=self.verifySSL,
-                )
-            except requests.exceptions.RequestException as e:
-                raise SystemExit(e)
+
+            ret = super().apicall(
+                "get", url, data, self.headers, params, self.verifySSL
+            )
 
             if not self.quiet:
                 print("API HTTP Status Code: %s" % ret.status_code)
                 print()
             if ret.ok:
-                try:
-                    results = ret.json()
-                except ValueError:
-                    print("response contained invalid JSON")
+                results = super().jsonifyResults(ret)
+                if results is None:
                     continue
                 # Remember this is on a per AppID basis
                 """results:
@@ -468,23 +475,11 @@ class takeBackup(SDKCommon):
             "version": "1.0",
             "name": backupName,
         }
-        try:
-            ret = requests.post(
-                url,
-                json=data,
-                headers=self.headers,
-                params=params,
-                verify=self.verifySSL,
-            )
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if ret.ok:
-            try:
-                results = ret.json()
-            except ValueError as e:
-                print("response contained invalid JSON: %s" % e)
-                results = None
+            results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(results)
             else:
@@ -514,16 +509,8 @@ class destroyBackup(SDKCommon):
             "type": "application/astra-appBackup",
             "version": "1.0",
         }
-        try:
-            ret = requests.delete(
-                url,
-                json=data,
-                headers=self.headers,
-                params=params,
-                verify=self.verifySSL,
-            )
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
         if ret.ok:
             return True
@@ -588,22 +575,10 @@ class cloneApp(SDKCommon):
         if backupID:
             data["backupID"] = backupID
 
-        try:
-            ret = requests.post(
-                url,
-                json=data,
-                headers=self.headers,
-                params=params,
-                verify=self.verifySSL,
-            )
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
         if ret.ok:
-            try:
-                results = ret.json()
-            except ValueError as e:
-                print("response contained invalid JSON: %s" % e)
-                results = None
+            results = super().jsonifyResults(ret)
 
             if not self.quiet:
                 print(results)
@@ -641,26 +616,16 @@ class getClusters(SDKCommon):
                 print()
                 print(colored("API URL: %s" % url, "green"))
                 print()
-            try:
-                ret = requests.get(
-                    url,
-                    data=data,
-                    headers=self.headers,
-                    params=params,
-                    verify=self.verifySSL,
-                )
-            except requests.exceptions.RequestException as e:
-                raise SystemExit(e)
+
+            ret = super().apicall(
+                "get", url, data, self.headers, params, self.verifySSL
+            )
 
             if not self.quiet:
                 print("API HTTP Status Code: %s" % ret.status_code)
                 print()
             if ret.ok:
-                try:
-                    results = ret.json()
-                except ValueError as e:
-                    print("response contained invalid JSON: %s" % e)
-                    results = None
+                results = super().jsonifyResults(ret)
                 for item in results["items"]:
                     if item.get("id") not in clusters:
                         if hideManaged:
@@ -735,23 +700,11 @@ class createProtectionpolicy(SDKCommon):
             "name": "%s schedule" % granularity,
             "snapshotRetention": snapshotRetention,
         }
-        try:
-            ret = requests.post(
-                url,
-                json=data,
-                headers=self.headers,
-                params=params,
-                verify=self.verifySSL,
-            )
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if ret.ok:
-            try:
-                results = ret.json()
-            except ValueError as e:
-                print("response contained invalid JSON: %s" % e)
-                results = None
+            results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(results)
             return True
@@ -780,23 +733,11 @@ class manageApp(SDKCommon):
             "version": "1.1",
             "id": appID,
         }
-        try:
-            ret = requests.post(
-                url,
-                json=data,
-                headers=self.headers,
-                params=params,
-                verify=self.verifySSL,
-            )
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if ret.ok:
-            try:
-                results = ret.json()
-            except ValueError as e:
-                print("response contained invalid JSON: %s" % e)
-                results = None
+            results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(results)
             return True
@@ -827,23 +768,11 @@ class takeSnap(SDKCommon):
             "version": "1.0",
             "name": snapName,
         }
-        try:
-            ret = requests.post(
-                url,
-                json=data,
-                headers=self.headers,
-                params=params,
-                verify=self.verifySSL,
-            )
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if ret.ok:
-            try:
-                results = ret.json()
-            except ValueError as e:
-                print("response contained invalid JSON: %s" % e)
-                results = None
+            results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(results)
             else:
@@ -895,25 +824,17 @@ class getSnaps(SDKCommon):
                     print(".", end="", flush=True)
                     time.sleep(1)
                 print()
-            try:
-                ret = requests.get(
-                    url,
-                    data=data,
-                    headers=self.headers,
-                    params=params,
-                    verify=self.verifySSL,
-                )
-            except requests.exceptions.RequestException as e:
-                raise SystemExit(e)
+
+            ret = super().apicall(
+                "get", url, data, self.headers, params, self.verifySSL
+            )
 
             if not self.quiet:
                 print("API HTTP Status Code: %s" % ret.status_code)
                 print()
             if ret.ok:
-                try:
-                    results = ret.json()
-                except ValueError:
-                    print("response contained invalid JSON")
+                results = super().jsonifyResults(ret)
+                if results is None:
                     continue
                 snaps[app] = {}
                 for item in results["items"]:
@@ -964,16 +885,8 @@ class destroySnapshot(SDKCommon):
             "type": "application/astra-appSnap",
             "version": "1.0",
         }
-        try:
-            ret = requests.delete(
-                url,
-                json=data,
-                headers=self.headers,
-                params=params,
-                verify=self.verifySSL,
-            )
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
         if ret.ok:
             return True
@@ -1002,26 +915,14 @@ class getClouds(SDKCommon):
             print()
             print(colored("API URL: %s" % url, "green"))
             print()
-        try:
-            ret = requests.get(
-                url,
-                data=data,
-                headers=self.headers,
-                params=params,
-                verify=self.verifySSL,
-            )
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+
+        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
         if not self.quiet:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
         if ret.ok:
-            try:
-                results = ret.json()
-            except ValueError as e:
-                print("response contained invalid JSON: %s" % e)
-                results = None
+            results = super().jsonifyResults(ret)
             clouds = {}
             for item in results["items"]:
                 if item.get("id") not in clouds:
@@ -1093,25 +994,17 @@ class getStorageClasses(SDKCommon):
                         print(".", end="", flush=True)
                         time.sleep(1)
                     print()
-                try:
-                    ret = requests.get(
-                        url,
-                        data=data,
-                        headers=self.headers,
-                        params=params,
-                        verify=self.verifySSL,
-                    )
-                except requests.exceptions.RequestException as e:
-                    raise SystemExit(e)
+
+                ret = super().apicall(
+                    "get", url, data, self.headers, params, self.verifySSL
+                )
 
                 if not self.quiet:
                     print("API HTTP Status Code: %s" % ret.status_code)
                     print()
                 if ret.ok:
-                    try:
-                        results = ret.json()
-                    except ValueError:
-                        print("response contained invalid JSON")
+                    results = super().jsonifyResults(ret)
+                    if results is None:
                         continue
                     for entry in results.get("items"):
                         storageClasses[cloud][cluster][entry.get("id")] = entry.get(
@@ -1153,23 +1046,11 @@ class manageCluster(SDKCommon):
             "type": "application/astra-managedCluster",
             "version": "1.0",
         }
-        try:
-            ret = requests.post(
-                url,
-                json=data,
-                headers=self.headers,
-                params=params,
-                verify=self.verifySSL,
-            )
-        except requests.exceptions.RequestException as e:
-            raise SystemExit(e)
+
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if ret.ok:
-            try:
-                results = ret.json()
-            except ValueError as e:
-                print("response contained invalid JSON: %s" % e)
-                results = None
+            results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(results)
             return True
