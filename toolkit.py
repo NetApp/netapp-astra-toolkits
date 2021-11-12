@@ -618,6 +618,12 @@ if __name__ == "__main__":
                             snapshot_list.append(snapshots[appID][snapshotItem][0])
 
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-d", "--debug", default=False, action="store_true", help="print debug output"
+    )
+    parser.add_argument(
+        "-n", "--native", default=False, action="store_true", help="print debug output"
+    )
     subparsers = parser.add_subparsers(
         dest="subcommand", required=True, help="subcommand help"
     )
@@ -1149,20 +1155,24 @@ if __name__ == "__main__":
         )
     elif args.subcommand == "list":
         if args.objectType == "apps":
-            astraSDK.getApps(quiet=args.quiet).main(
+            astraSDK.getApps(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main(
                 discovered=args.unmanaged,
                 source=args.source,
                 namespace=args.namespace,
                 cluster=args.cluster,
             )
         elif args.objectType == "backups":
-            astraSDK.getBackups(quiet=args.quiet).main(appFilter=args.app)
+            astraSDK.getBackups(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main(appFilter=args.app)
         elif args.objectType == "clouds":
             astraSDK.getClouds(quiet=args.quiet).main()
         elif args.objectType == "clusters":
-            astraSDK.getClusters(quiet=args.quiet).main(
-                hideManaged=args.managed, hideUnmanaged=args.unmanaged
-            )
+            astraSDK.getClusters(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main(hideManaged=args.managed, hideUnmanaged=args.unmanaged)
         elif args.objectType == "snapshots":
             astraSDK.getSnaps(quiet=args.quiet).main(appFilter=args.app)
         elif args.objectType == "storageclasses":
