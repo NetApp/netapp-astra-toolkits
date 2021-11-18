@@ -1168,7 +1168,7 @@ if __name__ == "__main__":
                 quiet=args.quiet, debug=args.debug, native=args.native
             ).main(appFilter=args.app)
         elif args.objectType == "clouds":
-            astraSDK.getClouds(quiet=args.quiet).main()
+            astraSDK.getClouds(quiet=args.quiet, debug=args.debug, native=args.native).main()
         elif args.objectType == "clusters":
             astraSDK.getClusters(
                 quiet=args.quiet, debug=args.debug, native=args.native
@@ -1176,7 +1176,7 @@ if __name__ == "__main__":
         elif args.objectType == "snapshots":
             astraSDK.getSnaps(quiet=args.quiet).main(appFilter=args.app)
         elif args.objectType == "storageclasses":
-            astraSDK.getStorageClasses(quiet=args.quiet).main()
+            astraSDK.getStorageClasses(quiet=args.quiet, debug=args.debug, native=args.native).main()
     elif args.subcommand == "create":
         if args.objectType == "backup":
             doProtectionTask(args.objectType, args.appID, args.name)
