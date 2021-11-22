@@ -18,8 +18,8 @@
 import inspect
 import os
 import sys
-import time
 import yaml
+from tabulate import tabulate
 from termcolor import colored
 import requests
 from urllib3 import disable_warnings
@@ -117,13 +117,7 @@ class SDKCommon:
         except AttributeError as e:
             raise SystemExit(e)
         try:
-            ret = r(
-                url,
-                json=data,
-                headers=headers,
-                params=params,
-                verify=verify
-            )
+            ret = r(url, json=data, headers=headers, params=params, verify=verify)
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
         return ret
@@ -153,11 +147,21 @@ class getApps(SDKCommon):
     One thing this class won't do is list all of the managed and unmanaged apps.
     """
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False, native=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        debug: Print all of the ReST call info: URL, Method, Headers, Request Body
+        native: True: print the data structure that would be returned if quiet=True
+                False: pretty print the return with columnize"""
         self.quiet = quiet
+        self.debug = debug
+        self.native = native
         super().__init__()
 
     def main(self, discovered=False, source=None, namespace=None, cluster=None):
+        """discovered: True: show unmanaged apps False: show managed apps
+        source: Filter by the app source field.  eg: helm, namespace
+        namespace: Filter by the namespace the app is in
+        cluster: Filter by a specific k8s cluster"""
         endpoint = "topology/v1/apps"
         params = {
             "include": "name,id,clusterName,clusterID,namespace,state,managedState,appDefnSource"
@@ -165,19 +169,19 @@ class getApps(SDKCommon):
         url = self.base + endpoint
         data = {}
 
-        # self.quiet = True if the CLI was run with -q or
-        # we've been imported and called as a library
-        if not self.quiet:
-            print()
-            print("Listing Apps...")
-            print()
+        if self.debug:
             print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: GET", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
-        if not self.quiet:
+        if self.debug:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
+
         if ret.ok:
             results = super().jsonifyResults(ret)
             """
@@ -332,21 +336,30 @@ class getApps(SDKCommon):
                         }
 
             if not self.quiet:
-                print("apps:")
-                for item in appsCooked:
-                    print(
-                        "\tappName: %s\t appID: %s\t clusterName: %s\t "
-                        "namespace: %s\t state: %s\t source: %s"
-                        % (
-                            appsCooked[item][0],
-                            item,
-                            appsCooked[item][1],
-                            appsCooked[item][3],
-                            appsCooked[item][4],
-                            appsCooked[item][6],
+                if self.native:
+                    print(appsCooked)
+                else:
+                    tabHeader = [
+                        "appName",
+                        "appID",
+                        "clusterName",
+                        "namespace",
+                        "state",
+                        "source",
+                    ]
+                    tabData = []
+                    for item in appsCooked:
+                        tabData.append(
+                            [
+                                appsCooked[item][0],
+                                item,
+                                appsCooked[item][1],
+                                appsCooked[item][3],
+                                appsCooked[item][4],
+                                appsCooked[item][6],
+                            ]
                         )
-                    )
-                print()
+                    print(tabulate(tabData, tabHeader, tablefmt="grid"))
             return appsCooked
         else:
             if not self.quiet:
@@ -362,8 +375,14 @@ class getBackups(SDKCommon):
     for that app.
     """
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False, native=False):
+        """quiet: True: return (datastructure) False: CLI output
+        debug: Print all of the ReST call info: URL, Method, Headers, Request Body
+        native: True: print the data structure that would be returned if quiet=True
+                False: pretty print the return with columnize"""
         self.quiet = quiet
+        self.debug = debug
+        self.native = native
         super().__init__()
         self.apps = getApps().main()
 
@@ -379,6 +398,9 @@ class getBackups(SDKCommon):
              'jp3k', 'running', 'managed', 'helm']}
         """
         backups = {}
+        if not self.native:
+            globaltabHeader = ["AppID", "backupName", "backupID", "backupState"]
+            globaltabData = []
         for app in self.apps:
             if appFilter:
                 if self.apps[app][0] != appFilter:
@@ -389,19 +411,22 @@ class getBackups(SDKCommon):
             data = {}
             params = {"include": "name,id,state,metadata"}
 
-            if not self.quiet:
-                print()
+            if self.debug:
                 print("Listing Backups for %s %s" % (app, self.apps[app][0]))
-                print()
                 print(colored("API URL: %s" % url, "green"))
+                print(colored("API Method: GET", "green"))
+                print(colored("API Headers: %s" % self.headers, "green"))
+                print(colored("API data: %s" % data, "green"))
+                print(colored("API params: %s" % params, "green"))
 
             ret = super().apicall(
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
-            if not self.quiet:
+            if self.debug:
                 print("API HTTP Status Code: %s" % ret.status_code)
                 print()
+
             if ret.ok:
                 results = super().jsonifyResults(ret)
                 if results is None:
@@ -435,22 +460,39 @@ class getBackups(SDKCommon):
                             backupState,
                             backupTimeStamp,
                         ]
-                if not self.quiet:
-                    print("Backups:")
+                if not self.native:
+                    tabHeader = ["backupName", "backupID", "backupState"]
+                    tabData = []
                     for item in backups[app]:
-                        print(
-                            "\tbackupName: %s\t backupID: %s\t backupState: %s"
-                            % (
+                        tabData.append(
+                            [
                                 item,
                                 backups[app][item][0],
                                 backups[app][item][1],
-                            )
+                            ]
                         )
+                        globaltabData.append(
+                            [
+                                app,
+                                item,
+                                backups[app][item][0],
+                                backups[app][item][1],
+                            ]
+                        )
+                if not self.quiet:
+                    if self.native:
+                        print(backups[app])
+                    else:
+                        print("Backups for %s" % app)
+                        print(tabulate(tabData, tabHeader, tablefmt="grid"))
                         print()
             else:
                 continue
         if not self.quiet:
-            print(backups)
+            if self.native:
+                print(backups)
+            else:
+                print(tabulate(globaltabData, globaltabHeader, tablefmt="grid"))
         else:
             return backups
 
@@ -460,8 +502,9 @@ class takeBackup(SDKCommon):
     either the result JSON is returned or the backupID of the newly created
     backup is returned."""
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False):
         self.quiet = quiet
+        self.debug = debug
         super().__init__()
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
@@ -476,7 +519,19 @@ class takeBackup(SDKCommon):
             "name": backupName,
         }
 
+        if self.debug:
+            print("Taking backup for %s" % appID)
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.debug:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -495,8 +550,9 @@ class destroyBackup(SDKCommon):
     """Given an appID and backupID destroy the backup.  Note that this doesn't
     unmanage a backup, it actively destroys it. There is no coming back from this."""
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False):
         self.quiet = quiet
+        self.debug = debug
         super().__init__()
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
@@ -510,7 +566,19 @@ class destroyBackup(SDKCommon):
             "version": "1.0",
         }
 
+        if self.debug:
+            print("Deleting backup %s for %s" % (backupID, appID))
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: DELETE", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.debug:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
 
         if ret.ok:
             return True
@@ -542,7 +610,7 @@ class cloneApp(SDKCommon):
     for any parameters the clone operation will fail.
     """
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False):
         self.quiet = quiet
         super().__init__()
         self.headers["accept"] = "application/astra-managedApp+json"
@@ -575,7 +643,19 @@ class cloneApp(SDKCommon):
         if backupID:
             data["backupID"] = backupID
 
+        if self.debug:
+            print("Cloning app")
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.debug:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -594,8 +674,10 @@ class cloneApp(SDKCommon):
 class getClusters(SDKCommon):
     """Iterate over the clouds and list the clusters in each."""
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False, native=False):
         self.quiet = quiet
+        self.debug = debug
+        self.native = native
         super().__init__()
         self.clouds = getClouds(quiet=True).main()
 
@@ -607,23 +689,25 @@ class getClusters(SDKCommon):
             data = {}
             params = {}
 
-            if not self.quiet:
-                print()
+            if self.debug:
                 print(
                     "Getting clusters in cloud %s (%s)..."
                     % (cloud, self.clouds[cloud][0])
                 )
-                print()
                 print(colored("API URL: %s" % url, "green"))
-                print()
+                print(colored("API Method: POST", "green"))
+                print(colored("API Headers: %s" % self.headers, "green"))
+                print(colored("API data: %s" % data, "green"))
+                print(colored("API params: %s" % params, "green"))
 
             ret = super().apicall(
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
-            if not self.quiet:
+            if self.debug:
                 print("API HTTP Status Code: %s" % ret.status_code)
                 print()
+
             if ret.ok:
                 results = super().jsonifyResults(ret)
                 for item in results["items"]:
@@ -641,18 +725,21 @@ class getClusters(SDKCommon):
                             cloud,
                         ]
         if not self.quiet:
-            print("clusters:")
-            for item in clusters:
-                print(
-                    "\tclusterName: %s\t clusterID: %s\tclusterType: %s\tmanagedState: %s"
-                    % (
-                        clusters[item][0],
-                        item,
-                        clusters[item][1],
-                        clusters[item][2],
+            if self.native:
+                print(clusters)
+            else:
+                tabHeader = ["clusterName", "clusterID", "clusterType", "managedState"]
+                tabData = []
+                for item in clusters:
+                    tabData.append(
+                        [
+                            clusters[item][0],
+                            item,
+                            clusters[item][1],
+                            clusters[item][2],
+                        ]
                     )
-                )
-            print()
+                print(tabulate(tabData, tabHeader, tablefmt="grid"))
         else:
             return clusters
 
@@ -667,8 +754,9 @@ class createProtectionpolicy(SDKCommon):
     what the API requirements are in case the swagger isn't sufficient.
     """
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False):
         self.quiet = quiet
+        self.debug = debug
         super().__init__()
         self.headers["accept"] = "application/astra-schedule+json"
         self.headers["Content-Type"] = "application/astra-schedule+json"
@@ -701,7 +789,19 @@ class createProtectionpolicy(SDKCommon):
             "snapshotRetention": snapshotRetention,
         }
 
+        if self.debug:
+            print("Creating %s protection policy for app: %s" % (granularity, appID))
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.debug:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -718,8 +818,9 @@ class createProtectionpolicy(SDKCommon):
 class manageApp(SDKCommon):
     """This class switches a discovered app to a managed app."""
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False):
         self.quiet = quiet
+        self.debug = debug
         super().__init__()
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/managedApp+json"
@@ -734,7 +835,19 @@ class manageApp(SDKCommon):
             "id": appID,
         }
 
+        if self.debug:
+            print("Managing app: %s" % appID)
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.debug:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -749,12 +862,13 @@ class manageApp(SDKCommon):
 
 
 class takeSnap(SDKCommon):
-    """Take a snapshot of an app.  An AppID and snapName is provided and
+    """Take a snapshot of an app.  An AppID and snapName are required and
     either the result JSON is returned or the snapID of the newly created
     backup is returned."""
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False):
         self.quiet = quiet
+        self.debug = debug
         super().__init__()
         self.headers["accept"] = "application/astra-appSnap+json"
         self.headers["Content-Type"] = "application/astra-appSnap+json"
@@ -769,7 +883,19 @@ class takeSnap(SDKCommon):
             "name": snapName,
         }
 
+        if self.debug:
+            print("Taking snapshot for %s" % appID)
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.debug:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -791,13 +917,18 @@ class getSnaps(SDKCommon):
     for that app.
     """
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False, native=False):
         self.quiet = quiet
+        self.debug = debug
+        self.native = native
         super().__init__()
         self.apps = getApps().main()
 
     def main(self, appFilter=None):
         snaps = {}
+        if not self.native:
+            globaltabHeader = ["appID", "snapshotName", "snapshotID", "snapshotState"]
+            globaltabData = []
         for app in self.apps:
             if appFilter:
                 if self.apps[app][0] != appFilter:
@@ -808,30 +939,22 @@ class getSnaps(SDKCommon):
             data = {}
             params = {"include": "name,id,state"}
 
-            if not self.quiet:
-                print()
-                print("Listing Snapshots for %s" % app)
-                print()
+            if self.debug:
+                print("Listing Snapshots for %s %s" % (app, self.apps[app][0]))
                 print(colored("API URL: %s" % url, "green"))
                 print(colored("API Method: GET", "green"))
                 print(colored("API Headers: %s" % self.headers, "green"))
                 print(colored("API data: %s" % data, "green"))
                 print(colored("API params: %s" % params, "green"))
-                print()
-                time.sleep(1)
-                print("Making API Call", end="", flush=True)
-                for i in range(3):
-                    print(".", end="", flush=True)
-                    time.sleep(1)
-                print()
 
             ret = super().apicall(
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
-            if not self.quiet:
+            if self.debug:
                 print("API HTTP Status Code: %s" % ret.status_code)
                 print()
+
             if ret.ok:
                 results = super().jsonifyResults(ret)
                 if results is None:
@@ -846,23 +969,39 @@ class getSnaps(SDKCommon):
                             snapID,
                             snapState,
                         ]
-                if not self.quiet:
-                    print("Snapshots:")
+                if not self.native:
+                    tabHeader = ["snapshotName", "snapshotID", "snapshotState"]
+                    tabData = []
                     for item in snaps[app]:
-                        print(
-                            "\tsnapshotName: %s\t snapshotID: %s\t snapshotState: %s"
-                            % (
+                        tabData.append(
+                            [
                                 item,
                                 snaps[app][item][0],
                                 snaps[app][item][1],
-                            )
+                            ]
                         )
+                        globaltabData.append(
+                            [
+                                app,
+                                item,
+                                snaps[app][item][0],
+                                snaps[app][item][1],
+                            ]
+                        )
+                if not self.quiet:
+                    if self.native:
+                        print(snaps[app])
+                    else:
+                        print("Snapshots for %s" % app)
+                        print(tabulate(tabData, tabHeader, tablefmt="grid"))
                         print()
             else:
                 continue
-
         if not self.quiet:
-            print(snaps)
+            if self.native:
+                print(snaps)
+            else:
+                print(tabulate(globaltabData, globaltabHeader, tablefmt="grid"))
         else:
             return snaps
 
@@ -871,8 +1010,9 @@ class destroySnapshot(SDKCommon):
     """Given an appID and snapID destroy the snapshot.  Note that this doesn't
     unmanage a snapshot, it actively destroys it. There is no coming back from this."""
 
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False):
         self.quiet = quiet
+        self.debug = debug
         super().__init__()
         self.headers["accept"] = "application/astra-appSnap+json"
         self.headers["Content-Type"] = "application/astra-appSnap+json"
@@ -886,7 +1026,19 @@ class destroySnapshot(SDKCommon):
             "version": "1.0",
         }
 
+        if self.debug:
+            print("Deleting snapshot %s for %s" % (snapID, appID))
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: DELETE", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.debug:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
 
         if ret.ok:
             return True
@@ -898,8 +1050,10 @@ class destroySnapshot(SDKCommon):
 
 
 class getClouds(SDKCommon):
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False, native=False):
         self.quiet = quiet
+        self.debug = debug
+        self.native = native
         super().__init__()
 
     def main(self):
@@ -909,18 +1063,20 @@ class getClouds(SDKCommon):
         data = {}
         params = {"include": "id,name,state"}
 
-        if not self.quiet:
-            print()
-            print("Listing clouds...")
-            print()
+        if self.debug:
+            print("Getting clouds...")
             print(colored("API URL: %s" % url, "green"))
-            print()
+            print(colored("API Method: POST", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
-        if not self.quiet:
+        if self.debug:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
+
         if ret.ok:
             results = super().jsonifyResults(ret)
             clouds = {}
@@ -931,18 +1087,22 @@ class getClouds(SDKCommon):
                         item.get("cloudType"),
                     ]
             if not self.quiet:
-                print("clouds:")
-                for item in clouds:
-                    print(
-                        "\tcloudName: %s\t cloudID: %s\tcloudType: %s"
-                        % (
-                            clouds[item][0],
-                            item,
-                            clouds[item][1],
+                if self.native:
+                    print(clouds)
+                else:
+                    tabHeader = ["cloudName", "cloudID", "cloudType"]
+                    tabData = []
+                    for item in clouds:
+                        tabData.append(
+                            [
+                                clouds[item][0],
+                                item,
+                                clouds[item][1],
+                            ]
                         )
-                    )
-                print()
-            return clouds
+                    print(tabulate(tabData, tabHeader, tablefmt="grid"))
+            else:
+                return clouds
         else:
             if not self.quiet:
                 print(ret.status_code)
@@ -951,8 +1111,10 @@ class getClouds(SDKCommon):
 
 
 class getStorageClasses(SDKCommon):
-    def __init__(self, quiet=True):
+    def __init__(self, quiet=True, debug=False, native=False):
         self.quiet = quiet
+        self.debug = debug
+        self.native = native
         super().__init__()
         self.clouds = getClouds().main()
         self.clusters = getClusters().main()
@@ -975,7 +1137,7 @@ class getStorageClasses(SDKCommon):
                 data = {}
                 params = {}
 
-                if not self.quiet:
+                if self.debug:
                     print()
                     print(
                         "Listing StorageClasses for cluster: %s in cloud: %s"
@@ -988,18 +1150,12 @@ class getStorageClasses(SDKCommon):
                     print(colored("API data: %s" % data, "green"))
                     print(colored("API params: %s" % params, "green"))
                     print()
-                    time.sleep(1)
-                    print("Making API Call", end="", flush=True)
-                    for i in range(3):
-                        print(".", end="", flush=True)
-                        time.sleep(1)
-                    print()
 
                 ret = super().apicall(
                     "get", url, data, self.headers, params, self.verifySSL
                 )
 
-                if not self.quiet:
+                if self.debug:
                     print("API HTTP Status Code: %s" % ret.status_code)
                     print()
                 if ret.ok:
@@ -1012,26 +1168,32 @@ class getStorageClasses(SDKCommon):
                         )
 
         if not self.quiet:
-            for cloud in storageClasses:
-                print("cloud: %s (%s)" % (cloud, self.clouds[cloud][0]))
-                for cluster in storageClasses[cloud]:
-                    print("\tcluster: %s (%s)" % (cluster, self.clusters[cluster][0]))
-                    for storageClass in storageClasses[cloud][cluster]:
-                        print(
-                            "\t\tstorage class: %s (%s)"
-                            % (
-                                storageClass,
-                                storageClasses[cloud][cluster][storageClass],
+            if self.native:
+                print(storageClasses)
+            else:
+                tabData = []
+                tabHeader = ["cloud", "cluster", "storageclassID", "storageclassName"]
+                for cloud in storageClasses:
+                    for cluster in storageClasses[cloud]:
+                        for storageClass in storageClasses[cloud][cluster]:
+                            tabData.append(
+                                [
+                                    self.clouds[cloud][0],
+                                    self.clusters[cluster][0],
+                                    storageClass,
+                                    storageClasses[cloud][cluster][storageClass],
+                                ]
                             )
-                        )
+                print(tabulate(tabData, tabHeader, tablefmt="grid"))
         return storageClasses
 
 
 class manageCluster(SDKCommon):
     """This class switches an unmanaged cluster to a managed cluster"""
 
-    def __init__(self, quiet=False):
+    def __init__(self, quiet=False, debug=False):
         self.quiet = quiet
+        self.debug = debug
         super().__init__()
         self.headers["accept"] = "application/astra-managedCluster+json"
         self.headers["Content-Type"] = "application/managedCluster+json"
@@ -1047,7 +1209,22 @@ class manageCluster(SDKCommon):
             "version": "1.0",
         }
 
+        if self.debug:
+            print()
+            print("Managing: %s" % clusterID)
+            print()
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+            print()
+
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.debug:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
 
         if ret.ok:
             results = super().jsonifyResults(ret)

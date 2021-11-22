@@ -618,6 +618,12 @@ if __name__ == "__main__":
                             snapshot_list.append(snapshots[appID][snapshotItem][0])
 
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-d", "--debug", default=False, action="store_true", help="print debug output"
+    )
+    parser.add_argument(
+        "-n", "--native", default=False, action="store_true", help="print debug output"
+    )
     subparsers = parser.add_subparsers(
         dest="subcommand", required=True, help="subcommand help"
     )
@@ -1149,29 +1155,39 @@ if __name__ == "__main__":
         )
     elif args.subcommand == "list":
         if args.objectType == "apps":
-            astraSDK.getApps(quiet=args.quiet).main(
+            astraSDK.getApps(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main(
                 discovered=args.unmanaged,
                 source=args.source,
                 namespace=args.namespace,
                 cluster=args.cluster,
             )
         elif args.objectType == "backups":
-            astraSDK.getBackups(quiet=args.quiet).main(appFilter=args.app)
+            astraSDK.getBackups(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main(appFilter=args.app)
         elif args.objectType == "clouds":
-            astraSDK.getClouds(quiet=args.quiet).main()
+            astraSDK.getClouds(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main()
         elif args.objectType == "clusters":
-            astraSDK.getClusters(quiet=args.quiet).main(
-                hideManaged=args.managed, hideUnmanaged=args.unmanaged
-            )
+            astraSDK.getClusters(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main(hideManaged=args.managed, hideUnmanaged=args.unmanaged)
         elif args.objectType == "snapshots":
-            astraSDK.getSnaps(quiet=args.quiet).main(appFilter=args.app)
+            astraSDK.getSnaps(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main(appFilter=args.app)
         elif args.objectType == "storageclasses":
-            astraSDK.getStorageClasses(quiet=args.quiet).main()
+            astraSDK.getStorageClasses(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main()
     elif args.subcommand == "create":
         if args.objectType == "backup":
             doProtectionTask(args.objectType, args.appID, args.name)
         elif args.objectType == "protectionpolicy":
-            astraSDK.createProtectionpolicy(quiet=args.quiet).main(
+            astraSDK.createProtectionpolicy(quiet=args.quiet, debug=args.debug).main(
                 args.granularity,
                 str(args.backupRetention),
                 str(args.snapshotRetention),
@@ -1186,14 +1202,14 @@ if __name__ == "__main__":
 
     elif args.subcommand == "manage":
         if args.objectType == "app":
-            astraSDK.manageApp(quiet=args.quiet).main(args.appID)
+            astraSDK.manageApp(quiet=args.quiet, debug=args.debug).main(args.appID)
         if args.objectType == "cluster":
-            astraSDK.manageCluster(quiet=args.quiet).main(
+            astraSDK.manageCluster(quiet=args.quiet, debug=args.debug).main(
                 args.clusterID, args.storageClassID
             )
     elif args.subcommand == "destroy":
         if args.objectType == "backup":
-            rc = astraSDK.destroyBackup(quiet=args.quiet).main(
+            rc = astraSDK.destroyBackup(quiet=args.quiet, debug=args.debug).main(
                 args.appID, args.backupID
             )
             if rc:
@@ -1201,7 +1217,7 @@ if __name__ == "__main__":
             else:
                 print("Failed destroying backup: %s" % args.backupID)
         elif args.objectType == "snapshot":
-            rc = astraSDK.destroySnapshot(quiet=args.quiet).main(
+            rc = astraSDK.destroySnapshot(quiet=args.quiet, debug=args.debug).main(
                 args.appID, args.snapshotID
             )
             if rc:
