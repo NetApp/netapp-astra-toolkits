@@ -4,5 +4,6 @@ dnspython==2.1.0
 idna==2.10
 PyYAML==5.4.1
 requests==2.25.1
+tabulate==0.8.9
 termcolor==1.1.0
 urllib3==1.26.5
