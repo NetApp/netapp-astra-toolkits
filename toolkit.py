@@ -1168,20 +1168,26 @@ if __name__ == "__main__":
                 quiet=args.quiet, debug=args.debug, native=args.native
             ).main(appFilter=args.app)
         elif args.objectType == "clouds":
-            astraSDK.getClouds(quiet=args.quiet, debug=args.debug, native=args.native).main()
+            astraSDK.getClouds(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main()
         elif args.objectType == "clusters":
             astraSDK.getClusters(
                 quiet=args.quiet, debug=args.debug, native=args.native
             ).main(hideManaged=args.managed, hideUnmanaged=args.unmanaged)
         elif args.objectType == "snapshots":
-            astraSDK.getSnaps(quiet=args.quiet).main(appFilter=args.app)
+            astraSDK.getSnaps(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main(appFilter=args.app)
         elif args.objectType == "storageclasses":
-            astraSDK.getStorageClasses(quiet=args.quiet, debug=args.debug, native=args.native).main()
+            astraSDK.getStorageClasses(
+                quiet=args.quiet, debug=args.debug, native=args.native
+            ).main()
     elif args.subcommand == "create":
         if args.objectType == "backup":
             doProtectionTask(args.objectType, args.appID, args.name)
         elif args.objectType == "protectionpolicy":
-            astraSDK.createProtectionpolicy(quiet=args.quiet).main(
+            astraSDK.createProtectionpolicy(quiet=args.quiet, debug=args.debug).main(
                 args.granularity,
                 str(args.backupRetention),
                 str(args.snapshotRetention),
@@ -1196,14 +1202,14 @@ if __name__ == "__main__":
 
     elif args.subcommand == "manage":
         if args.objectType == "app":
-            astraSDK.manageApp(quiet=args.quiet).main(args.appID)
+            astraSDK.manageApp(quiet=args.quiet, debug=args.debug).main(args.appID)
         if args.objectType == "cluster":
-            astraSDK.manageCluster(quiet=args.quiet).main(
+            astraSDK.manageCluster(quiet=args.quiet, debug=args.debug).main(
                 args.clusterID, args.storageClassID
             )
     elif args.subcommand == "destroy":
         if args.objectType == "backup":
-            rc = astraSDK.destroyBackup(quiet=args.quiet).main(
+            rc = astraSDK.destroyBackup(quiet=args.quiet, debug=args.debug).main(
                 args.appID, args.backupID
             )
             if rc:
@@ -1211,7 +1217,7 @@ if __name__ == "__main__":
             else:
                 print("Failed destroying backup: %s" % args.backupID)
         elif args.objectType == "snapshot":
-            rc = astraSDK.destroySnapshot(quiet=args.quiet).main(
+            rc = astraSDK.destroySnapshot(quiet=args.quiet, debug=args.debug).main(
                 args.appID, args.snapshotID
             )
             if rc:

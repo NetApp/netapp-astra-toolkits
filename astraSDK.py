@@ -576,6 +576,10 @@ class destroyBackup(SDKCommon):
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
+        if self.debug:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
+
         if ret.ok:
             return True
         else:
@@ -649,6 +653,10 @@ class cloneApp(SDKCommon):
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
+        if self.debug:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
+
         if ret.ok:
             results = super().jsonifyResults(ret)
 
@@ -696,9 +704,10 @@ class getClusters(SDKCommon):
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
-            if not self.quiet and self.debug:
+            if self.debug:
                 print("API HTTP Status Code: %s" % ret.status_code)
                 print()
+
             if ret.ok:
                 results = super().jsonifyResults(ret)
                 for item in results["items"]:
@@ -790,7 +799,7 @@ class createProtectionpolicy(SDKCommon):
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
-        if not self.quiet and self.debug:
+        if self.debug:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -836,7 +845,7 @@ class manageApp(SDKCommon):
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
-        if not self.quiet and self.debug:
+        if self.debug:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -853,7 +862,7 @@ class manageApp(SDKCommon):
 
 
 class takeSnap(SDKCommon):
-    """Take a snapshot of an app.  An AppID and snapName is provided and
+    """Take a snapshot of an app.  An AppID and snapName are required and
     either the result JSON is returned or the snapID of the newly created
     backup is returned."""
 
@@ -884,7 +893,7 @@ class takeSnap(SDKCommon):
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
-        if not self.quiet and self.debug:
+        if self.debug:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -942,7 +951,7 @@ class getSnaps(SDKCommon):
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
-            if not self.quiet:
+            if self.debug:
                 print("API HTTP Status Code: %s" % ret.status_code)
                 print()
 
@@ -1027,7 +1036,7 @@ class destroySnapshot(SDKCommon):
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
-        if not self.quiet:
+        if self.debug:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -1054,13 +1063,7 @@ class getClouds(SDKCommon):
         data = {}
         params = {"include": "id,name,state"}
 
-        if not self.quiet and self.debug:
-            print()
-            print("Getting clouds...")
-            print(colored("API URL: %s" % url, "green"))
-            print()
-
-        elif self.debug:
+        if self.debug:
             print("Getting clouds...")
             print(colored("API URL: %s" % url, "green"))
             print(colored("API Method: POST", "green"))
@@ -1070,7 +1073,7 @@ class getClouds(SDKCommon):
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
-        if not self.quiet:
+        if self.debug:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -1134,7 +1137,7 @@ class getStorageClasses(SDKCommon):
                 data = {}
                 params = {}
 
-                if not self.quiet and self.debug:
+                if self.debug:
                     print()
                     print(
                         "Listing StorageClasses for cluster: %s in cloud: %s"
@@ -1152,7 +1155,7 @@ class getStorageClasses(SDKCommon):
                     "get", url, data, self.headers, params, self.verifySSL
                 )
 
-                if not self.quiet and self.debug:
+                if self.debug:
                     print("API HTTP Status Code: %s" % ret.status_code)
                     print()
                 if ret.ok:
@@ -1188,8 +1191,9 @@ class getStorageClasses(SDKCommon):
 class manageCluster(SDKCommon):
     """This class switches an unmanaged cluster to a managed cluster"""
 
-    def __init__(self, quiet=False):
+    def __init__(self, quiet=False, debug=False):
         self.quiet = quiet
+        self.debug = debug
         super().__init__()
         self.headers["accept"] = "application/astra-managedCluster+json"
         self.headers["Content-Type"] = "application/managedCluster+json"
@@ -1205,7 +1209,22 @@ class manageCluster(SDKCommon):
             "version": "1.0",
         }
 
+        if self.debug:
+            print()
+            print("Managing: %s" % clusterID)
+            print()
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+            print()
+
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.debug:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
 
         if ret.ok:
             results = super().jsonifyResults(ret)
