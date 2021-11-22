@@ -18,7 +18,6 @@
 import inspect
 import os
 import sys
-import time
 import yaml
 from tabulate import tabulate
 from termcolor import colored
@@ -461,7 +460,7 @@ class getBackups(SDKCommon):
                             backupState,
                             backupTimeStamp,
                         ]
-                if not self.native
+                if not self.native:
                     tabHeader = ["backupName", "backupID", "backupState"]
                     tabData = []
                     for item in backups[app]:
