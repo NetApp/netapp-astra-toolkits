@@ -624,6 +624,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-n", "--native", default=False, action="store_true", help="print debug output"
     )
+    parser.add_argument(
+        "-q", "--quiet", default=False, action="store_true", help="Supress output"
+    )
     subparsers = parser.add_subparsers(
         dest="subcommand", required=True, help="subcommand help"
     )
@@ -713,9 +716,6 @@ if __name__ == "__main__":
     # list apps args and flags
     #######
     subparserListApps.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
-    )
-    subparserListApps.add_argument(
         "-u",
         "--unmanaged",
         default=False,
@@ -739,9 +739,6 @@ if __name__ == "__main__":
     subparserListBackups.add_argument(
         "-a", "--app", default=None, help="Only show backups from this app"
     )
-    subparserListBackups.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
-    )
     #######
     # end of list backups args and flags
     #######
@@ -749,9 +746,7 @@ if __name__ == "__main__":
     #######
     # list clouds args and flags
     #######
-    subparserListClouds.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
-    )
+
     #######
     # end of list clouds args and flags
     #######
@@ -759,9 +754,6 @@ if __name__ == "__main__":
     #######
     # list clusters args and flags
     #######
-    subparserListClusters.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
-    )
     subparserListClusters.add_argument(
         "-m",
         "--managed",
@@ -786,9 +778,6 @@ if __name__ == "__main__":
     subparserListSnapshots.add_argument(
         "-a", "--app", default=None, help="Only show snapshots from this app"
     )
-    subparserListSnapshots.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
-    )
     #######
     # end of list snapshots args and flags
     #######
@@ -796,9 +785,7 @@ if __name__ == "__main__":
     #######
     # list storageclasses args and flags
     #######
-    subparserListStorageClasses.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
-    )
+
     #######
     # end of list storageclasses args and flags
     #######
@@ -885,9 +872,6 @@ if __name__ == "__main__":
         choices=appList,
         help="appID of the application to create protection schecule for",
     )
-    subparserCreateProtectionpolicy.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
-    )
     #######
     # end of create protectionpolicy args and flags
     #######
@@ -931,9 +915,6 @@ if __name__ == "__main__":
         choices=appList,
         help="appID of app to move from discovered to managed",
     )
-    subparserManageApp.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
-    )
     #######
     # end of manage app args and flags
     #######
@@ -966,9 +947,6 @@ if __name__ == "__main__":
         choices=backup_list,
         help="backupID to destroy",
     )
-    subparserDestroyBackup.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
-    )
     #######
     # end of destroy backup args and flags
     #######
@@ -986,9 +964,6 @@ if __name__ == "__main__":
         choices=snapshot_list,
         help="snapshotID to destroy",
     )
-    subparserDestroySnapshot.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
-    )
     #######
     # end of destroy snapshot args and flags
     #######
@@ -1005,9 +980,6 @@ if __name__ == "__main__":
         "storageClassID",
         choices=storageClassList,
         help="Default storage class ID",
-    )
-    subparserManageCluster.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
     )
     #######
     # end of manage cluster args and flags
