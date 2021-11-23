@@ -692,7 +692,7 @@ class cloneApp(SDKCommon):
 class getClusters(SDKCommon):
     """Iterate over the clouds and list the clusters in each."""
 
-    def __init__(self, quiet=True, verbose=False, output="table"):
+    def __init__(self, quiet=True, verbose=False, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
         output: table: pretty print the data
