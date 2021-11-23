@@ -147,14 +147,15 @@ class getApps(SDKCommon):
     One thing this class won't do is list all of the managed and unmanaged apps.
     """
 
-    def __init__(self, quiet=True, debug=False, native=False):
+    def __init__(self, quiet=True, verbose=False, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
-        debug: Print all of the ReST call info: URL, Method, Headers, Request Body
-        native: True: print the data structure that would be returned if quiet=True
-                False: pretty print the return with columnize"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
         self.quiet = quiet
-        self.debug = debug
-        self.native = native
+        self.verbose = verbose 
+        self.output = output
         super().__init__()
 
     def main(self, discovered=False, source=None, namespace=None, cluster=None):
@@ -169,7 +170,7 @@ class getApps(SDKCommon):
         url = self.base + endpoint
         data = {}
 
-        if self.debug:
+        if self.verbose:
             print(colored("API URL: %s" % url, "green"))
             print(colored("API Method: GET", "green"))
             print(colored("API Headers: %s" % self.headers, "green"))
@@ -178,7 +179,7 @@ class getApps(SDKCommon):
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
-        if self.debug:
+        if self.verbose:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -335,32 +336,37 @@ class getApps(SDKCommon):
                             if v[0] not in systemApps and v[5] == managedFilter
                         }
 
+            if self.output == "json":
+                dataReturn = appsCooked
+            elif self.output == "yaml":
+                dataReturn = yaml.dump(appsCooked)
+            elif self.output == "table":
+                tabHeader = [
+                    "appName",
+                    "appID",
+                    "clusterName",
+                    "namespace",
+                    "state",
+                    "source",
+                ]
+                tabData = []
+                for item in appsCooked:
+                    tabData.append(
+                        [
+                            appsCooked[item][0],
+                            item,
+                            appsCooked[item][1],
+                            appsCooked[item][3],
+                            appsCooked[item][4],
+                            appsCooked[item][6],
+                        ]
+                    )
+                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+
             if not self.quiet:
-                if self.native:
-                    print(appsCooked)
-                else:
-                    tabHeader = [
-                        "appName",
-                        "appID",
-                        "clusterName",
-                        "namespace",
-                        "state",
-                        "source",
-                    ]
-                    tabData = []
-                    for item in appsCooked:
-                        tabData.append(
-                            [
-                                appsCooked[item][0],
-                                item,
-                                appsCooked[item][1],
-                                appsCooked[item][3],
-                                appsCooked[item][4],
-                                appsCooked[item][6],
-                            ]
-                        )
-                    print(tabulate(tabData, tabHeader, tablefmt="grid"))
-            return appsCooked
+                print(dataReturn)
+            return dataReturn
+
         else:
             if not self.quiet:
                 print(ret.status_code)
@@ -375,14 +381,15 @@ class getBackups(SDKCommon):
     for that app.
     """
 
-    def __init__(self, quiet=True, debug=False, native=False):
-        """quiet: True: return (datastructure) False: CLI output
-        debug: Print all of the ReST call info: URL, Method, Headers, Request Body
-        native: True: print the data structure that would be returned if quiet=True
-                False: pretty print the return with columnize"""
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
         self.quiet = quiet
-        self.debug = debug
-        self.native = native
+        self.verbose = verbose
+        self.output = output
         super().__init__()
         self.apps = getApps().main()
 
@@ -398,7 +405,7 @@ class getBackups(SDKCommon):
              'jp3k', 'running', 'managed', 'helm']}
         """
         backups = {}
-        if not self.native:
+        if self.output == "table":
             globaltabHeader = ["AppID", "backupName", "backupID", "backupState"]
             globaltabData = []
         for app in self.apps:
@@ -411,7 +418,7 @@ class getBackups(SDKCommon):
             data = {}
             params = {"include": "name,id,state,metadata"}
 
-            if self.debug:
+            if self.verbose:
                 print("Listing Backups for %s %s" % (app, self.apps[app][0]))
                 print(colored("API URL: %s" % url, "green"))
                 print(colored("API Method: GET", "green"))
@@ -423,7 +430,7 @@ class getBackups(SDKCommon):
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
-            if self.debug:
+            if self.verbose:
                 print("API HTTP Status Code: %s" % ret.status_code)
                 print()
 
@@ -460,7 +467,7 @@ class getBackups(SDKCommon):
                             backupState,
                             backupTimeStamp,
                         ]
-                if not self.native:
+                if self.output == "table":
                     tabHeader = ["backupName", "backupID", "backupState"]
                     tabData = []
                     for item in backups[app]:
@@ -480,21 +487,26 @@ class getBackups(SDKCommon):
                             ]
                         )
                 if not self.quiet:
-                    if self.native:
+                    print("Backups for %s" % app)
+                    if self.output == "json":
                         print(backups[app])
-                    else:
-                        print("Backups for %s" % app)
+                    elif self.output == "yaml":
+                        print(yaml.dump(backups[app]))
+                    elif self.output == "table":
                         print(tabulate(tabData, tabHeader, tablefmt="grid"))
                         print()
             else:
                 continue
+        if self.output == "json":
+            dataReturn = backups
+        elif self.output == "yaml":
+            dataReturn = yaml.dump(backups)
+        elif self.output == "table":
+            dataReturn = tabulate(globaltabData, globaltabHeader, tablefmt="grid")
+
         if not self.quiet:
-            if self.native:
-                print(backups)
-            else:
-                print(tabulate(globaltabData, globaltabHeader, tablefmt="grid"))
-        else:
-            return backups
+            print(dataReturn)
+        return dataReturn
 
 
 class takeBackup(SDKCommon):
@@ -502,9 +514,11 @@ class takeBackup(SDKCommon):
     either the result JSON is returned or the backupID of the newly created
     backup is returned."""
 
-    def __init__(self, quiet=True, debug=False):
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
         self.quiet = quiet
-        self.debug = debug
+        self.verbose = verbose
         super().__init__()
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
@@ -519,7 +533,7 @@ class takeBackup(SDKCommon):
             "name": backupName,
         }
 
-        if self.debug:
+        if self.verbose:
             print("Taking backup for %s" % appID)
             print(colored("API URL: %s" % url, "green"))
             print(colored("API Method: POST", "green"))
@@ -529,7 +543,7 @@ class takeBackup(SDKCommon):
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
-        if self.debug:
+        if self.verbose:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -550,9 +564,11 @@ class destroyBackup(SDKCommon):
     """Given an appID and backupID destroy the backup.  Note that this doesn't
     unmanage a backup, it actively destroys it. There is no coming back from this."""
 
-    def __init__(self, quiet=True, debug=False):
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
         self.quiet = quiet
-        self.debug = debug
+        self.verbose = verbose
         super().__init__()
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
@@ -566,7 +582,7 @@ class destroyBackup(SDKCommon):
             "version": "1.0",
         }
 
-        if self.debug:
+        if self.verbose:
             print("Deleting backup %s for %s" % (backupID, appID))
             print(colored("API URL: %s" % url, "green"))
             print(colored("API Method: DELETE", "green"))
@@ -576,7 +592,7 @@ class destroyBackup(SDKCommon):
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
-        if self.debug:
+        if self.verbose:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -610,7 +626,9 @@ class cloneApp(SDKCommon):
     for any parameters the clone operation will fail.
     """
 
-    def __init__(self, quiet=True, debug=False):
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
         self.quiet = quiet
         super().__init__()
         self.headers["accept"] = "application/astra-managedApp+json"
@@ -643,7 +661,7 @@ class cloneApp(SDKCommon):
         if backupID:
             data["backupID"] = backupID
 
-        if self.debug:
+        if self.verbose:
             print("Cloning app")
             print(colored("API URL: %s" % url, "green"))
             print(colored("API Method: POST", "green"))
@@ -653,7 +671,7 @@ class cloneApp(SDKCommon):
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
-        if self.debug:
+        if self.verbose:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -674,10 +692,15 @@ class cloneApp(SDKCommon):
 class getClusters(SDKCommon):
     """Iterate over the clouds and list the clusters in each."""
 
-    def __init__(self, quiet=True, debug=False, native=False):
+    def __init__(self, quiet=True, verbose=False, output="table"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
         self.quiet = quiet
-        self.debug = debug
-        self.native = native
+        self.verbose = verbose
+        self.output = output
         super().__init__()
         self.clouds = getClouds(quiet=True).main()
 
@@ -689,7 +712,7 @@ class getClusters(SDKCommon):
             data = {}
             params = {}
 
-            if self.debug:
+            if self.verbose:
                 print(
                     "Getting clusters in cloud %s (%s)..."
                     % (cloud, self.clouds[cloud][0])
@@ -704,7 +727,7 @@ class getClusters(SDKCommon):
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
-            if self.debug:
+            if self.verbose:
                 print("API HTTP Status Code: %s" % ret.status_code)
                 print()
 
@@ -724,24 +747,28 @@ class getClusters(SDKCommon):
                             item.get("managedState"),
                             cloud,
                         ]
+
+        if self.output == "json":
+            dataReturn = clusters
+        elif self.output == "yaml":
+            dataReturn = yaml.dump(clusters)
+        elif self.output == "table":
+            tabHeader = ["clusterName", "clusterID", "clusterType", "managedState"]
+            tabData = []
+            for item in clusters:
+                tabData.append(
+                    [
+                        clusters[item][0],
+                        item,
+                        clusters[item][1],
+                        clusters[item][2],
+                    ]
+                )
+            dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+
         if not self.quiet:
-            if self.native:
-                print(clusters)
-            else:
-                tabHeader = ["clusterName", "clusterID", "clusterType", "managedState"]
-                tabData = []
-                for item in clusters:
-                    tabData.append(
-                        [
-                            clusters[item][0],
-                            item,
-                            clusters[item][1],
-                            clusters[item][2],
-                        ]
-                    )
-                print(tabulate(tabData, tabHeader, tablefmt="grid"))
-        else:
-            return clusters
+            print(dataReturn)
+        return dataReturn
 
 
 class createProtectionpolicy(SDKCommon):
@@ -754,9 +781,11 @@ class createProtectionpolicy(SDKCommon):
     what the API requirements are in case the swagger isn't sufficient.
     """
 
-    def __init__(self, quiet=True, debug=False):
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
         self.quiet = quiet
-        self.debug = debug
+        self.verbose = verbose
         super().__init__()
         self.headers["accept"] = "application/astra-schedule+json"
         self.headers["Content-Type"] = "application/astra-schedule+json"
@@ -789,7 +818,7 @@ class createProtectionpolicy(SDKCommon):
             "snapshotRetention": snapshotRetention,
         }
 
-        if self.debug:
+        if self.verbose:
             print("Creating %s protection policy for app: %s" % (granularity, appID))
             print(colored("API URL: %s" % url, "green"))
             print(colored("API Method: POST", "green"))
@@ -799,7 +828,7 @@ class createProtectionpolicy(SDKCommon):
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
-        if self.debug:
+        if self.verbose:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -818,9 +847,11 @@ class createProtectionpolicy(SDKCommon):
 class manageApp(SDKCommon):
     """This class switches a discovered app to a managed app."""
 
-    def __init__(self, quiet=True, debug=False):
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
         self.quiet = quiet
-        self.debug = debug
+        self.verbose = verbose
         super().__init__()
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/managedApp+json"
@@ -835,7 +866,7 @@ class manageApp(SDKCommon):
             "id": appID,
         }
 
-        if self.debug:
+        if self.verbose:
             print("Managing app: %s" % appID)
             print(colored("API URL: %s" % url, "green"))
             print(colored("API Method: POST", "green"))
@@ -845,7 +876,7 @@ class manageApp(SDKCommon):
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
-        if self.debug:
+        if self.verbose:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -866,9 +897,11 @@ class takeSnap(SDKCommon):
     either the result JSON is returned or the snapID of the newly created
     backup is returned."""
 
-    def __init__(self, quiet=True, debug=False):
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
         self.quiet = quiet
-        self.debug = debug
+        self.verbose = verbose
         super().__init__()
         self.headers["accept"] = "application/astra-appSnap+json"
         self.headers["Content-Type"] = "application/astra-appSnap+json"
@@ -883,7 +916,7 @@ class takeSnap(SDKCommon):
             "name": snapName,
         }
 
-        if self.debug:
+        if self.verbose:
             print("Taking snapshot for %s" % appID)
             print(colored("API URL: %s" % url, "green"))
             print(colored("API Method: POST", "green"))
@@ -893,7 +926,7 @@ class takeSnap(SDKCommon):
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
-        if self.debug:
+        if self.verbose:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -917,16 +950,21 @@ class getSnaps(SDKCommon):
     for that app.
     """
 
-    def __init__(self, quiet=True, debug=False, native=False):
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
         self.quiet = quiet
-        self.debug = debug
-        self.native = native
+        self.verbose = verbose
+        self.output = output
         super().__init__()
         self.apps = getApps().main()
 
     def main(self, appFilter=None):
         snaps = {}
-        if not self.native:
+        if self.output == "table":
             globaltabHeader = ["appID", "snapshotName", "snapshotID", "snapshotState"]
             globaltabData = []
         for app in self.apps:
@@ -939,7 +977,7 @@ class getSnaps(SDKCommon):
             data = {}
             params = {"include": "name,id,state"}
 
-            if self.debug:
+            if self.verbose:
                 print("Listing Snapshots for %s %s" % (app, self.apps[app][0]))
                 print(colored("API URL: %s" % url, "green"))
                 print(colored("API Method: GET", "green"))
@@ -951,7 +989,7 @@ class getSnaps(SDKCommon):
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
-            if self.debug:
+            if self.verbose:
                 print("API HTTP Status Code: %s" % ret.status_code)
                 print()
 
@@ -969,7 +1007,7 @@ class getSnaps(SDKCommon):
                             snapID,
                             snapState,
                         ]
-                if not self.native:
+                if self.output == "table":
                     tabHeader = ["snapshotName", "snapshotID", "snapshotState"]
                     tabData = []
                     for item in snaps[app]:
@@ -989,30 +1027,37 @@ class getSnaps(SDKCommon):
                             ]
                         )
                 if not self.quiet:
-                    if self.native:
+                    print("Snapshots for %s" % app)
+                    if self.output == "json":
                         print(snaps[app])
-                    else:
-                        print("Snapshots for %s" % app)
+                    elif self.output == "yaml":
+                        print(yaml.dump(snaps[app]))
+                    elif self.output == "table":
                         print(tabulate(tabData, tabHeader, tablefmt="grid"))
                         print()
             else:
                 continue
+        if self.output == "json":
+            dataReturn = snaps
+        elif self.output == "yaml":
+            dataReturn = yaml.dump(snaps)
+        elif self.output == "table":
+            dataReturn = tabulate(globaltabData, globaltabHeader, tablefmt="grid")
+
         if not self.quiet:
-            if self.native:
-                print(snaps)
-            else:
-                print(tabulate(globaltabData, globaltabHeader, tablefmt="grid"))
-        else:
-            return snaps
+            print(dataReturn)
+        return dataReturn
 
 
 class destroySnapshot(SDKCommon):
     """Given an appID and snapID destroy the snapshot.  Note that this doesn't
     unmanage a snapshot, it actively destroys it. There is no coming back from this."""
 
-    def __init__(self, quiet=True, debug=False):
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
         self.quiet = quiet
-        self.debug = debug
+        self.verbose = verbose
         super().__init__()
         self.headers["accept"] = "application/astra-appSnap+json"
         self.headers["Content-Type"] = "application/astra-appSnap+json"
@@ -1026,7 +1071,7 @@ class destroySnapshot(SDKCommon):
             "version": "1.0",
         }
 
-        if self.debug:
+        if self.verbose:
             print("Deleting snapshot %s for %s" % (snapID, appID))
             print(colored("API URL: %s" % url, "green"))
             print(colored("API Method: DELETE", "green"))
@@ -1036,7 +1081,7 @@ class destroySnapshot(SDKCommon):
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
-        if self.debug:
+        if self.verbose:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -1050,10 +1095,15 @@ class destroySnapshot(SDKCommon):
 
 
 class getClouds(SDKCommon):
-    def __init__(self, quiet=True, debug=False, native=False):
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
         self.quiet = quiet
-        self.debug = debug
-        self.native = native
+        self.verbose = verbose
+        self.output = output
         super().__init__()
 
     def main(self):
@@ -1063,7 +1113,7 @@ class getClouds(SDKCommon):
         data = {}
         params = {"include": "id,name,state"}
 
-        if self.debug:
+        if self.verbose:
             print("Getting clouds...")
             print(colored("API URL: %s" % url, "green"))
             print(colored("API Method: POST", "green"))
@@ -1073,7 +1123,7 @@ class getClouds(SDKCommon):
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
-        if self.debug:
+        if self.verbose:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 
@@ -1086,23 +1136,26 @@ class getClouds(SDKCommon):
                         item.get("name"),
                         item.get("cloudType"),
                     ]
+            if self.output == "json":
+                dataReturn = clouds
+            elif self.output == "yaml":
+                dataReturn = yaml.dump(clouds)
+            elif self.output == "table":
+                tabHeader = ["cloudName", "cloudID", "cloudType"]
+                tabData = []
+                for item in clouds:
+                    tabData.append(
+                        [
+                            clouds[item][0],
+                            item,
+                            clouds[item][1],
+                        ]
+                    )
+                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
             if not self.quiet:
-                if self.native:
-                    print(clouds)
-                else:
-                    tabHeader = ["cloudName", "cloudID", "cloudType"]
-                    tabData = []
-                    for item in clouds:
-                        tabData.append(
-                            [
-                                clouds[item][0],
-                                item,
-                                clouds[item][1],
-                            ]
-                        )
-                    print(tabulate(tabData, tabHeader, tablefmt="grid"))
-            else:
-                return clouds
+                print(dataReturn)
+            return dataReturn
+
         else:
             if not self.quiet:
                 print(ret.status_code)
@@ -1111,10 +1164,15 @@ class getClouds(SDKCommon):
 
 
 class getStorageClasses(SDKCommon):
-    def __init__(self, quiet=True, debug=False, native=False):
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
         self.quiet = quiet
-        self.debug = debug
-        self.native = native
+        self.verbose = verbose
+        self.output = output
         super().__init__()
         self.clouds = getClouds().main()
         self.clusters = getClusters().main()
@@ -1137,7 +1195,7 @@ class getStorageClasses(SDKCommon):
                 data = {}
                 params = {}
 
-                if self.debug:
+                if self.verbose:
                     print()
                     print(
                         "Listing StorageClasses for cluster: %s in cloud: %s"
@@ -1155,7 +1213,7 @@ class getStorageClasses(SDKCommon):
                     "get", url, data, self.headers, params, self.verifySSL
                 )
 
-                if self.debug:
+                if self.verbose:
                     print("API HTTP Status Code: %s" % ret.status_code)
                     print()
                 if ret.ok:
@@ -1167,33 +1225,39 @@ class getStorageClasses(SDKCommon):
                             "name"
                         )
 
+        if self.output == "json":
+            dataReturn = storageClasses
+        elif self.output == "yaml":
+            dataReturn = yaml.dump(storageClasses)
+        elif self.output == "table":
+            tabData = []
+            tabHeader = ["cloud", "cluster", "storageclassID", "storageclassName"]
+            for cloud in storageClasses:
+                for cluster in storageClasses[cloud]:
+                    for storageClass in storageClasses[cloud][cluster]:
+                        tabData.append(
+                            [
+                                self.clouds[cloud][0],
+                                self.clusters[cluster][0],
+                                storageClass,
+                                storageClasses[cloud][cluster][storageClass],
+                            ]
+                        )
+            dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+
         if not self.quiet:
-            if self.native:
-                print(storageClasses)
-            else:
-                tabData = []
-                tabHeader = ["cloud", "cluster", "storageclassID", "storageclassName"]
-                for cloud in storageClasses:
-                    for cluster in storageClasses[cloud]:
-                        for storageClass in storageClasses[cloud][cluster]:
-                            tabData.append(
-                                [
-                                    self.clouds[cloud][0],
-                                    self.clusters[cluster][0],
-                                    storageClass,
-                                    storageClasses[cloud][cluster][storageClass],
-                                ]
-                            )
-                print(tabulate(tabData, tabHeader, tablefmt="grid"))
-        return storageClasses
+            print(dataReturn)
+        return dataReturn
 
 
 class manageCluster(SDKCommon):
     """This class switches an unmanaged cluster to a managed cluster"""
 
-    def __init__(self, quiet=False, debug=False):
+    def __init__(self, quiet=False, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
         self.quiet = quiet
-        self.debug = debug
+        self.verbose = verbose
         super().__init__()
         self.headers["accept"] = "application/astra-managedCluster+json"
         self.headers["Content-Type"] = "application/managedCluster+json"
@@ -1209,7 +1273,7 @@ class manageCluster(SDKCommon):
             "version": "1.0",
         }
 
-        if self.debug:
+        if self.verbose:
             print()
             print("Managing: %s" % clusterID)
             print()
@@ -1222,7 +1286,7 @@ class manageCluster(SDKCommon):
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
-        if self.debug:
+        if self.verbose:
             print("API HTTP Status Code: %s" % ret.status_code)
             print()
 

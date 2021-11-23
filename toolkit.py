@@ -619,13 +619,17 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-d", "--debug", default=False, action="store_true", help="print debug output"
+        "-v", "--verbose", default=False, action="store_true", help="print verbose/verbose output"
     )
     parser.add_argument(
-        "-n", "--native", default=False, action="store_true", help="print debug output"
+        "-o",
+        "--output",
+        default="table",
+        choices=["json", "yaml", "table"],
+        help="command output format",
     )
     parser.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="Supress output"
+        "-q", "--quiet", default=False, action="store_true", help="supress output"
     )
     subparsers = parser.add_subparsers(
         dest="subcommand", required=True, help="subcommand help"
@@ -1128,7 +1132,7 @@ if __name__ == "__main__":
     elif args.subcommand == "list":
         if args.objectType == "apps":
             astraSDK.getApps(
-                quiet=args.quiet, debug=args.debug, native=args.native
+                quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(
                 discovered=args.unmanaged,
                 source=args.source,
@@ -1137,29 +1141,29 @@ if __name__ == "__main__":
             )
         elif args.objectType == "backups":
             astraSDK.getBackups(
-                quiet=args.quiet, debug=args.debug, native=args.native
+                quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(appFilter=args.app)
         elif args.objectType == "clouds":
             astraSDK.getClouds(
-                quiet=args.quiet, debug=args.debug, native=args.native
+                quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main()
         elif args.objectType == "clusters":
             astraSDK.getClusters(
-                quiet=args.quiet, debug=args.debug, native=args.native
+                quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(hideManaged=args.managed, hideUnmanaged=args.unmanaged)
         elif args.objectType == "snapshots":
             astraSDK.getSnaps(
-                quiet=args.quiet, debug=args.debug, native=args.native
+                quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(appFilter=args.app)
         elif args.objectType == "storageclasses":
             astraSDK.getStorageClasses(
-                quiet=args.quiet, debug=args.debug, native=args.native
+                quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main()
     elif args.subcommand == "create":
         if args.objectType == "backup":
             doProtectionTask(args.objectType, args.appID, args.name)
         elif args.objectType == "protectionpolicy":
-            astraSDK.createProtectionpolicy(quiet=args.quiet, debug=args.debug).main(
+            astraSDK.createProtectionpolicy(quiet=args.quiet, verbose=args.verbose).main(
                 args.granularity,
                 str(args.backupRetention),
                 str(args.snapshotRetention),
@@ -1174,14 +1178,14 @@ if __name__ == "__main__":
 
     elif args.subcommand == "manage":
         if args.objectType == "app":
-            astraSDK.manageApp(quiet=args.quiet, debug=args.debug).main(args.appID)
+            astraSDK.manageApp(quiet=args.quiet, verbose=args.verbose).main(args.appID)
         if args.objectType == "cluster":
-            astraSDK.manageCluster(quiet=args.quiet, debug=args.debug).main(
+            astraSDK.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.clusterID, args.storageClassID
             )
     elif args.subcommand == "destroy":
         if args.objectType == "backup":
-            rc = astraSDK.destroyBackup(quiet=args.quiet, debug=args.debug).main(
+            rc = astraSDK.destroyBackup(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID, args.backupID
             )
             if rc:
@@ -1189,7 +1193,7 @@ if __name__ == "__main__":
             else:
                 print("Failed destroying backup: %s" % args.backupID)
         elif args.objectType == "snapshot":
-            rc = astraSDK.destroySnapshot(quiet=args.quiet, debug=args.debug).main(
+            rc = astraSDK.destroySnapshot(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID, args.snapshotID
             )
             if rc:
