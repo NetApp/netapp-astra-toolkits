@@ -154,7 +154,7 @@ class getApps(SDKCommon):
                 json: (default) output in JSON
                 yaml: output in yaml"""
         self.quiet = quiet
-        self.verbose = verbose 
+        self.verbose = verbose
         self.output = output
         super().__init__()
 
@@ -609,7 +609,7 @@ class cloneApp(SDKCommon):
     """Clone a backup into a new app, in a new namespace.  Note that Astra doesn't
     currently support in place restores.
 
-    Either backupID or sourceAppID is required.
+    Either backupID, snapshotID, or sourceAppID is required.
 
     The sourceClusterID is something you'd think would be optional, but it
     is required as well.  Even worse, Astra knows what the (only) correct answer
@@ -630,6 +630,7 @@ class cloneApp(SDKCommon):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
         self.quiet = quiet
+        self.verbose = verbose
         super().__init__()
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/astra-managedApp+json"
@@ -641,9 +642,10 @@ class cloneApp(SDKCommon):
         sourceClusterID,
         namespace,
         backupID=None,
+        snapshotID=None,
         sourceAppID=None,
     ):
-        assert backupID or sourceAppID
+        assert backupID or snapshotID or sourceAppID
 
         endpoint = "k8s/v1/managedApps"
         url = self.base + endpoint
@@ -660,6 +662,8 @@ class cloneApp(SDKCommon):
             data["sourceAppID"] = sourceAppID
         if backupID:
             data["backupID"] = backupID
+        if snapshotID:
+            data["snapshotID"] = snapshotID
 
         if self.verbose:
             print("Cloning app")
