@@ -693,6 +693,71 @@ class cloneApp(SDKCommon):
             return False
 
 
+class restoreApp(SDKCommon):
+    """Restore a backup or snapshot of an app.
+    Must pass in an AppID and either a snapshotID or a backupID
+    Note that this is a destructive operation that overwrites the current AppID
+    with the backup/snapshot.
+
+    Also note that the return code this class returns is referring to submitting
+    the restore job.  To know if the restore job itself succeeds or fails you
+    need to monitor the state of the app, watching for it to switch from
+    "restoring" to "running" or "failed".
+    """
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return True/False
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-managedApp+json"
+        self.headers["Content-Type"] = "application/astra-managedApp+json"
+        self.headers["ForceUpdate"] = "true"
+
+    def main(
+        self,
+        appID,
+        backupID=None,
+        snapshotID=None,
+    ):
+        assert backupID or snapshotID
+
+        endpoint = "k8s/v1/managedApps/%s" % appID
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-managedApp",
+            "version": "1.2",
+        }
+        if backupID:
+            data["backupID"] = backupID
+        elif snapshotID:
+            data["snapshotID"] = snapshotID
+
+        if self.verbose:
+            print("Restoring app")
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: PUT", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+
+        ret = super().apicall("put", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
+
+        if ret.ok:
+            return True
+        else:
+            if not self.quiet:
+                print(ret.status_code)
+                print(ret.reason)
+            return False
+
+
 class getClusters(SDKCommon):
     """Iterate over the clouds and list the clusters in each."""
 
