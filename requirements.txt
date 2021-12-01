@@ -7,3 +7,4 @@ requests==2.25.1
 tabulate==0.8.9
 termcolor==1.1.0
 urllib3==1.26.5
+argparse==1.4.0
