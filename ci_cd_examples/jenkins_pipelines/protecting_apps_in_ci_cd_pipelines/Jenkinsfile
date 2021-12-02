@@ -7,14 +7,14 @@ pipeline {
         CHART_VERSION = '14'
         RELEASE_TYPE = 'MAJOR'
         ASTRA_TOOLKIT_VERSION = '2.1'
-        ASTRA_API_TOKEN = 'AHvyfAfhr97dtfO9POumMhaWscqjs_sdwPBH0='
-        ASTRA_INSTANCE_ID = 'fe134efa-9c50-654d-b207-9gf175d17gf0'
-        ASTRA_FQDN = 'netapp-astra-control-center.cie.netapp.com'
+        ASTRA_API_TOKEN = 'xxxxxxxx'
+        ASTRA_INSTANCE_ID = 'xxx-xxx-xxx-xxx-xxx'
+        ASTRA_FQDN = 'netapp-astra-control-center.org.example.com'
         DOCKER_REGISTRY = 'docker.io/netapp-solutions-cicd'
         PROD_NAMESPACE = 'magento-prod'
-        PROD_MAGENTO_IP = '10.63.172.246'
+        PROD_MAGENTO_IP = 'x.x.x.x'
         STAGING_NAMESPACE = 'magento-staging'
-        STAGING_MAGENTO_IP = '10.63.172.244'
+        STAGING_MAGENTO_IP = 'x.x.x.x'
         MAGENTO_CREDS = credentials('magento-creds')
         MAGENTO_MARIADB_CREDS = credentials('magento-mariadb-creds')
         MAGENTO_MARIADB_ROOT_CREDS = credentials('magento-mariadb-root-creds')
