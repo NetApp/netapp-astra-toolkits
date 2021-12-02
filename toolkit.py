@@ -557,7 +557,7 @@ if __name__ == "__main__":
             for k in chartsDict:
                 charts_list.append(k)
 
-        elif sys.argv[1] == "clone" or sys.argv[1] == "restore":
+        elif sys.argv[1] == "clone":
             namespaces = astraSDK.getApps().main(source="namespace")
             namespaces_list = [x for x in namespaces.keys()]
             dest_cluster = astraSDK.getClusters().main()
@@ -567,6 +567,20 @@ if __name__ == "__main__":
             for appID in backups:
                 for backupItem in backups[appID]:
                     backup_list.append(backups[appID][backupItem][0])
+        elif sys.argv[1] == "restore":
+            appList = [x for x in astraSDK.getApps().main()]
+            backups = astraSDK.getBackups().main()
+            if len(sys.argv) > 2:
+                for appID in backups:
+                    if appID == sys.argv[2]:
+                        for backupItem in backups[appID]:
+                            backup_list.append(backups[appID][backupItem][0])
+            if len(sys.argv) > 2:
+                snapshots = astraSDK.getSnaps().main()
+                for appID in snapshots:
+                    if appID == sys.argv[2]:
+                        for snapshotItem in snapshots[appID]:
+                            snapshot_list.append(snapshots[appID][snapshotItem][0])
         elif sys.argv[1] == "backup":
             namespaces = astraSDK.getApps().main(source="namespace")
             namespaces_list = [x for x in namespaces.keys()]
@@ -619,7 +633,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-v", "--verbose", default=False, action="store_true", help="print verbose/verbose output"
+        "-v",
+        "--verbose",
+        default=False,
+        action="store_true",
+        help="print verbose/verbose output",
     )
     parser.add_argument(
         "-o",
@@ -643,8 +661,11 @@ if __name__ == "__main__":
     )
     parserClone = subparsers.add_parser(
         "clone",
-        aliases=["restore"],
         help="clone a namespace to a destination cluster",
+    )
+    parserRestore = subparsers.add_parser(
+        "restore",
+        help="restore an app from a backup or snapshot",
     )
     parserList = subparsers.add_parser(
         "list",
@@ -1067,6 +1088,33 @@ if __name__ == "__main__":
     # end of clone args and flags
     #######
 
+    #######
+    # restore args and flags
+    #######
+    parserRestore.add_argument(
+        "appID",
+        choices=appList,
+        help="appID to restore",
+    )
+    group = parserRestore.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "--backupID",
+        choices=backup_list,
+        required=False,
+        default=None,
+        help="Source backup to restore from",
+    )
+    group.add_argument(
+        "--snapshotID",
+        choices=snapshot_list,
+        required=False,
+        default=None,
+        help="Source snapshot to restore from",
+    )
+    #######
+    # end of restore args and flags
+    #######
+
     args = parser.parse_args()
     # print("args: %s" % args)
     if hasattr(args, "granularity"):
@@ -1163,7 +1211,9 @@ if __name__ == "__main__":
         if args.objectType == "backup":
             doProtectionTask(args.objectType, args.appID, args.name)
         elif args.objectType == "protectionpolicy":
-            astraSDK.createProtectionpolicy(quiet=args.quiet, verbose=args.verbose).main(
+            astraSDK.createProtectionpolicy(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(
                 args.granularity,
                 str(args.backupRetention),
                 str(args.snapshotRetention),
@@ -1200,8 +1250,34 @@ if __name__ == "__main__":
                 print("Snapshot %s destroyed" % args.snapshotID)
             else:
                 print("Failed destroying snapshot: %s" % args.snapshotID)
+    elif args.subcommand == "restore":
+        rc = astraSDK.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
+            args.appID, backupID=args.backupID, snapshotID=args.snapshotID
+        )
+        if rc:
+            print("Restore job in progress...", end="")
+            sys.stdout.flush()
+            while True:
+                restoreApps = astraSDK.getApps().main()
+                state = None
+                for restoreApp in restoreApps:
+                    if restoreApp == args.appID:
+                        state = restoreApps[restoreApp][4]
+                if state == "restoring":
+                    print(".", end="")
+                    sys.stdout.flush()
+                elif state == "running":
+                    print("Success!")
+                    break
+                elif state == "failed":
+                    print("Failed!")
+                    sys.exit(2)
+                time.sleep(5)
+        else:
+            print("Submitting restore job failed.")
+            sys.exit(3)
 
-    elif args.subcommand == "clone" or args.subcommand == "restore":
+    elif args.subcommand == "clone":
         if not args.clusterID:
             print("Select destination cluster for the clone")
             print("Index\tClusterID\tclusterName\tclusterPlatform")
