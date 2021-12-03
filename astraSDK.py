@@ -369,8 +369,9 @@ class getApps(SDKCommon):
 
         else:
             if not self.quiet:
-                print(ret.status_code)
-                print(ret.reason)
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
             return False
 
 
@@ -555,8 +556,9 @@ class takeBackup(SDKCommon):
                 return results.get("id") or True
         else:
             if not self.quiet:
-                print(ret.status_code)
-                print(ret.reason)
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
             return False
 
 
@@ -600,8 +602,9 @@ class destroyBackup(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print(ret.status_code)
-                print(ret.reason)
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
             return False
 
 
@@ -688,8 +691,9 @@ class cloneApp(SDKCommon):
                 return results
         else:
             if not self.quiet:
-                print(ret.status_code)
-                print(ret.reason)
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
             return False
 
 
@@ -753,8 +757,9 @@ class restoreApp(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print(ret.status_code)
-                print(ret.reason)
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
             return False
 
 
@@ -908,8 +913,9 @@ class createProtectionpolicy(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print(ret.status_code)
-                print(ret.reason)
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
             return False
 
 
@@ -956,8 +962,9 @@ class manageApp(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print(ret.status_code)
-                print(ret.reason)
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
             return False
 
 
@@ -1007,8 +1014,9 @@ class takeSnap(SDKCommon):
                 return results.get("id") or True
         else:
             if not self.quiet:
-                print(ret.status_code)
-                print(ret.reason)
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
             return False
 
 
@@ -1158,8 +1166,9 @@ class destroySnapshot(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print(ret.status_code)
-                print(ret.reason)
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
             return False
 
 
@@ -1227,8 +1236,9 @@ class getClouds(SDKCommon):
 
         else:
             if not self.quiet:
-                print(ret.status_code)
-                print(ret.reason)
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
             return False
 
 
@@ -1366,6 +1376,7 @@ class manageCluster(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print(ret.status_code)
-                print(ret.reason)
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
             return False
