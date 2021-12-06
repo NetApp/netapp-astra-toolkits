@@ -492,29 +492,29 @@ class toolkit:
         #         appID
         # {'e6661eba-229b-4d7c-8c6c-cfca0db9068e':
         #    ['appName', 'clusterNameAppIsRunningOn', 'clusterIDthatAppIsRunningOn', 'namespace']}
-        self.sourceClusterID = namespaces[sourceAppID][2]
+        sourceClusterID = namespaces[sourceAppID][2]
 
-        self.cloneRet = astraSDK.cloneApp().main(
+        cloneRet = astraSDK.cloneApp().main(
             cloneName,
             clusterID,
-            self.sourceClusterID,
+            sourceClusterID,
             destNamespace,
             backupID=backupID,
             snapshotID=None,
             sourceAppID=sourceAppID,
         )
-        if self.cloneRet:
+        if cloneRet:
             print("Submitting clone succeeded.")
             print("Waiting for clone to become available.", end="")
             sys.stdout.flush()
-            self.appID = self.cloneRet.get("id")
-            self.state = self.cloneRet.get("state")
-            while self.state != "running":
-                self.apps = astraSDK.getApps().main()
-                for self.app in self.apps:
-                    if self.app == self.appID:
-                        if self.apps[self.app][4] == "running":
-                            self.state = self.apps[self.app][4]
+            appID = cloneRet.get("id")
+            state = cloneRet.get("state")
+            while state != "running":
+                apps = astraSDK.getApps().main()
+                for app in apps:
+                    if app == appID:
+                        if apps[app][4] == "running":
+                            state = apps[app][4]
                             print("Cloning operation complete.")
                             sys.stdout.flush()
                         else:
@@ -526,14 +526,12 @@ class toolkit:
 
     def dataProtection(self, protectionType, sourceNamespace, backupName):
         """Take a backup of <sourceNamespace> and give it <backupName>"""
-        self.protectionID = doProtectionTask(
-            protectionType, sourceNamespace, backupName
-        )
-        if not self.protectionID:
+        protectionID = doProtectionTask(protectionType, sourceNamespace, backupName)
+        if not protectionID:
             return False
         else:
             print("%s succeeded" % protectionType)
-            return self.protectionID
+            return protectionID
 
 
 if __name__ == "__main__":
