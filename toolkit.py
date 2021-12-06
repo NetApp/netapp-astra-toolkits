@@ -496,11 +496,12 @@ class toolkit:
 
         self.cloneRet = astraSDK.cloneApp().main(
             cloneName,
-            backupID,
             clusterID,
             self.sourceClusterID,
             destNamespace,
-            sourceAppID,
+            backupID=backupID,
+            snapshotID=None,
+            sourceAppID=sourceAppID,
         )
         if self.cloneRet:
             print("Submitting clone succeeded.")
