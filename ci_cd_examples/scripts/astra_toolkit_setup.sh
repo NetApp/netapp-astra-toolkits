@@ -55,7 +55,7 @@ if [ -z "${ACCOUNT_ID}" ] || [ -z "${TOKEN}" ] || [ -z "${FQDN}" ]; then
   exit 1
 fi
 
-cat << EOF > netapp-astra-toolkits-2.0/config.yaml
+cat << EOF > config.yaml
 headers:
   Authorization: Bearer ${TOKEN}
 uid: ${ACCOUNT_ID}
