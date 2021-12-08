@@ -629,6 +629,14 @@ if __name__ == "__main__":
                     if appID == sys.argv[3]:
                         for snapshotItem in snapshots[appID]:
                             snapshot_list.append(snapshots[appID][snapshotItem][0])
+        elif sys.argv[1] == "unmanage" and len(sys.argv) > 2:
+            if sys.argv[2] == "app":
+                appList = [x for x in astraSDK.getApps().main(discovered=False)]
+            elif sys.argv[2] == "cluster":
+                clusterDict = astraSDK.getClusters(quiet=True).main()
+                for cluster in clusterDict:
+                    if clusterDict[cluster][2] == "managed":
+                        clusterList.append(cluster)
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -682,12 +690,16 @@ if __name__ == "__main__":
         "destroy",
         help="Destroy an object",
     )
+    parserUnmanage = subparsers.add_parser(
+        "unmanage",
+        help="Unmanage an object",
+    )
     #######
     # End of top level subcommands
     #######
 
     #######
-    # subcommands "list", "create", "manage", and "destroy" have subcommands as well
+    # subcommands "list", "create", "manage", "destroy", and "unmanage" have subcommands as well
     #######
     subparserList = parserList.add_subparsers(
         title="objectType", dest="objectType", required=True
@@ -701,8 +713,11 @@ if __name__ == "__main__":
     subparserDestroy = parserDestroy.add_subparsers(
         title="objectType", dest="objectType", required=True
     )
+    subparserUnmanage = parserUnmanage.add_subparsers(
+        title="objectType", dest="objectType", required=True
+    )
     #######
-    # end of subcommand "list", "create", "manage", and "destroy" subcommands
+    # end of subcommand "list", "create", "manage", "destroy", and "unmanage" subcommands
     #######
 
     #######
@@ -944,6 +959,23 @@ if __name__ == "__main__":
     #######
 
     #######
+    # manage cluster args and flags
+    #######
+    subparserManageCluster.add_argument(
+        "clusterID",
+        choices=clusterList,
+        help="clusterID of the cluster to manage",
+    )
+    subparserManageCluster.add_argument(
+        "storageClassID",
+        choices=storageClassList,
+        help="Default storage class ID",
+    )
+    #######
+    # end of manage cluster args and flags
+    #######
+
+    #######
     # destroy 'X'
     #######
     subparserDestroyBackup = subparserDestroy.add_parser(
@@ -993,20 +1025,42 @@ if __name__ == "__main__":
     #######
 
     #######
-    # manage cluster args and flags
+    # unmanage 'X'
     #######
-    subparserManageCluster.add_argument(
+    subparserUnmanageApp = subparserUnmanage.add_parser(
+        "app",
+        help="unmanage app",
+    )
+    subparserUnmanageCluster = subparserUnmanage.add_parser(
+        "cluster",
+        help="unmanage cluster",
+    )
+    #######
+    # end of unmanage 'X'
+    #######
+
+    #######
+    # unmanage app args and flags
+    #######
+    subparserUnmanageApp.add_argument(
+        "appID",
+        choices=appList,
+        help="appID of app to move from managed to discovered",
+    )
+    #######
+    # end of unmanage app args and flags
+    #######
+
+    #######
+    # unmanage cluster args and flags
+    #######
+    subparserUnmanageCluster.add_argument(
         "clusterID",
         choices=clusterList,
-        help="clusterID of the cluster to manage",
-    )
-    subparserManageCluster.add_argument(
-        "storageClassID",
-        choices=storageClassList,
-        help="Default storage class ID",
+        help="clusterID of the cluster to unmanage",
     )
     #######
-    # end of manage cluster args and flags
+    # end of unmanage cluster args and flags
     #######
 
     #######
@@ -1249,6 +1303,15 @@ if __name__ == "__main__":
                 print("Snapshot %s destroyed" % args.snapshotID)
             else:
                 print("Failed destroying snapshot: %s" % args.snapshotID)
+    elif args.subcommand == "unmanage":
+        if args.objectType == "app":
+            astraSDK.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(
+                args.appID
+            )
+        if args.objectType == "cluster":
+            astraSDK.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
+                args.clusterID
+            )
     elif args.subcommand == "restore":
         rc = astraSDK.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
             args.appID, backupID=args.backupID, snapshotID=args.snapshotID
