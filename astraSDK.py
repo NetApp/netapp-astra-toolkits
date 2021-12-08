@@ -481,7 +481,7 @@ class getBackups(SDKCommon):
                                 backups[app][item][1],
                             ]
                         )
-                if not self.quiet:
+                if not self.quiet and self.verbose:
                     print("Backups for %s" % app)
                     if self.output == "json":
                         print(backups[app])
@@ -1141,7 +1141,7 @@ class getSnaps(SDKCommon):
                                 snaps[app][item][1],
                             ]
                         )
-                if not self.quiet:
+                if not self.quiet and self.verbose:
                     print("Snapshots for %s" % app)
                     if self.output == "json":
                         print(snaps[app])
