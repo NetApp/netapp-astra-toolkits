@@ -968,6 +968,50 @@ class manageApp(SDKCommon):
             return False
 
 
+class unmanageApp(SDKCommon):
+    """This class switches a managed app to a discovered app."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-managedApp+json"
+        self.headers["Content-Type"] = "application/managedApp+json"
+
+    def main(self, appID):
+        endpoint = "k8s/v1/managedApps/%s" % appID
+        url = self.base + endpoint
+        params = {}
+        data = {}
+
+        if self.verbose:
+            print("unmanaging app: %s" % appID)
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: DELETE", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
+
+        if ret.ok:
+            if not self.quiet:
+                print("App unmanaged")
+            return True
+        else:
+            if not self.quiet:
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
+            return False
+
+
 class takeSnap(SDKCommon):
     """Take a snapshot of an app.  An AppID and snapName are required and
     either the result JSON is returned or the snapID of the newly created
@@ -1332,7 +1376,7 @@ class getStorageClasses(SDKCommon):
 class manageCluster(SDKCommon):
     """This class switches an unmanaged cluster to a managed cluster"""
 
-    def __init__(self, quiet=False, verbose=False):
+    def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
         self.quiet = quiet
@@ -1373,6 +1417,53 @@ class manageCluster(SDKCommon):
             results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(results)
+            return True
+        else:
+            if not self.quiet:
+                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                if ret.text.strip():
+                    print("Error text: %s" % ret.text)
+            return False
+
+
+class unmanageCluster(SDKCommon):
+    """This class switches a managed cluster to an un managed cluster"""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-managedCluster+json"
+        self.headers["Content-Type"] = "application/managedCluster+json"
+
+    def main(self, clusterID):
+        endpoint = "topology/v1/managedClusters/%s" % clusterID
+        url = self.base + endpoint
+        params = {}
+        data = {}
+
+        if self.verbose:
+            print()
+            print("Unmanaging: %s" % clusterID)
+            print()
+            print(colored("API URL: %s" % url, "green"))
+            print(colored("API Method: DELETE", "green"))
+            print(colored("API Headers: %s" % self.headers, "green"))
+            print(colored("API data: %s" % data, "green"))
+            print(colored("API params: %s" % params, "green"))
+            print()
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print("API HTTP Status Code: %s" % ret.status_code)
+            print()
+
+        if ret.ok:
+            if not self.quiet:
+                print("Cluster unmanaged")
             return True
         else:
             if not self.quiet:
