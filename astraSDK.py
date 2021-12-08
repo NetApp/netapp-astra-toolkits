@@ -133,12 +133,6 @@ class SDKCommon:
 
 class getApps(SDKCommon):
     """List all apps known to Astra.
-    Discovered=True means managedState="managed"
-    Discovered=False means managedState="unmanaged"
-    source provides filtering for appDefnSource.  This is useful for
-    finding top level namespaces.
-    namespace provides filtering for namespace.  Useful for "find all apps
-    in the namespace named <X>
 
     Note that there is an API endpoint that will just list managedApps.  However
     it has the same return value as topology/v1/apps when filtering for
