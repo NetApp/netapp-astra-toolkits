@@ -162,7 +162,8 @@ class getApps(SDKCommon):
         ignored: True: show ignored apps"""
         endpoint = "topology/v1/apps"
         params = {
-            "include": "name,id,clusterName,clusterID,namespace,state,managedState,appDefnSource,metadata"
+            "include": "name,id,clusterName,clusterID,namespace,state,"
+                       "managedState,appDefnSource,metadata"
         }
         url = self.base + endpoint
         data = {}
