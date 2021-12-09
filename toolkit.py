@@ -754,12 +754,20 @@ if __name__ == "__main__":
     #######
     # list apps args and flags
     #######
-    subparserListApps.add_argument(
+    group = subparserListApps.add_mutually_exclusive_group(required=False)
+    group.add_argument(
         "-u",
         "--unmanaged",
         default=False,
         action="store_true",
         help="Show only unmanaged apps",
+    )
+    group.add_argument(
+        "-i",
+        "--ignored",
+        default=False,
+        action="store_true",
+        help="Show ignored apps",
     )
     subparserListApps.add_argument("-s", "--source", help="app source")
     subparserListApps.add_argument(
@@ -1239,6 +1247,7 @@ if __name__ == "__main__":
                 source=args.source,
                 namespace=args.namespace,
                 cluster=args.cluster,
+                ignored=args.ignored,
             )
         elif args.objectType == "backups":
             astraSDK.getBackups(
