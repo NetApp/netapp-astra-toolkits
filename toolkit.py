@@ -541,31 +541,29 @@ if __name__ == "__main__":
     # By then it's too late to decide which functions to run to populate
     # the various choices the differing options for each subcommand needs.
     # So we just go around argparse's back and introspect sys.argv directly
-    charts_list = []
-    namespaces_list = []
-    backup_list = []
-    snapshot_list = []
-    dest_cluster_list = []
+    chartsList = []
+    namespacesList = []
+    backupList = []
+    snapshotList = []
+    destclusterList = []
     appList = []
     clusterList = []
     storageClassList = []
     if len(sys.argv) > 1:
         if sys.argv[1] == "deploy":
             chartsDict = updateHelm()
-            charts_list = []
             for k in chartsDict:
-                charts_list.append(k)
+                chartsList.append(k)
 
         elif sys.argv[1] == "clone":
             namespaces = astraSDK.getApps().main(source="namespace")
-            namespaces_list = [x for x in namespaces.keys()]
-            dest_cluster = astraSDK.getClusters().main()
-            dest_cluster_list = [x for x in dest_cluster.keys()]
-            backup_list = []
+            namespacesList = [x for x in namespaces.keys()]
+            destCluster = astraSDK.getClusters().main()
+            destclusterList = [x for x in destCluster.keys()]
             backups = astraSDK.getBackups().main()
             for appID in backups:
                 for backupItem in backups[appID]:
-                    backup_list.append(backups[appID][backupItem][0])
+                    backupList.append(backups[appID][backupItem][0])
         elif sys.argv[1] == "restore":
             appList = [x for x in astraSDK.getApps().main()]
             backups = astraSDK.getBackups().main()
@@ -573,16 +571,16 @@ if __name__ == "__main__":
                 for appID in backups:
                     if appID == sys.argv[2]:
                         for backupItem in backups[appID]:
-                            backup_list.append(backups[appID][backupItem][0])
+                            backupList.append(backups[appID][backupItem][0])
             if len(sys.argv) > 2:
                 snapshots = astraSDK.getSnaps().main()
                 for appID in snapshots:
                     if appID == sys.argv[2]:
                         for snapshotItem in snapshots[appID]:
-                            snapshot_list.append(snapshots[appID][snapshotItem][0])
+                            snapshotList.append(snapshots[appID][snapshotItem][0])
         elif sys.argv[1] == "backup":
             namespaces = astraSDK.getApps().main(source="namespace")
-            namespaces_list = [x for x in namespaces.keys()]
+            namespacesList = [x for x in namespaces.keys()]
         elif (
             sys.argv[1] == "create"
             and len(sys.argv) > 2
@@ -621,17 +619,18 @@ if __name__ == "__main__":
                 for appID in backups:
                     if appID == sys.argv[3]:
                         for backupItem in backups[appID]:
-                            backup_list.append(backups[appID][backupItem][0])
+                            backupList.append(backups[appID][backupItem][0])
             if sys.argv[2] == "snapshot" and len(sys.argv) > 3:
                 appList = [x for x in astraSDK.getApps().main()]
                 snapshots = astraSDK.getSnaps().main()
                 for appID in snapshots:
                     if appID == sys.argv[3]:
                         for snapshotItem in snapshots[appID]:
-                            snapshot_list.append(snapshots[appID][snapshotItem][0])
+                            snapshotList.append(snapshots[appID][snapshotItem][0])
         elif sys.argv[1] == "unmanage" and len(sys.argv) > 2:
             if sys.argv[2] == "app":
                 appList = [x for x in astraSDK.getApps().main(discovered=False)]
+
             elif sys.argv[2] == "cluster":
                 clusterDict = astraSDK.getClusters(quiet=True).main()
                 for cluster in clusterDict:
@@ -1008,7 +1007,7 @@ if __name__ == "__main__":
     )
     subparserDestroyBackup.add_argument(
         "backupID",
-        choices=backup_list,
+        choices=backupList,
         help="backupID to destroy",
     )
     #######
@@ -1025,7 +1024,7 @@ if __name__ == "__main__":
     )
     subparserDestroySnapshot.add_argument(
         "snapshotID",
-        choices=snapshot_list,
+        choices=snapshotList,
         help="snapshotID to destroy",
     )
     #######
@@ -1076,7 +1075,7 @@ if __name__ == "__main__":
     #######
     parserDeploy.add_argument(
         "chart",
-        choices=charts_list,
+        choices=chartsList,
         help="chart to deploy",
     )
     parserDeploy.add_argument(
@@ -1114,21 +1113,21 @@ if __name__ == "__main__":
     #######
     parserClone.add_argument(
         "--sourceNamespace",
-        choices=namespaces_list,
+        choices=namespacesList,
         required=False,
         default=None,
         help="Source namespace to clone",
     )
     parserClone.add_argument(
         "--backupID",
-        choices=backup_list,
+        choices=backupList,
         required=False,
         default=None,
         help="Source backup to clone",
     )
     parserClone.add_argument(
         "--clusterID",
-        choices=dest_cluster_list,
+        choices=destclusterList,
         required=False,
         default=None,
         help="Cluster to clone to",
@@ -1160,14 +1159,14 @@ if __name__ == "__main__":
     group = parserRestore.add_mutually_exclusive_group(required=True)
     group.add_argument(
         "--backupID",
-        choices=backup_list,
+        choices=backupList,
         required=False,
         default=None,
         help="Source backup to restore from",
     )
     group.add_argument(
         "--snapshotID",
-        choices=snapshot_list,
+        choices=snapshotList,
         required=False,
         default=None,
         help="Source snapshot to restore from",
@@ -1352,7 +1351,7 @@ if __name__ == "__main__":
         if not args.clusterID:
             print("Select destination cluster for the clone")
             print("Index\tClusterID\tclusterName\tclusterPlatform")
-            args.clusterID = userSelect(dest_cluster)
+            args.clusterID = userSelect(destCluster)
         if not args.destNamespace:
             args.destNamespace = input(
                 "Namespace for the clone "
@@ -1421,17 +1420,17 @@ if __name__ == "__main__":
                     # No namespace or backupID was specified on the CLI
                     # user opted to specify a backupID, from there we
                     # can work backwards to get the namespace.
-                    backup_dict = {}
+                    backupDict = {}
                     for appID in backups:
                         for k, v in backups[appID].items():
                             if v[1] == "completed":
-                                backup_dict[v[0]] = [k, v[2], appID]
-                    if not backup_dict:
+                                backupDict[v[0]] = [k, v[2], appID]
+                    if not backupDict:
                         print("No backups found.")
                         sys.exit(6)
                     print("Index\tBackupID\tBackupName\tTimestamp\tappID")
-                    args.backupID = userSelect(backup_dict)
-                    args.sourceNamespace = backup_dict[args.backupID][2]
+                    args.backupID = userSelect(backupDict)
+                    args.sourceNamespace = backupDict[args.backupID][2]
 
             else:
                 # no source namespace/app but we have a backupID
