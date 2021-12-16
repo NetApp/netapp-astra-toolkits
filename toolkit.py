@@ -1386,7 +1386,18 @@ if __name__ == "__main__":
                 if retval == "sourceNamespace":
                     print("Select source namespace to be cloned")
                     print("Index\tAppID\tappName\tclusterName\tClusterID")
-                    args.sourceNamespace = userSelect(namespaces)
+                    # namespaces: {'3b09b3e1-4861-4e75-ae1a-42a673affe9e':
+                    #   ['wp', 'cluster-1-jp', '4309b7ff-81c0-4146-b79f-708b3de9f300',
+                    #    'wp', 'running', 'managed', 'namespace',
+                    #    {'labels': [], 'creationTimestamp': '2021-12-16T20:40:30Z',
+                    #     'modificationTimestamp': '2021-12-16T22:09:24Z', 'createdBy': 'system'}
+                    #   ]
+                    # }
+                    # The last item in namespaces['3b09b3e1-4861-4e75-ae1a-42a673affe9e'] is
+                    # a dictionary.  This would blow up userSelect(); the following
+                    # dictionary comprehension strips off the last element
+                    namespacesCooked = {k:v[0:-1] for (k,v) in namespaces.items()}
+                    args.sourceNamespace = userSelect(namespacesCooked)
                     appBackups = backups[args.sourceNamespace]
                     """
                     appBackups: {'failoverfriday-backup-20210713192550':
