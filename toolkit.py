@@ -35,7 +35,7 @@ def userSelect(pickList):
     # picklist = {"deadc0de": ["test-1", "gke"],
     #             "deadbeef": ["test-2", "aks"]
     #            }
-    # choices_dict = {1: "deadc0de".
+    # choicesDict = {1: "deadc0de".
     #                 2: "deadbeef"
     #                }
 
