@@ -49,9 +49,9 @@ def userSelect(pickList):
             # the third %s prints lists with an arbitrary number of items
             print("%s:\t%s\t%s" % (counter, item, "\t".join(pickList[item])))
         else:
-            print("Skipping key: %s with non-list value" % item)
+            print(f"Skipping key: {item} with non-list value")
     while True:
-        ret = input("Select a line (1-%s): " % counter)
+        ret = input(f"Select a line (1-{counter}): ")
         try:
             # choicesDict.get() returns None if the index isn't
             # in the dict, the try/except catches cases where the
@@ -89,13 +89,13 @@ def updateHelm():
     for k, v in repos.items():
         if not v:
             repoName = k.split(".")[1]
-            run("helm repo add %s %s" % (repoName, k))
+            run(f"helm repo add {repoName} {k}")
             repos[k] = repoName
 
     run("helm repo update")
     chartsDict = {}
     for val in repos.values():
-        charts = run("helm -o yaml search repo %s" % val, captureOutput=True)
+        charts = run(f"helm -o yaml search repo {val}", captureOutput=True)
         chartsYaml = yaml.load(charts, Loader=yaml.SafeLoader)
         for line in chartsYaml:
             chartsDict[(line.get("name").split("/")[1])] = val
@@ -112,14 +112,14 @@ def run(command, captureOutput=False, ignoreErrors=False):
     try:
         ret = subprocess.run(command, capture_output=captureOutput)
     except OSError as e:
-        raise SystemExit("%s OSError: %s" % (command, e))
+        raise SystemExit(f"{command} OSError: {e}")
     # Shell returns 0 for success, a positive int for an error
     # inverted from python True/False
     if ret.returncode:
         if ignoreErrors:
             return ret.returncode
         else:
-            raise SystemExit("%s returned failure: %s" % (command, ret.returncode))
+            raise SystemExit(f"{command} returned failure: {ret.returncode}")
     else:
         if captureOutput:
             return ret.stdout
@@ -135,8 +135,8 @@ def doProtectionTask(protectionType, appID, name):
     elif protectionType == "snapshot":
         protectionID = astraSDK.takeSnap().main(appID, name)
 
-    print("Starting %s of %s: " % (protectionType, appID))
-    print("Waiting for %s to complete." % protectionType, end="")
+    print(f"Starting {protectionType} of {appID}")
+    print(f"Waiting for {protectionType} to complete.", end="")
     sys.stdout.flush()
     while True:
         if protectionType == "backup":
@@ -146,7 +146,7 @@ def doProtectionTask(protectionType, appID, name):
         if not objects:
             # This isn't technically true.  Trying to list the backups/snapshots after taking the
             # protection job failed
-            print("Taking %s failed" % protectionType)
+            print(f"Taking {protectionType} failed")
             return False
         for obj in objects[appID]:
             # There's no API for monitoring long running tasks.  Just because
@@ -159,7 +159,7 @@ def doProtectionTask(protectionType, appID, name):
                     sys.stdout.flush()
                     return protectionID
                 elif objects[appID][obj][1] == "failed":
-                    print("%s job failed" % protectionType)
+                    print(f"{protectionType} job failed")
                     return False
         time.sleep(5)
         print(".", end="")
@@ -177,25 +177,25 @@ def stsPatch(patch, stsName):
         # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
         # were used
         ret = os.system(
-            'kubectl patch statefulset.apps/%s -p "$(cat %s)"' % (stsName, tmp.name)
+            f'kubectl patch statefulset.apps/{stsName} -p "$(cat {tmp.name})"'
         )
     except OSError as e:
-        print("Exception: %s" % e)
+        print(f"Exception: {e}")
         sys.exit(11)
     if ret:
-        print("os.system exited with RC: %s" % ret)
+        print(f"os.system exited with RC: {ret}")
         sys.exit(12)
     tmp.close()
     try:
         os.system(
-            "kubectl scale sts %s --replicas=0 && "
-            "sleep 10 && kubectl scale sts %s --replicas=1" % (stsName, stsName)
+            f"kubectl scale sts {stsName} --replicas=0 && "
+            f"sleep 10 && kubectl scale sts {stsName} --replicas=1"
         )
     except OSError as e:
-        print("Exception: %s" % e)
+        print(f"Exception: {e}")
         sys.exit(13)
     if ret:
-        print("os.system exited with RC: %s" % ret)
+        print(f"os.system exited with RC: {ret}")
         sys.exit(14)
 
 
@@ -215,40 +215,38 @@ class toolkit:
         # preApps, postApps and appsToManage are hoops we jump through
         # so we only switch apps to managed that we install.
         preApps = getApps.main(discovered=True, namespace=nameSpace)
-        run("kubectl create namespace %s" % nameSpace)
-        run("kubectl config set-context --current --namespace=%s" % nameSpace)
+        run(f"kubectl create namespace {nameSpace}")
+        run(f"kubectl config set-context --current --namespace={nameSpace}")
         if chartName == "gitlab":
             myResolver = dns.resolver.Resolver()
             myResolver.nameservers = ["8.8.8.8"]
             try:
-                answer = myResolver.resolve("gitlab.%s" % domain)
+                answer = myResolver.resolve(f"gitlab.{domain}")
             except dns.resolver.NXDOMAIN as e:
-                print("Can't resolve gitlab.%s: %s" % (domain, e))
+                print(f"Can't resolve gitlab.{domain}: {e}")
                 sys.exit(17)
             for i in answer:
                 ip = i
             if ssl:
                 run(
-                    "helm install %s %s/%s --timeout 600s "
-                    "--set certmanager-issuer.email=%s "
-                    "--set global.hosts.domain=%s "
+                    f"helm install {appName} {repoName}/{chartName} --timeout 600s "
+                    f"--set certmanager-issuer.email={email} "
+                    f"--set global.hosts.domain={domain} "
                     "--set prometheus.alertmanager.persistentVolume.enabled=false "
                     "--set prometheus.server.persistentVolume.enabled=false "
-                    "--set global.hosts.externalIP=%s"
-                    % (appName, repoName, chartName, email, domain, ip)
+                    f"--set global.hosts.externalIP={ip}"
                 )
             else:
                 run(
-                    "helm install %s %s/%s --timeout 600s "
-                    "--set certmanager-issuer.email=%s "
-                    "--set global.hosts.domain=%s "
+                    "helm install {appName} {repoName}/{chartName} --timeout 600s "
+                    "--set certmanager-issuer.email={email} "
+                    "--set global.hosts.domain={domain} "
                     "--set prometheus.alertmanager.persistentVolume.enabled=false "
                     "--set prometheus.server.persistentVolume.enabled=false "
-                    "--set global.hosts.externalIP=%s "
+                    "--set global.hosts.externalIP={ip} "
                     "--set certmanager.install=false "
                     "--set global.ingress.configureCertmanager=false "
                     "--set gitlab-runner.install=false"
-                    % (appName, repoName, chartName, email, domain, ip)
                 )
             # I could've included straight up YAML here but that seemed..the opposite of elegent.
             gitalyPatch = {
@@ -292,12 +290,11 @@ class toolkit:
                     }
                 },
             }
-            stsPatch(gitalyPatch, "%s-gitaly" % appName)
+            stsPatch(gitalyPatch, f"{appName}-gitaly")
 
         elif chartName == "cloudbees-core":
             run(
-                "helm install %s %s/%s --set ingress-nginx.Enabled=true"
-                % (appName, repoName, chartName)
+                f"helm install {appName} {repoName}/{chartName} --set ingress-nginx.Enabled=true"
             )
             # I could've included straight up YAML here but that seemed..the opposite of elegent.
             cbPatch = {
@@ -343,7 +340,7 @@ class toolkit:
             stsPatch(cbPatch, "cjoc")
 
         else:
-            run("helm install %s %s/%s" % (appName, repoName, chartName))
+            run(f"helm install {appName} {repoName}/{chartName}")
         print("Waiting for Astra to discover apps.", end="")
         sys.stdout.flush()
         time.sleep(3)
@@ -370,7 +367,7 @@ class toolkit:
                 # with the assumption that eventually the app will switch from
                 # pending to running and the manageapp call will succeed.
                 # (Note this is taking > 8 minutes in Q2)
-                print("Managing: %s." % app, end="")
+                print(f"Managing: {app}.", end="")
                 sys.stdout.flush()
                 rv = astraSDK.manageApp().main(app)
                 while not rv:
@@ -384,7 +381,7 @@ class toolkit:
         # Find the appID of the namespace we just created
         # Since we switched everything we had discovered to managed we'll list all the
         # managed apps, in the hopes that our new namespace is in there.
-        print("Getting appID of namespace: %s..." % nameSpace, end="")
+        print(f"Getting appID of namespace: {nameSpace}...", end="")
         sys.stdout.flush()
         loop = True
         while loop:
@@ -401,7 +398,7 @@ class toolkit:
                     print("Found")
                     sys.stdout.flush()
                     if chartName == "gitlab":
-                        print("Managing: %s." % appID, end="")
+                        print(f"Managing: {appID}.", end="")
                         sys.stdout.flush()
                         rv = astraSDK.manageApp().main(appID)
                         while not rv:
@@ -425,7 +422,7 @@ class toolkit:
                 # be backing up the top level namespace, and whether the apps in that namespace are
                 # managed or not they still get backed up.
                 print(
-                    "Waiting for namespace: %s to be discovered..." % nameSpace,
+                    f"Waiting for namespace: {nameSpace} to be discovered...",
                     end="",
                 )
                 sys.stdout.flush()
@@ -445,7 +442,7 @@ class toolkit:
                         sys.stdout.flush()
                         break
                 for appID in reallyPostApps:
-                    print("Managing: %s" % appID)
+                    print(f"Managing: {appID}")
                     astraSDK.manageApp().main(appID)
                 loop = False
         # and then create a protection policy on that namespace (using it's appID)
@@ -460,7 +457,7 @@ class toolkit:
             "monthly": {"dayOfWeek": "*", "dayOfMonth": "1", "hour": "2"},
         }
         for period in cppData:
-            print("Setting %s protection policy on %s" % (period, appID))
+            print(f"Setting {period} protection policy on {appID}")
             dayOfWeek = cppData[period]["dayOfWeek"]
             dayOfMonth = cppData[period]["dayOfMonth"]
             hour = cppData[period]["hour"]
@@ -475,7 +472,7 @@ class toolkit:
                 appID,
             )
             if cppRet is False:
-                raise SystemExit("cpp.main(%s...) returned False" % period)
+                raise SystemExit(f"cpp.main({period}...) returned False")
 
     def clone(
         self,
@@ -530,7 +527,7 @@ class toolkit:
         if not protectionID:
             return False
         else:
-            print("%s succeeded" % protectionType)
+            print(f"{protectionType} succeeded")
             return protectionID
 
 
@@ -1176,7 +1173,7 @@ if __name__ == "__main__":
     #######
 
     args = parser.parse_args()
-    # print("args: %s" % args)
+    # print(f"args: {args}")
     if hasattr(args, "granularity"):
         if args.granularity == "hourly":
             if args.hour:
@@ -1300,17 +1297,17 @@ if __name__ == "__main__":
                 args.appID, args.backupID
             )
             if rc:
-                print("Backup %s destroyed" % args.backupID)
+                print(f"Backup {args.backupID} destroyed")
             else:
-                print("Failed destroying backup: %s" % args.backupID)
+                print(f"Failed destroying backup: {args.backupID}")
         elif args.objectType == "snapshot":
             rc = astraSDK.destroySnapshot(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID, args.snapshotID
             )
             if rc:
-                print("Snapshot %s destroyed" % args.snapshotID)
+                print(f"Snapshot {args.snapshotID} destroyed")
             else:
-                print("Failed destroying snapshot: %s" % args.snapshotID)
+                print(f"Failed destroying snapshot: {args.snapshotID}")
     elif args.subcommand == "unmanage":
         if args.objectType == "app":
             astraSDK.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(
@@ -1396,7 +1393,7 @@ if __name__ == "__main__":
                     # The last item in namespaces['3b09b3e1-4861-4e75-ae1a-42a673affe9e'] is
                     # a dictionary.  This would blow up userSelect(); the following
                     # dictionary comprehension strips off the last element
-                    namespacesCooked = {k:v[0:-1] for (k,v) in namespaces.items()}
+                    namespacesCooked = {k: v[0:-1] for (k, v) in namespaces.items()}
                     args.sourceNamespace = userSelect(namespacesCooked)
                     appBackups = backups[args.sourceNamespace]
                     """
@@ -1417,12 +1414,12 @@ if __name__ == "__main__":
                         print("Select source backup")
                         print("Index\tBackupID\tBackupName\tTimestamp\tAppID")
                         args.backupID = userSelect(appBackupscooked)
-                        print("args.backupID: %s" % args.backupID)
+                        print(f"args.backupID: {args.backupID}")
                     else:
                         # Take a backup
                         print("No backups found, taking backup.")
                         backupRetval = doProtectionTask(
-                            "backup", args.sourceNamespace, "toolkit-%s" % args.destName
+                            "backup", args.sourceNamespace, f"toolkit-{args.destName}"
                         )
                         if not backupRetval:
                             print("Exiting due to backup task failing.")
@@ -1476,11 +1473,11 @@ if __name__ == "__main__":
                     print("Select source backup")
                     print("Index\tBackupID\tBackupName\tTimestamp\tAppID")
                     args.backupID = userSelect(appBackupscooked)
-                    print("args.backupID: %s" % args.backupID)
+                    print(f"args.backupID: {args.backupID}")
                 else:
                     # Take a backup
                     backupRetval = doProtectionTask(
-                        "backup", args.sourceNamespace, "toolkit-%s" % args.destName
+                        "backup", args.sourceNamespace, f"toolkit-{args.destName}"
                     )
                     if not backupRetval:
                         print("Exiting due to backup task failing.")

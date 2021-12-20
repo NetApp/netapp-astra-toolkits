@@ -62,7 +62,7 @@ class getConfig:
             except IOError:
                 continue
             except yaml.YAMLError:
-                print("%s not valid YAML" % configFile)
+                print(f"{configFile} not valid YAML")
                 continue
 
         if self.conf is None:
@@ -73,7 +73,7 @@ class getConfig:
             try:
                 assert self.conf.get(item) is not None
             except AssertionError:
-                print("astra_project is a required field in %s" % configFile)
+                print(f"astra_project is a required field in {configFile}")
                 sys.exit(3)
 
         if "." in self.conf.get("astra_project"):
@@ -126,7 +126,7 @@ class SDKCommon:
         try:
             results = requestsObject.json()
         except ValueError as e:
-            print("response contained invalid JSON: %s" % e)
+            print(f"response contained invalid JSON: {e}")
             results = None
         return results
 
@@ -163,7 +163,7 @@ class getApps(SDKCommon):
         endpoint = "topology/v1/apps"
         params = {
             "include": "name,id,clusterName,clusterID,namespace,state,"
-                       "managedState,appDefnSource,metadata"
+            "managedState,appDefnSource,metadata"
         }
         url = self.base + endpoint
         data = {}
@@ -175,16 +175,16 @@ class getApps(SDKCommon):
             discovered = True
 
         if self.verbose:
-            print(colored("API URL: %s" % url, "green"))
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: GET", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -416,9 +416,9 @@ class getApps(SDKCommon):
 
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -460,26 +460,26 @@ class getBackups(SDKCommon):
             if appFilter:
                 if self.apps[app][0] != appFilter:
                     continue
-            endpoint = "k8s/v1/managedApps/%s/appBackups" % app  # appID
+            endpoint = f"k8s/v1/managedApps/{app}/appBackups"  # appID
             url = self.base + endpoint
 
             data = {}
             params = {"include": "name,id,state,metadata"}
 
             if self.verbose:
-                print("Listing Backups for %s %s" % (app, self.apps[app][0]))
-                print(colored("API URL: %s" % url, "green"))
+                print(f"Listing Backups for {app} {self.apps[app][0]}")
+                print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: GET", "green"))
-                print(colored("API Headers: %s" % self.headers, "green"))
-                print(colored("API data: %s" % data, "green"))
-                print(colored("API params: %s" % params, "green"))
+                print(colored(f"API Headers: {self.headers}", "green"))
+                print(colored(f"API data: {data}", "green"))
+                print(colored(f"API params: {params}", "green"))
 
             ret = super().apicall(
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
             if self.verbose:
-                print("API HTTP Status Code: %s" % ret.status_code)
+                print(f"API HTTP Status Code: {ret.status_code}")
                 print()
 
             if ret.ok:
@@ -535,7 +535,7 @@ class getBackups(SDKCommon):
                             ]
                         )
                 if not self.quiet and self.verbose:
-                    print("Backups for %s" % app)
+                    print(f"Backups for {app}")
                     if self.output == "json":
                         print(backups[app])
                     elif self.output == "yaml":
@@ -572,7 +572,7 @@ class takeBackup(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
     def main(self, appID, backupName):
-        endpoint = "k8s/v1/managedApps/%s/appBackups" % appID
+        endpoint = f"k8s/v1/managedApps/{appID}/appBackups"
         url = self.base + endpoint
         params = {}
         data = {
@@ -582,17 +582,17 @@ class takeBackup(SDKCommon):
         }
 
         if self.verbose:
-            print("Taking backup for %s" % appID)
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Taking backup for {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -603,9 +603,9 @@ class takeBackup(SDKCommon):
                 return results.get("id") or True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -623,7 +623,7 @@ class destroyBackup(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
     def main(self, appID, backupID):
-        endpoint = "k8s/v1/managedApps/%s/appBackups/%s" % (appID, backupID)
+        endpoint = f"k8s/v1/managedApps/{appID}/appBackups/{backupID}"
         url = self.base + endpoint
         params = {}
         data = {
@@ -632,26 +632,26 @@ class destroyBackup(SDKCommon):
         }
 
         if self.verbose:
-            print("Deleting backup %s for %s" % (backupID, appID))
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Deleting backup {backupID} for {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: DELETE", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -717,16 +717,16 @@ class cloneApp(SDKCommon):
 
         if self.verbose:
             print("Cloning app")
-            print(colored("API URL: %s" % url, "green"))
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -738,9 +738,9 @@ class cloneApp(SDKCommon):
                 return results
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -774,7 +774,7 @@ class restoreApp(SDKCommon):
     ):
         assert backupID or snapshotID
 
-        endpoint = "k8s/v1/managedApps/%s" % appID
+        endpoint = f"k8s/v1/managedApps/{appID}"
         url = self.base + endpoint
         params = {}
         data = {
@@ -788,25 +788,25 @@ class restoreApp(SDKCommon):
 
         if self.verbose:
             print("Restoring app")
-            print(colored("API URL: %s" % url, "green"))
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: PUT", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}" % params, "green"))
 
         ret = super().apicall("put", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -828,28 +828,25 @@ class getClusters(SDKCommon):
     def main(self, hideManaged=False, hideUnmanaged=False):
         clusters = {}
         for cloud in self.clouds:
-            endpoint = "topology/v1/clouds/%s/clusters" % cloud
+            endpoint = f"topology/v1/clouds/{cloud}/clusters"
             url = self.base + endpoint
             data = {}
             params = {}
 
             if self.verbose:
-                print(
-                    "Getting clusters in cloud %s (%s)..."
-                    % (cloud, self.clouds[cloud][0])
-                )
-                print(colored("API URL: %s" % url, "green"))
+                print(f"Getting clusters in cloud {cloud} ({self.clouds[cloud][0]})...")
+                print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: POST", "green"))
-                print(colored("API Headers: %s" % self.headers, "green"))
-                print(colored("API data: %s" % data, "green"))
-                print(colored("API params: %s" % params, "green"))
+                print(colored(f"API Headers: {self.headers}", "green"))
+                print(colored(f"API data: {data}", "green"))
+                print(colored(f"API params: {params}", "green"))
 
             ret = super().apicall(
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
             if self.verbose:
-                print("API HTTP Status Code: %s" % ret.status_code)
+                print(f"API HTTP Status Code: {ret.status_code}")
                 print()
 
             if ret.ok:
@@ -922,7 +919,7 @@ class createProtectionpolicy(SDKCommon):
         minute,
         appID,
     ):
-        endpoint = "k8s/v1/managedApps/%s/schedules" % appID
+        endpoint = f"k8s/v1/managedApps/{appID}/schedules"
         url = self.base + endpoint
         params = {}
         data = {
@@ -935,22 +932,22 @@ class createProtectionpolicy(SDKCommon):
             "granularity": granularity,
             "hour": hour,
             "minute": minute,
-            "name": "%s schedule" % granularity,
+            "name": f"{granularity} schedule",
             "snapshotRetention": snapshotRetention,
         }
 
         if self.verbose:
-            print("Creating %s protection policy for app: %s" % (granularity, appID))
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Creating {granularity} protection policy for app: {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -960,9 +957,9 @@ class createProtectionpolicy(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -989,17 +986,17 @@ class manageApp(SDKCommon):
         }
 
         if self.verbose:
-            print("Managing app: %s" % appID)
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Managing app: {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -1009,9 +1006,9 @@ class manageApp(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -1028,23 +1025,23 @@ class unmanageApp(SDKCommon):
         self.headers["Content-Type"] = "application/managedApp+json"
 
     def main(self, appID):
-        endpoint = "k8s/v1/managedApps/%s" % appID
+        endpoint = f"k8s/v1/managedApps/{appID}"
         url = self.base + endpoint
         params = {}
         data = {}
 
         if self.verbose:
-            print("unmanaging app: %s" % appID)
-            print(colored("API URL: %s" % url, "green"))
+            print(f"unmanaging app: {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: DELETE", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -1053,9 +1050,9 @@ class unmanageApp(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -1074,7 +1071,7 @@ class takeSnap(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
     def main(self, appID, snapName):
-        endpoint = "k8s/v1/managedApps/%s/appSnaps" % appID
+        endpoint = f"k8s/v1/managedApps/{appID}/appSnaps"
         url = self.base + endpoint
         params = {}
         data = {
@@ -1084,17 +1081,17 @@ class takeSnap(SDKCommon):
         }
 
         if self.verbose:
-            print("Taking snapshot for %s" % appID)
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Taking snapshot for {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -1105,9 +1102,9 @@ class takeSnap(SDKCommon):
                 return results.get("id") or True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -1139,26 +1136,26 @@ class getSnaps(SDKCommon):
             if appFilter:
                 if self.apps[app][0] != appFilter:
                     continue
-            endpoint = "k8s/v1/managedApps/%s/appSnaps" % app
+            endpoint = f"k8s/v1/managedApps/{app}/appSnaps"
             url = self.base + endpoint
 
             data = {}
             params = {"include": "name,id,state"}
 
             if self.verbose:
-                print("Listing Snapshots for %s %s" % (app, self.apps[app][0]))
-                print(colored("API URL: %s" % url, "green"))
+                print(f"Listing Snapshots for {app} {self.apps[app][0]}")
+                print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: GET", "green"))
-                print(colored("API Headers: %s" % self.headers, "green"))
-                print(colored("API data: %s" % data, "green"))
-                print(colored("API params: %s" % params, "green"))
+                print(colored(f"API Headers: {self.headers}", "green"))
+                print(colored(f"API data: {data}", "green"))
+                print(colored(f"API params: {params}", "green"))
 
             ret = super().apicall(
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
             if self.verbose:
-                print("API HTTP Status Code: %s" % ret.status_code)
+                print(f"API HTTP Status Code: {ret.status_code}")
                 print()
 
             if ret.ok:
@@ -1195,7 +1192,7 @@ class getSnaps(SDKCommon):
                             ]
                         )
                 if not self.quiet and self.verbose:
-                    print("Snapshots for %s" % app)
+                    print(f"Snapshots for {app}")
                     if self.output == "json":
                         print(snaps[app])
                     elif self.output == "yaml":
@@ -1231,7 +1228,7 @@ class destroySnapshot(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
     def main(self, appID, snapID):
-        endpoint = "k8s/v1/managedApps/%s/appSnaps/%s" % (appID, snapID)
+        endpoint = f"k8s/v1/managedApps/{appID}/appSnaps/{snapID}"
         url = self.base + endpoint
         params = {}
         data = {
@@ -1240,26 +1237,26 @@ class destroySnapshot(SDKCommon):
         }
 
         if self.verbose:
-            print("Deleting snapshot %s for %s" % (snapID, appID))
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Deleting snapshot {snapID} for {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: DELETE", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -1284,16 +1281,16 @@ class getClouds(SDKCommon):
 
         if self.verbose:
             print("Getting clouds...")
-            print(colored("API URL: %s" % url, "green"))
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -1327,9 +1324,9 @@ class getClouds(SDKCommon):
 
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -1356,9 +1353,8 @@ class getStorageClasses(SDKCommon):
                 if self.clusters[cluster][3] != cloud:
                     continue
                 storageClasses[cloud][cluster] = {}
-                endpoint = "topology/v1/clouds/%s/clusters/%s/storageClasses" % (
-                    cloud,
-                    cluster,
+                endpoint = (
+                    f"topology/v1/clouds/{cloud}/clusters/{cluster}/storageClasses"
                 )
                 url = self.base + endpoint
 
@@ -1368,15 +1364,14 @@ class getStorageClasses(SDKCommon):
                 if self.verbose:
                     print()
                     print(
-                        "Listing StorageClasses for cluster: %s in cloud: %s"
-                        % (cluster, cloud)
+                        f"Listing StorageClasses for cluster: {cluster} in cloud: {cloud}"
                     )
                     print()
-                    print(colored("API URL: %s" % url, "green"))
+                    print(colored(f"API URL: {url}", "green"))
                     print(colored("API Method: GET", "green"))
-                    print(colored("API Headers: %s" % self.headers, "green"))
-                    print(colored("API data: %s" % data, "green"))
-                    print(colored("API params: %s" % params, "green"))
+                    print(colored(f"API Headers: {self.headers}", "green"))
+                    print(colored(f"API data: {data}", "green"))
+                    print(colored(f"API params: {params}", "green"))
                     print()
 
                 ret = super().apicall(
@@ -1384,7 +1379,7 @@ class getStorageClasses(SDKCommon):
                 )
 
                 if self.verbose:
-                    print("API HTTP Status Code: %s" % ret.status_code)
+                    print(f"API HTTP Status Code: {ret.status_code}")
                     print()
                 if ret.ok:
                     results = super().jsonifyResults(ret)
@@ -1445,19 +1440,19 @@ class manageCluster(SDKCommon):
 
         if self.verbose:
             print()
-            print("Managing: %s" % clusterID)
+            print(f"Managing: {clusterID}")
             print()
-            print(colored("API URL: %s" % url, "green"))
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
             print()
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -1467,9 +1462,9 @@ class manageCluster(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -1486,26 +1481,26 @@ class unmanageCluster(SDKCommon):
         self.headers["Content-Type"] = "application/managedCluster+json"
 
     def main(self, clusterID):
-        endpoint = "topology/v1/managedClusters/%s" % clusterID
+        endpoint = f"topology/v1/managedClusters/{clusterID}"
         url = self.base + endpoint
         params = {}
         data = {}
 
         if self.verbose:
             print()
-            print("Unmanaging: %s" % clusterID)
+            print(f"Unmanaging: {clusterID}")
             print()
-            print(colored("API URL: %s" % url, "green"))
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: DELETE", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
             print()
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -1514,7 +1509,7 @@ class unmanageCluster(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
