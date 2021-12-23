@@ -1,12 +1,10 @@
-def dockerImage
-
 pipeline {
     agent none
     environment {
         MAGENTO_VERSION = '2.4.1-debian-10-r14'
         CHART_VERSION = '14'
-        RELEASE_TYPE = 'MAJOR'
-        ASTRA_TOOLKIT_VERSION = '2.1'
+        RELEASE_TYPE = 'MINOR'
+        ASTRA_TOOLKIT_VERSION = '2.0.2'
         ASTRA_API_TOKEN = 'xxxxxxxx'
         ASTRA_INSTANCE_ID = 'xxx-xxx-xxx-xxx-xxx'
         ASTRA_FQDN = 'netapp-astra-control-center.org.example.com'
@@ -28,7 +26,7 @@ pipeline {
                         sh 'wget https://github.com/bitnami/bitnami-docker-magento/archive/refs/tags/${MAGENTO_VERSION}.tar.gz'
                         sh 'tar -xvzf ${MAGENTO_VERSION}.tar.gz'
                         script {
-                            dockerImage = docker.build("${DOCKER_REGISTRY}/magento:${MAGENTO_VERSION}", "./bitnami-docker-magento-${MAGENTO_VERSION}/2/debian-10")
+                            def dockerImage = docker.build("${DOCKER_REGISTRY}/magento:${MAGENTO_VERSION}", "./bitnami-docker-magento-${MAGENTO_VERSION}/2/debian-10")
                         }
                     }
                 }

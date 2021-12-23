@@ -8,5 +8,5 @@ A placeholder for CI/CD pipeline examples and supporting scripts using NetApp As
 
 ## Authors
 
-- [Alan Cowles](alan.cowles@netapp.com) - NetApp Hybrid Cloud Solutions Team
-- [Nikhil M Kulkarni](nikhil.kulkarni@netapp.com) - NetApp Hybrid Cloud Solutions Team
+- [Alan Cowles](mailto:alan.cowles@netapp.com) - NetApp Hybrid Cloud Solutions Team
+- [Nikhil M Kulkarni](mailto:nikhil.kulkarni@netapp.com) - NetApp Hybrid Cloud Solutions Team
