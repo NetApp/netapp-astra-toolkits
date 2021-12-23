@@ -35,7 +35,7 @@ To manually run the NetApp Astra Control Toolkit:
 Launch the prepared Docker image. Docker will automatically download the image if you don't already have it on your system.
 
 ```Shell
-sudo docker run -it jpaetzel0614/k8scloudcontrol:1.2 /bin/bash
+sudo docker run -it jpaetzel0614/k8scloudcontrol:1.3 /bin/bash
 ```
 
 NOTE: From this point forward, you will be working in the Docker container you just launched.

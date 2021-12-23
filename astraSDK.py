@@ -62,7 +62,7 @@ class getConfig:
             except IOError:
                 continue
             except yaml.YAMLError:
-                print("%s not valid YAML" % configFile)
+                print(f"{configFile} not valid YAML")
                 continue
 
         if self.conf is None:
@@ -73,7 +73,7 @@ class getConfig:
             try:
                 assert self.conf.get(item) is not None
             except AssertionError:
-                print("astra_project is a required field in %s" % configFile)
+                print(f"astra_project is a required field in {configFile}")
                 sys.exit(3)
 
         if "." in self.conf.get("astra_project"):
@@ -126,19 +126,13 @@ class SDKCommon:
         try:
             results = requestsObject.json()
         except ValueError as e:
-            print("response contained invalid JSON: %s" % e)
+            print(f"response contained invalid JSON: {e}")
             results = None
         return results
 
 
 class getApps(SDKCommon):
     """List all apps known to Astra.
-    Discovered=True means managedState="managed"
-    Discovered=False means managedState="unmanaged"
-    source provides filtering for appDefnSource.  This is useful for
-    finding top level namespaces.
-    namespace provides filtering for namespace.  Useful for "find all apps
-    in the namespace named <X>
 
     Note that there is an API endpoint that will just list managedApps.  However
     it has the same return value as topology/v1/apps when filtering for
@@ -158,88 +152,117 @@ class getApps(SDKCommon):
         self.output = output
         super().__init__()
 
-    def main(self, discovered=False, source=None, namespace=None, cluster=None):
+    def main(
+        self, discovered=False, source=None, namespace=None, cluster=None, ignored=False
+    ):
         """discovered: True: show unmanaged apps False: show managed apps
         source: Filter by the app source field.  eg: helm, namespace
         namespace: Filter by the namespace the app is in
-        cluster: Filter by a specific k8s cluster"""
+        cluster: Filter by a specific k8s cluster
+        ignored: True: show ignored apps"""
         endpoint = "topology/v1/apps"
         params = {
-            "include": "name,id,clusterName,clusterID,namespace,state,managedState,appDefnSource"
+            "include": "name,id,clusterName,clusterID,namespace,state,"
+            "managedState,appDefnSource,metadata"
         }
         url = self.base + endpoint
         data = {}
 
+        # There's no such thing as a managed and ignored app, this prevents always having no results
+        # if we are called with discovered=False,ignored=True
+        # as well as simplifies CLI flags for toolkit.py
+        if ignored:
+            discovered = True
+
         if self.verbose:
-            print(colored("API URL: %s" % url, "green"))
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: GET", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
             results = super().jsonifyResults(ret)
             """
-            "name,id,clusterName,clusterID,namespace,state,managedState,appDefnSource"
+            "name,id,clusterName,clusterID,namespace,state,managedState,appDefnSource,metadata"
             self.results = {'items':
-                [['kube-system', '65ae3322-a1d1-4287-8d01-a3180e7d4ff4',
-                  'cluster-1-jp', '29df26ee-7a8e-4ed9-a76c-d49f39d54185',
-                  'kube-system', 'running', 'unmanaged', 'other'],
-                 ['trident', '90995ad0-62c6-40c4-a5e3-57727b272385',
-                  'cluster-1-jp', '29df26ee-7a8e-4ed9-a76c-d49f39d54185',
-                  'trident', 'running', 'unmanaged', 'other'],
-                 ['kube-system', 'b6356386-29b6-4790-abe9-cfe76276e1fa',
-                  'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-                  'kube-system', 'running', 'unmanaged', 'other'],
-                 ['trident', '9af1931d-da02-4662-824c-71bc32cfa576',
-                  'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-                  'trident', 'running', 'unmanaged', 'other'],
-                 ['jp3k', '739e7b1f-a71a-42bd-ac6f-db3ff9131133',
-                  'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-                  'jp3k', 'running', 'unmanaged', 'namespace'],
-                 ['wp-mariadb', '697d2a64-61f0-4958-b746-13248be6e6a1',
-                  'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-                  'jp3k', 'running', 'managed', 'helm'],
-                 ['wp-wordpress', 'ee7e683c-7532-4f79-9c4b-3e26d8ece391',
-                  'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-                  'jp3k', 'running', 'unmanaged', 'helm']],
-                            'metadata': {}}
+                [
+                    ['kube-system', '1167745f-ed9f-4903-bcec-f87e30c35604',
+                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
+                     'kube-system', 'running', 'unmanaged', 'other',
+                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
+                     'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
+
+                    ['trident', '97406814-72d6-4b01-a706-7697db1648f9',
+                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
+                     'trident', 'running', 'unmanaged', 'other',
+                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
+                     'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
+
+                    ['wp', 'c1ece492-56f5-4c9a-a93d-eb73e5e22209',
+                    'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
+                    'wp', 'running', 'managed', 'namespace',
+                    {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
+                    'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
+
+                    ['wp-mariadb', 'ee0f15cb-757f-4bf8-8e74-40092f166922',
+                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
+                     'wp', 'running', 'managed', 'helm',
+                     {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
+                     'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
+
+                    ['wp-wordpress', '21c39321-c489-4042-bb13-e1cf967b0bdd',
+                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
+                     'wp', 'running', 'unmanaged', 'helm',
+                     {'labels': [{'name': 'astra.netapp.io/labels/app.ignore', 'value': 'true'}],
+                      'creationTimestamp': '2021-12-08T20:26:48Z',
+                      'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}]
+                    ],
+                    'metadata': {}
+                    }
             """
             apps = {}
             for item in results.get("items"):
-                # make item[1] the key in self.apps
+                # make item[1] (appID) the key in apps
                 if item[1] not in apps:
                     appID = item.pop(1)
                     apps[appID] = item
             """
             apps:
-                {'65ae3322-a1d1-4287-8d01-a3180e7d4ff4':
-                    ['kube-system', 'cluster-1-jp', '29df26ee-7a8e-4ed9-a76c-d49f39d54185',
-                     'kube-system', 'running', 'unmanaged', 'other'],
-                 '90995ad0-62c6-40c4-a5e3-57727b272385':
-                    ['trident', 'cluster-1-jp', '29df26ee-7a8e-4ed9-a76c-d49f39d54185',
-                     'trident', 'running', 'unmanaged', 'other'],
-                 'b6356386-29b6-4790-abe9-cfe76276e1fa':
-                    ['kube-system', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-                     'kube-system', 'running', 'unmanaged', 'other'],
-                 '9af1931d-da02-4662-824c-71bc32cfa576':
-                    ['trident', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-                     'trident', 'running', 'unmanaged', 'other'],
-                 '739e7b1f-a71a-42bd-ac6f-db3ff9131133':
-                    ['jp3k', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-                     'jp3k', 'running', 'unmanaged', 'namespace'],
-                 '697d2a64-61f0-4958-b746-13248be6e6a1':
-                    ['wp-mariadb', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-                     'jp3k', 'running', 'managed', 'helm'],
-                 'ee7e683c-7532-4f79-9c4b-3e26d8ece391':
-                    ['wp-wordpress', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-                     'jp3k', 'running', 'unmanaged', 'helm']}
+             {
+                '1167745f-ed9f-4903-bcec-f87e30c35604':
+                    ['kube-system', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
+                     'kube-system', 'running', 'unmanaged', 'other',
+                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
+                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
+                '97406814-72d6-4b01-a706-7697db1648f9':
+                    ['trident', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
+                     'trident', 'running', 'unmanaged', 'other',
+                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
+                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
+                'c1ece492-56f5-4c9a-a93d-eb73e5e22209':
+                    ['wp', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
+                     'wp', 'running', 'managed', 'namespace',
+                     {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
+                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
+                'ee0f15cb-757f-4bf8-8e74-40092f166922':
+                    ['wp-mariadb', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
+                     'wp', 'running', 'managed', 'helm',
+                     {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
+                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
+                '21c39321-c489-4042-bb13-e1cf967b0bdd':
+                    ['wp-wordpress', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
+                     'wp', 'running', 'unmanaged', 'helm',
+                     {'labels': [{'name': 'astra.netapp.io/labels/app.ignore', 'value': 'true'}],
+                      'creationTimestamp': '2021-12-08T20:26:48Z',
+                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}]
+             }
             """
             systemApps = ["trident", "kube-system"]
             if discovered:
@@ -247,18 +270,42 @@ class getApps(SDKCommon):
             else:
                 managedFilter = "managed"
 
-            # There's really 16 cases here.  managed or unmanaged, each with eight combinations
-            # of source, namespace, and cluster
+            # There's really 24 cases here.  managed, unmanaged or unmanaged AND ignored,
+            # each with eight combinations of source, namespace, and cluster
             # source    |y|n|
             # namespace |y|n|
             # cluster   |y|n|
+
+            # Be a tad evil here and get rid of 8 cases in one fell swoop
+            if ignored:
+                appsPrecooked = {}
+                for k, v in apps.items():
+                    for item in v[7]["labels"]:
+                        if (
+                            item["name"] == "astra.netapp.io/labels/app.ignore"
+                            and item["value"] == "true"
+                        ):
+                            appsPrecooked[k] = v
+            else:
+                appsPrecooked = {}
+                for k, v in apps.items():
+                    ignoreFound = False
+                    for item in v[7]["labels"]:
+                        if (
+                            item["name"] == "astra.netapp.io/labels/app.ignore"
+                            and item["value"] == "true"
+                        ):
+                            ignoreFound = True
+                    if not ignoreFound:
+                        appsPrecooked[k] = v
+
             if source:
                 if namespace:
                     if cluster:
                         # case 1: filter on source, namespace, and cluster
                         appsCooked = {
                             k: v
-                            for (k, v) in apps.items()
+                            for (k, v) in appsPrecooked.items()
                             if v[0] not in systemApps
                             and v[1] == cluster
                             and v[3] == namespace
@@ -269,7 +316,7 @@ class getApps(SDKCommon):
                         # case 2: filter on source, namespace
                         appsCooked = {
                             k: v
-                            for (k, v) in apps.items()
+                            for (k, v) in appsPrecooked.items()
                             if v[0] not in systemApps
                             and v[3] == namespace
                             and v[5] == managedFilter
@@ -280,7 +327,7 @@ class getApps(SDKCommon):
                         # case 3: filter on source, cluster
                         appsCooked = {
                             k: v
-                            for (k, v) in apps.items()
+                            for (k, v) in appsPrecooked.items()
                             if v[0] not in systemApps
                             and v[1] == cluster
                             and v[5] == managedFilter
@@ -290,7 +337,7 @@ class getApps(SDKCommon):
                         # case 4: filter on source
                         appsCooked = {
                             k: v
-                            for (k, v) in apps.items()
+                            for (k, v) in appsPrecooked.items()
                             if v[0] not in systemApps
                             and v[5] == managedFilter
                             and v[6] == source
@@ -302,7 +349,7 @@ class getApps(SDKCommon):
                         if namespace:
                             appsCooked = {
                                 k: v
-                                for (k, v) in apps.items()
+                                for (k, v) in appsPrecooked.items()
                                 if v[0] not in systemApps
                                 and v[1] == cluster
                                 and v[3] == namespace
@@ -313,7 +360,7 @@ class getApps(SDKCommon):
                         if namespace:
                             appsCooked = {
                                 k: v
-                                for (k, v) in apps.items()
+                                for (k, v) in appsPrecooked.items()
                                 if v[0] not in systemApps
                                 and v[3] == namespace
                                 and v[5] == managedFilter
@@ -323,7 +370,7 @@ class getApps(SDKCommon):
                         # case 7: filtering on cluster, but not source or namespace
                         appsCooked = {
                             k: v
-                            for (k, v) in apps.items()
+                            for (k, v) in appsPrecooked.items()
                             if v[0] not in systemApps
                             and v[1] == cluster
                             and v[5] == managedFilter
@@ -332,7 +379,7 @@ class getApps(SDKCommon):
                         # case 8: not filtering on source, namespace, OR cluster
                         appsCooked = {
                             k: v
-                            for (k, v) in apps.items()
+                            for (k, v) in appsPrecooked.items()
                             if v[0] not in systemApps and v[5] == managedFilter
                         }
 
@@ -369,9 +416,9 @@ class getApps(SDKCommon):
 
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -413,26 +460,26 @@ class getBackups(SDKCommon):
             if appFilter:
                 if self.apps[app][0] != appFilter:
                     continue
-            endpoint = "k8s/v1/managedApps/%s/appBackups" % app  # appID
+            endpoint = f"k8s/v1/managedApps/{app}/appBackups"  # appID
             url = self.base + endpoint
 
             data = {}
             params = {"include": "name,id,state,metadata"}
 
             if self.verbose:
-                print("Listing Backups for %s %s" % (app, self.apps[app][0]))
-                print(colored("API URL: %s" % url, "green"))
+                print(f"Listing Backups for {app} {self.apps[app][0]}")
+                print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: GET", "green"))
-                print(colored("API Headers: %s" % self.headers, "green"))
-                print(colored("API data: %s" % data, "green"))
-                print(colored("API params: %s" % params, "green"))
+                print(colored(f"API Headers: {self.headers}", "green"))
+                print(colored(f"API data: {data}", "green"))
+                print(colored(f"API params: {params}", "green"))
 
             ret = super().apicall(
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
             if self.verbose:
-                print("API HTTP Status Code: %s" % ret.status_code)
+                print(f"API HTTP Status Code: {ret.status_code}")
                 print()
 
             if ret.ok:
@@ -487,8 +534,8 @@ class getBackups(SDKCommon):
                                 backups[app][item][1],
                             ]
                         )
-                if not self.quiet:
-                    print("Backups for %s" % app)
+                if not self.quiet and self.verbose:
+                    print(f"Backups for {app}")
                     if self.output == "json":
                         print(backups[app])
                     elif self.output == "yaml":
@@ -525,7 +572,7 @@ class takeBackup(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
     def main(self, appID, backupName):
-        endpoint = "k8s/v1/managedApps/%s/appBackups" % appID
+        endpoint = f"k8s/v1/managedApps/{appID}/appBackups"
         url = self.base + endpoint
         params = {}
         data = {
@@ -535,17 +582,17 @@ class takeBackup(SDKCommon):
         }
 
         if self.verbose:
-            print("Taking backup for %s" % appID)
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Taking backup for {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -556,9 +603,9 @@ class takeBackup(SDKCommon):
                 return results.get("id") or True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -576,7 +623,7 @@ class destroyBackup(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
     def main(self, appID, backupID):
-        endpoint = "k8s/v1/managedApps/%s/appBackups/%s" % (appID, backupID)
+        endpoint = f"k8s/v1/managedApps/{appID}/appBackups/{backupID}"
         url = self.base + endpoint
         params = {}
         data = {
@@ -585,26 +632,26 @@ class destroyBackup(SDKCommon):
         }
 
         if self.verbose:
-            print("Deleting backup %s for %s" % (backupID, appID))
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Deleting backup {backupID} for {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: DELETE", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -670,16 +717,16 @@ class cloneApp(SDKCommon):
 
         if self.verbose:
             print("Cloning app")
-            print(colored("API URL: %s" % url, "green"))
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -691,9 +738,9 @@ class cloneApp(SDKCommon):
                 return results
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -727,7 +774,7 @@ class restoreApp(SDKCommon):
     ):
         assert backupID or snapshotID
 
-        endpoint = "k8s/v1/managedApps/%s" % appID
+        endpoint = f"k8s/v1/managedApps/{appID}"
         url = self.base + endpoint
         params = {}
         data = {
@@ -741,25 +788,25 @@ class restoreApp(SDKCommon):
 
         if self.verbose:
             print("Restoring app")
-            print(colored("API URL: %s" % url, "green"))
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: PUT", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}" % params, "green"))
 
         ret = super().apicall("put", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -781,28 +828,25 @@ class getClusters(SDKCommon):
     def main(self, hideManaged=False, hideUnmanaged=False):
         clusters = {}
         for cloud in self.clouds:
-            endpoint = "topology/v1/clouds/%s/clusters" % cloud
+            endpoint = f"topology/v1/clouds/{cloud}/clusters"
             url = self.base + endpoint
             data = {}
             params = {}
 
             if self.verbose:
-                print(
-                    "Getting clusters in cloud %s (%s)..."
-                    % (cloud, self.clouds[cloud][0])
-                )
-                print(colored("API URL: %s" % url, "green"))
+                print(f"Getting clusters in cloud {cloud} ({self.clouds[cloud][0]})...")
+                print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: POST", "green"))
-                print(colored("API Headers: %s" % self.headers, "green"))
-                print(colored("API data: %s" % data, "green"))
-                print(colored("API params: %s" % params, "green"))
+                print(colored(f"API Headers: {self.headers}", "green"))
+                print(colored(f"API data: {data}", "green"))
+                print(colored(f"API params: {params}", "green"))
 
             ret = super().apicall(
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
             if self.verbose:
-                print("API HTTP Status Code: %s" % ret.status_code)
+                print(f"API HTTP Status Code: {ret.status_code}")
                 print()
 
             if ret.ok:
@@ -875,7 +919,7 @@ class createProtectionpolicy(SDKCommon):
         minute,
         appID,
     ):
-        endpoint = "k8s/v1/managedApps/%s/schedules" % appID
+        endpoint = f"k8s/v1/managedApps/{appID}/schedules"
         url = self.base + endpoint
         params = {}
         data = {
@@ -888,22 +932,22 @@ class createProtectionpolicy(SDKCommon):
             "granularity": granularity,
             "hour": hour,
             "minute": minute,
-            "name": "%s schedule" % granularity,
+            "name": f"{granularity} schedule",
             "snapshotRetention": snapshotRetention,
         }
 
         if self.verbose:
-            print("Creating %s protection policy for app: %s" % (granularity, appID))
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Creating {granularity} protection policy for app: {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -913,9 +957,9 @@ class createProtectionpolicy(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -942,17 +986,17 @@ class manageApp(SDKCommon):
         }
 
         if self.verbose:
-            print("Managing app: %s" % appID)
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Managing app: {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -962,9 +1006,53 @@ class manageApp(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class unmanageApp(SDKCommon):
+    """This class switches a managed app to a discovered app."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-managedApp+json"
+        self.headers["Content-Type"] = "application/managedApp+json"
+
+    def main(self, appID):
+        endpoint = f"k8s/v1/managedApps/{appID}"
+        url = self.base + endpoint
+        params = {}
+        data = {}
+
+        if self.verbose:
+            print(f"unmanaging app: {appID}")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: DELETE", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            if not self.quiet:
+                print("App unmanaged")
+            return True
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -983,7 +1071,7 @@ class takeSnap(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
     def main(self, appID, snapName):
-        endpoint = "k8s/v1/managedApps/%s/appSnaps" % appID
+        endpoint = f"k8s/v1/managedApps/{appID}/appSnaps"
         url = self.base + endpoint
         params = {}
         data = {
@@ -993,17 +1081,17 @@ class takeSnap(SDKCommon):
         }
 
         if self.verbose:
-            print("Taking snapshot for %s" % appID)
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Taking snapshot for {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -1014,9 +1102,9 @@ class takeSnap(SDKCommon):
                 return results.get("id") or True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -1048,26 +1136,26 @@ class getSnaps(SDKCommon):
             if appFilter:
                 if self.apps[app][0] != appFilter:
                     continue
-            endpoint = "k8s/v1/managedApps/%s/appSnaps" % app
+            endpoint = f"k8s/v1/managedApps/{app}/appSnaps"
             url = self.base + endpoint
 
             data = {}
             params = {"include": "name,id,state"}
 
             if self.verbose:
-                print("Listing Snapshots for %s %s" % (app, self.apps[app][0]))
-                print(colored("API URL: %s" % url, "green"))
+                print(f"Listing Snapshots for {app} {self.apps[app][0]}")
+                print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: GET", "green"))
-                print(colored("API Headers: %s" % self.headers, "green"))
-                print(colored("API data: %s" % data, "green"))
-                print(colored("API params: %s" % params, "green"))
+                print(colored(f"API Headers: {self.headers}", "green"))
+                print(colored(f"API data: {data}", "green"))
+                print(colored(f"API params: {params}", "green"))
 
             ret = super().apicall(
                 "get", url, data, self.headers, params, self.verifySSL
             )
 
             if self.verbose:
-                print("API HTTP Status Code: %s" % ret.status_code)
+                print(f"API HTTP Status Code: {ret.status_code}")
                 print()
 
             if ret.ok:
@@ -1103,8 +1191,8 @@ class getSnaps(SDKCommon):
                                 snaps[app][item][1],
                             ]
                         )
-                if not self.quiet:
-                    print("Snapshots for %s" % app)
+                if not self.quiet and self.verbose:
+                    print(f"Snapshots for {app}")
                     if self.output == "json":
                         print(snaps[app])
                     elif self.output == "yaml":
@@ -1140,7 +1228,7 @@ class destroySnapshot(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
     def main(self, appID, snapID):
-        endpoint = "k8s/v1/managedApps/%s/appSnaps/%s" % (appID, snapID)
+        endpoint = f"k8s/v1/managedApps/{appID}/appSnaps/{snapID}"
         url = self.base + endpoint
         params = {}
         data = {
@@ -1149,26 +1237,26 @@ class destroySnapshot(SDKCommon):
         }
 
         if self.verbose:
-            print("Deleting snapshot %s for %s" % (snapID, appID))
-            print(colored("API URL: %s" % url, "green"))
+            print(f"Deleting snapshot {snapID} for {appID}")
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: DELETE", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -1193,16 +1281,16 @@ class getClouds(SDKCommon):
 
         if self.verbose:
             print("Getting clouds...")
-            print(colored("API URL: %s" % url, "green"))
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -1236,9 +1324,9 @@ class getClouds(SDKCommon):
 
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -1265,9 +1353,8 @@ class getStorageClasses(SDKCommon):
                 if self.clusters[cluster][3] != cloud:
                     continue
                 storageClasses[cloud][cluster] = {}
-                endpoint = "topology/v1/clouds/%s/clusters/%s/storageClasses" % (
-                    cloud,
-                    cluster,
+                endpoint = (
+                    f"topology/v1/clouds/{cloud}/clusters/{cluster}/storageClasses"
                 )
                 url = self.base + endpoint
 
@@ -1277,15 +1364,14 @@ class getStorageClasses(SDKCommon):
                 if self.verbose:
                     print()
                     print(
-                        "Listing StorageClasses for cluster: %s in cloud: %s"
-                        % (cluster, cloud)
+                        f"Listing StorageClasses for cluster: {cluster} in cloud: {cloud}"
                     )
                     print()
-                    print(colored("API URL: %s" % url, "green"))
+                    print(colored(f"API URL: {url}", "green"))
                     print(colored("API Method: GET", "green"))
-                    print(colored("API Headers: %s" % self.headers, "green"))
-                    print(colored("API data: %s" % data, "green"))
-                    print(colored("API params: %s" % params, "green"))
+                    print(colored(f"API Headers: {self.headers}", "green"))
+                    print(colored(f"API data: {data}", "green"))
+                    print(colored(f"API params: {params}", "green"))
                     print()
 
                 ret = super().apicall(
@@ -1293,7 +1379,7 @@ class getStorageClasses(SDKCommon):
                 )
 
                 if self.verbose:
-                    print("API HTTP Status Code: %s" % ret.status_code)
+                    print(f"API HTTP Status Code: {ret.status_code}")
                     print()
                 if ret.ok:
                     results = super().jsonifyResults(ret)
@@ -1332,7 +1418,7 @@ class getStorageClasses(SDKCommon):
 class manageCluster(SDKCommon):
     """This class switches an unmanaged cluster to a managed cluster"""
 
-    def __init__(self, quiet=False, verbose=False):
+    def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
         self.quiet = quiet
@@ -1354,19 +1440,19 @@ class manageCluster(SDKCommon):
 
         if self.verbose:
             print()
-            print("Managing: %s" % clusterID)
+            print(f"Managing: {clusterID}")
             print()
-            print(colored("API URL: %s" % url, "green"))
+            print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
-            print(colored("API Headers: %s" % self.headers, "green"))
-            print(colored("API data: %s" % data, "green"))
-            print(colored("API params: %s" % params, "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
             print()
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
-            print("API HTTP Status Code: %s" % ret.status_code)
+            print(f"API HTTP Status Code: {ret.status_code}")
             print()
 
         if ret.ok:
@@ -1376,7 +1462,54 @@ class manageCluster(SDKCommon):
             return True
         else:
             if not self.quiet:
-                print("API HTTP Status Code: %s - %s" % (ret.status_code, ret.reason))
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 if ret.text.strip():
-                    print("Error text: %s" % ret.text)
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class unmanageCluster(SDKCommon):
+    """This class switches a managed cluster to an un managed cluster"""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-managedCluster+json"
+        self.headers["Content-Type"] = "application/managedCluster+json"
+
+    def main(self, clusterID):
+        endpoint = f"topology/v1/managedClusters/{clusterID}"
+        url = self.base + endpoint
+        params = {}
+        data = {}
+
+        if self.verbose:
+            print()
+            print(f"Unmanaging: {clusterID}")
+            print()
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: DELETE", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+            print()
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            if not self.quiet:
+                print("Cluster unmanaged")
+            return True
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
             return False
