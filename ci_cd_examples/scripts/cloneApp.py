@@ -17,7 +17,6 @@
 
 import time
 from func_timeout import func_timeout, FunctionTimedOut
-import sys
 import astraSDK
 import argparse
 
@@ -31,21 +30,30 @@ Possible Issues:
   5. The connection to S3 bucket may be interrupted.
 """
 
+
 class ClusterDoesNotExistinAstraControl(Exception):
-    '''Error that will be raised when the specified cluster doesn't exist within Astra Control'''
+    """Error raised when the specified cluster doesn't exist within Astra Control"""
+
     pass
+
 
 class AppDoesNotExistinAstraControl(Exception):
-    '''Error that will be raised when the specified application doesn't exist within Astra Control'''
+    """Error raised when the specified application doesn't exist within Astra Control"""
+
     pass
+
 
 class BackupDoesNotExistinAstraControl(Exception):
-    '''Error that will be raised when the specified backup doesn't exist within Astra Control'''
+    """Error raised when the specified backup doesn't exist within Astra Control"""
+
     pass
 
+
 class SnapshotDoesNotExistinAstraControl(Exception):
-    '''Error that will be raised when the specified snapshot doesn't exist within Astra Control'''
+    """Error raised when the specified snapshot doesn't exist within Astra Control"""
+
     pass
+
 
 def getClusterID(cluster_name):
     Clusters = astraSDK.getClusters().main()
@@ -57,6 +65,7 @@ def getClusterID(cluster_name):
     print("Error: " + error)
     raise ClusterDoesNotExistinAstraControl(error)
 
+
 def getAppID(app_name):
     Apps = astraSDK.getApps().main()
     for key1 in Apps:
@@ -67,6 +76,7 @@ def getAppID(app_name):
     print("Error: " + error)
     raise AppDoesNotExistinAstraControl(error)
 
+
 def getBackupID(app_name, backup_name):
     Backups = astraSDK.getBackups().main(appFilter=app_name)
     for key1 in Backups:
@@ -74,9 +84,16 @@ def getBackupID(app_name, backup_name):
             if key2 == backup_name:
                 backup_id = Backups[key1][key2][0]
                 return backup_id
-    error = "Backup " + backup_name + " does not exist with application " + app_name + " in Astra Control"
+    error = (
+        "Backup "
+        + backup_name
+        + " does not exist with application "
+        + app_name
+        + " in Astra Control"
+    )
     print("Error: " + error)
     raise BackupDoesNotExistinAstraControl(error)
+
 
 def getSnapshotID(app_name, snap_name):
     Snapshots = astraSDK.getSnaps().main(appFilter=app_name)
@@ -85,9 +102,16 @@ def getSnapshotID(app_name, snap_name):
             if key2 == snap_name:
                 snapshot_id = Snapshots[key1][key2][0]
                 return snapshot_id
-    error = "Snapshot " + snap_name + " does not exist with application " + app_name + " in Astra Control"
+    error = (
+        "Snapshot "
+        + snap_name
+        + " does not exist with application "
+        + app_name
+        + " in Astra Control"
+    )
     print("Error: " + error)
     raise SnapshotDoesNotExistinAstraControl(error)
+
 
 def wait_for_clone(app_name):
     appInfo = astraSDK.getApps().main()
@@ -106,73 +130,77 @@ def wait_for_clone(app_name):
                 print("Application clone completed! \n")
                 return True
 
+
 if __name__ == "__main__":
-    timeout = 60 * 30 #Set the timeout to desired value based on application. In this case, our demo application takes a maximum of 30 minutes for cloning. 
+    timeout = 60 * 30  # Set the timeout to desired value based on the application
 
     parser = argparse.ArgumentParser(
-                 prog='python3 cloneApp.py',
-                 description='cloneApp creates the clone of the application managed by Astra Control'
-             )
+        prog="python3 cloneApp.py",
+        description="cloneApp creates the clone of application managed by Astra Control",
+    )
     mutual_exclusive_group = parser.add_mutually_exclusive_group(required=False)
 
     parser.add_argument(
-        '-c',
-        '--clone-name',
+        "-c",
+        "--clone-name",
         type=str,
         required=True,
-        dest='clone_name',
-        help='The name of the cloned application'
+        dest="clone_name",
+        help="The name of the cloned application",
     )
 
     parser.add_argument(
-        '-n',
-        '--clone-namespace',
+        "-n",
+        "--clone-namespace",
         type=str,
         required=True,
-        dest='clone_namespace',
-        help='The namespace to which the application is to be cloned'
+        dest="clone_namespace",
+        help="The namespace to which the application is to be cloned",
     )
 
     parser.add_argument(
-        '-d',
-        '--destination-cluster',
+        "-d",
+        "--destination-cluster",
         type=str,
         required=True,
-        dest='destination_cluster',
-        help='The destination cluster to which the application will be cloned'
+        dest="destination_cluster",
+        help="The destination cluster to which the application will be cloned",
     )
 
     parser.add_argument(
-        '-s',
-        '--source-cluster',
-        type=str, required=True,
-        dest='source_cluster',
-        help='The source cluster from which the application will be cloned'
+        "-s",
+        "--source-cluster",
+        type=str,
+        required=True,
+        dest="source_cluster",
+        help="The source cluster from which the application will be cloned",
     )
 
     mutual_exclusive_group.add_argument(
-        '-B',
-        '--use-existing-backup',
-        type=str, required=False,
-        dest='use_backup',
-        help='The backup from which the application will be cloned'
+        "-B",
+        "--use-existing-backup",
+        type=str,
+        required=False,
+        dest="use_backup",
+        help="The backup from which the application will be cloned",
     )
 
     mutual_exclusive_group.add_argument(
-        '-S',
-        '--use-existing-snapshot',
-        type=str, required=False,
-        dest='use_snapshot',
-        help='The snapshot from which the application will be cloned'
+        "-S",
+        "--use-existing-snapshot",
+        type=str,
+        required=False,
+        dest="use_snapshot",
+        help="The snapshot from which the application will be cloned",
     )
 
     parser.add_argument(
-        '-A',
-        '--source-application',
+        "-A",
+        "--source-application",
         type=str,
         required=True,
-        dest='source_application',
-        help='The source application from which the application will be cloned'
+        dest="source_application",
+        help="The source application from which the application will be cloned",
     )
 
     args = parser.parse_args()
@@ -182,24 +210,27 @@ if __name__ == "__main__":
     destination_cluster_id = getClusterID(args.destination_cluster)
 
     if args.use_backup:
-        source_backup_id = getBackupID(app_name=args.source_application, backup_name=args.use_backup)
+        source_backup_id = getBackupID(
+            app_name=args.source_application, backup_name=args.use_backup
+        )
         CloneApp = astraSDK.cloneApp(quiet=False).main(
             cloneName=args.clone_name,
             clusterID=destination_cluster_id,
             sourceClusterID=source_cluster_id,
             namespace=args.clone_namespace,
-            backupID=source_backup_id
+            backupID=source_backup_id,
         )
 
-
     elif args.use_snapshot:
-        source_snapshot_id = getSnapshotID(app_name=args.source_application, snap_name=args.use_snapshot)
+        source_snapshot_id = getSnapshotID(
+            app_name=args.source_application, snap_name=args.use_snapshot
+        )
         CloneApp = astraSDK.cloneApp(quiet=False).main(
             cloneName=args.clone_name,
             clusterID=destination_cluster_id,
             sourceClusterID=source_cluster_id,
             namespace=args.clone_namespace,
-            snapshotID=source_snapshot_id
+            snapshotID=source_snapshot_id,
         )
 
     elif not args.use_backup and not args.use_snapshot:
@@ -209,7 +240,7 @@ if __name__ == "__main__":
             clusterID=destination_cluster_id,
             sourceClusterID=source_cluster_id,
             namespace=args.clone_namespace,
-            sourceAppID=source_app_id
+            sourceAppID=source_app_id,
         )
 
     if CloneApp == "False":
@@ -221,11 +252,8 @@ if __name__ == "__main__":
 
     try:
         wait_for_clone_ret = func_timeout(
-                                 timeout,
-                                 wait_for_clone,
-                                 kwargs={'app_name': args.clone_name}
-                             )
+            timeout, wait_for_clone, kwargs={"app_name": args.clone_name}
+        )
     except FunctionTimedOut:
         print("\n Application clone timed out and terminated! \n")
         print(errorText)
-

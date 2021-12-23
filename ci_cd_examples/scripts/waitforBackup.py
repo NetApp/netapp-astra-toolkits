@@ -19,7 +19,6 @@ import getopt
 import astraSDK
 import time
 import sys
-import getopt
 
 # Define HelpText
 helpTextInfo = """
