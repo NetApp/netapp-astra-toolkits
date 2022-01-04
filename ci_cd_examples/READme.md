@@ -5,6 +5,7 @@ A placeholder for CI/CD pipeline examples and supporting scripts using NetApp As
 ## Examples
 
 1. Integrated protection in Jenkins Pipeline using NetApp Astra Control Center
+2. Leverage NetApp Astra Control to Perform Post-mortem Analysis and Restore Your Application
 
 ## Authors
 
