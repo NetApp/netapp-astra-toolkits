@@ -1513,3 +1513,144 @@ class unmanageCluster(SDKCommon):
                 if ret.text.strip():
                     print(f"Error text: {ret.text}")
             return False
+
+
+class n2uuid(SDKCommon):
+    def __init__(self, quiet=True, hint=None):
+        """Apps Backups Clusters Snaps Clouds StorageClasses"""
+        self.hint = hint
+
+    def dictApps(self, apps):
+        cookedNames = []
+        appIDs = []
+        for appID in apps:
+            appIDs.append(appID)
+            appName = apps[appID][0]
+            counter = 1
+            if appName in cookedNames:
+                while True:
+                    appNameTemp = f"{appName}_{str(counter)}"
+                    if appNameTemp not in cookedNames:
+                        cookedNames.append(appNameTemp)
+                        break
+                    else:
+                        counter += 1
+            else:
+                cookedNames.append(appName)
+        return dict(zip(appIDs, cookedNames))
+
+    def dictBackups(self, backups):
+        """'Backups':
+        {'1614c781-7464-4560-b880-ff95e02187bb': {'bk01': ['ba90c72a-b540-454b-b68b-72118b16fff7', 'completed', '2022-01-04T22:30:25']},
+         '0be9bf9a-d389-4b9b-bfae-4e59abfa1a90': {},
+         'e8a0a814-9c76-4a5c-971a-593f5333ab1f': {}},
+        """
+        cookedNames = []
+        backupIDs = []
+        for appID in backups:
+            for backupName in backups[appID]:
+                backupID = backups[appID][backupName][0]
+                backupIDs.append(backupID)
+                counter = 1
+                if backupName in cookedNames:
+                    while True:
+                        backupNameTemp = f"{backupName}_{str(counter)}"
+                        if backupNameTemp not in cookedNames:
+                            cookedNames.append(backupNameTemp)
+                            break
+                        else:
+                            counter += 1
+                else:
+                    cookedNames.append(backupName)
+        return dict(zip(backupIDs, cookedNames))
+
+    def dictClusters(self, clusters):
+        pass
+
+    def dictSnaps(self, snaps):
+        pass
+
+    def dictClouds(self, clouds):
+        pass
+
+    def dictStorageClasses(self, scs):
+        pass
+
+    def main(self, name):
+        uuids = {
+            "Apps": {},
+            "Backups": {},
+            "Clouds": {},
+            "Clusters": {},
+            "Snaps": {},
+            "StorageClasses": {},
+        }
+        if self.hint in uuids:
+            method = f"get{self.hint}"
+            r = getattr(sys.modules[__name__], method)
+            ret = r().main()
+            for item in ret:
+                if item not in uuids[self.hint]:
+                    uuids[self.hint][item] = ret[item]
+        else:
+            for object in uuids:
+                method = f"get{object}"
+                r = getattr(sys.modules[__name__], method)
+                ret = r().main()
+                for item in ret:
+                    if item not in uuids[object]:
+                        uuids[object][item] = ret[item]
+
+        if self.hint is not None:
+            method = f"dict{self.hint}"
+            r = getattr(n2uuid, method)
+            ret = r(self, uuids[self.hint])
+            print(ret)
+        else:
+            ret = {}
+            for k in uuids:
+                method = f"dict{k}"
+                r = getattr(n2uuid, method)
+                ret[k] = r(self, uuids[k])
+            print(ret)
+
+        if self.hint is not None:
+            for k in ret:
+                if ret[k] == name:
+                    print(f"UUID: {k}")
+                    return True
+        else:
+            for item in ret:
+                for k in ret[item]:
+                    if ret[item][k] == name:
+                        print(f"UUID: {k}")
+                        return True
+
+
+"""
+uuids:
+    {'Apps':
+        {'1614c781-7464-4560-b880-ff95e02187bb': ['wp', 'cluster-1-jp', '07ad6645-80b8-4501-be6e-50f316b8a629', 'wp', 'running', 'managed', 'namespace', {'labels': [], 'creationTimestamp': '2022-01-04T22:24:18Z', 'modificationTimestamp': '2022-01-04T22:34:20Z', 'createdBy': 'system'}],
+         '0be9bf9a-d389-4b9b-bfae-4e59abfa1a90': ['wp-mariadb', 'cluster-1-jp', '07ad6645-80b8-4501-be6e-50f316b8a629', 'wp', 'running', 'managed', 'helm', {'labels': [], 'creationTimestamp': '2022-01-04T22:24:18Z', 'modificationTimestamp': '2022-01-04T22:34:20Z', 'createdBy': 'system'}],
+         'e8a0a814-9c76-4a5c-971a-593f5333ab1f': ['wp-wordpress', 'cluster-1-jp', '07ad6645-80b8-4501-be6e-50f316b8a629', 'wp', 'running', 'managed', 'helm', {'labels': [], 'creationTimestamp': '2022-01-04T22:24:18Z', 'modificationTimestamp': '2022-01-04T22:34:20Z', 'createdBy': 'system'}]},
+
+    'Backups':
+        {'1614c781-7464-4560-b880-ff95e02187bb': {'bk01': ['ba90c72a-b540-454b-b68b-72118b16fff7', 'completed', '2022-01-04T22:30:25']},
+         '0be9bf9a-d389-4b9b-bfae-4e59abfa1a90': {},
+         'e8a0a814-9c76-4a5c-971a-593f5333ab1f': {}},
+    'Clouds':
+        {'ee13b54b-12ae-47bc-bc8b-af5ff686f243': ['GCP', 'GCP']},
+    'Clusters':
+        {'07ad6645-80b8-4501-be6e-50f316b8a629': ['cluster-1-jp', 'gke', 'managed', 'ee13b54b-12ae-47bc-bc8b-af5ff686f243']},
+    'Snaps':
+        {'1614c781-7464-4560-b880-ff95e02187bb': {'sn01': ['dc414438-d58b-45e0-a24a-0f02b7bd8720', 'completed']},
+         '0be9bf9a-d389-4b9b-bfae-4e59abfa1a90': {},
+         'e8a0a814-9c76-4a5c-971a-593f5333ab1f': {}},
+    'StorageClasses':
+        {'ee13b54b-12ae-47bc-bc8b-af5ff686f243':
+            {'07ad6645-80b8-4501-be6e-50f316b8a629': {'81a9302a-d4dd-473c-b386-93c67508c823': 'netapp-cvs-perf-standard',
+                                                      'f6322d5c-755d-42ad-96f0-552a20610741': 'netapp-cvs-perf-premium',
+                                                      'a908dda1-89ba-4122-9830-6637ab3cbf78': 'netapp-cvs-perf-extreme',
+                                                      '66896360-d022-4f0a-a0ed-fcbcb254f8dd': 'premium-rwo',
+                                                      'd0d84ea6-c54b-45c2-8f88-2e089715390b': 'standard-rwo'}}}}
+"""
