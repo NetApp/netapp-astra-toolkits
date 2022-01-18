@@ -18,6 +18,7 @@
 import astraSDK
 import argparse
 import dns.resolver
+import json
 import os
 import subprocess
 import sys
@@ -211,13 +212,59 @@ class toolkit:
             assert domain is not None
             assert email is not None
 
-        getApps = astraSDK.getApps()
+        getAppsObj = astraSDK.getApps()
         # preApps, postApps and appsToManage are hoops we jump through
         # so we only switch apps to managed that we install.
-        preApps = getApps.main(discovered=True, namespace=nameSpace)
+        preApps = getAppsObj.main(discovered=True, namespace=nameSpace)
+        retval = run("kubectl get ns -o json", captureOutput=True)
+        retvalJSON = json.loads(retval)
+        for item in retvalJSON["items"]:
+            if item["metadata"]["name"] == nameSpace:
+                print(f"Namespace {nameSpace} already exists!")
+                sys.exit(24)
         run(f"kubectl create namespace {nameSpace}")
         run(f"kubectl config set-context --current --namespace={nameSpace}")
         if chartName == "gitlab":
+            gitalyStorageClass = None
+            # Are we running on GKE?
+            # If we are running on GKE and installing gitlab, we'll use google persistant disk
+            # for the gitaly PV
+            # We can't use run() here as it splits args incorrectly
+            command = [
+                "kubectl",
+                "run",
+                "curl",
+                "--rm",
+                "--restart=Never",
+                "-it",
+                "--image=appropriate/curl",
+                "--",
+                "-H",
+                "Metadata-Flavor: Google",
+                "http://metadata.google.internal/"
+                "computeMetadata/v1/instance/attributes/cluster-name",
+            ]
+            try:
+                ret = subprocess.run(command, capture_output=True)
+            except OSError:
+                gitalyStorageClass = False
+            if gitalyStorageClass is not False and not ret.returncode:
+                # Shell command returned 0 RC (success)
+                # ret.stdout = b'cluster-1-jppod "curl" deleted\n'
+                # If this is GKE the first part of the returned value will
+                # be the cluster name
+                # TODO: Fragile, replace this whole bit with something robust
+                retString = ret.stdout.decode("utf-8").strip()
+                if 'pod "curl" deleted' in retString:
+                    kubeHost = retString.split('pod "curl" deleted')[0]
+                    clusters = astraSDK.getClusters().main()
+                    for cluster in clusters:
+                        if (
+                            clusters[cluster][0] == kubeHost
+                            and clusters[cluster][1] == "gke"
+                        ):
+                            gitalyStorageClass = "standard-rwo"
+
             myResolver = dns.resolver.Resolver()
             myResolver.nameservers = ["8.8.8.8"]
             try:
@@ -228,26 +275,32 @@ class toolkit:
             for i in answer:
                 ip = i
             if ssl:
-                run(
+                glhelmCmd = (
                     f"helm install {appName} {repoName}/{chartName} --timeout 600s "
                     f"--set certmanager-issuer.email={email} "
                     f"--set global.hosts.domain={domain} "
                     "--set prometheus.alertmanager.persistentVolume.enabled=false "
                     "--set prometheus.server.persistentVolume.enabled=false "
-                    f"--set global.hosts.externalIP={ip}"
+                    f"--set global.hosts.externalIP={ip} "
                 )
             else:
-                run(
-                    "helm install {appName} {repoName}/{chartName} --timeout 600s "
-                    "--set certmanager-issuer.email={email} "
-                    "--set global.hosts.domain={domain} "
+                glhelmCmd = (
+                    f"helm install {appName} {repoName}/{chartName} --timeout 600s "
+                    f"--set certmanager-issuer.email={email} "
+                    f"--set global.hosts.domain={domain} "
                     "--set prometheus.alertmanager.persistentVolume.enabled=false "
                     "--set prometheus.server.persistentVolume.enabled=false "
-                    "--set global.hosts.externalIP={ip} "
+                    f"--set global.hosts.externalIP={ip} "
                     "--set certmanager.install=false "
                     "--set global.ingress.configureCertmanager=false "
-                    "--set gitlab-runner.install=false"
+                    "--set gitlab-runner.install=false "
                 )
+            if gitalyStorageClass:
+                glhelmCmd += (
+                    f"--set gitlab.gitaly.persistence.storageClass={gitalyStorageClass}"
+                )
+            run(glhelmCmd)
+
             # I could've included straight up YAML here but that seemed..the opposite of elegent.
             gitalyPatch = {
                 "kind": "StatefulSet",
@@ -276,7 +329,10 @@ class toolkit:
                                     "command": [
                                         "sh",
                                         "-c",
-                                        "if [ ! -f $REPOS_HOME/$MARKER ]; then chown $UID:$UID -R $REPOS_HOME; touch $REPOS_HOME/$MARKER; chown $UID:$UID $REPOS_HOME/$MARKER; fi",
+                                        "if [ ! -f $REPOS_HOME/$MARKER ]; "
+                                        "then chown $UID:$UID -R $REPOS_HOME; "
+                                        "touch $REPOS_HOME/$MARKER; "
+                                        "chown $UID:$UID $REPOS_HOME/$MARKER; fi",
                                     ],
                                     "volumeMounts": [
                                         {
@@ -323,7 +379,10 @@ class toolkit:
                                     "command": [
                                         "sh",
                                         "-c",
-                                        "if [ ! -f $JENKINS_HOME/$MARKER ]; then chown $UID:$UID -R $JENKINS_HOME; touch $JENKINS_HOME/$MARKER; chown $UID:$UID $JENKINS_HOME/$MARKER; fi",
+                                        "if [ ! -f $JENKINS_HOME/$MARKER ]; "
+                                        "then chown $UID:$UID -R $JENKINS_HOME; "
+                                        "touch $JENKINS_HOME/$MARKER; "
+                                        "chown $UID:$UID $JENKINS_HOME/$MARKER; fi",
                                     ],
                                     "volumeMounts": [
                                         {
@@ -344,14 +403,14 @@ class toolkit:
         print("Waiting for Astra to discover apps.", end="")
         sys.stdout.flush()
         time.sleep(3)
-        postApps = getApps.main(discovered=True, namespace=nameSpace)
+        postApps = getAppsObj.main(discovered=True, namespace=nameSpace)
 
         while preApps == postApps:
             # It takes Astra some time to realize new apps have been installed
             print(".", end="")
             sys.stdout.flush()
             time.sleep(3)
-            postApps = getApps.main(discovered=True, namespace=nameSpace)
+            postApps = getAppsObj.main(discovered=True, namespace=nameSpace)
         print("Discovery complete!")
         sys.stdout.flush()
 
@@ -387,9 +446,9 @@ class toolkit:
         while loop:
             appID = None
             if chartName != "gitlab":
-                applist = getApps.main(source="namespace", namespace=nameSpace)
+                applist = getAppsObj.main(source="namespace", namespace=nameSpace)
             else:
-                applist = getApps.main(
+                applist = getAppsObj.main(
                     discovered=True, source="namespace", namespace=nameSpace
                 )
             for item in applist:
@@ -430,7 +489,7 @@ class toolkit:
                     # reallyPostApps is a bad name.  It will contain a discovered app that is
                     # a namespace and has a specific name.  There will only ever be one app
                     # that matches.
-                    reallyPostApps = getApps.main(
+                    reallyPostApps = getAppsObj.main(
                         discovered=True, source="namespace", namespace=nameSpace
                     )
                     if not reallyPostApps:
