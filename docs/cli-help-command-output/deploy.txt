@@ -1,0 +1,37 @@
+Deploy a Bitnami Helm chart on one or more running compute clusters managed by NetApp Astra Control. Takes as an argument the Bitnami Helm chart you wish to deploy.
+
+Usage: toolkit.py deploy [ARGUMENT] [APP NAME] [NAMESPACE] [OPTION]
+
+Valid arguments include:
+  cassandra         Apache Cassandra distributed database management system
+  ghost             Ghost blog publishing platform
+  grafana           Grafana metrics dashboard and graph editor
+  mariadb           MariaDB database server
+  mongodb           MongoDB document-oriented (NoSQL) database
+  nginx             NGINX reverse proxy and web server
+  postgresql        PostgreSQL object-relational database management system (ORDBMS)
+  prestashop        Prestashop e-commerce solution
+  redis             Redis advanced key-value cache and store (NoSQL)
+  wordpress         WordPress content management system (CMS)
+
+For the full list of Bitnami Helm charts you can deploy using this command, see the official GitHub repo: https://github.com/bitnami/charts/tree/master/bitnami
+
+You must specify the app name and namespace:
+
+  App name          The name you wish to give this app deployment.
+  Namespace         The namespace you wish to create and deploy into. This namespace must not already exist.
+
+Options:
+  -h, --help            Show this help message and exit.
+
+EXAMPLE
+
+If you want to:
+  * Deploy the MariaDB app from the "mariadb" Bitnami Helm chart
+  * Name the app "testdb"
+  * Create the namespace "testns"
+  * Deploy the app into the new "testns" namespace
+
+Use the command:
+
+  ./toolkit.py deploy mariadb testdb testns

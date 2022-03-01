@@ -1,0 +1,16 @@
+The NetApp Astra Control Python SDK is designed to provide guidance for working with the NetApp Astra Control API.
+You can use the astraSDK.py library out of the box, and as a set of example recommended code and processes, "cookbook" style. The toolkit.py script is a helpful sandbox tool for learning how to use the Astra API.
+
+Usage: ./toolkit.py [ARGUMENT] [OPTION]
+
+Arguments:
+    deploy              Deploy a Bitnami chart.
+    clone (restore)     Clone a namespace to a destination cluster.
+    list                List all items in a class.
+    create              Create an object.
+    manageapp           Switch a discovered app to managed.
+
+Options:
+  -h, --help            Show this help message and exit.
+
+Full documentation at <https://github.com/NetApp/netapp-astra-toolkits/tree/main/docs>
