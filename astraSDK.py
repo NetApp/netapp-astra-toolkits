@@ -130,6 +130,42 @@ class SDKCommon:
             results = None
         return results
 
+    def preflight(self):
+        endpoint = "topology/v1/clouds"
+        url = self.base + endpoint
+
+        data = {}
+        params = {"include": "id,name,state"}
+
+        ret = self.apicall("get", url, data, self.headers, params, self.verifySSL)
+        if ret.ok:
+            return True
+        else:
+            if ret.status_code >= 400 and ret.status_code < 500:
+                if "x-pcloud-accountid" in ret.text:
+                    print(
+                        "preflight API call to Astra Control failed (check uid in config.json)"
+                    )
+                elif ret.status_code == 401:
+                    print(
+                        "preflight API call to Astra Control failed "
+                        "(check Authoriztion in config.json)"
+                    )
+                else:
+                    print(
+                        "preflight API call to Astra Control failed "
+                        "(possible problem in config.json)"
+                    )
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                print(f"text: {ret.text}")
+            else:
+                print(
+                    "preflight API call to Astra Control failed (Internal Server Error)"
+                )
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                print(f"text: {ret.text}")
+            return False
+
 
 class getApps(SDKCommon):
     """List all apps known to Astra.
@@ -151,6 +187,7 @@ class getApps(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
+        self.preflight = super().preflight()
 
     def main(
         self, discovered=False, source=None, namespace=None, cluster=None, ignored=False
@@ -160,6 +197,10 @@ class getApps(SDKCommon):
         namespace: Filter by the namespace the app is in
         cluster: Filter by a specific k8s cluster
         ignored: True: show ignored apps"""
+
+        if self.preflight is False:
+            return False
+
         endpoint = "topology/v1/apps"
         params = {
             "include": "name,id,clusterName,clusterID,namespace,state,"
@@ -439,9 +480,18 @@ class getBackups(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
+        self.preflight = super().preflight()
         self.apps = getApps().main()
 
     def main(self, appFilter=None):
+        if self.preflight is False:
+            return False
+        if self.apps is False:
+            print("Call to getApps().main() failed")
+            return False
+        if len(self.apps) == 0:
+            return True
+
         """self.apps = {'739e7b1f-a71a-42bd-ac6f-db3ff9131133':
             ['jp3k', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
              'jp3k', 'running', 'managed', 'namespace'],
@@ -456,6 +506,7 @@ class getBackups(SDKCommon):
         if self.output == "table":
             globaltabHeader = ["AppID", "backupName", "backupID", "backupState"]
             globaltabData = []
+
         for app in self.apps:
             if appFilter:
                 if self.apps[app][0] != appFilter:
@@ -568,10 +619,14 @@ class takeBackup(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
+        self.preflight = super().preflight()
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
     def main(self, appID, backupName):
+        if self.preflight is False:
+            return False
+
         endpoint = f"k8s/v1/managedApps/{appID}/appBackups"
         url = self.base + endpoint
         params = {}
@@ -619,10 +674,14 @@ class destroyBackup(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
+        self.preflight = super().preflight()
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
     def main(self, appID, backupID):
+        if self.preflight is False:
+            return False
+
         endpoint = f"k8s/v1/managedApps/{appID}/appBackups/{backupID}"
         url = self.base + endpoint
         params = {}
@@ -682,6 +741,7 @@ class cloneApp(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
+        self.preflight = super().preflight()
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/astra-managedApp+json"
 
@@ -696,6 +756,9 @@ class cloneApp(SDKCommon):
         sourceAppID=None,
     ):
         assert backupID or snapshotID or sourceAppID
+
+        if self.preflight is False:
+            return False
 
         endpoint = "k8s/v1/managedApps"
         url = self.base + endpoint
@@ -762,6 +825,7 @@ class restoreApp(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
+        self.preflight = super().preflight()
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/astra-managedApp+json"
         self.headers["ForceUpdate"] = "true"
@@ -773,6 +837,9 @@ class restoreApp(SDKCommon):
         snapshotID=None,
     ):
         assert backupID or snapshotID
+
+        if self.preflight is False:
+            return False
 
         endpoint = f"k8s/v1/managedApps/{appID}"
         url = self.base + endpoint
@@ -823,10 +890,19 @@ class getClusters(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
+        self.preflight = super().preflight()
         self.clouds = getClouds(quiet=True).main()
 
     def main(self, hideManaged=False, hideUnmanaged=False):
         clusters = {}
+        if self.preflight is False:
+            return False
+        if self.clouds is False:
+            print("Call to get clouds failed")
+            return False
+        if len(self.clouds) == 0:
+            print("No clouds found")
+            return True
         for cloud in self.clouds:
             endpoint = f"topology/v1/clouds/{cloud}/clusters"
             url = self.base + endpoint
@@ -905,6 +981,7 @@ class createProtectionpolicy(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
+        self.preflight = super().preflight()
         self.headers["accept"] = "application/astra-schedule+json"
         self.headers["Content-Type"] = "application/astra-schedule+json"
 
@@ -919,6 +996,9 @@ class createProtectionpolicy(SDKCommon):
         minute,
         appID,
     ):
+        if self.preflight is False:
+            return False
+
         endpoint = f"k8s/v1/managedApps/{appID}/schedules"
         url = self.base + endpoint
         params = {}
@@ -972,10 +1052,14 @@ class manageApp(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
+        self.preflight = super().preflight()
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/managedApp+json"
 
     def main(self, appID):
+        if self.preflight is False:
+            return False
+
         endpoint = "k8s/v1/managedApps"
         url = self.base + endpoint
         params = {}
@@ -1021,10 +1105,14 @@ class unmanageApp(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
+        self.preflight = super().preflight()
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/managedApp+json"
 
     def main(self, appID):
+        if self.preflight is False:
+            return False
+
         endpoint = f"k8s/v1/managedApps/{appID}"
         url = self.base + endpoint
         params = {}
@@ -1067,10 +1155,14 @@ class takeSnap(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
+        self.preflight = super().preflight()
         self.headers["accept"] = "application/astra-appSnap+json"
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
     def main(self, appID, snapName):
+        if self.preflight is False:
+            return False
+
         endpoint = f"k8s/v1/managedApps/{appID}/appSnaps"
         url = self.base + endpoint
         params = {}
@@ -1125,9 +1217,19 @@ class getSnaps(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
+        self.preflight = super().preflight()
         self.apps = getApps().main()
 
     def main(self, appFilter=None):
+        if self.preflight is False:
+            return False
+        if self.apps is False:
+            print("Call to getApps() failed")
+            return False
+        if len(self.apps) == 0:
+            print("No apps found")
+            return True
+
         snaps = {}
         if self.output == "table":
             globaltabHeader = ["appID", "snapshotName", "snapshotID", "snapshotState"]
@@ -1224,10 +1326,14 @@ class destroySnapshot(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
+        self.preflight = super().preflight()
         self.headers["accept"] = "application/astra-appSnap+json"
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
     def main(self, appID, snapID):
+        if self.preflight is False:
+            return False
+
         endpoint = f"k8s/v1/managedApps/{appID}/appSnaps/{snapID}"
         url = self.base + endpoint
         params = {}
@@ -1271,8 +1377,12 @@ class getClouds(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
+        self.preflight = super().preflight()
 
     def main(self):
+        if self.preflight is False:
+            return False
+
         endpoint = "topology/v1/clouds"
         url = self.base + endpoint
 
@@ -1341,10 +1451,26 @@ class getStorageClasses(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
+        self.preflight = super().preflight()
         self.clouds = getClouds().main()
         self.clusters = getClusters().main()
 
     def main(self):
+        if self.preflight is False:
+            return False
+        if self.clouds is False:
+            print("getClouds().main() failed")
+            return False
+        if self.clusters is False:
+            print("getClusters().main() failed")
+            return False
+        if len(self.clouds) == 0:
+            print("No clouds found")
+            return True
+        if len(self.clusters) == 0:
+            print("No clusters found")
+            return True
+
         storageClasses = {}
         for cloud in self.clouds:
             storageClasses[cloud] = {}
@@ -1424,10 +1550,14 @@ class manageCluster(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
+        self.preflight = super().preflight()
         self.headers["accept"] = "application/astra-managedCluster+json"
         self.headers["Content-Type"] = "application/managedCluster+json"
 
     def main(self, clusterID, storageClassID):
+        if self.preflight is False:
+            return False
+
         endpoint = "topology/v1/managedClusters"
         url = self.base + endpoint
         params = {}
@@ -1477,10 +1607,14 @@ class unmanageCluster(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
+        self.preflight = super().preflight()
         self.headers["accept"] = "application/astra-managedCluster+json"
         self.headers["Content-Type"] = "application/managedCluster+json"
 
     def main(self, clusterID):
+        if self.preflight is False:
+            return False
+
         endpoint = f"topology/v1/managedClusters/{clusterID}"
         url = self.base + endpoint
         params = {}

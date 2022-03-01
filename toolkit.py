@@ -1295,7 +1295,7 @@ if __name__ == "__main__":
         )
     elif args.subcommand == "list":
         if args.objectType == "apps":
-            astraSDK.getApps(
+            rc = astraSDK.getApps(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(
                 discovered=args.unmanaged,
@@ -1304,31 +1304,61 @@ if __name__ == "__main__":
                 cluster=args.cluster,
                 ignored=args.ignored,
             )
+            if rc is False:
+                print("astraSDK.getApps() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         elif args.objectType == "backups":
-            astraSDK.getBackups(
+            rc = astraSDK.getBackups(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(appFilter=args.app)
+            if rc is False:
+                print("astraSDK.getBackups() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         elif args.objectType == "clouds":
-            astraSDK.getClouds(
+            rc = astraSDK.getClouds(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main()
+            if rc is False:
+                print("astraSDK.getClouds() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         elif args.objectType == "clusters":
-            astraSDK.getClusters(
+            rc = astraSDK.getClusters(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(hideManaged=args.managed, hideUnmanaged=args.unmanaged)
+            if rc is False:
+                print("astraSDK.getClusters() Failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         elif args.objectType == "snapshots":
-            astraSDK.getSnaps(
+            rc = astraSDK.getSnaps(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(appFilter=args.app)
+            if rc is False:
+                print("astraSDK.getSnaps() Failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         elif args.objectType == "storageclasses":
-            astraSDK.getStorageClasses(
+            rc = astraSDK.getStorageClasses(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main()
+            if rc is False:
+                print("astraSDK.getStorageClasses() Failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
     elif args.subcommand == "create":
         if args.objectType == "backup":
             doProtectionTask(args.objectType, args.appID, args.name)
         elif args.objectType == "protectionpolicy":
-            astraSDK.createProtectionpolicy(
+            rc = astraSDK.createProtectionpolicy(
                 quiet=args.quiet, verbose=args.verbose
             ).main(
                 args.granularity,
@@ -1340,16 +1370,33 @@ if __name__ == "__main__":
                 str(args.minute),
                 args.appID,
             )
+            if rc is False:
+                print("astraSDK.createProtectionpolicy() Failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         elif args.objectType == "snapshot":
             doProtectionTask(args.objectType, args.appID, args.name)
 
     elif args.subcommand == "manage":
         if args.objectType == "app":
-            astraSDK.manageApp(quiet=args.quiet, verbose=args.verbose).main(args.appID)
+            rc = astraSDK.manageApp(quiet=args.quiet, verbose=args.verbose).main(
+                args.appID
+            )
+            if rc is False:
+                print("astraSDK.manageApp() Failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         if args.objectType == "cluster":
-            astraSDK.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.clusterID, args.storageClassID
             )
+            if rc is False:
+                print("astraSDK.manageCluster() Failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
     elif args.subcommand == "destroy":
         if args.objectType == "backup":
             rc = astraSDK.destroyBackup(quiet=args.quiet, verbose=args.verbose).main(
@@ -1369,13 +1416,23 @@ if __name__ == "__main__":
                 print(f"Failed destroying snapshot: {args.snapshotID}")
     elif args.subcommand == "unmanage":
         if args.objectType == "app":
-            astraSDK.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID
             )
+            if rc is False:
+                print("astraSDK.unmanageApp() Failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         if args.objectType == "cluster":
-            astraSDK.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.clusterID
             )
+            if rc is False:
+                print("astraSDK.unmanageCluster() Failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
     elif args.subcommand == "restore":
         rc = astraSDK.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
             args.appID, backupID=args.backupID, snapshotID=args.snapshotID
