@@ -317,7 +317,8 @@ class getApps(SDKCommon):
             # namespace |y|n|
             # cluster   |y|n|
 
-            # Be a tad evil here and get rid of 8 cases in one fell swoop
+            # Break the processing into two passes so we don't need to handle 24 cases.
+            # For the first pass filter on ignored or not ignored
             if ignored:
                 appsPrecooked = {}
                 for k, v in apps.items():
@@ -340,6 +341,9 @@ class getApps(SDKCommon):
                     if not ignoreFound:
                         appsPrecooked[k] = v
 
+            # This is the second pass for filtering.  Notice that managedFilter can be
+            # either managed or unmanaged, so there are 8 filters that handle the
+            # remaining 16 cases.
             if source:
                 if namespace:
                     if cluster:
