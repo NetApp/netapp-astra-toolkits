@@ -146,7 +146,7 @@ def doProtectionTask(protectionType, appID, name):
             objects = astraSDK.getSnaps().main()
         if not objects:
             # This isn't technically true.  Trying to list the backups/snapshots after taking the
-            # protection job failed
+            # protection job failed.  The protection job itself may eventually succeed.
             print(f"Taking {protectionType} failed")
             return False
         for obj in objects[appID]:
@@ -173,7 +173,7 @@ def stsPatch(patch, stsName):
     tmp = tempfile.NamedTemporaryFile()
     tmp.write(bytes(patchYaml, "utf-8"))
     tmp.seek(0)
-    # Use os.system a few times because run() simply isn't up to the task
+    # Use os.system a few times because the home rolled run() simply isn't up to the task
     try:
         # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
         # were used
