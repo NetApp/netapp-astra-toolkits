@@ -1356,7 +1356,12 @@ if __name__ == "__main__":
                 sys.exit(0)
     elif args.subcommand == "create":
         if args.objectType == "backup":
-            doProtectionTask(args.objectType, args.appID, args.name)
+            rc = doProtectionTask(args.objectType, args.appID, args.name)
+            if rc is False:
+                print("doProtectionTask() Failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         elif args.objectType == "protectionpolicy":
             rc = astraSDK.createProtectionpolicy(
                 quiet=args.quiet, verbose=args.verbose
@@ -1376,7 +1381,12 @@ if __name__ == "__main__":
             else:
                 sys.exit(0)
         elif args.objectType == "snapshot":
-            doProtectionTask(args.objectType, args.appID, args.name)
+            rc = doProtectionTask(args.objectType, args.appID, args.name)
+            if rc is False:
+                print("doProtectionTask() Failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
 
     elif args.subcommand == "manage":
         if args.objectType == "app":
