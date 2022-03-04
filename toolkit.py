@@ -1270,7 +1270,7 @@ if __name__ == "__main__":
                 )
             args.dayOfWeek = "*"
 
-    ret = toolkit()
+    tk = toolkit()
     if args.subcommand == "deploy":
         if hasattr(args, "domain"):
             domain = args.domain
@@ -1284,7 +1284,7 @@ if __name__ == "__main__":
             ssl = args.ssl
         else:
             ssl = True
-        ret.deploy(
+        tk.deploy(
             args.chart,
             chartsDict[args.chart],
             args.app,
@@ -1608,7 +1608,7 @@ if __name__ == "__main__":
                     if not backupRetval:
                         print("Exiting due to backup task failing.")
                         sys.exit(7)
-        ret.clone(
+        tk.clone(
             args.clusterID,
             args.destNamespace,
             args.destName,
