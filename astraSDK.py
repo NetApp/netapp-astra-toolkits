@@ -154,7 +154,7 @@ class SDKCommon:
                 else:
                     print(
                         "preflight API call to Astra Control failed "
-                        "(possible problem in config.json)"
+                        "(possible problem in config.yaml)"
                     )
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 print(f"text: {ret.text}")
