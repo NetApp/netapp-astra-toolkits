@@ -606,88 +606,172 @@ if __name__ == "__main__":
     clusterList = []
     storageClassList = []
     if len(sys.argv) > 1:
-        if sys.argv[1] == "deploy":
+        returnNames = False
+        if "-s" in sys.argv or "--symbolicnames" in sys.argv:
+            returnNames = True
+        # since we support symbolic names we have to guard against
+        # commands like ./toolkit.py -s create backup clone backupname
+        # where the toolkit verbs are also used as object names.
+
+        # verbs must manually be kept in sync with the top level subcommands in the argparse
+        # section of this code.
+        verbs = {
+            "deploy": False,
+            "clone": False,
+            "restore": False,
+            "list": False,
+            "create": False,
+            "manage": False,
+            "destroy": False,
+            "unmanage": False,
+        }
+
+        firstverbfoundPosition = None
+        verbPosition = None
+        cookedlistofVerbs = [x for x in verbs]
+        for verb in verbs:
+            if verb not in sys.argv:
+                # no need to iterate over the arg list for a verb that isn't in there
+                continue
+            if verbPosition:
+                # once we've found the first verb we can stop looking
+                break
+            for counter, item in enumerate(sys.argv):
+                if item == verb:
+                    if firstverbfoundPosition is None:
+                        # firstverbfoundPosition exists to prevent
+                        # "toolkit.py create deploy create deploy" from deciding the second create
+                        # is the first verb found
+                        firstverbfoundPosition = counter
+                    else:
+                        if counter > firstverbfoundPosition:
+                            continue
+                        else:
+                            firstverbfoundPosition = counter
+                    # Why are we jumping through hoops here to remove the verb we found
+                    # from the list of verbs?  Consider the input "toolkit.py deploy deploy"
+                    # When we loop over the args we find the first "deploy"
+                    # verb["deploy"] gets set to True, we loop over the slice of sys.argv
+                    # previous to "deploy" and find no other verbs so verb["deploy"] remains True
+                    # Then we find the second deploy.  We loop over the slice of sys.argv previous
+                    # to *that* and sure enough, the first "deploy" is in verbs so
+                    # verb["deploy"] gets set to False
+                    try:
+                        cookedlistofVerbs.remove(item)
+                    except ValueError:
+                        pass
+                    verbs[verb] = True
+                    verbPosition = counter
+                    for item2 in sys.argv[:(counter)]:
+                        # sys.argv[:(counter)] is a slice of sys.argv of all the items
+                        # before the one we found
+                        if item2 in cookedlistofVerbs:
+                            # deploy wasn't the verb, it was a symbolic name of an object
+                            verbs[verb] = False
+                            verbPosition = None
+
+        # It isn't intuitive, however only one key in verbs can be True
+
+        if verbs["deploy"]:
             chartsDict = updateHelm()
             for k in chartsDict:
                 chartsList.append(k)
 
-        elif sys.argv[1] == "clone":
+        elif verbs["clone"]:
             namespaces = astraSDK.getApps().main(source="namespace")
             namespacesList = [x for x in namespaces.keys()]
             destCluster = astraSDK.getClusters().main()
             destclusterList = [x for x in destCluster.keys()]
             backups = astraSDK.getBackups().main()
+            if backups is False:
+                print("astraSDK.getBackups().main() failed")
+                sys.exit(1)
+            elif backups is True:
+                print("No backups found")
+                sys.exit(1)
             for appID in backups:
                 for backupItem in backups[appID]:
                     backupList.append(backups[appID][backupItem][0])
-        elif sys.argv[1] == "restore":
+
+        elif verbs["restore"]:
             appList = [x for x in astraSDK.getApps().main()]
-            backups = astraSDK.getBackups().main()
-            if len(sys.argv) > 2:
+
+            # This expression translates to "Is there an arg after the verb we found?"
+            if len(sys.argv) - verbPosition >= 2:
+                # If that arg after the verb "restore" matches an appID then
+                # populate the lists of backups and snapshots for that appID
+                backups = astraSDK.getBackups().main()
                 for appID in backups:
-                    if appID == sys.argv[2]:
+                    if appID == sys.argv[verbPosition + 1]:
                         for backupItem in backups[appID]:
                             backupList.append(backups[appID][backupItem][0])
-            if len(sys.argv) > 2:
                 snapshots = astraSDK.getSnaps().main()
                 for appID in snapshots:
                     if appID == sys.argv[2]:
                         for snapshotItem in snapshots[appID]:
                             snapshotList.append(snapshots[appID][snapshotItem][0])
-        elif sys.argv[1] == "backup":
-            namespaces = astraSDK.getApps().main(source="namespace")
-            namespacesList = [x for x in namespaces.keys()]
         elif (
-            sys.argv[1] == "create"
-            and len(sys.argv) > 2
+            verbs["create"]
+            and len(sys.argv) - verbPosition >= 2
             and (
-                sys.argv[2] == "backup"
-                or sys.argv[2] == "protectionpolicy"
-                or sys.argv[2] == "snapshot"
+                sys.argv[verbPosition + 1] == "backup"
+                or sys.argv[verbPosition + 1] == "protectionpolicy"
+                or sys.argv[verbPosition + 1] == "snapshot"
             )
         ):
             appList = [x for x in astraSDK.getApps().main()]
-        elif sys.argv[1] == "manage" and len(sys.argv) > 2:
-            if sys.argv[2] == "app":
+
+        elif verbs["manage"] and len(sys.argv) - verbPosition >= 2:
+            if sys.argv[verbPosition + 1] == "app":
                 appList = [x for x in astraSDK.getApps().main(discovered=True)]
-            elif sys.argv[2] == "cluster":
-                clusterList = []
+            elif sys.argv[verbPosition + 1] == "cluster":
                 clusterDict = astraSDK.getClusters(quiet=True).main()
                 for cluster in clusterDict:
                     if clusterDict[cluster][2] == "unmanaged":
                         clusterList.append(cluster)
                 storageClassDict = astraSDK.getStorageClasses(quiet=True).main()
-                storageClassList = []
+                if isinstance(storageClassDict, bool):
+                    # astraSDK.getStorageClasses(quiet=True).main() returns either True
+                    # or False if it doesn't work, or if there are no clouds or clusters
+                    sys.exit(1)
                 for cloud in storageClassDict:
                     for cluster in storageClassDict[cloud]:
                         if (
-                            len(sys.argv) > 3
-                            and sys.argv[3] in clusterList
-                            and cluster != sys.argv[3]
+                            len(sys.argv) - verbPosition >= 3
+                            and sys.argv[verbPosition + 2] in clusterList
+                            and cluster != sys.argv[verbPosition + 2]
                         ):
                             continue
                         for sc in storageClassDict[cloud][cluster]:
                             storageClassList.append(sc)
-        elif sys.argv[1] == "destroy" and len(sys.argv) > 2:
-            if sys.argv[2] == "backup" and len(sys.argv) > 3:
+
+        elif verbs["destroy"] and len(sys.argv) - verbPosition >= 2:
+            if (
+                sys.argv[verbPosition + 1] == "backup"
+                and len(sys.argv) - verbPosition >= 3
+            ):
                 appList = [x for x in astraSDK.getApps().main()]
                 backups = astraSDK.getBackups().main()
                 for appID in backups:
-                    if appID == sys.argv[3]:
+                    if appID == sys.argv[verbPosition + 2]:
                         for backupItem in backups[appID]:
                             backupList.append(backups[appID][backupItem][0])
-            if sys.argv[2] == "snapshot" and len(sys.argv) > 3:
+            elif (
+                sys.argv[verbPosition + 1] == "snapshot"
+                and len(sys.argv) - verbPosition >= 3
+            ):
                 appList = [x for x in astraSDK.getApps().main()]
                 snapshots = astraSDK.getSnaps().main()
                 for appID in snapshots:
-                    if appID == sys.argv[3]:
+                    if appID == sys.argv[verbPosition + 2]:
                         for snapshotItem in snapshots[appID]:
                             snapshotList.append(snapshots[appID][snapshotItem][0])
-        elif sys.argv[1] == "unmanage" and len(sys.argv) > 2:
-            if sys.argv[2] == "app":
+
+        elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
+            if sys.argv[verbPosition + 1] == "app":
                 appList = [x for x in astraSDK.getApps().main(discovered=False)]
 
-            elif sys.argv[2] == "cluster":
+            elif sys.argv[verbPosition + 1] == "cluster":
                 clusterDict = astraSDK.getClusters(quiet=True).main()
                 for cluster in clusterDict:
                     if clusterDict[cluster][2] == "managed":
@@ -700,6 +784,16 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="print verbose/verbose output",
+    )
+    # Note that this is just to integrate with argparse
+    # The actual work done by this flag is done before
+    # the argparse object is instantiated
+    parser.add_argument(
+        "-s",
+        "--symbolicnames",
+        default=False,
+        action="store_true",
+        help="list choices using names not UUIDs",
     )
     parser.add_argument(
         "-o",
@@ -716,6 +810,7 @@ if __name__ == "__main__":
     )
     #######
     # Top level subcommands
+    # # Be sure to keep these in sync with verbs{}
     #######
     parserDeploy = subparsers.add_parser(
         "deploy",
