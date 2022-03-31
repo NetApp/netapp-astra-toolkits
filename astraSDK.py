@@ -190,7 +190,13 @@ class getApps(SDKCommon):
         self.preflight = super().preflight()
 
     def main(
-        self, discovered=False, source=None, namespace=None, cluster=None, ignored=False
+        self,
+        discovered=False,
+        source=None,
+        namespace=None,
+        cluster=None,
+        ignored=False,
+        names=False,
     ):
         """discovered: True: show unmanaged apps False: show managed apps
         source: Filter by the app source field.  eg: helm, namespace
@@ -269,11 +275,21 @@ class getApps(SDKCommon):
                     }
             """
             apps = {}
-            for item in results.get("items"):
-                # make item[1] (appID) the key in apps
-                if item[1] not in apps:
-                    appID = item.pop(1)
+            if names:
+                for item in results.get("items"):
+                    # make item[0] (appName) the key in apps
+                    counter = 1
+                    while item[0] in apps:
+                        item[0] = item[0] + str(counter)
+                        counter += 1
+                    appID = item.pop(0)
                     apps[appID] = item
+            else:
+                for item in results.get("items"):
+                    # make item[1] (appID) the key in apps
+                    if item[1] not in apps:
+                        appID = item.pop(1)
+                        apps[appID] = item
             """
             apps:
              {
@@ -1651,3 +1667,55 @@ class unmanageCluster(SDKCommon):
                 if ret.text.strip():
                     print(f"Error text: {ret.text}")
             return False
+
+
+class nametoUUID(SDKCommon):
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.preflight = super().preflight()
+
+    def main(self, name, hint=None):
+        if hint:
+            try:
+                r = getattr(nametoUUID, f"nameto{hint}")
+            except AttributeError:
+                print(f"Invalid hint: {hint}")
+            results = r(self, name)
+            print(f"results: {results}")
+        else:
+            # no hint, just iterate over all the nameto* methods
+            nametoList = [x for x in dir(nametoUUID) if x.startswith("nameto")]
+            for method in nametoList:
+                r = getattr(nametoUUID, method)
+                results = r(self, name)
+                if results is not None:
+                    print(f"method: {method} results: {results}")
+                    break
+                else:
+                    continue
+
+    def nametoappID(self, name):
+        retval = None
+        APPNAME = 0
+        fullList = getApps().main()
+        if fullList:
+            for item in fullList:
+                if fullList[item][APPNAME] == name:
+                    retval = item
+        return retval
+
+    def nametobackupID(self, name):
+        retval = None
+        BACKUPID = 0
+        fullList = getBackups().main()
+        if fullList:
+            for appID in fullList:
+                if fullList[appID]:
+                    for backup in fullList[appID]:
+                        if backup == name:
+                            retval = fullList[appID][backup][BACKUPID]
+        return retval
