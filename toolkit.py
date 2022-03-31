@@ -769,7 +769,7 @@ if __name__ == "__main__":
 
         elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
             if sys.argv[verbPosition + 1] == "app":
-                appList = [x for x in astraSDK.getApps().main(discovered=False)]
+                appList = [x for x in astraSDK.getApps().main(discovered=False, names=returnNames)]
 
             elif sys.argv[verbPosition + 1] == "cluster":
                 clusterDict = astraSDK.getClusters(quiet=True).main()
@@ -1390,15 +1390,27 @@ if __name__ == "__main__":
         )
     elif args.subcommand == "list":
         if args.objectType == "apps":
-            rc = astraSDK.getApps(
-                quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(
-                discovered=args.unmanaged,
-                source=args.source,
-                namespace=args.namespace,
-                cluster=args.cluster,
-                ignored=args.ignored,
-            )
+            if returnNames:
+                rc = astraSDK.getApps(
+                    quiet=args.quiet, verbose=args.verbose, output=args.output
+                ).main(
+                    discovered=args.unmanaged,
+                    source=args.source,
+                    namespace=args.namespace,
+                    cluster=args.cluster,
+                    ignored=args.ignored,
+                    names=True
+                )
+            else:
+                rc = astraSDK.getApps(
+                    quiet=args.quiet, verbose=args.verbose, output=args.output
+                ).main(
+                    discovered=args.unmanaged,
+                    source=args.source,
+                    namespace=args.namespace,
+                    cluster=args.cluster,
+                    ignored=args.ignored,
+                )
             if rc is False:
                 print("astraSDK.getApps() failed")
                 sys.exit(1)
