@@ -19,6 +19,7 @@ import inspect
 import os
 import sys
 import yaml
+import json
 from tabulate import tabulate
 from termcolor import colored
 import requests
@@ -456,7 +457,7 @@ class getApps(SDKCommon):
                 dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
 
             if not self.quiet:
-                print(dataReturn)
+                print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
             return dataReturn
 
         else:
@@ -592,7 +593,7 @@ class getBackups(SDKCommon):
                 if not self.quiet and self.verbose:
                     print(f"Backups for {app}")
                     if self.output == "json":
-                        print(backups[app])
+                        print(json.dumps(backups[app]))
                     elif self.output == "yaml":
                         print(yaml.dump(backups[app]))
                     elif self.output == "table":
@@ -608,7 +609,7 @@ class getBackups(SDKCommon):
             dataReturn = tabulate(globaltabData, globaltabHeader, tablefmt="grid")
 
         if not self.quiet:
-            print(dataReturn)
+            print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
         return dataReturn
 
 
@@ -965,7 +966,7 @@ class getClusters(SDKCommon):
             dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
 
         if not self.quiet:
-            print(dataReturn)
+            print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
         return dataReturn
 
 
@@ -1300,7 +1301,7 @@ class getSnaps(SDKCommon):
                 if not self.quiet and self.verbose:
                     print(f"Snapshots for {app}")
                     if self.output == "json":
-                        print(snaps[app])
+                        print(json.dumps(snaps[app]))
                     elif self.output == "yaml":
                         print(yaml.dump(snaps[app]))
                     elif self.output == "table":
@@ -1316,7 +1317,7 @@ class getSnaps(SDKCommon):
             dataReturn = tabulate(globaltabData, globaltabHeader, tablefmt="grid")
 
         if not self.quiet:
-            print(dataReturn)
+            print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
         return dataReturn
 
 
@@ -1433,7 +1434,7 @@ class getClouds(SDKCommon):
                     )
                 dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
             if not self.quiet:
-                print(dataReturn)
+                print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
             return dataReturn
 
         else:
@@ -1541,7 +1542,7 @@ class getStorageClasses(SDKCommon):
             dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
 
         if not self.quiet:
-            print(dataReturn)
+            print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
         return dataReturn
 
 
