@@ -658,7 +658,7 @@ class takeBackup(SDKCommon):
         if ret.ok:
             results = super().jsonifyResults(ret)
             if not self.quiet:
-                print(results)
+                print(json.dumps(results))
             else:
                 return results.get("id") or True
         else:
@@ -801,7 +801,7 @@ class cloneApp(SDKCommon):
             results = super().jsonifyResults(ret)
 
             if not self.quiet:
-                print(results)
+                print(json.dumps(results))
             else:
                 return results
         else:
@@ -1038,7 +1038,7 @@ class createProtectionpolicy(SDKCommon):
         if ret.ok:
             results = super().jsonifyResults(ret)
             if not self.quiet:
-                print(results)
+                print(json.dumps(results))
             return True
         else:
             if not self.quiet:
@@ -1091,7 +1091,7 @@ class manageApp(SDKCommon):
         if ret.ok:
             results = super().jsonifyResults(ret)
             if not self.quiet:
-                print(results)
+                print(json.dumps(results))
             return True
         else:
             if not self.quiet:
@@ -1194,7 +1194,7 @@ class takeSnap(SDKCommon):
         if ret.ok:
             results = super().jsonifyResults(ret)
             if not self.quiet:
-                print(results)
+                print(json.dumps(results))
             else:
                 return results.get("id") or True
         else:
@@ -1593,7 +1593,7 @@ class manageCluster(SDKCommon):
         if ret.ok:
             results = super().jsonifyResults(ret)
             if not self.quiet:
-                print(results)
+                print(json.dumps(results))
             return True
         else:
             if not self.quiet:
