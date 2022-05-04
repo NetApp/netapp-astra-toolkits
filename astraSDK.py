@@ -514,7 +514,7 @@ class getBackups(SDKCommon):
 
         for app in self.apps:
             if appFilter:
-                if self.apps[app][0] != appFilter:
+                if self.apps[app][0] != appFilter and app != appFilter:
                     continue
             endpoint = f"k8s/v1/managedApps/{app}/appBackups"  # appID
             url = self.base + endpoint
@@ -1241,7 +1241,7 @@ class getSnaps(SDKCommon):
             globaltabData = []
         for app in self.apps:
             if appFilter:
-                if self.apps[app][0] != appFilter:
+                if self.apps[app][0] != appFilter and app != appFilter:
                     continue
             endpoint = f"k8s/v1/managedApps/{app}/appSnaps"
             url = self.base + endpoint
