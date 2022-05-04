@@ -1271,11 +1271,11 @@ class getSnaps(SDKCommon):
                     continue
                 snaps[app] = {}
                 for item in results["items"]:
-                    appName = item[0]
+                    snapName = item[0]
                     snapID = item[1]
                     snapState = item[2]
-                    if appName not in snaps[app]:
-                        snaps[app][appName] = [
+                    if snapName not in snaps[app]:
+                        snaps[app][snapName] = [
                             snapID,
                             snapState,
                         ]
