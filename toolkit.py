@@ -177,9 +177,7 @@ def stsPatch(patch, stsName):
     try:
         # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
         # were used
-        ret = os.system(
-            f'kubectl patch statefulset.apps/{stsName} -p "$(cat {tmp.name})"'
-        )
+        ret = os.system(f'kubectl patch statefulset.apps/{stsName} -p "$(cat {tmp.name})"')
     except OSError as e:
         print(f"Exception: {e}")
         sys.exit(11)
@@ -259,10 +257,7 @@ class toolkit:
                     kubeHost = retString.split('pod "curl" deleted')[0]
                     clusters = astraSDK.getClusters().main()
                     for cluster in clusters:
-                        if (
-                            clusters[cluster][0] == kubeHost
-                            and clusters[cluster][1] == "gke"
-                        ):
+                        if clusters[cluster][0] == kubeHost and clusters[cluster][1] == "gke":
                             gitalyStorageClass = "standard-rwo"
 
             myResolver = dns.resolver.Resolver()
@@ -296,9 +291,7 @@ class toolkit:
                     "--set gitlab-runner.install=false "
                 )
             if gitalyStorageClass:
-                glhelmCmd += (
-                    f"--set gitlab.gitaly.persistence.storageClass={gitalyStorageClass}"
-                )
+                glhelmCmd += f"--set gitlab.gitaly.persistence.storageClass={gitalyStorageClass}"
             run(glhelmCmd)
 
             # I could've included straight up YAML here but that seemed..the opposite of elegent.
@@ -349,9 +342,7 @@ class toolkit:
             stsPatch(gitalyPatch, f"{appName}-gitaly")
 
         elif chartName == "cloudbees-core":
-            run(
-                f"helm install {appName} {repoName}/{chartName} --set ingress-nginx.Enabled=true"
-            )
+            run(f"helm install {appName} {repoName}/{chartName} --set ingress-nginx.Enabled=true")
             # I could've included straight up YAML here but that seemed..the opposite of elegent.
             cbPatch = {
                 "kind": "StatefulSet",
@@ -417,9 +408,7 @@ class toolkit:
         # Don't manage all the gitlab apps.  There's more of them than the free trial allows.
         if chartName != "gitlab":
             # self.apps_to_manage will be logically self.post_apps - self.pre_apps
-            appsToManage = {
-                k: v for (k, v) in postApps.items() if k not in preApps.keys()
-            }
+            appsToManage = {k: v for (k, v) in postApps.items() if k not in preApps.keys()}
             for app in appsToManage:
                 # Spin on managing apps.  Astra Control won't allow switching an
                 # app that is in the pending state to managed.  So we retry endlessly
@@ -448,9 +437,7 @@ class toolkit:
             if chartName != "gitlab":
                 applist = getAppsObj.main(source="namespace", namespace=nameSpace)
             else:
-                applist = getAppsObj.main(
-                    discovered=True, source="namespace", namespace=nameSpace
-                )
+                applist = getAppsObj.main(discovered=True, source="namespace", namespace=nameSpace)
             for item in applist:
                 if applist[item][0] == nameSpace:
                     appID = item
@@ -746,20 +733,14 @@ if __name__ == "__main__":
                             storageClassList.append(sc)
 
         elif verbs["destroy"] and len(sys.argv) - verbPosition >= 2:
-            if (
-                sys.argv[verbPosition + 1] == "backup"
-                and len(sys.argv) - verbPosition >= 3
-            ):
+            if sys.argv[verbPosition + 1] == "backup" and len(sys.argv) - verbPosition >= 3:
                 appList = [x for x in astraSDK.getApps().main()]
                 backups = astraSDK.getBackups().main()
                 for appID in backups:
                     if appID == sys.argv[verbPosition + 2]:
                         for backupItem in backups[appID]:
                             backupList.append(backups[appID][backupItem][0])
-            elif (
-                sys.argv[verbPosition + 1] == "snapshot"
-                and len(sys.argv) - verbPosition >= 3
-            ):
+            elif sys.argv[verbPosition + 1] == "snapshot" and len(sys.argv) - verbPosition >= 3:
                 appList = [x for x in astraSDK.getApps().main()]
                 snapshots = astraSDK.getSnaps().main()
                 for appID in snapshots:
@@ -802,12 +783,8 @@ if __name__ == "__main__":
         choices=["json", "yaml", "table"],
         help="command output format",
     )
-    parser.add_argument(
-        "-q", "--quiet", default=False, action="store_true", help="supress output"
-    )
-    subparsers = parser.add_subparsers(
-        dest="subcommand", required=True, help="subcommand help"
-    )
+    parser.add_argument("-q", "--quiet", default=False, action="store_true", help="supress output")
+    subparsers = parser.add_subparsers(dest="subcommand", required=True, help="subcommand help")
     #######
     # Top level subcommands
     # # Be sure to keep these in sync with verbs{}
@@ -851,9 +828,7 @@ if __name__ == "__main__":
     #######
     # subcommands "list", "create", "manage", "destroy", and "unmanage" have subcommands as well
     #######
-    subparserList = parserList.add_subparsers(
-        title="objectType", dest="objectType", required=True
-    )
+    subparserList = parserList.add_subparsers(title="objectType", dest="objectType", required=True)
     subparserCreate = parserCreate.add_subparsers(
         title="objectType", dest="objectType", required=True
     )
@@ -1233,9 +1208,7 @@ if __name__ == "__main__":
         "app",
         help="name of app",
     )
-    parserDeploy.add_argument(
-        "namespace", help="Namespace to deploy into (must not already exist)"
-    )
+    parserDeploy.add_argument("namespace", help="Namespace to deploy into (must not already exist)")
     parserDeploy.add_argument(
         "--domain",
         "-d",
@@ -1331,9 +1304,7 @@ if __name__ == "__main__":
     if hasattr(args, "granularity"):
         if args.granularity == "hourly":
             if args.hour:
-                raise argparse.ArgumentError(
-                    granArg, " hourly must not specify -H / --hour"
-                )
+                raise argparse.ArgumentError(granArg, " hourly must not specify -H / --hour")
             if not hasattr(args, "minute"):
                 raise argparse.ArgumentError(granArg, " hourly requires -m / --minute")
             args.hour = "*"
@@ -1348,21 +1319,15 @@ if __name__ == "__main__":
             if not args.hour:
                 raise argparse.ArgumentError(granArg, " weekly requires -H / --hour")
             if not args.dayOfWeek:
-                raise argparse.ArgumentError(
-                    granArg, " weekly requires -W / --dayOfWeek"
-                )
+                raise argparse.ArgumentError(granArg, " weekly requires -W / --dayOfWeek")
             args.dayOfMonth = "*"
         elif args.granularity == "monthly":
             if not args.hour:
                 raise argparse.ArgumentError(granArg, " monthly requires -H / --hour")
             if args.dayOfWeek:
-                raise argparse.ArgumentError(
-                    granArg, " hourly must not specify -W / --dayOfWeek"
-                )
+                raise argparse.ArgumentError(granArg, " hourly must not specify -W / --dayOfWeek")
             if not args.dayOfMonth:
-                raise argparse.ArgumentError(
-                    granArg, " monthly requires -M / --dayOfMonth"
-                )
+                raise argparse.ArgumentError(granArg, " monthly requires -M / --dayOfMonth")
             args.dayOfWeek = "*"
 
     tk = toolkit()
@@ -1390,9 +1355,7 @@ if __name__ == "__main__":
         )
     elif args.subcommand == "list":
         if args.objectType == "apps":
-            rc = astraSDK.getApps(
-                quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(
+            rc = astraSDK.getApps(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
                 discovered=args.unmanaged,
                 source=args.source,
                 namespace=args.namespace,
@@ -1432,9 +1395,9 @@ if __name__ == "__main__":
             else:
                 sys.exit(0)
         elif args.objectType == "snapshots":
-            rc = astraSDK.getSnaps(
-                quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(appFilter=args.app)
+            rc = astraSDK.getSnaps(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
+                appFilter=args.app
+            )
             if rc is False:
                 print("astraSDK.getSnaps() Failed")
                 sys.exit(1)
@@ -1458,9 +1421,7 @@ if __name__ == "__main__":
             else:
                 sys.exit(0)
         elif args.objectType == "protectionpolicy":
-            rc = astraSDK.createProtectionpolicy(
-                quiet=args.quiet, verbose=args.verbose
-            ).main(
+            rc = astraSDK.createProtectionpolicy(quiet=args.quiet, verbose=args.verbose).main(
                 args.granularity,
                 str(args.backupRetention),
                 str(args.snapshotRetention),
@@ -1485,9 +1446,7 @@ if __name__ == "__main__":
 
     elif args.subcommand == "manage":
         if args.objectType == "app":
-            rc = astraSDK.manageApp(quiet=args.quiet, verbose=args.verbose).main(
-                args.appID
-            )
+            rc = astraSDK.manageApp(quiet=args.quiet, verbose=args.verbose).main(args.appID)
             if rc is False:
                 print("astraSDK.manageApp() Failed")
                 sys.exit(1)
@@ -1521,9 +1480,7 @@ if __name__ == "__main__":
                 print(f"Failed destroying snapshot: {args.snapshotID}")
     elif args.subcommand == "unmanage":
         if args.objectType == "app":
-            rc = astraSDK.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(
-                args.appID
-            )
+            rc = astraSDK.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(args.appID)
             if rc is False:
                 print("astraSDK.unmanageApp() Failed")
                 sys.exit(1)

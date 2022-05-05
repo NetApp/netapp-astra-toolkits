@@ -144,9 +144,7 @@ class SDKCommon:
         else:
             if ret.status_code >= 400 and ret.status_code < 500:
                 if "x-pcloud-accountid" in ret.text:
-                    print(
-                        "preflight API call to Astra Control failed (check uid in config.json)"
-                    )
+                    print("preflight API call to Astra Control failed (check uid in config.json)")
                 elif ret.status_code == 401:
                     print(
                         "preflight API call to Astra Control failed "
@@ -160,9 +158,7 @@ class SDKCommon:
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 print(f"text: {ret.text}")
             else:
-                print(
-                    "preflight API call to Astra Control failed (Internal Server Error)"
-                )
+                print("preflight API call to Astra Control failed (Internal Server Error)")
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 print(f"text: {ret.text}")
             return False
@@ -190,9 +186,7 @@ class getApps(SDKCommon):
         super().__init__()
         self.preflight = super().preflight()
 
-    def main(
-        self, discovered=False, source=None, namespace=None, cluster=None, ignored=False
-    ):
+    def main(self, discovered=False, source=None, namespace=None, cluster=None, ignored=False):
         """discovered: True: show unmanaged apps False: show managed apps
         source: Filter by the app source field.  eg: helm, namespace
         namespace: Filter by the namespace the app is in
@@ -384,9 +378,7 @@ class getApps(SDKCommon):
                         appsCooked = {
                             k: v
                             for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps
-                            and v[5] == managedFilter
-                            and v[6] == source
+                            if v[0] not in systemApps and v[5] == managedFilter and v[6] == source
                         }
             else:
                 if namespace:
@@ -417,9 +409,7 @@ class getApps(SDKCommon):
                         appsCooked = {
                             k: v
                             for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps
-                            and v[1] == cluster
-                            and v[5] == managedFilter
+                            if v[0] not in systemApps and v[1] == cluster and v[5] == managedFilter
                         }
                     else:
                         # case 8: not filtering on source, namespace, OR cluster
@@ -530,9 +520,7 @@ class getBackups(SDKCommon):
                 print(colored(f"API data: {data}", "green"))
                 print(colored(f"API params: {params}", "green"))
 
-            ret = super().apicall(
-                "get", url, data, self.headers, params, self.verifySSL
-            )
+            ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
             if self.verbose:
                 print(f"API HTTP Status Code: {ret.status_code}")
@@ -922,9 +910,7 @@ class getClusters(SDKCommon):
                 print(colored(f"API data: {data}", "green"))
                 print(colored(f"API params: {params}", "green"))
 
-            ret = super().apicall(
-                "get", url, data, self.headers, params, self.verifySSL
-            )
+            ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
             if self.verbose:
                 print(f"API HTTP Status Code: {ret.status_code}")
@@ -1257,9 +1243,7 @@ class getSnaps(SDKCommon):
                 print(colored(f"API data: {data}", "green"))
                 print(colored(f"API params: {params}", "green"))
 
-            ret = super().apicall(
-                "get", url, data, self.headers, params, self.verifySSL
-            )
+            ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
             if self.verbose:
                 print(f"API HTTP Status Code: {ret.status_code}")
@@ -1484,9 +1468,7 @@ class getStorageClasses(SDKCommon):
                 if self.clusters[cluster][3] != cloud:
                     continue
                 storageClasses[cloud][cluster] = {}
-                endpoint = (
-                    f"topology/v1/clouds/{cloud}/clusters/{cluster}/storageClasses"
-                )
+                endpoint = f"topology/v1/clouds/{cloud}/clusters/{cluster}/storageClasses"
                 url = self.base + endpoint
 
                 data = {}
@@ -1494,9 +1476,7 @@ class getStorageClasses(SDKCommon):
 
                 if self.verbose:
                     print()
-                    print(
-                        f"Listing StorageClasses for cluster: {cluster} in cloud: {cloud}"
-                    )
+                    print(f"Listing StorageClasses for cluster: {cluster} in cloud: {cloud}")
                     print()
                     print(colored(f"API URL: {url}", "green"))
                     print(colored("API Method: GET", "green"))
@@ -1505,9 +1485,7 @@ class getStorageClasses(SDKCommon):
                     print(colored(f"API params: {params}", "green"))
                     print()
 
-                ret = super().apicall(
-                    "get", url, data, self.headers, params, self.verifySSL
-                )
+                ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
                 if self.verbose:
                     print(f"API HTTP Status Code: {ret.status_code}")
@@ -1517,9 +1495,7 @@ class getStorageClasses(SDKCommon):
                     if results is None:
                         continue
                     for entry in results.get("items"):
-                        storageClasses[cloud][cluster][entry.get("id")] = entry.get(
-                            "name"
-                        )
+                        storageClasses[cloud][cluster][entry.get("id")] = entry.get("name")
 
         if self.output == "json":
             dataReturn = storageClasses
