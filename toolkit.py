@@ -534,6 +534,7 @@ class toolkit:
         namespaces,
         sourceAppID,
         backupID,
+        background,
     ):
         """Create a clone."""
         # The REST API for cloning requires the sourceClusterID, we look that
@@ -554,6 +555,9 @@ class toolkit:
         )
         if cloneRet:
             print("Submitting clone succeeded.")
+            if background:
+                print(f"Background clone flag selected, run 'list apps' to get status.")
+                return True
             print("Waiting for clone to become available.", end="")
             sys.stdout.flush()
             appID = cloneRet.get("id")
@@ -700,7 +704,8 @@ if __name__ == "__main__":
                             backupList.append(backups[appID][backupItem][0])
                 snapshots = astraSDK.getSnaps().main()
                 for appID in snapshots:
-                    if appID == sys.argv[2]:
+                    # TODO: fix this hardcoding
+                    if appID == sys.argv[2] or appID == sys.argv[3]:
                         for snapshotItem in snapshots[appID]:
                             snapshotList.append(snapshots[appID][snapshotItem][0])
         elif (
@@ -1256,6 +1261,13 @@ if __name__ == "__main__":
     # clone args and flags
     #######
     parserClone.add_argument(
+        "-b",
+        "--background",
+        default=False,
+        action="store_true",
+        help="Run clone operation in the background",
+    )
+    parserClone.add_argument(
         "--sourceNamespace",
         choices=namespacesList,
         required=False,
@@ -1295,6 +1307,13 @@ if __name__ == "__main__":
     #######
     # restore args and flags
     #######
+    parserRestore.add_argument(
+        "-b",
+        "--background",
+        default=False,
+        action="store_true",
+        help="Run restore operation in the background",
+    )
     parserRestore.add_argument(
         "appID",
         choices=appList,
@@ -1520,6 +1539,10 @@ if __name__ == "__main__":
             args.appID, backupID=args.backupID, snapshotID=args.snapshotID
         )
         if rc:
+            if args.background:
+                print("Restore job submitted successfully")
+                print("Background restore flag selected, run 'list apps' to get status")
+                sys.exit(0)
             print("Restore job in progress...", end="")
             sys.stdout.flush()
             while True:
@@ -1687,4 +1710,5 @@ if __name__ == "__main__":
             namespaces,
             sourceAppID=args.sourceNamespace,
             backupID=args.backupID,
+            background=args.background,
         )
