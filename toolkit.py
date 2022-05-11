@@ -705,7 +705,7 @@ if __name__ == "__main__":
                 snapshots = astraSDK.getSnaps().main()
                 for appID in snapshots:
                     # TODO: fix this hardcoding
-                    if appID == sys.argv[2] or appID == sys.argv[3]:
+                    if appID == sys.argv[2] or (len(sys.argv) > 3 and appID == sys.argv[3]):
                         for snapshotItem in snapshots[appID]:
                             snapshotList.append(snapshots[appID][snapshotItem][0])
         elif (
