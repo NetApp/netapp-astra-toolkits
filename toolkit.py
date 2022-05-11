@@ -128,7 +128,7 @@ def run(command, captureOutput=False, ignoreErrors=False):
             return True
 
 
-def doProtectionTask(protectionType, appID, name):
+def doProtectionTask(protectionType, appID, name, background):
     """Take a snapshot/backup of appID giving it name <name>
     Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
     if protectionType == "backup":
@@ -137,6 +137,12 @@ def doProtectionTask(protectionType, appID, name):
         protectionID = astraSDK.takeSnap().main(appID, name)
 
     print(f"Starting {protectionType} of {appID}")
+    if background:
+        print(
+            f"Background {protectionType} flag selected, run 'list {protectionType}s' to get status"
+        )
+        return True
+
     print(f"Waiting for {protectionType} to complete.", end="")
     sys.stdout.flush()
     while True:
@@ -569,7 +575,7 @@ class toolkit:
 
     def dataProtection(self, protectionType, sourceNamespace, backupName):
         """Take a backup of <sourceNamespace> and give it <backupName>"""
-        protectionID = doProtectionTask(protectionType, sourceNamespace, backupName)
+        protectionID = doProtectionTask(protectionType, sourceNamespace, backupName, False)
         if not protectionID:
             return False
         else:
@@ -993,6 +999,13 @@ if __name__ == "__main__":
         "name",
         help="Name of backup to be taken",
     )
+    subparserCreateBackup.add_argument(
+        "-b",
+        "--background",
+        default=False,
+        action="store_true",
+        help="Run backup operation in the background",
+    )
     #######
     # end of create backups args and flags
     #######
@@ -1059,6 +1072,13 @@ if __name__ == "__main__":
     subparserCreateSnapshot.add_argument(
         "name",
         help="Name of snapshot to be taken",
+    )
+    subparserCreateSnapshot.add_argument(
+        "-b",
+        "--background",
+        default=False,
+        action="store_true",
+        help="Run snapshot operation in the background",
     )
     #######
     # end of create snapshot args and flags
@@ -1414,7 +1434,7 @@ if __name__ == "__main__":
                 sys.exit(0)
     elif args.subcommand == "create":
         if args.objectType == "backup":
-            rc = doProtectionTask(args.objectType, args.appID, args.name)
+            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
             if rc is False:
                 print("doProtectionTask() Failed")
                 sys.exit(1)
@@ -1437,7 +1457,7 @@ if __name__ == "__main__":
             else:
                 sys.exit(0)
         elif args.objectType == "snapshot":
-            rc = doProtectionTask(args.objectType, args.appID, args.name)
+            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
             if rc is False:
                 print("doProtectionTask() Failed")
                 sys.exit(1)
@@ -1597,7 +1617,7 @@ if __name__ == "__main__":
                         # Take a backup
                         print("No backups found, taking backup.")
                         backupRetval = doProtectionTask(
-                            "backup", args.sourceNamespace, f"toolkit-{args.destName}"
+                            "backup", args.sourceNamespace, f"toolkit-{args.destName}", False
                         )
                         if not backupRetval:
                             print("Exiting due to backup task failing.")
@@ -1655,7 +1675,7 @@ if __name__ == "__main__":
                 else:
                     # Take a backup
                     backupRetval = doProtectionTask(
-                        "backup", args.sourceNamespace, f"toolkit-{args.destName}"
+                        "backup", args.sourceNamespace, f"toolkit-{args.destName}", False
                     )
                     if not backupRetval:
                         print("Exiting due to backup task failing.")
