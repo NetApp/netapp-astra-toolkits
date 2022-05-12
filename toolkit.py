@@ -577,15 +577,6 @@ class toolkit:
         else:
             print("Submitting clone failed.")
 
-    def dataProtection(self, protectionType, sourceNamespace, backupName):
-        """Take a backup of <sourceNamespace> and give it <backupName>"""
-        protectionID = doProtectionTask(protectionType, sourceNamespace, backupName, False)
-        if not protectionID:
-            return False
-        else:
-            print(f"{protectionType} succeeded")
-            return protectionID
-
 
 if __name__ == "__main__":
     # This is a pretty big hack.  The various functions to populate the lists
