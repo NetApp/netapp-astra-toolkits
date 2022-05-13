@@ -20,6 +20,7 @@ import os
 import sys
 import yaml
 import json
+import copy
 from tabulate import tabulate
 from termcolor import colored
 import requests
@@ -197,10 +198,7 @@ class getApps(SDKCommon):
             return False
 
         endpoint = "topology/v1/apps"
-        params = {
-            "include": "name,id,clusterName,clusterID,namespace,state,"
-            "managedState,appDefnSource,metadata"
-        }
+        params = {}
         url = self.base + endpoint
         data = {}
 
@@ -224,200 +222,91 @@ class getApps(SDKCommon):
             print()
 
         if ret.ok:
-            results = super().jsonifyResults(ret)
+            apps = super().jsonifyResults(ret)
+            appsCooked = copy.deepcopy(apps)
             """
-            "name,id,clusterName,clusterID,namespace,state,managedState,appDefnSource,metadata"
-            self.results = {'items':
-                [
-                    ['kube-system', '1167745f-ed9f-4903-bcec-f87e30c35604',
-                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'kube-system', 'running', 'unmanaged', 'other',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
-                     'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
-
-                    ['trident', '97406814-72d6-4b01-a706-7697db1648f9',
-                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'trident', 'running', 'unmanaged', 'other',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
-                     'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
-
-                    ['wp', 'c1ece492-56f5-4c9a-a93d-eb73e5e22209',
-                    'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                    'wp', 'running', 'managed', 'namespace',
-                    {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
-                    'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
-
-                    ['wp-mariadb', 'ee0f15cb-757f-4bf8-8e74-40092f166922',
-                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'wp', 'running', 'managed', 'helm',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
-                     'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
-
-                    ['wp-wordpress', '21c39321-c489-4042-bb13-e1cf967b0bdd',
-                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'wp', 'running', 'unmanaged', 'helm',
-                     {'labels': [{'name': 'astra.netapp.io/labels/app.ignore', 'value': 'true'}],
-                      'creationTimestamp': '2021-12-08T20:26:48Z',
-                      'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}]
-                    ],
-                    'metadata': {}
-                    }
+            self.results = {"items":[
+                    {
+                        "appDefnSource":"namespace",
+                        "appLabels":[],
+                        "clusterID":"420a9ab0-1608-4e2e-a5ed-ca5b26a7fe69",
+                        "clusterName":"useast1-cluster",
+                        "clusterType":"gke",
+                        "collectionState":"fullyCollected",
+                        "collectionStateDetails":[],
+                        "collectionStateTransitions":[
+                            {
+                                "from":"notCollected",
+                                "to":["partiallyCollected", "fullyCollected"]
+                            },
+                            {
+                                "from":"partiallyCollected",
+                                "to":["fullyCollected"]
+                            },
+                            {
+                                "from":"fullyCollected",
+                                "to":[]
+                            }
+                        ],
+                        "id":"d8cf2f17-d8d6-4b9f-aa42-f945d43b9a87",
+                        "managedState":"managed",
+                        "managedStateUnready":[],
+                        "managedTimestamp":"2022-05-12T14:35:36Z",
+                        "metadata":{
+                            "createdBy":"system",
+                            "creationTimestamp":"2022-05-12T14:35:27Z",
+                            "labels":[],
+                            "modificationTimestamp":"2022-05-12T18:47:45Z"
+                        },
+                        "name":"wordpress-ns",
+                        "namespace":"wordpress-ns",
+                        "pods":<OMITTED>
+                        "protectionState":"protected",
+                        "protectionStateUnready":[],
+                        "state":"running",
+                        "stateUnready":[],
+                        "system":"false",
+                        "type":"application/astra-app",
+                        "version":"1.1"
+                    }],
+                "metadata":{}
+            }
             """
-            apps = {}
-            for item in results.get("items"):
-                # make item[1] (appID) the key in apps
-                if item[1] not in apps:
-                    appID = item.pop(1)
-                    apps[appID] = item
-            """
-            apps:
-             {
-                '1167745f-ed9f-4903-bcec-f87e30c35604':
-                    ['kube-system', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'kube-system', 'running', 'unmanaged', 'other',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
-                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
-                '97406814-72d6-4b01-a706-7697db1648f9':
-                    ['trident', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'trident', 'running', 'unmanaged', 'other',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
-                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
-                'c1ece492-56f5-4c9a-a93d-eb73e5e22209':
-                    ['wp', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'wp', 'running', 'managed', 'namespace',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
-                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
-                'ee0f15cb-757f-4bf8-8e74-40092f166922':
-                    ['wp-mariadb', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'wp', 'running', 'managed', 'helm',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
-                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
-                '21c39321-c489-4042-bb13-e1cf967b0bdd':
-                    ['wp-wordpress', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'wp', 'running', 'unmanaged', 'helm',
-                     {'labels': [{'name': 'astra.netapp.io/labels/app.ignore', 'value': 'true'}],
-                      'creationTimestamp': '2021-12-08T20:26:48Z',
-                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}]
-             }
-            """
-            systemApps = ["trident", "kube-system"]
+
             if discovered:
                 managedFilter = "unmanaged"
             else:
                 managedFilter = "managed"
 
-            # There's really 24 cases here.  managed, unmanaged or unmanaged AND ignored,
-            # each with eight combinations of source, namespace, and cluster
-            # source    |y|n|
-            # namespace |y|n|
-            # cluster   |y|n|
+            # Loop through all apps and delete those that don't match filters
+            for counter, app in enumerate(apps.get("items")):
 
-            # Break the processing into two passes so we don't need to handle 24 cases.
-            # For the first pass filter on ignored or not ignored
-            if ignored:
-                appsPrecooked = {}
-                for k, v in apps.items():
-                    for item in v[7]["labels"]:
-                        if (
-                            item["name"] == "astra.netapp.io/labels/app.ignore"
-                            and item["value"] == "true"
-                        ):
-                            appsPrecooked[k] = v
-            else:
-                appsPrecooked = {}
-                for k, v in apps.items():
-                    ignoreFound = False
-                    for item in v[7]["labels"]:
-                        if (
-                            item["name"] == "astra.netapp.io/labels/app.ignore"
-                            and item["value"] == "true"
-                        ):
-                            ignoreFound = True
-                    if not ignoreFound:
-                        appsPrecooked[k] = v
+                # Find ignored apps based on labels
+                ignoreFound = False
+                for label in app["metadata"]["labels"]:
+                    if (
+                        label["name"] == "astra.netapp.io/labels/app.ignore"
+                        and label["value"] == "true"
+                    ):
+                        ignoreFound = True
 
-            # This is the second pass for filtering.  Notice that managedFilter can be
-            # either managed or unmanaged, so there are 8 filters that handle the
-            # remaining 16 cases.
-            if source:
-                if namespace:
-                    if cluster:
-                        # case 1: filter on source, namespace, and cluster
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps
-                            and v[1] == cluster
-                            and v[3] == namespace
-                            and v[5] == managedFilter
-                            and v[6] == source
-                        }
-                    else:
-                        # case 2: filter on source, namespace
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps
-                            and v[3] == namespace
-                            and v[5] == managedFilter
-                            and v[6] == source
-                        }
-                else:
-                    if cluster:
-                        # case 3: filter on source, cluster
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps
-                            and v[1] == cluster
-                            and v[5] == managedFilter
-                            and v[6] == source
-                        }
-                    else:
-                        # case 4: filter on source
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps and v[5] == managedFilter and v[6] == source
-                        }
-            else:
-                if namespace:
-                    if cluster:
-                        # case 5: filter on namespace, cluster
-                        if namespace:
-                            appsCooked = {
-                                k: v
-                                for (k, v) in appsPrecooked.items()
-                                if v[0] not in systemApps
-                                and v[1] == cluster
-                                and v[3] == namespace
-                                and v[5] == managedFilter
-                            }
-                    else:
-                        # case 6: filter on namespace
-                        if namespace:
-                            appsCooked = {
-                                k: v
-                                for (k, v) in appsPrecooked.items()
-                                if v[0] not in systemApps
-                                and v[3] == namespace
-                                and v[5] == managedFilter
-                            }
-                else:
-                    if cluster:
-                        # case 7: filtering on cluster, but not source or namespace
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps and v[1] == cluster and v[5] == managedFilter
-                        }
-                    else:
-                        # case 8: not filtering on source, namespace, OR cluster
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps and v[5] == managedFilter
-                        }
+                # If there's a given filter, delete non-matching values
+                if app["system"] == "true":
+                    appsCooked["items"].remove(apps["items"][counter])
+                elif (ignored and not ignoreFound) or (not ignored and ignoreFound):
+                    appsCooked["items"].remove(apps["items"][counter])
+                elif managedFilter != app["managedState"]:
+                    appsCooked["items"].remove(apps["items"][counter])
+                elif source and source != app["appDefnSource"]:
+                    appsCooked["items"].remove(apps["items"][counter])
+                elif namespace and namespace != app["namespace"]:
+                    appsCooked["items"].remove(apps["items"][counter])
+                elif cluster and cluster != app["clusterName"]:
+                    appsCooked["items"].remove(apps["items"][counter])
+
+            # At this time, pods just seem to muddy the waters with too much info, so delete
+            for app in appsCooked.get("items"):
+                del app["pods"]
 
             if self.output == "json":
                 dataReturn = appsCooked
@@ -433,15 +322,15 @@ class getApps(SDKCommon):
                     "source",
                 ]
                 tabData = []
-                for item in appsCooked:
+                for app in appsCooked.get("items"):
                     tabData.append(
                         [
-                            appsCooked[item][0],
-                            item,
-                            appsCooked[item][1],
-                            appsCooked[item][3],
-                            appsCooked[item][4],
-                            appsCooked[item][6],
+                            app["name"],
+                            app["id"],
+                            app["clusterName"],
+                            app["namespace"],
+                            app["state"],
+                            app["appDefnSource"],
                         ]
                     )
                 dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
