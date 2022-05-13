@@ -260,7 +260,7 @@ class getApps(SDKCommon):
                         },
                         "name":"wordpress-ns",
                         "namespace":"wordpress-ns",
-                        "pods":<OMITTED>
+                        "pods":<OMITTED>,
                         "protectionState":"protected",
                         "protectionStateUnready":[],
                         "state":"running",
@@ -306,7 +306,8 @@ class getApps(SDKCommon):
 
             # At this time, pods just seem to muddy the waters with too much info, so delete
             for app in appsCooked.get("items"):
-                del app["pods"]
+                if app.get("pods"):
+                    del app["pods"]
 
             if self.output == "json":
                 dataReturn = appsCooked
@@ -373,36 +374,40 @@ class getBackups(SDKCommon):
         if self.apps is False:
             print("Call to getApps().main() failed")
             return False
-        if len(self.apps) == 0:
+        if len(self.apps["items"]) == 0:
             return True
 
-        """self.apps = {'739e7b1f-a71a-42bd-ac6f-db3ff9131133':
-            ['jp3k', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-             'jp3k', 'running', 'managed', 'namespace'],
-        '697d2a64-61f0-4958-b746-13248be6e6a1':
-            ['wp-mariadb', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-             'jp3k', 'running', 'managed', 'helm'],
-        'ee7e683c-7532-4f79-9c4b-3e26d8ece391':
-            ['wp-wordpress', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-             'jp3k', 'running', 'managed', 'helm']}
+        """self.apps = {"items":[{"appDefnSource":"namespace","appLabels":[],
+            "clusterID":"420a9ab0-1608-4e2e-a5ed-ca5b26a7fe69","clusterName":"useast1-cluster",
+            "clusterType":"gke","collectionState":"fullyCollected","collectionStateDetails":[],
+            "collectionStateTransitions":[{"from":"notCollected","to":["partiallyCollected",
+            "fullyCollected"]},{"from":"partiallyCollected","to":["fullyCollected"]},
+            {"from":"fullyCollected","to":[]}],"id":"d8cf2f17-d8d6-4b9f-aa42-f945d43b9a87",
+            "managedState":"managed","managedStateUnready":[],
+            "managedTimestamp":"2022-05-12T14:35:36Z","metadata":{"createdBy":"system",
+            "creationTimestamp":"2022-05-12T14:35:27Z","labels":[],
+            "modificationTimestamp":"2022-05-12T18:47:45Z"},"name":"wordpress-ns",
+            "namespace":"wordpress-ns","protectionState":"protected","protectionStateUnready":[],
+            "state":"running","stateUnready":[],"system":"false","type":"application/astra-app",
+            "version":"1.1"}],"metadata":{}}
         """
         backups = {}
         if self.output == "table":
             globaltabHeader = ["AppID", "backupName", "backupID", "backupState"]
             globaltabData = []
 
-        for app in self.apps:
+        for app in self.apps["items"]:
             if appFilter:
-                if self.apps[app][0] != appFilter and app != appFilter:
+                if app["name"] != appFilter and app["id"] != appFilter:
                     continue
-            endpoint = f"k8s/v1/managedApps/{app}/appBackups"  # appID
+            endpoint = f"k8s/v1/managedApps/{app['id']}/appBackups"
             url = self.base + endpoint
 
             data = {}
             params = {"include": "name,id,state,metadata"}
 
             if self.verbose:
-                print(f"Listing Backups for {app} {self.apps[app][0]}")
+                print(f"Listing Backups for {app['id']} {app['name']}")
                 print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: GET", "green"))
                 print(colored(f"API Headers: {self.headers}", "green"))
@@ -430,7 +435,7 @@ class getBackups(SDKCommon):
                                         'createdBy': '70fa19ad-eb95-4d1c-b5fb-76b7f4214e6c'}]],
                                         'metadata': {}}
                 """
-                backups[app] = {}
+                backups[app["id"]] = {}
                 for item in results["items"]:
                     backupName = item[0]
                     backupID = item[1]
@@ -442,8 +447,8 @@ class getBackups(SDKCommon):
                     # TODO: the backupName is just a label and Astra can have
                     # multiple backups of an app with the same name.
                     # This should be switched to have the backupID as the key.
-                    if backupName not in backups[app]:
-                        backups[app][backupName] = [
+                    if backupName not in backups[app["id"]]:
+                        backups[app["id"]][backupName] = [
                             backupID,
                             backupState,
                             backupTimeStamp,
@@ -451,28 +456,28 @@ class getBackups(SDKCommon):
                 if self.output == "table":
                     tabHeader = ["backupName", "backupID", "backupState"]
                     tabData = []
-                    for item in backups[app]:
+                    for item in backups[app["id"]]:
                         tabData.append(
                             [
                                 item,
-                                backups[app][item][0],
-                                backups[app][item][1],
+                                backups[app["id"]][item][0],
+                                backups[app["id"]][item][1],
                             ]
                         )
                         globaltabData.append(
                             [
-                                app,
+                                app["id"],
                                 item,
-                                backups[app][item][0],
-                                backups[app][item][1],
+                                backups[app["id"]][item][0],
+                                backups[app["id"]][item][1],
                             ]
                         )
                 if not self.quiet and self.verbose:
-                    print(f"Backups for {app}")
+                    print(f"Backups for {app['id']}")
                     if self.output == "json":
-                        print(json.dumps(backups[app]))
+                        print(json.dumps(backups[app["id"]]))
                     elif self.output == "yaml":
-                        print(yaml.dump(backups[app]))
+                        print(yaml.dump(backups[app["id"]]))
                     elif self.output == "table":
                         print(tabulate(tabData, tabHeader, tablefmt="grid"))
                         print()
@@ -1106,7 +1111,7 @@ class getSnaps(SDKCommon):
         if self.apps is False:
             print("Call to getApps() failed")
             return False
-        if len(self.apps) == 0:
+        if len(self.apps["items"]) == 0:
             print("No apps found")
             return True
 
@@ -1114,18 +1119,18 @@ class getSnaps(SDKCommon):
         if self.output == "table":
             globaltabHeader = ["appID", "snapshotName", "snapshotID", "snapshotState"]
             globaltabData = []
-        for app in self.apps:
+        for app in self.apps["items"]:
             if appFilter:
-                if self.apps[app][0] != appFilter and app != appFilter:
+                if app["name"] != appFilter and app["id"] != appFilter:
                     continue
-            endpoint = f"k8s/v1/managedApps/{app}/appSnaps"
+            endpoint = f"k8s/v1/managedApps/{app['id']}/appSnaps"
             url = self.base + endpoint
 
             data = {}
             params = {"include": "name,id,state"}
 
             if self.verbose:
-                print(f"Listing Snapshots for {app} {self.apps[app][0]}")
+                print(f"Listing Snapshots for {app['id']} {app['name']}")
                 print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: GET", "green"))
                 print(colored(f"API Headers: {self.headers}", "green"))
@@ -1142,41 +1147,41 @@ class getSnaps(SDKCommon):
                 results = super().jsonifyResults(ret)
                 if results is None:
                     continue
-                snaps[app] = {}
+                snaps[app["id"]] = {}
                 for item in results["items"]:
                     snapName = item[0]
                     snapID = item[1]
                     snapState = item[2]
-                    if snapName not in snaps[app]:
-                        snaps[app][snapName] = [
+                    if snapName not in snaps[app["id"]]:
+                        snaps[app["id"]][snapName] = [
                             snapID,
                             snapState,
                         ]
                 if self.output == "table":
                     tabHeader = ["snapshotName", "snapshotID", "snapshotState"]
                     tabData = []
-                    for item in snaps[app]:
+                    for item in snaps[app["id"]]:
                         tabData.append(
                             [
                                 item,
-                                snaps[app][item][0],
-                                snaps[app][item][1],
+                                snaps[app["id"]][item][0],
+                                snaps[app["id"]][item][1],
                             ]
                         )
                         globaltabData.append(
                             [
-                                app,
+                                app["id"],
                                 item,
-                                snaps[app][item][0],
-                                snaps[app][item][1],
+                                snaps[app["id"]][item][0],
+                                snaps[app["id"]][item][1],
                             ]
                         )
                 if not self.quiet and self.verbose:
-                    print(f"Snapshots for {app}")
+                    print(f"Snapshots for {app['id']}")
                     if self.output == "json":
-                        print(json.dumps(snaps[app]))
+                        print(json.dumps(snaps[app["id"]]))
                     elif self.output == "yaml":
-                        print(yaml.dump(snaps[app]))
+                        print(yaml.dump(snaps[app["id"]]))
                     elif self.output == "table":
                         print(tabulate(tabData, tabHeader, tablefmt="grid"))
                         print()

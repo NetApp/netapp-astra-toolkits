@@ -27,6 +27,41 @@ import time
 import yaml
 
 
+def newUserSelect(pickList, keys):
+    """pickList is a dictionary with an 'items' array of dicts.  Print the values
+    that match the 'keys' array, have the user pick one and then return the value
+    of index 0 of the keys array"""
+    # pickList = {"items": [{"id": "123", "name": "webapp",  "state": "running"},
+    #                       {"id": "345", "name": "mongodb", "state": "stopped"}]}
+    # keys = ["id", "name"]
+    # Output:
+    # 1:    123         webapp
+    # 2:    345         mongodb
+    # User enters 2, "id" (index 0) is returned, so "345"
+
+    if not isinstance(pickList, dict) or not isinstance(keys, list):
+        return False
+
+    for counter, item in enumerate(pickList["items"], start=1):
+        outputStr = str(counter) + ":\t"
+        for key in keys:
+            if item.get(key):
+                outputStr += item[key] + "\t"
+        print(outputStr)
+
+    while True:
+        ret = input(f"Select a line (1-{counter}): ")
+        try:
+            # try/except catches errors thrown from non-valid input
+            objectValue = pickList["items"][int(ret) - 1][keys[0]]
+            if int(ret) > 0 and int(ret) <= counter and objectValue:
+                return objectValue
+            else:
+                continue
+        except (IndexError, TypeError, ValueError):
+            continue
+
+
 def userSelect(pickList):
     """pickList is a dictionary of keys that are objIDs and values that are a list.
     Print the items in the dictionary, have the user pick one
@@ -217,9 +252,6 @@ class toolkit:
             assert email is not None
 
         getAppsObj = astraSDK.getApps()
-        # preApps, postApps and appsToManage are hoops we jump through
-        # so we only switch apps to managed that we install.
-        preApps = getAppsObj.main(discovered=True, namespace=nameSpace)
         retval = run("kubectl get ns -o json", captureOutput=True)
         retvalJSON = json.loads(retval)
         for item in retvalJSON["items"]:
@@ -399,105 +431,37 @@ class toolkit:
             run(f"helm install {appName} {repoName}/{chartName}")
         print("Waiting for Astra to discover apps.", end="")
         sys.stdout.flush()
-        time.sleep(3)
-        postApps = getAppsObj.main(discovered=True, namespace=nameSpace)
 
-        while preApps == postApps:
+        appID = ""
+        while not appID:
             # It takes Astra some time to realize new apps have been installed
+            time.sleep(3)
             print(".", end="")
             sys.stdout.flush()
-            time.sleep(3)
-            postApps = getAppsObj.main(discovered=True, namespace=nameSpace)
-        print("Discovery complete!")
-        sys.stdout.flush()
-
-        # Don't manage all the gitlab apps.  There's more of them than the free trial allows.
-        if chartName != "gitlab":
-            # self.apps_to_manage will be logically self.post_apps - self.pre_apps
-            appsToManage = {k: v for (k, v) in postApps.items() if k not in preApps.keys()}
-            for app in appsToManage:
-                # Spin on managing apps.  Astra Control won't allow switching an
-                # app that is in the pending state to managed.  So we retry endlessly
-                # with the assumption that eventually the app will switch from
-                # pending to running and the manageapp call will succeed.
-                # (Note this is taking > 8 minutes in Q2)
-                print(f"Managing: {app}.", end="")
-                sys.stdout.flush()
-                rv = astraSDK.manageApp().main(app)
-                while not rv:
-                    print(".", end="")
+            apps = getAppsObj.main(discovered=True, namespace=nameSpace)
+            # Cycle through the apps and see if one matches our new namespace
+            for app in apps["items"]:
+                if app["name"] == nameSpace and app["namespace"] == nameSpace:
+                    print("Discovery complete!")
                     sys.stdout.flush()
-                    time.sleep(3)
-                    rv = astraSDK.manageApp().main(app)
-                print("Success.")
-                sys.stdout.flush()
-
-        # Find the appID of the namespace we just created
-        # Since we switched everything we had discovered to managed we'll list all the
-        # managed apps, in the hopes that our new namespace is in there.
-        print(f"Getting appID of namespace: {nameSpace}...", end="")
-        sys.stdout.flush()
-        loop = True
-        while loop:
-            appID = None
-            if chartName != "gitlab":
-                applist = getAppsObj.main(source="namespace", namespace=nameSpace)
-            else:
-                applist = getAppsObj.main(discovered=True, source="namespace", namespace=nameSpace)
-            for item in applist:
-                if applist[item][0] == nameSpace:
-                    appID = item
-                    print("Found")
+                    appID = app["id"]
+                    # Spin on managing apps.  Astra Control won't allow switching an
+                    # app that is in the pending state to managed.  So we retry endlessly
+                    # with the assumption that eventually the app will switch from
+                    # pending to running and the manageapp call will succeed.
+                    print(f"Managing: {app['name']}.", end="")
                     sys.stdout.flush()
-                    if chartName == "gitlab":
-                        print(f"Managing: {appID}.", end="")
-                        sys.stdout.flush()
-                        rv = astraSDK.manageApp().main(appID)
-                        while not rv:
-                            print(".", end="")
-                            sys.stdout.flush()
-                            time.sleep(3)
-                            rv = astraSDK.manageApp().main(appID)
-                        print("Success.")
-                        sys.stdout.flush()
-                    loop = False
-                    break
-            if appID is None:
-                print("appID wasn't found")
-                sys.stdout.flush()
-                # So what this tells you is that astra wasn't finished discovering apps
-                # when preApps became != postApps
-                # (Astra doesn't discover things atomically)
-                # potification:
-                # We may have found the namespace and there might be other apps Astra didn't
-                # find that are missing from the list.  We don't care about that because we'll
-                # be backing up the top level namespace, and whether the apps in that namespace are
-                # managed or not they still get backed up.
-                print(
-                    f"Waiting for namespace: {nameSpace} to be discovered...",
-                    end="",
-                )
-                sys.stdout.flush()
-                while True:
-                    # reallyPostApps is a bad name.  It will contain a discovered app that is
-                    # a namespace and has a specific name.  There will only ever be one app
-                    # that matches.
-                    reallyPostApps = getAppsObj.main(
-                        discovered=True, source="namespace", namespace=nameSpace
-                    )
-                    if not reallyPostApps:
-                        time.sleep(3)
+                    rv = astraSDK.manageApp().main(appID)
+                    while not rv:
                         print(".", end="")
                         sys.stdout.flush()
-                    else:
-                        print("Discovered.")
-                        sys.stdout.flush()
-                        break
-                for appID in reallyPostApps:
-                    print(f"Managing: {appID}")
-                    astraSDK.manageApp().main(appID)
-                loop = False
-        # and then create a protection policy on that namespace (using it's appID)
+                        time.sleep(3)
+                        rv = astraSDK.manageApp().main(appID)
+                    print("Success.")
+                    sys.stdout.flush()
+                    break
+
+        # Create a protection policy on that namespace (using its appID)
         backupRetention = "1"
         snapshotRetention = "1"
         minute = "0"
@@ -542,7 +506,9 @@ class toolkit:
         #         appID
         # {'e6661eba-229b-4d7c-8c6c-cfca0db9068e':
         #    ['appName', 'clusterNameAppIsRunningOn', 'clusterIDthatAppIsRunningOn', 'namespace']}
-        sourceClusterID = namespaces[sourceAppID][2]
+        for app in namespaces["items"]:
+            if sourceAppID == app["id"]:
+                sourceClusterID = app["clusterID"]
 
         cloneRet = astraSDK.cloneApp().main(
             cloneName,
@@ -564,10 +530,10 @@ class toolkit:
             state = cloneRet.get("state")
             while state != "running":
                 apps = astraSDK.getApps().main()
-                for app in apps:
-                    if app == appID:
-                        if apps[app][4] == "running":
-                            state = apps[app][4]
+                for app in apps["items"]:
+                    if app["id"] == appID:
+                        if app["state"] == "running":
+                            state = app["state"]
                             print("Cloning operation complete.")
                             sys.stdout.flush()
                         else:
@@ -667,7 +633,8 @@ if __name__ == "__main__":
 
         elif verbs["clone"]:
             namespaces = astraSDK.getApps().main(source="namespace")
-            namespacesList = [x for x in namespaces.keys()]
+            for app in namespaces["items"]:
+                namespacesList.append(app["id"])
             destCluster = astraSDK.getClusters().main()
             destclusterList = [x for x in destCluster.keys()]
             backups = astraSDK.getBackups().main()
@@ -682,7 +649,8 @@ if __name__ == "__main__":
                     backupList.append(backups[appID][backupItem][0])
 
         elif verbs["restore"]:
-            appList = [x for x in astraSDK.getApps().main()]
+            for app in astraSDK.getApps().main()["items"]:
+                appList.append(app["id"])
 
             # This expression translates to "Is there an arg after the verb we found?"
             if len(sys.argv) - verbPosition >= 2:
@@ -708,11 +676,13 @@ if __name__ == "__main__":
                 or sys.argv[verbPosition + 1] == "snapshot"
             )
         ):
-            appList = [x for x in astraSDK.getApps().main()]
+            for app in astraSDK.getApps().main()["items"]:
+                appList.append(app["id"])
 
         elif verbs["manage"] and len(sys.argv) - verbPosition >= 2:
             if sys.argv[verbPosition + 1] == "app":
-                appList = [x for x in astraSDK.getApps().main(discovered=True)]
+                for app in astraSDK.getApps().main(discovered=True)["items"]:
+                    appList.append(app["id"])
             elif sys.argv[verbPosition + 1] == "cluster":
                 clusterDict = astraSDK.getClusters(quiet=True).main()
                 for cluster in clusterDict:
@@ -736,14 +706,16 @@ if __name__ == "__main__":
 
         elif verbs["destroy"] and len(sys.argv) - verbPosition >= 2:
             if sys.argv[verbPosition + 1] == "backup" and len(sys.argv) - verbPosition >= 3:
-                appList = [x for x in astraSDK.getApps().main()]
+                for app in astraSDK.getApps().main()["items"]:
+                    appList.append(app["id"])
                 backups = astraSDK.getBackups().main()
                 for appID in backups:
                     if appID == sys.argv[verbPosition + 2]:
                         for backupItem in backups[appID]:
                             backupList.append(backups[appID][backupItem][0])
             elif sys.argv[verbPosition + 1] == "snapshot" and len(sys.argv) - verbPosition >= 3:
-                appList = [x for x in astraSDK.getApps().main()]
+                for app in astraSDK.getApps().main()["items"]:
+                    appList.append(app["id"])
                 snapshots = astraSDK.getSnaps().main()
                 for appID in snapshots:
                     if appID == sys.argv[verbPosition + 2]:
@@ -752,7 +724,8 @@ if __name__ == "__main__":
 
         elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
             if sys.argv[verbPosition + 1] == "app":
-                appList = [x for x in astraSDK.getApps().main(discovered=False)]
+                for app in astraSDK.getApps().main(discovered=False)["items"]:
+                    appList.append(app["id"])
 
             elif sys.argv[verbPosition + 1] == "cluster":
                 clusterDict = astraSDK.getClusters(quiet=True).main()
@@ -1539,9 +1512,9 @@ if __name__ == "__main__":
             while True:
                 restoreApps = astraSDK.getApps().main()
                 state = None
-                for restoreApp in restoreApps:
-                    if restoreApp == args.appID:
-                        state = restoreApps[restoreApp][4]
+                for restoreApp in restoreApps["items"]:
+                    if restoreApp["id"] == args.appID:
+                        state = restoreApp["state"]
                 if state == "restoring":
                     print(".", end="")
                     sys.stdout.flush()
@@ -1595,18 +1568,9 @@ if __name__ == "__main__":
                 if retval == "sourceNamespace":
                     print("Select source namespace to be cloned")
                     print("Index\tAppID\tappName\tclusterName\tClusterID")
-                    # namespaces: {'3b09b3e1-4861-4e75-ae1a-42a673affe9e':
-                    #   ['wp', 'cluster-1-jp', '4309b7ff-81c0-4146-b79f-708b3de9f300',
-                    #    'wp', 'running', 'managed', 'namespace',
-                    #    {'labels': [], 'creationTimestamp': '2021-12-16T20:40:30Z',
-                    #     'modificationTimestamp': '2021-12-16T22:09:24Z', 'createdBy': 'system'}
-                    #   ]
-                    # }
-                    # The last item in namespaces['3b09b3e1-4861-4e75-ae1a-42a673affe9e'] is
-                    # a dictionary.  This would blow up userSelect(); the following
-                    # dictionary comprehension strips off the last element
-                    namespacesCooked = {k: v[0:-1] for (k, v) in namespaces.items()}
-                    args.sourceNamespace = userSelect(namespacesCooked)
+                    args.sourceNamespace = newUserSelect(
+                        namespaces, ["id", "name", "clusterName", "clusterID"]
+                    )
                     appBackups = backups[args.sourceNamespace]
                     """
                     appBackups: {'failoverfriday-backup-20210713192550':
