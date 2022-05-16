@@ -782,22 +782,23 @@ class getClusters(SDKCommon):
 
     def main(self, hideManaged=False, hideUnmanaged=False):
         clusters = {}
+        clusters["items"] = []
         if self.preflight is False:
             return False
         if self.clouds is False:
             print("Call to get clouds failed")
             return False
-        if len(self.clouds) == 0:
+        if len(self.clouds["items"]) == 0:
             print("No clouds found")
             return True
-        for cloud in self.clouds:
-            endpoint = f"topology/v1/clouds/{cloud}/clusters"
+        for cloud in self.clouds["items"]:
+            endpoint = f"topology/v1/clouds/{cloud['id']}/clusters"
             url = self.base + endpoint
             data = {}
             params = {}
 
             if self.verbose:
-                print(f"Getting clusters in cloud {cloud} ({self.clouds[cloud][0]})...")
+                print(f"Getting clusters in cloud {cloud['id']} ({cloud['name']})...")
                 print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: POST", "green"))
                 print(colored(f"API Headers: {self.headers}", "green"))
@@ -813,19 +814,13 @@ class getClusters(SDKCommon):
             if ret.ok:
                 results = super().jsonifyResults(ret)
                 for item in results["items"]:
-                    if item.get("id") not in clusters:
-                        if hideManaged:
-                            if item.get("managedState") == "managed":
-                                continue
-                        if hideUnmanaged:
-                            if item.get("managedState") == "unmanaged":
-                                continue
-                        clusters[item.get("id")] = [
-                            item.get("name"),
-                            item.get("clusterType"),
-                            item.get("managedState"),
-                            cloud,
-                        ]
+                    if hideManaged:
+                        if item.get("managedState") == "managed":
+                            continue
+                    if hideUnmanaged:
+                        if item.get("managedState") == "unmanaged":
+                            continue
+                    clusters["items"].append(item)
 
         if self.output == "json":
             dataReturn = clusters
@@ -834,13 +829,13 @@ class getClusters(SDKCommon):
         elif self.output == "table":
             tabHeader = ["clusterName", "clusterID", "clusterType", "managedState"]
             tabData = []
-            for item in clusters:
+            for cluster in clusters["items"]:
                 tabData.append(
                     [
-                        clusters[item][0],
-                        item,
-                        clusters[item][1],
-                        clusters[item][2],
+                        cluster["name"],
+                        cluster["id"],
+                        cluster["clusterType"],
+                        cluster["managedState"],
                     ]
                 )
             dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
@@ -1270,7 +1265,7 @@ class getClouds(SDKCommon):
         url = self.base + endpoint
 
         data = {}
-        params = {"include": "id,name,state"}
+        params = {}
 
         if self.verbose:
             print("Getting clouds...")
@@ -1288,26 +1283,19 @@ class getClouds(SDKCommon):
 
         if ret.ok:
             results = super().jsonifyResults(ret)
-            clouds = {}
-            for item in results["items"]:
-                if item.get("id") not in clouds:
-                    clouds[item.get("id")] = [
-                        item.get("name"),
-                        item.get("cloudType"),
-                    ]
             if self.output == "json":
-                dataReturn = clouds
+                dataReturn = results
             elif self.output == "yaml":
-                dataReturn = yaml.dump(clouds)
+                dataReturn = yaml.dump(results)
             elif self.output == "table":
                 tabHeader = ["cloudName", "cloudID", "cloudType"]
                 tabData = []
-                for item in clouds:
+                for cloud in results["items"]:
                     tabData.append(
                         [
-                            clouds[item][0],
-                            item,
-                            clouds[item][1],
+                            cloud["name"],
+                            cloud["id"],
+                            cloud["cloudType"],
                         ]
                     )
                 dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
@@ -1347,22 +1335,23 @@ class getStorageClasses(SDKCommon):
         if self.clusters is False:
             print("getClusters().main() failed")
             return False
-        if len(self.clouds) == 0:
+        if len(self.clouds["items"]) == 0:
             print("No clouds found")
             return True
-        if len(self.clusters) == 0:
+        if len(self.clusters["items"]) == 0:
             print("No clusters found")
             return True
 
         storageClasses = {}
-        for cloud in self.clouds:
-            storageClasses[cloud] = {}
-            for cluster in self.clusters:
+        storageClasses["items"] = []
+        for cloud in self.clouds["items"]:
+            for cluster in self.clusters["items"]:
                 # exclude invalid combinations of cloud/cluster
-                if self.clusters[cluster][3] != cloud:
+                if cluster["cloudID"] != cloud["id"]:
                     continue
-                storageClasses[cloud][cluster] = {}
-                endpoint = f"topology/v1/clouds/{cloud}/clusters/{cluster}/storageClasses"
+                endpoint = (
+                    f"topology/v1/clouds/{cloud['id']}/clusters/{cluster['id']}/storageClasses"
+                )
                 url = self.base + endpoint
 
                 data = {}
@@ -1370,7 +1359,9 @@ class getStorageClasses(SDKCommon):
 
                 if self.verbose:
                     print()
-                    print(f"Listing StorageClasses for cluster: {cluster} in cloud: {cloud}")
+                    print(
+                        f"Listing StorageClasses for cluster: {cluster['id']} in cloud: {cloud['id']}"
+                    )
                     print()
                     print(colored(f"API URL: {url}", "green"))
                     print(colored("API Method: GET", "green"))
@@ -1389,7 +1380,17 @@ class getStorageClasses(SDKCommon):
                     if results is None:
                         continue
                     for entry in results.get("items"):
-                        storageClasses[cloud][cluster][entry.get("id")] = entry.get("name")
+                        # Adding three custom key/value pairs since the storageClasses API response
+                        # doesn't contain cloud or cluster info
+                        if not entry.get("cloudID"):
+                            entry["cloudID"] = cloud["id"]
+                        if not entry.get("cloudType"):
+                            entry["cloudType"] = cloud["cloudType"]
+                        if not entry.get("clusterID"):
+                            entry["clusterID"] = cluster["id"]
+                        if not entry.get("clusterName"):
+                            entry["clusterName"] = cluster["name"]
+                        storageClasses["items"].append(entry)
 
         if self.output == "json":
             dataReturn = storageClasses
@@ -1398,17 +1399,15 @@ class getStorageClasses(SDKCommon):
         elif self.output == "table":
             tabData = []
             tabHeader = ["cloud", "cluster", "storageclassID", "storageclassName"]
-            for cloud in storageClasses:
-                for cluster in storageClasses[cloud]:
-                    for storageClass in storageClasses[cloud][cluster]:
-                        tabData.append(
-                            [
-                                self.clouds[cloud][0],
-                                self.clusters[cluster][0],
-                                storageClass,
-                                storageClasses[cloud][cluster][storageClass],
-                            ]
-                        )
+            for storageClass in storageClasses["items"]:
+                tabData.append(
+                    [
+                        storageClass["cloudType"],
+                        storageClass["clusterName"],
+                        storageClass["id"],
+                        storageClass["name"],
+                    ]
+                )
             dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
 
         if not self.quiet:

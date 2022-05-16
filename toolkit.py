@@ -636,7 +636,8 @@ if __name__ == "__main__":
             for app in namespaces["items"]:
                 namespacesList.append(app["id"])
             destCluster = astraSDK.getClusters().main()
-            destclusterList = [x for x in destCluster.keys()]
+            for cluster in destCluster["items"]:
+                destclusterList.append(cluster["id"])
             backups = astraSDK.getBackups().main()
             if backups is False:
                 print("astraSDK.getBackups().main() failed")
@@ -685,24 +686,22 @@ if __name__ == "__main__":
                     appList.append(app["id"])
             elif sys.argv[verbPosition + 1] == "cluster":
                 clusterDict = astraSDK.getClusters(quiet=True).main()
-                for cluster in clusterDict:
-                    if clusterDict[cluster][2] == "unmanaged":
-                        clusterList.append(cluster)
+                for cluster in clusterDict["items"]:
+                    if cluster["managedState"] == "unmanaged":
+                        clusterList.append(cluster["id"])
                 storageClassDict = astraSDK.getStorageClasses(quiet=True).main()
                 if isinstance(storageClassDict, bool):
                     # astraSDK.getStorageClasses(quiet=True).main() returns either True
                     # or False if it doesn't work, or if there are no clouds or clusters
                     sys.exit(1)
-                for cloud in storageClassDict:
-                    for cluster in storageClassDict[cloud]:
-                        if (
-                            len(sys.argv) - verbPosition >= 3
-                            and sys.argv[verbPosition + 2] in clusterList
-                            and cluster != sys.argv[verbPosition + 2]
-                        ):
-                            continue
-                        for sc in storageClassDict[cloud][cluster]:
-                            storageClassList.append(sc)
+                for storageClass in storageClassDict["items"]:
+                    if (
+                        len(sys.argv) - verbPosition >= 3
+                        and sys.argv[verbPosition + 2] in clusterList
+                        and storageClass["clusterID"] != sys.argv[verbPosition + 2]
+                    ):
+                        continue
+                    storageClassList.append(storageClass["id"])
 
         elif verbs["destroy"] and len(sys.argv) - verbPosition >= 2:
             if sys.argv[verbPosition + 1] == "backup" and len(sys.argv) - verbPosition >= 3:
@@ -729,9 +728,9 @@ if __name__ == "__main__":
 
             elif sys.argv[verbPosition + 1] == "cluster":
                 clusterDict = astraSDK.getClusters(quiet=True).main()
-                for cluster in clusterDict:
-                    if clusterDict[cluster][2] == "managed":
-                        clusterList.append(cluster)
+                for cluster in clusterDict["items"]:
+                    if cluster["managedState"] == "managed":
+                        clusterList.append(cluster["id"])
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
