@@ -392,6 +392,7 @@ class getBackups(SDKCommon):
             "version":"1.1"}],"metadata":{}}
         """
         backups = {}
+        backups["items"] = []
         if self.output == "table":
             globaltabHeader = ["AppID", "backupName", "backupID", "backupState"]
             globaltabData = []
@@ -404,7 +405,7 @@ class getBackups(SDKCommon):
             url = self.base + endpoint
 
             data = {}
-            params = {"include": "name,id,state,metadata"}
+            params = {}
 
             if self.verbose:
                 print(f"Listing Backups for {app['id']} {app['name']}")
@@ -435,49 +436,36 @@ class getBackups(SDKCommon):
                                         'createdBy': '70fa19ad-eb95-4d1c-b5fb-76b7f4214e6c'}]],
                                         'metadata': {}}
                 """
-                backups[app["id"]] = {}
                 for item in results["items"]:
-                    backupName = item[0]
-                    backupID = item[1]
-                    backupState = item[2]
-                    # Strip off the trailing Z from the timestamp.  We know it's UTC and the
-                    # python library we use to process datetimes doesn't handle the
-                    # Zulu time convention that Astra gives us.
-                    backupTimeStamp = item[3].get("creationTimestamp")[:-1]
-                    # TODO: the backupName is just a label and Astra can have
-                    # multiple backups of an app with the same name.
-                    # This should be switched to have the backupID as the key.
-                    if backupName not in backups[app["id"]]:
-                        backups[app["id"]][backupName] = [
-                            backupID,
-                            backupState,
-                            backupTimeStamp,
-                        ]
+                    # Adding custom 'appID' key/value pair
+                    if not item.get("appID"):
+                        item["appID"] = app["id"]
+                    backups["items"].append(item)
                 if self.output == "table":
                     tabHeader = ["backupName", "backupID", "backupState"]
                     tabData = []
-                    for item in backups[app["id"]]:
+                    for backup in results["items"]:
                         tabData.append(
                             [
-                                item,
-                                backups[app["id"]][item][0],
-                                backups[app["id"]][item][1],
+                                backup["name"],
+                                backup["id"],
+                                backup["state"],
                             ]
                         )
                         globaltabData.append(
                             [
                                 app["id"],
-                                item,
-                                backups[app["id"]][item][0],
-                                backups[app["id"]][item][1],
+                                backup["name"],
+                                backup["id"],
+                                backup["state"],
                             ]
                         )
                 if not self.quiet and self.verbose:
                     print(f"Backups for {app['id']}")
                     if self.output == "json":
-                        print(json.dumps(backups[app["id"]]))
+                        print(json.dumps(results))
                     elif self.output == "yaml":
-                        print(yaml.dump(backups[app["id"]]))
+                        print(yaml.dump(results))
                     elif self.output == "table":
                         print(tabulate(tabData, tabHeader, tablefmt="grid"))
                         print()
@@ -1111,9 +1099,11 @@ class getSnaps(SDKCommon):
             return True
 
         snaps = {}
+        snaps["items"] = []
         if self.output == "table":
             globaltabHeader = ["appID", "snapshotName", "snapshotID", "snapshotState"]
             globaltabData = []
+
         for app in self.apps["items"]:
             if appFilter:
                 if app["name"] != appFilter and app["id"] != appFilter:
@@ -1122,7 +1112,7 @@ class getSnaps(SDKCommon):
             url = self.base + endpoint
 
             data = {}
-            params = {"include": "name,id,state"}
+            params = {}
 
             if self.verbose:
                 print(f"Listing Snapshots for {app['id']} {app['name']}")
@@ -1142,41 +1132,36 @@ class getSnaps(SDKCommon):
                 results = super().jsonifyResults(ret)
                 if results is None:
                     continue
-                snaps[app["id"]] = {}
                 for item in results["items"]:
-                    snapName = item[0]
-                    snapID = item[1]
-                    snapState = item[2]
-                    if snapName not in snaps[app["id"]]:
-                        snaps[app["id"]][snapName] = [
-                            snapID,
-                            snapState,
-                        ]
+                    # Adding custom 'appID' key/value pair
+                    if not item.get("appID"):
+                        item["appID"] = app["id"]
+                    snaps["items"].append(item)
                 if self.output == "table":
                     tabHeader = ["snapshotName", "snapshotID", "snapshotState"]
                     tabData = []
-                    for item in snaps[app["id"]]:
+                    for snap in results["items"]:
                         tabData.append(
                             [
-                                item,
-                                snaps[app["id"]][item][0],
-                                snaps[app["id"]][item][1],
+                                snap["name"],
+                                snap["id"],
+                                snap["state"],
                             ]
                         )
                         globaltabData.append(
                             [
                                 app["id"],
-                                item,
-                                snaps[app["id"]][item][0],
-                                snaps[app["id"]][item][1],
+                                snap["name"],
+                                snap["id"],
+                                snap["state"],
                             ]
                         )
                 if not self.quiet and self.verbose:
                     print(f"Snapshots for {app['id']}")
                     if self.output == "json":
-                        print(json.dumps(snaps[app["id"]]))
+                        print(json.dumps(results))
                     elif self.output == "yaml":
-                        print(yaml.dump(snaps[app["id"]]))
+                        print(yaml.dump(results))
                     elif self.output == "table":
                         print(tabulate(tabData, tabHeader, tablefmt="grid"))
                         print()

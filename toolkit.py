@@ -27,7 +27,17 @@ import time
 import yaml
 
 
-def newUserSelect(pickList, keys):
+def subKeys(subObject, key):
+    """Short recursion function for when the userSelect dict object has another
+    dict as one of its key's values"""
+    subKey = key.split("/", maxsplit=1)
+    if len(subKey) == 1:
+        return subObject[subKey[0]]
+    else:
+        return subKeys(subObject[subKey[0]], subKey[1])
+
+
+def userSelect(pickList, keys):
     """pickList is a dictionary with an 'items' array of dicts.  Print the values
     that match the 'keys' array, have the user pick one and then return the value
     of index 0 of the keys array"""
@@ -46,7 +56,9 @@ def newUserSelect(pickList, keys):
         outputStr = str(counter) + ":\t"
         for key in keys:
             if item.get(key):
-                outputStr += item[key] + "\t"
+                outputStr += str(item[key]) + "\t"
+            elif "/" in key:
+                outputStr += subKeys(item, key) + "\t"
         print(outputStr)
 
     while True:
@@ -59,45 +71,6 @@ def newUserSelect(pickList, keys):
             else:
                 continue
         except (IndexError, TypeError, ValueError):
-            continue
-
-
-def userSelect(pickList):
-    """pickList is a dictionary of keys that are objIDs and values that are a list.
-    Print the items in the dictionary, have the user pick one
-    then return the key (presumably an objID) of what they picked"""
-    # Rather than just index the existing dictionary create a parallel dictionary
-    # with the index and key of the passed in dict.
-    # picklist = {"deadc0de": ["test-1", "gke"],
-    #             "deadbeef": ["test-2", "aks"]
-    #            }
-    # choicesDict = {1: "deadc0de".
-    #                 2: "deadbeef"
-    #                }
-
-    if not isinstance(pickList, dict):
-        return False
-
-    choicesDict = {}
-    for counter, item in enumerate(pickList, start=1):
-        if isinstance(pickList[item], list):
-            choicesDict[counter] = item
-            # the third %s prints lists with an arbitrary number of items
-            print("%s:\t%s\t%s" % (counter, item, "\t".join(pickList[item])))
-        else:
-            print(f"Skipping key: {item} with non-list value")
-    while True:
-        ret = input(f"Select a line (1-{counter}): ")
-        try:
-            # choicesDict.get() returns None if the index isn't
-            # in the dict, the try/except catches cases where the
-            # user enters something other than a number.
-            objectID = choicesDict.get(int(ret))
-            if objectID:
-                return objectID
-            else:
-                continue
-        except ValueError:
             continue
 
 
@@ -190,17 +163,17 @@ def doProtectionTask(protectionType, appID, name, background):
             # protection job failed.  The protection job itself may eventually succeed.
             print(f"Taking {protectionType} failed")
             return False
-        for obj in objects[appID]:
+        for obj in objects["items"]:
             # There's no API for monitoring long running tasks.  Just because
             # the API call to create a backup/snapshot succeeded, that doesn't mean the
             # actual backup will succeed as well.  So we spin on checking the backups/snapshots
             # waiting for our backupsnapshot to either show completed or failed.
-            if objects[appID][obj][0] == protectionID:
-                if objects[appID][obj][1] == "completed":
+            if obj["id"] == protectionID:
+                if obj["state"] == "completed":
                     print("complete!")
                     sys.stdout.flush()
                     return protectionID
-                elif objects[appID][obj][1] == "failed":
+                elif obj["state"] == "failed":
                     print(f"{protectionType} job failed")
                     return False
         time.sleep(5)
@@ -645,9 +618,8 @@ if __name__ == "__main__":
             elif backups is True:
                 print("No backups found")
                 sys.exit(1)
-            for appID in backups:
-                for backupItem in backups[appID]:
-                    backupList.append(backups[appID][backupItem][0])
+            for backup in backups["items"]:
+                backupList.append(backup["id"])
 
         elif verbs["restore"]:
             for app in astraSDK.getApps().main()["items"]:
@@ -658,16 +630,19 @@ if __name__ == "__main__":
                 # If that arg after the verb "restore" matches an appID then
                 # populate the lists of backups and snapshots for that appID
                 backups = astraSDK.getBackups().main()
-                for appID in backups:
-                    if appID == sys.argv[verbPosition + 1]:
-                        for backupItem in backups[appID]:
-                            backupList.append(backups[appID][backupItem][0])
+                for backup in backups["items"]:
+                    if (
+                        backup["appID"] == sys.argv[verbPosition + 1]
+                        or backup["appID"] == sys.argv[verbPosition + 2]
+                    ):
+                        backupList.append(backup["id"])
                 snapshots = astraSDK.getSnaps().main()
-                for appID in snapshots:
-                    # TODO: fix this hardcoding
-                    if appID == sys.argv[2] or (len(sys.argv) > 3 and appID == sys.argv[3]):
-                        for snapshotItem in snapshots[appID]:
-                            snapshotList.append(snapshots[appID][snapshotItem][0])
+                for snapshot in snapshots["items"]:
+                    if (
+                        snapshot["appID"] == sys.argv[verbPosition + 1]
+                        or snapshot["appID"] == sys.argv[verbPosition + 2]
+                    ):
+                        snapshotList.append(backup["id"])
         elif (
             verbs["create"]
             and len(sys.argv) - verbPosition >= 2
@@ -708,18 +683,16 @@ if __name__ == "__main__":
                 for app in astraSDK.getApps().main()["items"]:
                     appList.append(app["id"])
                 backups = astraSDK.getBackups().main()
-                for appID in backups:
-                    if appID == sys.argv[verbPosition + 2]:
-                        for backupItem in backups[appID]:
-                            backupList.append(backups[appID][backupItem][0])
+                for backup in backups["items"]:
+                    if backup["appID"] == sys.argv[verbPosition + 2]:
+                        backupList.append(backup["id"])
             elif sys.argv[verbPosition + 1] == "snapshot" and len(sys.argv) - verbPosition >= 3:
                 for app in astraSDK.getApps().main()["items"]:
                     appList.append(app["id"])
                 snapshots = astraSDK.getSnaps().main()
-                for appID in snapshots:
-                    if appID == sys.argv[verbPosition + 2]:
-                        for snapshotItem in snapshots[appID]:
-                            snapshotList.append(snapshots[appID][snapshotItem][0])
+                for snapshot in snapshots["items"]:
+                    if snapshot["appID"] == sys.argv[verbPosition + 2]:
+                        snapshotList.append(snapshot["id"])
 
         elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
             if sys.argv[verbPosition + 1] == "app":
@@ -1531,8 +1504,8 @@ if __name__ == "__main__":
     elif args.subcommand == "clone":
         if not args.clusterID:
             print("Select destination cluster for the clone")
-            print("Index\tClusterID\tclusterName\tclusterPlatform")
-            args.clusterID = userSelect(destCluster)
+            print("Index\tClusterID\t\t\t\tclusterName\tclusterPlatform")
+            args.clusterID = userSelect(destCluster, ["id", "name", "clusterType"])
         if not args.destNamespace:
             args.destNamespace = input(
                 "Namespace for the clone "
@@ -1559,36 +1532,26 @@ if __name__ == "__main__":
                         break
                     else:
                         print("Enter sourceNamespace or backupID")
-                # namespaces: {'f28c0716-310b-4389-8187-58e9502bc860':
-                #              ['failoverfriday',
-                #               'cluster-2-jp',
-                #               '91ef5e4b-b5fd-4839-9df1-fa6f015f5acd',
-                #               'namespace']}
                 if retval == "sourceNamespace":
                     print("Select source namespace to be cloned")
-                    print("Index\tAppID\tappName\tclusterName\tClusterID")
-                    args.sourceNamespace = newUserSelect(
+                    print("Index\tAppID\t\t\t\t\tappName\t\tclusterName\tClusterID")
+                    args.sourceNamespace = userSelect(
                         namespaces, ["id", "name", "clusterName", "clusterID"]
                     )
-                    appBackups = backups[args.sourceNamespace]
-                    """
-                    appBackups: {'failoverfriday-backup-20210713192550':
-                                    ['d1625f68-6dc9-45b8-b80f-81785d9e25d3',
-                                     'completed',
-                                     '2021-07-13T19:25:53'],
-                                 'hourly-qpwfl-lebau':
-                                    ['7bedcb38-ec3e-4a60-9df0-8a77e050cf2f',
-                                     'completed',
-                                     '2021-07-13T20:00:00']
-                    """
                     appBackupscooked = {}
-                    for k, v in appBackups.items():
-                        if v[1] == "completed":
-                            appBackupscooked[v[0]] = [k, v[2], args.sourceNamespace]
-                    if appBackupscooked:
+                    appBackupscooked["items"] = []
+                    for backup in backups["items"]:
+                        if (
+                            backup["appID"] == args.sourceNamespace
+                            and backup["state"] == "completed"
+                        ):
+                            appBackupscooked["items"].append(backup)
+                    if len(appBackupscooked["items"]) > 0:
                         print("Select source backup")
-                        print("Index\tBackupID\tBackupName\tTimestamp\tAppID")
-                        args.backupID = userSelect(appBackupscooked)
+                        print("Index\tBackupID\t\t\t\tBackupName\t\tTimestamp\t\tAppID")
+                        args.backupID = userSelect(
+                            appBackupscooked, ["id", "name", "metadata/creationTimestamp", "appID"]
+                        )
                         print(f"args.backupID: {args.backupID}")
                     else:
                         # Take a backup
@@ -1603,25 +1566,28 @@ if __name__ == "__main__":
                     # No namespace or backupID was specified on the CLI
                     # user opted to specify a backupID, from there we
                     # can work backwards to get the namespace.
-                    backupDict = {}
-                    for appID in backups:
-                        for k, v in backups[appID].items():
-                            if v[1] == "completed":
-                                backupDict[v[0]] = [k, v[2], appID]
-                    if not backupDict:
+                    appBackupscooked = {}
+                    appBackupscooked["items"] = []
+                    for backup in backups["items"]:
+                        if backup["state"] == "completed":
+                            appBackupscooked["items"].append(backup)
+                    if len(appBackupscooked["items"]) == 0:
                         print("No backups found.")
                         sys.exit(6)
-                    print("Index\tBackupID\tBackupName\tTimestamp\tappID")
-                    args.backupID = userSelect(backupDict)
-                    args.sourceNamespace = backupDict[args.backupID][2]
+                    print("Index\tBackupID\t\t\t\tBackupName\t\tTimestamp\t\tAppID")
+                    args.backupID = userSelect(
+                        appBackupscooked, ["id", "name", "metadata/creationTimestamp", "appID"]
+                    )
+                    for backup in backups["items"]:
+                        if backup["id"] == args.backupID:
+                            args.sourceNamespace = backup["appID"]
 
             else:
                 # no source namespace/app but we have a backupID
                 # work backwards to get the appID
-                for appID in backups.keys():
-                    for backup in backups[appID].keys():
-                        if backups[appID][backup][0] == args.backupID:
-                            args.sourceNamespace = appID
+                for backup in backups["items"]:
+                    if backup["id"] == args.backupID:
+                        args.sourceNamespace = backup["appID"]
                 if not args.sourceNamespace:
                     print("Can't determine appID from backupID")
                     sys.exit(9)
@@ -1629,25 +1595,17 @@ if __name__ == "__main__":
             # we have a source namespace/app
             # if we have a backupID we have everything we need
             if not args.backupID:
-                appBackups = backups[args.sourceNamespace]
-                """
-                appBackups: {'failoverfriday-backup-20210713192550':
-                                ['d1625f68-6dc9-45b8-b80f-81785d9e25d3',
-                                 'completed',
-                                 '2021-07-13T19:25:53'],
-                             'hourly-qpwfl-lebau':
-                                ['7bedcb38-ec3e-4a60-9df0-8a77e050cf2f',
-                                 'completed',
-                                 '2021-07-13T20:00:00']
-                """
                 appBackupscooked = {}
-                for k, v in appBackups.items():
-                    if v[1] == "completed":
-                        appBackupscooked[v[0]] = [k, v[2], args.sourceNamespace]
-                if appBackupscooked:
+                appBackupscooked["items"] = []
+                for backup in backups["items"]:
+                    if backup["appID"] == args.sourceNamespace and backup["state"] == "completed":
+                        appBackupscooked["items"].append(backup)
+                if len(appBackupscooked["items"]) > 0:
                     print("Select source backup")
-                    print("Index\tBackupID\tBackupName\tTimestamp\tAppID")
-                    args.backupID = userSelect(appBackupscooked)
+                    print("Index\tBackupID\t\t\t\tBackupName\t\tTimestamp\t\tAppID")
+                    args.backupID = userSelect(
+                        appBackupscooked, ["id", "name", "metadata/creationTimestamp", "appID"]
+                    )
                     print(f"args.backupID: {args.backupID}")
                 else:
                     # Take a backup
