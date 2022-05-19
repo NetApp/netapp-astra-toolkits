@@ -2,7 +2,7 @@
 
 ## Installation and Configuration
 
-See [the main README](../../README.md) for information on how to install the NetApp Astra Control SDK.
+See [the main README](../README.md) for information on how to install the NetApp Astra Control SDK.
 
 ## Astra SDK Classes
 
