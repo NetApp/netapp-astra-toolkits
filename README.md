@@ -16,19 +16,19 @@ To use the prepared Docker image (recommended) to run the NetApp Astra Control T
 
 * One or more running compute clusters managed by NetApp Astra Control.
 * Required software installed:
-    * Docker 20.10.7+
+  * Docker 20.10.7+
 
 To manually run the NetApp Astra Control Toolkit:
 
 * One or more running compute clusters managed by NetApp Astra Control.
 * Required software installed:
-    * Python 3.5+
-    * Pip 21.1.2+
-    * Virtualenv 20.4.7+
-    * Git 2.30.2+
-    * Kubectl 1.17+
-    * Azure CLI (`az`) 2.25.0+ or Google Cloud SDK (`gcloud`) 345.0.0+
-    * Helm 3.2.1+
+  * Python 3.5+
+  * Pip 21.1.2+
+  * Virtualenv 20.4.7+
+  * Git 2.30.2+
+  * Kubectl 1.17+
+  * Azure CLI (`az`) 2.25.0+ or Google Cloud SDK (`gcloud`) 345.0.0+
+  * Helm 3.2.1+
 
 ### Install Using Docker (Recommended)
 
@@ -63,11 +63,11 @@ Edit the `config.yaml` file to add your NetApp Astra Control account information
 
 You can find this information in your NetApp Astra Control account profile. Click the user icon in the upper right-hand corner, then choose **API Access** from the drop-down menu which appears.
 
-![Locate your Astra Control profile](./docs/img/astra-profile.png)
+![Locate your Astra Control profile](./docs/install/img/astra-profile.png)
 
 Copy and paste your Astra Control account ID into the `config.yaml` file.
 
-![Locate your Astra Control account ID](./docs/img/astra-account-info.png)
+![Locate your Astra Control account ID](./docs/install/img/astra-account-info.png)
 
 To get your API token, click **+ Generate API token**. Generate a new API token, then copy and paste the token into the `config.yaml`
 
@@ -122,11 +122,11 @@ Edit the `config.yaml` file to add your NetApp Astra account information.
 
 You can find this information in your NetApp Astra account profile. Click the user icon in the upper right-hand corner, then choose **API Access** from the drop-down menu which appears.
 
-![Locate your Astra profile](./docs/img/astra-profile.png)
+![Locate your Astra profile](./docs/install/img/astra-profile.png)
 
 Copy and paste your Astra account ID into the `config.yaml` file.
 
-![Locate your Astra account ID](./docs/img/astra-account-info.png)
+![Locate your Astra account ID](./docs/install/img/astra-account-info.png)
 
 To get your API token, click **+ Generate API token**. Generate a new API token, then copy and paste the token into the `config.yaml`
 
