@@ -608,7 +608,7 @@ if __name__ == "__main__":
             namespaces = astraSDK.getApps().main(source="namespace")
             for app in namespaces["items"]:
                 namespacesList.append(app["id"])
-            destCluster = astraSDK.getClusters().main()
+            destCluster = astraSDK.getClusters().main(hideUnmanaged=True)
             for cluster in destCluster["items"]:
                 destclusterList.append(cluster["id"])
             backups = astraSDK.getBackups().main()
