@@ -91,6 +91,10 @@ def updateHelm():
         # [{'name': 'stable', 'url': 'https://charts.helm.sh/stable'},
         #  {'name': 'bitnami', 'url': 'https://charts.bitnami.com/bitnami'}
         # ]
+        # Adding support for user-defined repos
+        for item in retYaml:
+            if item.get("url") not in repos:
+                repos[item.get("url")] = None
         for repoUrlToMatch in repos:
             for item in retYaml:
                 if item.get("url") == repoUrlToMatch:
@@ -875,14 +879,14 @@ if __name__ == "__main__":
     #######
     subparserListClusters.add_argument(
         "-m",
-        "--hide-managed",
+        "--hideManaged",
         default=False,
         action="store_true",
         help="Hide managed clusters",
     )
     subparserListClusters.add_argument(
         "-u",
-        "--hide-unmanaged",
+        "--hideUnmanaged",
         default=False,
         action="store_true",
         help="Hide unmanaged clusters",
@@ -1363,7 +1367,7 @@ if __name__ == "__main__":
         elif args.objectType == "clusters":
             rc = astraSDK.getClusters(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(hideManaged=args.managed, hideUnmanaged=args.unmanaged)
+            ).main(hideManaged=args.hideManaged, hideUnmanaged=args.hideUnmanaged)
             if rc is False:
                 print("astraSDK.getClusters() Failed")
                 sys.exit(1)
