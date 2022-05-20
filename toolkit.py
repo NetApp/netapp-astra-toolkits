@@ -616,7 +616,7 @@ if __name__ == "__main__":
                 print("astraSDK.getBackups().main() failed")
                 sys.exit(1)
             elif backups is True:
-                print("No backups found")
+                print("No apps found")
                 sys.exit(1)
             for backup in backups["items"]:
                 backupList.append(backup["id"])
