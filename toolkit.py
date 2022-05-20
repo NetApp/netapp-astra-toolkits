@@ -875,14 +875,14 @@ if __name__ == "__main__":
     #######
     subparserListClusters.add_argument(
         "-m",
-        "--managed",
+        "--hide-managed",
         default=False,
         action="store_true",
         help="Hide managed clusters",
     )
     subparserListClusters.add_argument(
         "-u",
-        "--unmanaged",
+        "--hide-unmanaged",
         default=False,
         action="store_true",
         help="Hide unmanaged clusters",
