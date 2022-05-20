@@ -631,16 +631,16 @@ if __name__ == "__main__":
                 # populate the lists of backups and snapshots for that appID
                 backups = astraSDK.getBackups().main()
                 for backup in backups["items"]:
-                    if (
-                        backup["appID"] == sys.argv[verbPosition + 1]
-                        or backup["appID"] == sys.argv[verbPosition + 2]
+                    if backup["appID"] == sys.argv[verbPosition + 1] or (
+                        len(sys.argv) > verbPosition + 2
+                        and backup["appID"] == sys.argv[verbPosition + 2]
                     ):
                         backupList.append(backup["id"])
                 snapshots = astraSDK.getSnaps().main()
                 for snapshot in snapshots["items"]:
-                    if (
-                        snapshot["appID"] == sys.argv[verbPosition + 1]
-                        or snapshot["appID"] == sys.argv[verbPosition + 2]
+                    if snapshot["appID"] == sys.argv[verbPosition + 1] or (
+                        len(sys.argv) > verbPosition + 2
+                        and snapshot["appID"] == sys.argv[verbPosition + 2]
                     ):
                         snapshotList.append(backup["id"])
         elif (
