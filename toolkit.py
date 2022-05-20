@@ -875,14 +875,14 @@ if __name__ == "__main__":
     #######
     subparserListClusters.add_argument(
         "-m",
-        "--hide-managed",
+        "--hideManaged",
         default=False,
         action="store_true",
         help="Hide managed clusters",
     )
     subparserListClusters.add_argument(
         "-u",
-        "--hide-unmanaged",
+        "--hideUnmanaged",
         default=False,
         action="store_true",
         help="Hide unmanaged clusters",
@@ -1363,7 +1363,7 @@ if __name__ == "__main__":
         elif args.objectType == "clusters":
             rc = astraSDK.getClusters(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(hideManaged=args.managed, hideUnmanaged=args.unmanaged)
+            ).main(hideManaged=args.hideManaged, hideUnmanaged=args.hideUnmanaged)
             if rc is False:
                 print("astraSDK.getClusters() Failed")
                 sys.exit(1)
