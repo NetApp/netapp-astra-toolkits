@@ -91,6 +91,10 @@ def updateHelm():
         # [{'name': 'stable', 'url': 'https://charts.helm.sh/stable'},
         #  {'name': 'bitnami', 'url': 'https://charts.bitnami.com/bitnami'}
         # ]
+        # Adding support for user-defined repos
+        for item in retYaml:
+            if item.get("url") not in repos:
+                repos[item.get("url")] = None
         for repoUrlToMatch in repos:
             for item in retYaml:
                 if item.get("url") == repoUrlToMatch:
