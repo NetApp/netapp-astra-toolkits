@@ -20,6 +20,7 @@ import os
 import sys
 import yaml
 import json
+import copy
 from tabulate import tabulate
 from termcolor import colored
 import requests
@@ -197,10 +198,7 @@ class getApps(SDKCommon):
             return False
 
         endpoint = "topology/v1/apps"
-        params = {
-            "include": "name,id,clusterName,clusterID,namespace,state,"
-            "managedState,appDefnSource,metadata"
-        }
+        params = {}
         url = self.base + endpoint
         data = {}
 
@@ -224,200 +222,92 @@ class getApps(SDKCommon):
             print()
 
         if ret.ok:
-            results = super().jsonifyResults(ret)
+            apps = super().jsonifyResults(ret)
+            appsCooked = copy.deepcopy(apps)
             """
-            "name,id,clusterName,clusterID,namespace,state,managedState,appDefnSource,metadata"
-            self.results = {'items':
-                [
-                    ['kube-system', '1167745f-ed9f-4903-bcec-f87e30c35604',
-                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'kube-system', 'running', 'unmanaged', 'other',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
-                     'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
-
-                    ['trident', '97406814-72d6-4b01-a706-7697db1648f9',
-                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'trident', 'running', 'unmanaged', 'other',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
-                     'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
-
-                    ['wp', 'c1ece492-56f5-4c9a-a93d-eb73e5e22209',
-                    'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                    'wp', 'running', 'managed', 'namespace',
-                    {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
-                    'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
-
-                    ['wp-mariadb', 'ee0f15cb-757f-4bf8-8e74-40092f166922',
-                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'wp', 'running', 'managed', 'helm',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
-                     'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}],
-
-                    ['wp-wordpress', '21c39321-c489-4042-bb13-e1cf967b0bdd',
-                     'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'wp', 'running', 'unmanaged', 'helm',
-                     {'labels': [{'name': 'astra.netapp.io/labels/app.ignore', 'value': 'true'}],
-                      'creationTimestamp': '2021-12-08T20:26:48Z',
-                      'modificationTimestamp': '2021-12-08T22:56:56Z', 'createdBy': 'system'}]
-                    ],
-                    'metadata': {}
-                    }
+            self.results = {"items":[
+                    {
+                        "appDefnSource":"namespace",
+                        "appLabels":[],
+                        "clusterID":"420a9ab0-1608-4e2e-a5ed-ca5b26a7fe69",
+                        "clusterName":"useast1-cluster",
+                        "clusterType":"gke",
+                        "collectionState":"fullyCollected",
+                        "collectionStateDetails":[],
+                        "collectionStateTransitions":[
+                            {
+                                "from":"notCollected",
+                                "to":["partiallyCollected", "fullyCollected"]
+                            },
+                            {
+                                "from":"partiallyCollected",
+                                "to":["fullyCollected"]
+                            },
+                            {
+                                "from":"fullyCollected",
+                                "to":[]
+                            }
+                        ],
+                        "id":"d8cf2f17-d8d6-4b9f-aa42-f945d43b9a87",
+                        "managedState":"managed",
+                        "managedStateUnready":[],
+                        "managedTimestamp":"2022-05-12T14:35:36Z",
+                        "metadata":{
+                            "createdBy":"system",
+                            "creationTimestamp":"2022-05-12T14:35:27Z",
+                            "labels":[],
+                            "modificationTimestamp":"2022-05-12T18:47:45Z"
+                        },
+                        "name":"wordpress-ns",
+                        "namespace":"wordpress-ns",
+                        "pods":<OMITTED>,
+                        "protectionState":"protected",
+                        "protectionStateUnready":[],
+                        "state":"running",
+                        "stateUnready":[],
+                        "system":"false",
+                        "type":"application/astra-app",
+                        "version":"1.1"
+                    }],
+                "metadata":{}
+            }
             """
-            apps = {}
-            for item in results.get("items"):
-                # make item[1] (appID) the key in apps
-                if item[1] not in apps:
-                    appID = item.pop(1)
-                    apps[appID] = item
-            """
-            apps:
-             {
-                '1167745f-ed9f-4903-bcec-f87e30c35604':
-                    ['kube-system', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'kube-system', 'running', 'unmanaged', 'other',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
-                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
-                '97406814-72d6-4b01-a706-7697db1648f9':
-                    ['trident', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'trident', 'running', 'unmanaged', 'other',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:24:00Z',
-                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
-                'c1ece492-56f5-4c9a-a93d-eb73e5e22209':
-                    ['wp', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'wp', 'running', 'managed', 'namespace',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
-                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
-                'ee0f15cb-757f-4bf8-8e74-40092f166922':
-                    ['wp-mariadb', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'wp', 'running', 'managed', 'helm',
-                     {'labels': [], 'creationTimestamp': '2021-12-08T20:26:48Z',
-                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}],
-                '21c39321-c489-4042-bb13-e1cf967b0bdd':
-                    ['wp-wordpress', 'cluster-1-jp', '23c781a4-51f4-4b1e-a84a-c3e88ecd5f15',
-                     'wp', 'running', 'unmanaged', 'helm',
-                     {'labels': [{'name': 'astra.netapp.io/labels/app.ignore', 'value': 'true'}],
-                      'creationTimestamp': '2021-12-08T20:26:48Z',
-                      'modificationTimestamp': '2021-12-08T23:09:34Z', 'createdBy': 'system'}]
-             }
-            """
-            systemApps = ["trident", "kube-system"]
+
             if discovered:
                 managedFilter = "unmanaged"
             else:
                 managedFilter = "managed"
 
-            # There's really 24 cases here.  managed, unmanaged or unmanaged AND ignored,
-            # each with eight combinations of source, namespace, and cluster
-            # source    |y|n|
-            # namespace |y|n|
-            # cluster   |y|n|
+            # Loop through all apps and delete those that don't match filters
+            for counter, app in enumerate(apps.get("items")):
 
-            # Break the processing into two passes so we don't need to handle 24 cases.
-            # For the first pass filter on ignored or not ignored
-            if ignored:
-                appsPrecooked = {}
-                for k, v in apps.items():
-                    for item in v[7]["labels"]:
-                        if (
-                            item["name"] == "astra.netapp.io/labels/app.ignore"
-                            and item["value"] == "true"
-                        ):
-                            appsPrecooked[k] = v
-            else:
-                appsPrecooked = {}
-                for k, v in apps.items():
-                    ignoreFound = False
-                    for item in v[7]["labels"]:
-                        if (
-                            item["name"] == "astra.netapp.io/labels/app.ignore"
-                            and item["value"] == "true"
-                        ):
-                            ignoreFound = True
-                    if not ignoreFound:
-                        appsPrecooked[k] = v
+                # Find ignored apps based on labels
+                ignoreFound = False
+                for label in app["metadata"]["labels"]:
+                    if (
+                        label["name"] == "astra.netapp.io/labels/app.ignore"
+                        and label["value"] == "true"
+                    ):
+                        ignoreFound = True
 
-            # This is the second pass for filtering.  Notice that managedFilter can be
-            # either managed or unmanaged, so there are 8 filters that handle the
-            # remaining 16 cases.
-            if source:
-                if namespace:
-                    if cluster:
-                        # case 1: filter on source, namespace, and cluster
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps
-                            and v[1] == cluster
-                            and v[3] == namespace
-                            and v[5] == managedFilter
-                            and v[6] == source
-                        }
-                    else:
-                        # case 2: filter on source, namespace
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps
-                            and v[3] == namespace
-                            and v[5] == managedFilter
-                            and v[6] == source
-                        }
-                else:
-                    if cluster:
-                        # case 3: filter on source, cluster
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps
-                            and v[1] == cluster
-                            and v[5] == managedFilter
-                            and v[6] == source
-                        }
-                    else:
-                        # case 4: filter on source
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps and v[5] == managedFilter and v[6] == source
-                        }
-            else:
-                if namespace:
-                    if cluster:
-                        # case 5: filter on namespace, cluster
-                        if namespace:
-                            appsCooked = {
-                                k: v
-                                for (k, v) in appsPrecooked.items()
-                                if v[0] not in systemApps
-                                and v[1] == cluster
-                                and v[3] == namespace
-                                and v[5] == managedFilter
-                            }
-                    else:
-                        # case 6: filter on namespace
-                        if namespace:
-                            appsCooked = {
-                                k: v
-                                for (k, v) in appsPrecooked.items()
-                                if v[0] not in systemApps
-                                and v[3] == namespace
-                                and v[5] == managedFilter
-                            }
-                else:
-                    if cluster:
-                        # case 7: filtering on cluster, but not source or namespace
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps and v[1] == cluster and v[5] == managedFilter
-                        }
-                    else:
-                        # case 8: not filtering on source, namespace, OR cluster
-                        appsCooked = {
-                            k: v
-                            for (k, v) in appsPrecooked.items()
-                            if v[0] not in systemApps and v[5] == managedFilter
-                        }
+                # If there's a given filter, delete non-matching values
+                if app["system"] == "true":
+                    appsCooked["items"].remove(apps["items"][counter])
+                elif (ignored and not ignoreFound) or (not ignored and ignoreFound):
+                    appsCooked["items"].remove(apps["items"][counter])
+                elif managedFilter != app["managedState"]:
+                    appsCooked["items"].remove(apps["items"][counter])
+                elif source and source != app["appDefnSource"]:
+                    appsCooked["items"].remove(apps["items"][counter])
+                elif namespace and namespace != app["namespace"]:
+                    appsCooked["items"].remove(apps["items"][counter])
+                elif cluster and cluster != app["clusterName"]:
+                    appsCooked["items"].remove(apps["items"][counter])
+
+            # At this time, pods just seem to muddy the waters with too much info, so delete
+            for app in appsCooked.get("items"):
+                if app.get("pods"):
+                    del app["pods"]
 
             if self.output == "json":
                 dataReturn = appsCooked
@@ -433,15 +323,15 @@ class getApps(SDKCommon):
                     "source",
                 ]
                 tabData = []
-                for item in appsCooked:
+                for app in appsCooked.get("items"):
                     tabData.append(
                         [
-                            appsCooked[item][0],
-                            item,
-                            appsCooked[item][1],
-                            appsCooked[item][3],
-                            appsCooked[item][4],
-                            appsCooked[item][6],
+                            app["name"],
+                            app["id"],
+                            app["clusterName"],
+                            app["namespace"],
+                            app["state"],
+                            app["appDefnSource"],
                         ]
                     )
                 dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
@@ -484,36 +374,41 @@ class getBackups(SDKCommon):
         if self.apps is False:
             print("Call to getApps().main() failed")
             return False
-        if len(self.apps) == 0:
+        if len(self.apps["items"]) == 0:
             return True
 
-        """self.apps = {'739e7b1f-a71a-42bd-ac6f-db3ff9131133':
-            ['jp3k', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-             'jp3k', 'running', 'managed', 'namespace'],
-        '697d2a64-61f0-4958-b746-13248be6e6a1':
-            ['wp-mariadb', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-             'jp3k', 'running', 'managed', 'helm'],
-        'ee7e683c-7532-4f79-9c4b-3e26d8ece391':
-            ['wp-wordpress', 'cluster-2-jp', 'c4ee1e0f-96d5-4746-a415-e58285b403eb',
-             'jp3k', 'running', 'managed', 'helm']}
+        """self.apps = {"items":[{"appDefnSource":"namespace","appLabels":[],
+            "clusterID":"420a9ab0-1608-4e2e-a5ed-ca5b26a7fe69","clusterName":"useast1-cluster",
+            "clusterType":"gke","collectionState":"fullyCollected","collectionStateDetails":[],
+            "collectionStateTransitions":[{"from":"notCollected","to":["partiallyCollected",
+            "fullyCollected"]},{"from":"partiallyCollected","to":["fullyCollected"]},
+            {"from":"fullyCollected","to":[]}],"id":"d8cf2f17-d8d6-4b9f-aa42-f945d43b9a87",
+            "managedState":"managed","managedStateUnready":[],
+            "managedTimestamp":"2022-05-12T14:35:36Z","metadata":{"createdBy":"system",
+            "creationTimestamp":"2022-05-12T14:35:27Z","labels":[],
+            "modificationTimestamp":"2022-05-12T18:47:45Z"},"name":"wordpress-ns",
+            "namespace":"wordpress-ns","protectionState":"protected","protectionStateUnready":[],
+            "state":"running","stateUnready":[],"system":"false","type":"application/astra-app",
+            "version":"1.1"}],"metadata":{}}
         """
         backups = {}
+        backups["items"] = []
         if self.output == "table":
             globaltabHeader = ["AppID", "backupName", "backupID", "backupState"]
             globaltabData = []
 
-        for app in self.apps:
+        for app in self.apps["items"]:
             if appFilter:
-                if self.apps[app][0] != appFilter and app != appFilter:
+                if app["name"] != appFilter and app["id"] != appFilter:
                     continue
-            endpoint = f"k8s/v1/managedApps/{app}/appBackups"  # appID
+            endpoint = f"k8s/v1/managedApps/{app['id']}/appBackups"
             url = self.base + endpoint
 
             data = {}
-            params = {"include": "name,id,state,metadata"}
+            params = {}
 
             if self.verbose:
-                print(f"Listing Backups for {app} {self.apps[app][0]}")
+                print(f"Listing Backups for {app['id']} {app['name']}")
                 print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: GET", "green"))
                 print(colored(f"API Headers: {self.headers}", "green"))
@@ -541,49 +436,36 @@ class getBackups(SDKCommon):
                                         'createdBy': '70fa19ad-eb95-4d1c-b5fb-76b7f4214e6c'}]],
                                         'metadata': {}}
                 """
-                backups[app] = {}
                 for item in results["items"]:
-                    backupName = item[0]
-                    backupID = item[1]
-                    backupState = item[2]
-                    # Strip off the trailing Z from the timestamp.  We know it's UTC and the
-                    # python library we use to process datetimes doesn't handle the
-                    # Zulu time convention that Astra gives us.
-                    backupTimeStamp = item[3].get("creationTimestamp")[:-1]
-                    # TODO: the backupName is just a label and Astra can have
-                    # multiple backups of an app with the same name.
-                    # This should be switched to have the backupID as the key.
-                    if backupName not in backups[app]:
-                        backups[app][backupName] = [
-                            backupID,
-                            backupState,
-                            backupTimeStamp,
-                        ]
+                    # Adding custom 'appID' key/value pair
+                    if not item.get("appID"):
+                        item["appID"] = app["id"]
+                    backups["items"].append(item)
                 if self.output == "table":
                     tabHeader = ["backupName", "backupID", "backupState"]
                     tabData = []
-                    for item in backups[app]:
+                    for backup in results["items"]:
                         tabData.append(
                             [
-                                item,
-                                backups[app][item][0],
-                                backups[app][item][1],
+                                backup["name"],
+                                backup["id"],
+                                backup["state"],
                             ]
                         )
                         globaltabData.append(
                             [
-                                app,
-                                item,
-                                backups[app][item][0],
-                                backups[app][item][1],
+                                app["id"],
+                                backup["name"],
+                                backup["id"],
+                                backup["state"],
                             ]
                         )
                 if not self.quiet and self.verbose:
-                    print(f"Backups for {app}")
+                    print(f"Backups for {app['id']}")
                     if self.output == "json":
-                        print(json.dumps(backups[app]))
+                        print(json.dumps(results))
                     elif self.output == "yaml":
-                        print(yaml.dump(backups[app]))
+                        print(yaml.dump(results))
                     elif self.output == "table":
                         print(tabulate(tabData, tabHeader, tablefmt="grid"))
                         print()
@@ -888,22 +770,23 @@ class getClusters(SDKCommon):
 
     def main(self, hideManaged=False, hideUnmanaged=False):
         clusters = {}
+        clusters["items"] = []
         if self.preflight is False:
             return False
         if self.clouds is False:
             print("Call to get clouds failed")
             return False
-        if len(self.clouds) == 0:
+        if len(self.clouds["items"]) == 0:
             print("No clouds found")
             return True
-        for cloud in self.clouds:
-            endpoint = f"topology/v1/clouds/{cloud}/clusters"
+        for cloud in self.clouds["items"]:
+            endpoint = f"topology/v1/clouds/{cloud['id']}/clusters"
             url = self.base + endpoint
             data = {}
             params = {}
 
             if self.verbose:
-                print(f"Getting clusters in cloud {cloud} ({self.clouds[cloud][0]})...")
+                print(f"Getting clusters in cloud {cloud['id']} ({cloud['name']})...")
                 print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: POST", "green"))
                 print(colored(f"API Headers: {self.headers}", "green"))
@@ -919,19 +802,13 @@ class getClusters(SDKCommon):
             if ret.ok:
                 results = super().jsonifyResults(ret)
                 for item in results["items"]:
-                    if item.get("id") not in clusters:
-                        if hideManaged:
-                            if item.get("managedState") == "managed":
-                                continue
-                        if hideUnmanaged:
-                            if item.get("managedState") == "unmanaged":
-                                continue
-                        clusters[item.get("id")] = [
-                            item.get("name"),
-                            item.get("clusterType"),
-                            item.get("managedState"),
-                            cloud,
-                        ]
+                    if hideManaged:
+                        if item.get("managedState") == "managed":
+                            continue
+                    if hideUnmanaged:
+                        if item.get("managedState") == "unmanaged":
+                            continue
+                    clusters["items"].append(item)
 
         if self.output == "json":
             dataReturn = clusters
@@ -940,13 +817,13 @@ class getClusters(SDKCommon):
         elif self.output == "table":
             tabHeader = ["clusterName", "clusterID", "clusterType", "managedState"]
             tabData = []
-            for item in clusters:
+            for cluster in clusters["items"]:
                 tabData.append(
                     [
-                        clusters[item][0],
-                        item,
-                        clusters[item][1],
-                        clusters[item][2],
+                        cluster["name"],
+                        cluster["id"],
+                        cluster["clusterType"],
+                        cluster["managedState"],
                     ]
                 )
             dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
@@ -1217,26 +1094,28 @@ class getSnaps(SDKCommon):
         if self.apps is False:
             print("Call to getApps() failed")
             return False
-        if len(self.apps) == 0:
+        if len(self.apps["items"]) == 0:
             print("No apps found")
             return True
 
         snaps = {}
+        snaps["items"] = []
         if self.output == "table":
             globaltabHeader = ["appID", "snapshotName", "snapshotID", "snapshotState"]
             globaltabData = []
-        for app in self.apps:
+
+        for app in self.apps["items"]:
             if appFilter:
-                if self.apps[app][0] != appFilter and app != appFilter:
+                if app["name"] != appFilter and app["id"] != appFilter:
                     continue
-            endpoint = f"k8s/v1/managedApps/{app}/appSnaps"
+            endpoint = f"k8s/v1/managedApps/{app['id']}/appSnaps"
             url = self.base + endpoint
 
             data = {}
-            params = {"include": "name,id,state"}
+            params = {}
 
             if self.verbose:
-                print(f"Listing Snapshots for {app} {self.apps[app][0]}")
+                print(f"Listing Snapshots for {app['id']} {app['name']}")
                 print(colored(f"API URL: {url}", "green"))
                 print(colored("API Method: GET", "green"))
                 print(colored(f"API Headers: {self.headers}", "green"))
@@ -1253,41 +1132,36 @@ class getSnaps(SDKCommon):
                 results = super().jsonifyResults(ret)
                 if results is None:
                     continue
-                snaps[app] = {}
                 for item in results["items"]:
-                    snapName = item[0]
-                    snapID = item[1]
-                    snapState = item[2]
-                    if snapName not in snaps[app]:
-                        snaps[app][snapName] = [
-                            snapID,
-                            snapState,
-                        ]
+                    # Adding custom 'appID' key/value pair
+                    if not item.get("appID"):
+                        item["appID"] = app["id"]
+                    snaps["items"].append(item)
                 if self.output == "table":
                     tabHeader = ["snapshotName", "snapshotID", "snapshotState"]
                     tabData = []
-                    for item in snaps[app]:
+                    for snap in results["items"]:
                         tabData.append(
                             [
-                                item,
-                                snaps[app][item][0],
-                                snaps[app][item][1],
+                                snap["name"],
+                                snap["id"],
+                                snap["state"],
                             ]
                         )
                         globaltabData.append(
                             [
-                                app,
-                                item,
-                                snaps[app][item][0],
-                                snaps[app][item][1],
+                                app["id"],
+                                snap["name"],
+                                snap["id"],
+                                snap["state"],
                             ]
                         )
                 if not self.quiet and self.verbose:
-                    print(f"Snapshots for {app}")
+                    print(f"Snapshots for {app['id']}")
                     if self.output == "json":
-                        print(json.dumps(snaps[app]))
+                        print(json.dumps(results))
                     elif self.output == "yaml":
-                        print(yaml.dump(snaps[app]))
+                        print(yaml.dump(results))
                     elif self.output == "table":
                         print(tabulate(tabData, tabHeader, tablefmt="grid"))
                         print()
@@ -1376,7 +1250,7 @@ class getClouds(SDKCommon):
         url = self.base + endpoint
 
         data = {}
-        params = {"include": "id,name,state"}
+        params = {}
 
         if self.verbose:
             print("Getting clouds...")
@@ -1394,26 +1268,19 @@ class getClouds(SDKCommon):
 
         if ret.ok:
             results = super().jsonifyResults(ret)
-            clouds = {}
-            for item in results["items"]:
-                if item.get("id") not in clouds:
-                    clouds[item.get("id")] = [
-                        item.get("name"),
-                        item.get("cloudType"),
-                    ]
             if self.output == "json":
-                dataReturn = clouds
+                dataReturn = results
             elif self.output == "yaml":
-                dataReturn = yaml.dump(clouds)
+                dataReturn = yaml.dump(results)
             elif self.output == "table":
                 tabHeader = ["cloudName", "cloudID", "cloudType"]
                 tabData = []
-                for item in clouds:
+                for cloud in results["items"]:
                     tabData.append(
                         [
-                            clouds[item][0],
-                            item,
-                            clouds[item][1],
+                            cloud["name"],
+                            cloud["id"],
+                            cloud["cloudType"],
                         ]
                     )
                 dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
@@ -1453,22 +1320,23 @@ class getStorageClasses(SDKCommon):
         if self.clusters is False:
             print("getClusters().main() failed")
             return False
-        if len(self.clouds) == 0:
+        if len(self.clouds["items"]) == 0:
             print("No clouds found")
             return True
-        if len(self.clusters) == 0:
+        if len(self.clusters["items"]) == 0:
             print("No clusters found")
             return True
 
         storageClasses = {}
-        for cloud in self.clouds:
-            storageClasses[cloud] = {}
-            for cluster in self.clusters:
+        storageClasses["items"] = []
+        for cloud in self.clouds["items"]:
+            for cluster in self.clusters["items"]:
                 # exclude invalid combinations of cloud/cluster
-                if self.clusters[cluster][3] != cloud:
+                if cluster["cloudID"] != cloud["id"]:
                     continue
-                storageClasses[cloud][cluster] = {}
-                endpoint = f"topology/v1/clouds/{cloud}/clusters/{cluster}/storageClasses"
+                endpoint = (
+                    f"topology/v1/clouds/{cloud['id']}/clusters/{cluster['id']}/storageClasses"
+                )
                 url = self.base + endpoint
 
                 data = {}
@@ -1476,7 +1344,9 @@ class getStorageClasses(SDKCommon):
 
                 if self.verbose:
                     print()
-                    print(f"Listing StorageClasses for cluster: {cluster} in cloud: {cloud}")
+                    print(
+                        f"Listing StorageClasses for cluster: {cluster['id']} in cloud: {cloud['id']}"
+                    )
                     print()
                     print(colored(f"API URL: {url}", "green"))
                     print(colored("API Method: GET", "green"))
@@ -1495,7 +1365,17 @@ class getStorageClasses(SDKCommon):
                     if results is None:
                         continue
                     for entry in results.get("items"):
-                        storageClasses[cloud][cluster][entry.get("id")] = entry.get("name")
+                        # Adding three custom key/value pairs since the storageClasses API response
+                        # doesn't contain cloud or cluster info
+                        if not entry.get("cloudID"):
+                            entry["cloudID"] = cloud["id"]
+                        if not entry.get("cloudType"):
+                            entry["cloudType"] = cloud["cloudType"]
+                        if not entry.get("clusterID"):
+                            entry["clusterID"] = cluster["id"]
+                        if not entry.get("clusterName"):
+                            entry["clusterName"] = cluster["name"]
+                        storageClasses["items"].append(entry)
 
         if self.output == "json":
             dataReturn = storageClasses
@@ -1504,17 +1384,15 @@ class getStorageClasses(SDKCommon):
         elif self.output == "table":
             tabData = []
             tabHeader = ["cloud", "cluster", "storageclassID", "storageclassName"]
-            for cloud in storageClasses:
-                for cluster in storageClasses[cloud]:
-                    for storageClass in storageClasses[cloud][cluster]:
-                        tabData.append(
-                            [
-                                self.clouds[cloud][0],
-                                self.clusters[cluster][0],
-                                storageClass,
-                                storageClasses[cloud][cluster][storageClass],
-                            ]
-                        )
+            for storageClass in storageClasses["items"]:
+                tabData.append(
+                    [
+                        storageClass["cloudType"],
+                        storageClass["clusterName"],
+                        storageClass["id"],
+                        storageClass["name"],
+                    ]
+                )
             dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
 
         if not self.quiet:
