@@ -1,6 +1,6 @@
 # Unmanage
 
-The {{unmanage}} argument allows you to unmanage a currently managed [application](#app), or a currently unmanaged [cluster](#cluster).
+The `unmanage` argument allows you to unmanage a currently managed [application](#app), or a currently unmanaged [cluster](#cluster).
 
 ```bash
 $ ./toolkit.py unmanage -h

@@ -1,17 +1,17 @@
 # List
 
-The {{list}} command shows various resources known to Astra.
+The `list` command shows various resources known to Astra.
 
 * [Apps](#apps)
 * [Backups](#backups)
 * [Clouds](#clouds)
 * [Clusters](#clusters)
-* [Snapshots](#snapshot)
+* [Snapshots](#snapshots)
 * [Storageclasses](#storageclasses)
 
 ## Apps
 
-{{list apps}} displays applications known to Astra.  The default command (without arguments) shows {{managed}} applications, but {{unmanaged}} or {{ignored}} applications can also be shown with optional arguments.  Additionally, apps may be filtered by a cluster name.
+`list apps` displays applications known to Astra.  The default command (without arguments) shows `managed` applications, but `unmanaged` or `ignored` applications can also be shown with optional arguments.  Additionally, apps may be filtered by a cluster name.
 
 Command usage:
 
@@ -76,7 +76,7 @@ $ ./toolkit.py list apps --ignored
 
 ## Backups
 
-{{list backups}} shows all app backups.  They can also be filtered a cluster name.
+`list backups` shows all app backups.  They can also be filtered by an application.
 
 Command usage:
 
@@ -114,7 +114,7 @@ $ ./toolkit.py list backups --app wordpress
 
 ## Clouds
 
-{{list clouds}} shows the clouds that have been added to Astra.  Currently only displaying clouds is possible through the SDK, please utilize the UI for adding or removing clouds.
+`list clouds` shows the clouds that have been added to Astra.  Currently only displaying clouds is possible through the SDK, please utilize the UI for adding or removing clouds.
 
 Command usage:
 
@@ -137,7 +137,7 @@ $ ./toolkit.py list clouds
 
 ## Clusters
 
-{{list clusters}} shows all clusters deployed within the clouds managed by Astra.  By default both managed and unmanaged clusters are displayed, with arguments for hiding either.
+`list clusters` shows all clusters deployed within the clouds managed by Astra.  By default both managed and unmanaged clusters are displayed, with arguments for hiding either.
 
 Command usage:
 
@@ -161,7 +161,7 @@ $ ./toolkit.py list clusters
 ```
 
 ```bash
-$ ./toolkit.py list clusters --hide-managed
+$ ./toolkit.py list clusters --hideManaged
 +--------------------+--------------------------------------+---------------+----------------+
 | clusterName        | clusterID                            | clusterType   | managedState   |
 +====================+======================================+===============+================+
@@ -170,7 +170,7 @@ $ ./toolkit.py list clusters --hide-managed
 ```
 
 ```bash
-$ ./toolkit.py list clusters --hide-unmanaged
+$ ./toolkit.py list clusters --hideUnmanaged
 +-----------------+--------------------------------------+---------------+----------------+
 | clusterName     | clusterID                            | clusterType   | managedState   |
 +=================+======================================+===============+================+
@@ -182,7 +182,7 @@ $ ./toolkit.py list clusters --hide-unmanaged
 
 ## Snapshots
 
-{{list snapshots}} shows all app snapshots.  They can also be filtered a cluster name.
+`list snapshots` shows all app snapshots.  They can also be filtered a cluster name.
 
 Command usage:
 
@@ -218,7 +218,7 @@ $ ./toolkit.py list snapshots --app wordpress-east
 
 ## Storageclasses
 
-{{list storageclasses}} lists the storageclasses of *all* clusters, whether managed or unmanaged.  This command is particularly relevent when [managing a cluster](manage/README.md#cluster) as the default storageclassID is a required argument.
+`list storageclasses` lists the storageclasses of *all* clusters, whether managed or unmanaged.  This command is particularly relevent when [managing a cluster](../manage/README.md#cluster) as the default storageclassID is a required argument.
 
 Command usage:
 

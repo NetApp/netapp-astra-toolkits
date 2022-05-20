@@ -1,6 +1,6 @@
 # Deploy
 
-The {{deploy}} command has the following command syntax:
+The `deploy` command has the following command syntax:
 
 ```bash
 ./toolkit.py deploy <chartname> <appname> <namespacename>
@@ -13,7 +13,7 @@ This command will carry out the following operations on your *current kubeconfig
 1. Checks to ensure that \<namespacename\> does not currently exist on the Kubernetes cluster
 1. Creates the \<namespacename\> namespace on the Kubernetes cluster
 1. Sets the kubeconfig context to utilize the \<namespacename\>
-1. Runs a {{helm install}} command deploying \<chartname\> with the name of \<appname\>
+1. Runs a `helm install` command deploying \<chartname\> with the name of \<appname\>
 1. Waits for Astra Control to discover the newly deployed \<appname\>
 1. Has Astra Control manage the newly discovered \<appname\>
 1. Creates a basic protection policy for the newly managed \<appname\>

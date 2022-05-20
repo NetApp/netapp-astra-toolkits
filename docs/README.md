@@ -10,7 +10,7 @@ Coming soon.
 
 ## Toolkit functions
 
-toolkit.py utilizes {{argparse}} to provide an interactive CLI.  To view the possible arguments, run {{./toolkit.py -h}}:
+toolkit.py utilizes `argparse` to provide an interactive CLI.  To view the possible arguments, run `./toolkit.py -h`:
 
 ```bash
 $ ./toolkit.py -h
