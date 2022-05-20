@@ -48,4 +48,6 @@ For more information on the positional arguments, see the following pages:
 * [Destroy](toolkit/destroy/README.md)
 * [Unmanage](toolkit/unmanage/README.md)
 
-For more information on the optional arguments, please see [this page](toolkit/optionalargs/README.md).
+For more information on the optional arguments, please see the following page:
+
+* [Optional Global Arguments](toolkit/optionalargs/README.md).
