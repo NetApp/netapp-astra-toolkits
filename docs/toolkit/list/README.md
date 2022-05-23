@@ -15,13 +15,13 @@ The `list` command shows various resources known to Astra.
 
 Command usage:
 
-```bash
+```text
 ./toolkit.py list apps <optional-arguments>
 ```
 
 Sample output:
 
-```bash
+```text
 $ ./toolkit.py list apps
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
 | appName        | appID                                | clusterName     | namespace      | state        | source    |
@@ -34,7 +34,7 @@ $ ./toolkit.py list apps
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
 ```
 
-```bash
+```text
 $ ./toolkit.py list apps --cluster useast1-cluster
 +----------------+--------------------------------------+-----------------+-------------+---------+-----------+
 | appName        | appID                                | clusterName     | namespace   | state   | source    |
@@ -43,7 +43,7 @@ $ ./toolkit.py list apps --cluster useast1-cluster
 +----------------+--------------------------------------+-----------------+-------------+---------+-----------+
 ```
 
-```bash
+```text
 $ ./toolkit.py list apps --namespace wordpress-prod
 +----------------+--------------------------------------+-----------------+----------------+---------+-----------+
 | appName        | appID                                | clusterName     | namespace      | state   | source    |
@@ -52,7 +52,7 @@ $ ./toolkit.py list apps --namespace wordpress-prod
 +----------------+--------------------------------------+-----------------+----------------+---------+-----------+
 ```
 
-```bash
+```text
 $ ./toolkit.py list apps --unmanaged
 +-----------------+--------------------------------------+-----------------+------------+---------+----------+
 | appName         | appID                                | clusterName     | namespace  | state   | source   |
@@ -63,7 +63,7 @@ $ ./toolkit.py list apps --unmanaged
 +-----------------+--------------------------------------+-----------------+------------+---------+----------+
 ```
 
-```bash
+```text
 $ ./toolkit.py list apps --ignored
 +---------------+--------------------------------------+-----------------+--------------+---------+----------+
 | appName       | appID                                | clusterName     | namespace    | state   | source   |
@@ -80,13 +80,13 @@ $ ./toolkit.py list apps --ignored
 
 Command usage:
 
-```bash
+```text
 ./toolkit.py list backups <optional-arguments>
 ```
 
 Sample output:
 
-```bash
+```text
 $ ./toolkit.py list backups
 +--------------------------------------+--------------------+--------------------------------------+---------------+
 | AppID                                | backupName         | backupID                             | backupState   |
@@ -101,7 +101,7 @@ $ ./toolkit.py list backups
 +--------------------------------------+--------------------+--------------------------------------+---------------+
 ```
 
-```bash
+```text
 $ ./toolkit.py list backups --app wordpress
 +--------------------------------------+--------------------+--------------------------------------+---------------+
 | AppID                                | backupName         | backupID                             | backupState   |
@@ -118,13 +118,13 @@ $ ./toolkit.py list backups --app wordpress
 
 Command usage:
 
-```bash
+```text
 ./toolkit.py list clouds
 ```
 
 Sample output:
 
-```bash
+```text
 $ ./toolkit.py list clouds
 +-------------+--------------------------------------+-------------+
 | cloudName   | cloudID                              | cloudType   |
@@ -141,13 +141,13 @@ $ ./toolkit.py list clouds
 
 Command usage:
 
-```bash
+```text
 ./toolkit.py list clusters <optional-arguments>
 ```
 
 Sample output:
 
-```bash
+```text
 $ ./toolkit.py list clusters
 +--------------------+--------------------------------------+---------------+----------------+
 | clusterName        | clusterID                            | clusterType   | managedState   |
@@ -160,7 +160,7 @@ $ ./toolkit.py list clusters
 +--------------------+--------------------------------------+---------------+----------------+
 ```
 
-```bash
+```text
 $ ./toolkit.py list clusters --hideManaged
 +--------------------+--------------------------------------+---------------+----------------+
 | clusterName        | clusterID                            | clusterType   | managedState   |
@@ -169,7 +169,7 @@ $ ./toolkit.py list clusters --hideManaged
 +--------------------+--------------------------------------+---------------+----------------+
 ```
 
-```bash
+```text
 $ ./toolkit.py list clusters --hideUnmanaged
 +-----------------+--------------------------------------+---------------+----------------+
 | clusterName     | clusterID                            | clusterType   | managedState   |
@@ -186,13 +186,13 @@ $ ./toolkit.py list clusters --hideUnmanaged
 
 Command usage:
 
-```bash
+```text
 ./toolkit.py list snapshots <optional-arguments>
 ```
 
 Sample output:
 
-```bash
+```text
 $ ./toolkit.py list snapshots
 +--------------------------------------+-------------------------------------+--------------------------------------+-----------------+
 | appID                                | snapshotName                        | snapshotID                           | snapshotState   |
@@ -205,7 +205,7 @@ $ ./toolkit.py list snapshots
 +--------------------------------------+-------------------------------------+--------------------------------------+-----------------+
 ```
 
-```bash
+```text
 $ ./toolkit.py list snapshots --app wordpress-east
 +--------------------------------------+-----------------------------------+--------------------------------------+-----------------+
 | appID                                | snapshotName                      | snapshotID                           | snapshotState   |
@@ -222,13 +222,13 @@ $ ./toolkit.py list snapshots --app wordpress-east
 
 Command usage:
 
-```bash
+```text
 ./toolkit.py list storageclasses
 ```
 
 Sample output:
 
-```bash
+```text
 ./toolkit.py list storageclasses
 +---------+--------------------+--------------------------------------+--------------------------+
 | cloud   | cluster            | storageclassID                       | storageclassName         |

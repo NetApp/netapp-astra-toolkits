@@ -12,7 +12,7 @@ Coming soon.
 
 toolkit.py utilizes `argparse` to provide an interactive CLI.  To view the possible arguments, run `./toolkit.py -h`:
 
-```bash
+```text
 $ ./toolkit.py -h
 usage: toolkit.py [-h] [-v] [-s] [-o {json,yaml,table}] [-q] {deploy,clone,restore,list,create,manage,destroy,unmanage} ...
 

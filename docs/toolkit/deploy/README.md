@@ -2,7 +2,7 @@
 
 The `deploy` command has the following command syntax:
 
-```bash
+```text
 ./toolkit.py deploy <chartname> <appname> <namespacename>
 ```
 
@@ -20,7 +20,7 @@ This command will carry out the following operations on your *current kubeconfig
 
 Sample output:
 
-```bash
+```text
 $ ./toolkit.py deploy artifactory-jcr jfrogcr jfrogcr
 Hang tight while we grab the latest from your chart repositories...
 ...Successfully got an update from the "jfrog" chart repository
