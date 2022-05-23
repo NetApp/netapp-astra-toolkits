@@ -17,7 +17,7 @@ objectType:
 
 ## App
 
-To manage an app, you must first gather the [app ID](../list/README.md#apps).  The app must be in a "discovered" state, not in an "ignored" state.
+To manage an app, you must first gather the [app ID](../list/README.md#apps).  The app must be in a "discovered" state, not in an "ignored" state.  After an application is managed, it is recommended to [create a protectionpolicy](../create/README.md#protectionpolicy) for the app.
 
 Command usage:
 

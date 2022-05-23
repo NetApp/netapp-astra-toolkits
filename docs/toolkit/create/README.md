@@ -1,6 +1,6 @@
 # Create
 
-The `create1` argument allows you to create Astra resources, including [backups](#backup), [protection policies](#protectionpolicy), and [snapshots](#snapshot).  Its opposite command is [../destroy](../destroy/README.md), which allows you to destroy these same resources.
+The `create` argument allows you to create Astra resources, including [backups](#backup), [protection policies](#protectionpolicy), and [snapshots](#snapshot).  Its opposite command is [destroy](../destroy/README.md), which allows you to destroy these same resources.
 
 ## Backup
 
@@ -48,7 +48,7 @@ The `create protectionpolicy` command allows you to create (or add to) a protect
 
 The \<appID\> argument can be gathered from a [list apps](../list/README.md#apps) command.
 
-To configure a protection policy will all four protection schedules, the `create protectionpolicy` command must be ran four times, once for each level of granularity:
+To configure a protection policy with all four protection schedules, the `create protectionpolicy` command must be ran four times, once for each level of granularity:
 
 * [Hourly](#hourly)
 * [Daily](#daily)
