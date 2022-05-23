@@ -63,11 +63,11 @@ Edit the `config.yaml` file to add your NetApp Astra Control account information
 
 You can find this information in your NetApp Astra Control account profile. Click the user icon in the upper right-hand corner, then choose **API Access** from the drop-down menu which appears.
 
-![Locate your Astra Control profile](./docs/install/img/astra-profile.png)
+![Locate your Astra Control profile](/docs/install/img/astra-profile.png)
 
 Copy and paste your Astra Control account ID into the `config.yaml` file.
 
-![Locate your Astra Control account ID](./docs/install/img/astra-account-info.png)
+![Locate your Astra Control account ID](/docs/install/img/astra-account-info.png)
 
 To get your API token, click **+ Generate API token**. Generate a new API token, then copy and paste the token into the `config.yaml`
 
