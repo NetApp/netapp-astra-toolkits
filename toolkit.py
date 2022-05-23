@@ -1290,18 +1290,18 @@ if __name__ == "__main__":
             args.dayOfWeek = "*"
             args.dayOfMonth = "*"
         elif args.granularity == "daily":
-            if not args.hour:
+            if type(args.hour) != int and not args.hour:
                 raise argparse.ArgumentError(granArg, " daily requires -H / --hour")
             args.dayOfWeek = "*"
             args.dayOfMonth = "*"
         elif args.granularity == "weekly":
-            if not args.hour:
+            if type(args.hour) != int and not args.hour:
                 raise argparse.ArgumentError(granArg, " weekly requires -H / --hour")
             if type(args.dayOfWeek) != int and not args.dayOfWeek:
                 raise argparse.ArgumentError(granArg, " weekly requires -W / --dayOfWeek")
             args.dayOfMonth = "*"
         elif args.granularity == "monthly":
-            if not args.hour:
+            if type(args.hour) != int and not args.hour:
                 raise argparse.ArgumentError(granArg, " monthly requires -H / --hour")
             if args.dayOfWeek:
                 raise argparse.ArgumentError(granArg, " monthly must not specify -W / --dayOfWeek")
