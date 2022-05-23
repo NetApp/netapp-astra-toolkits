@@ -989,7 +989,7 @@ if __name__ == "__main__":
         "--dayOfWeek",
         type=int,
         choices=range(7),
-        help="0 = Sunday ... 7 = Saturaday",
+        help="0 = Sunday ... 6 = Saturday",
     )
     subparserCreateProtectionpolicy.add_argument(
         "-H", "--hour", type=int, choices=range(24), help="Hour in military time"
@@ -1297,14 +1297,14 @@ if __name__ == "__main__":
         elif args.granularity == "weekly":
             if not args.hour:
                 raise argparse.ArgumentError(granArg, " weekly requires -H / --hour")
-            if not args.dayOfWeek:
+            if type(args.dayOfWeek) != int and not args.dayOfWeek:
                 raise argparse.ArgumentError(granArg, " weekly requires -W / --dayOfWeek")
             args.dayOfMonth = "*"
         elif args.granularity == "monthly":
             if not args.hour:
                 raise argparse.ArgumentError(granArg, " monthly requires -H / --hour")
             if args.dayOfWeek:
-                raise argparse.ArgumentError(granArg, " hourly must not specify -W / --dayOfWeek")
+                raise argparse.ArgumentError(granArg, " monthly must not specify -W / --dayOfWeek")
             if not args.dayOfMonth:
                 raise argparse.ArgumentError(granArg, " monthly requires -M / --dayOfMonth")
             args.dayOfWeek = "*"
