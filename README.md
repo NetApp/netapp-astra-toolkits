@@ -96,7 +96,7 @@ You can now use `./toolkit.py` to invoke the NetApp Astra Control SDK. For examp
 ./toolkit.py list clusters
 ```
 
-See [the documentation](./docs) for more info.
+See [the documentation](/docs) for more info.
 
 ## Install Manually
 
@@ -122,11 +122,11 @@ Edit the `config.yaml` file to add your NetApp Astra account information.
 
 You can find this information in your NetApp Astra account profile. Click the user icon in the upper right-hand corner, then choose **API Access** from the drop-down menu which appears.
 
-![Locate your Astra profile](./docs/install/img/astra-profile.png)
+![Locate your Astra profile](/docs/install/img/astra-profile.png)
 
 Copy and paste your Astra account ID into the `config.yaml` file.
 
-![Locate your Astra account ID](./docs/install/img/astra-account-info.png)
+![Locate your Astra account ID](/docs/install/img/astra-account-info.png)
 
 To get your API token, click **+ Generate API token**. Generate a new API token, then copy and paste the token into the `config.yaml`
 
@@ -155,4 +155,4 @@ You can now use `./toolkit.py` to invoke the NetApp Astra SDK. For example, list
 ./toolkit.py list clusters
 ```
 
-See [the documentation](./docs) for more info.
+See [the documentation](/docs) for more info.
