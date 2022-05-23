@@ -2,6 +2,20 @@
 
 The `create` argument allows you to create Astra resources, including [backups](#backup), [protection policies](#protectionpolicy), and [snapshots](#snapshot).  Its opposite command is [destroy](../destroy/README.md), which allows you to destroy these same resources.
 
+```text
+$ ./toolkit.py create -h
+usage: toolkit.py create [-h] {backup,protectionpolicy,snapshot} ...
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+objectType:
+  {backup,protectionpolicy,snapshot}
+    backup              create backup
+    protectionpolicy    create protectionpolicy
+    snapshot            create snapshot
+```
+
 ## Backup
 
 The `create backup` command allows you to take an ad-hoc backup.  The command usage is:
