@@ -8,7 +8,7 @@ See [the main README](../README.md) for information on how to install the NetApp
 
 Coming soon.
 
-## Toolkit functions
+## Toolkit Functions
 
 toolkit.py utilizes `argparse` to provide an interactive CLI.  To view the possible arguments, run `./toolkit.py -h`:
 
