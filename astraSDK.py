@@ -31,15 +31,10 @@ class getConfig:
     """In order to make API calls to Astra Control we need to know which Astra Control instance
     to connect to, and the credentials to make calls.  This info is found in config.yaml,
     which we search for in the following four places:
-    1) The directory that toolkit.py in located in
+    1) The directory that astraSDK.py is located in
     2) ~/.config/astra-toolkits/
     3) /etc/astra-toolkits/
     4) The directory pointed to by the shell env var ASTRATOOLKITS_CONF
-
-    Note that astra_project is used to construct an URL assuming it will be
-    Astra Control Service.  This will need to get modified in the future to
-    handle arbitrary Astra Control Center URLs, and probably to handle self signed SSL
-    certs as well.
     """
 
     def __init__(self):
