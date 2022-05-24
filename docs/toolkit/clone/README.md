@@ -2,6 +2,8 @@
 
 The `clone` argument allows you to clone a [managed application](../manage/README.md#app) to a destination [cluster](..list/README.md#clusters) of your choice.  It is currently only possible to clone from a [backup](../list/README.md#backups), not a [snapshot](../list/README.md#snapshots), however if a backup does not exist, one will be automatically created.
 
+After cloning an application, it is recommended to [create a protection policy](../create/README.md#protectionpolicy) for the new application.
+
 The overall command usage is:
 
 ```text
