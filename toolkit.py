@@ -1556,7 +1556,6 @@ if __name__ == "__main__":
                         args.backupID = userSelect(
                             appBackupscooked, ["id", "name", "metadata/creationTimestamp", "appID"]
                         )
-                        print(f"args.backupID: {args.backupID}")
                     else:
                         # Take a backup
                         print("No backups found, taking backup.")
