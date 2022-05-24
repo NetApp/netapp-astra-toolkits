@@ -53,7 +53,7 @@ def userSelect(pickList, keys):
         return False
 
     for counter, item in enumerate(pickList["items"], start=1):
-        outputStr = str(counter) + ":\t"
+        outputStr = str(counter) + ":\t\t"
         for key in keys:
             if item.get(key):
                 outputStr += str(item[key]) + "\t"
