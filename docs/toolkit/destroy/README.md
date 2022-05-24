@@ -17,7 +17,7 @@ objectType:
     snapshot         destroy snapshot
 ```
 
-# Backup
+## Backup
 
 The `destroy backup` command allows you to destroy a specific application backup.  The command usage is:
 
@@ -28,11 +28,12 @@ The `destroy backup` command allows you to destroy a specific application backup
 The command initiates the backup destruction, and then returns the command prompt, so it make take a minute for the backup to no longer be present when performing a `list backups`.
 
 ```text
-$ ./toolkit.py destroy backup a643b5dc-bfa0-4624-8bdd-5ad5325f20fd c06ec1e4-ae3d-4a32-bea0-771505f88203
+$ ./toolkit.py destroy backup a643b5dc-bfa0-4624-8bdd-5ad5325f20fd \
+    c06ec1e4-ae3d-4a32-bea0-771505f88203
 Backup c06ec1e4-ae3d-4a32-bea0-771505f88203 destroyed
 ```
 
-# Snapshot
+## Snapshot
 
 The `destroy snapshot` command allows you to destroy a specific application snapshot.  The command usage is:
 
@@ -43,6 +44,7 @@ The `destroy snapshot` command allows you to destroy a specific application snap
 The command initiates the snapshot destruction, and then returns the command prompt, so it make take a minute for the snapshot to no longer be present when performing a `list snapshot`.
 
 ```text
-$ ./toolkit.py destroy snapshot a643b5dc-bfa0-4624-8bdd-5ad5325f20fd 3cb65a44-62a1-4157-a314-3840b761c6c8
+$ ./toolkit.py destroy snapshot a643b5dc-bfa0-4624-8bdd-5ad5325f20fd \
+    3cb65a44-62a1-4157-a314-3840b761c6c8
 Snapshot 3cb65a44-62a1-4157-a314-3840b761c6c8 destroyed
 ```

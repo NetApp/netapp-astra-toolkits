@@ -374,7 +374,8 @@ Lastly, it's useful for short shell scripts which require multiple object IDs.  
 You can first just gather the snapshot IDs:
 
 ```text
-$ ./toolkit.py -o json list snapshots --app cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 | jq -r '.items[].id'
+$ ./toolkit.py -o json list snapshots --app cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 \
+    | jq -r '.items[].id'
 4e0c53cc-820b-4935-a65a-c89f665e7fbd
 5700cc40-f446-46a1-ab36-bc053616d84e
 ```
@@ -382,7 +383,9 @@ $ ./toolkit.py -o json list snapshots --app cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0
 You can then enclose that command in a simple for loop:
 
 ```text
-$ for i in `tk -o json list snapshots --app cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 | jq -r '.items[].id'`; do echo "=== destroying snapshot $i ==="; ./toolkit.py destroy snapshot cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 $i; done
+$ for i in `tk -o json list snapshots --app cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 \
+    | jq -r '.items[].id'`; do echo "=== destroying snapshot $i ==="; ./toolkit.py destroy \
+    snapshot cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 $i; done
 === destroying snapshot 4e0c53cc-820b-4935-a65a-c89f665e7fbd ===
 Snapshot 4e0c53cc-820b-4935-a65a-c89f665e7fbd destroyed
 === destroying snapshot 5700cc40-f446-46a1-ab36-bc053616d84e ===

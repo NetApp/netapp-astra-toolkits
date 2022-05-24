@@ -29,9 +29,8 @@ When the optional `--background`/`-b` argument is **not** specified, the command
 ```text
 $ ./toolkit.py create backup a643b5dc-bfa0-4624-8bdd-5ad5325f20fd 20220523-cli-backup1
 Starting backup of a643b5dc-bfa0-4624-8bdd-5ad5325f20fd
-Waiting for backup to complete.................................................
-...............................................................................
-.......complete!
+Waiting for backup to complete.....................................................................
+..................................................................complete!
 ```
 
 When the optional `--background`/`-b` argument **is** specified, the command simply initiates the backup task, and leaves it to the user to validate the backup completion.
@@ -57,7 +56,8 @@ $ ./toolkit.py list backups
 The `create protectionpolicy` command allows you to create (or add to) a protection policy for a [managed application](../manage/README.md#app).  The high level command usage is:
 
 ```text
-./toolkit.py create protectionpolicy <appID> -g <granularity> <date/time args> -b <backupsToRetain> -s <snapshotsToRetain>
+./toolkit.py create protectionpolicy <appID> -g <granularity> <date/time args> \
+    -b <backupsToRetain> -s <snapshotsToRetain>
 ```
 
 The \<appID\> argument can be gathered from a [list apps](../list/README.md#apps) command.
@@ -92,7 +92,8 @@ The `--backupRetention`/`-b` and `--snapshotRetention`/`-s` arguments specify th
 This example creates an `hourly` protection schedule, on the 15 minute mark, while keeping the last two backups and last three snapshots.
 
 ```text
-$ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g hourly -m 15 -b 2 -s 3
+$ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g hourly \
+    -m 15 -b 2 -s 3
 {"type": "application/astra-schedule", "version": "1.1", "id": "c94a0c35-4e24-4664-b3f5-211e5aecf498", "name": "hourly-cpesy", "enabled": "true", "granularity": "hourly", "minute": "15", "snapshotRetention": "3", "backupRetention": "2", "metadata": {"labels": [], "creationTimestamp": "2022-05-23T16:03:23Z", "modificationTimestamp": "2022-05-23T16:03:23Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
 
@@ -101,7 +102,8 @@ $ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g h
 This example creates a `daily` protection schedule, at 05:30 UTC, while keeping the last two backups and last two snapshots.
 
 ```text
-$ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g daily -H 5 -m 30 -b 2 -s 2
+$ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g daily \
+    -H 5 -m 30 -b 2 -s 2
 {"type": "application/astra-schedule", "version": "1.1", "id": "cbd5edd2-21c9-4283-a7cc-4eaae5c25952", "name": "daily-xok21", "enabled": "true", "granularity": "daily", "minute": "30", "hour": "5", "snapshotRetention": "2", "backupRetention": "2", "metadata": {"labels": [], "creationTimestamp": "2022-05-23T16:07:54Z", "modificationTimestamp": "2022-05-23T16:07:54Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
 
@@ -110,7 +112,8 @@ $ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g d
 This example creates a `weekly` protection schedule, on Sundays at 04:45 UTC, while keeping the last backup and last snapshot.
 
 ```text
-$ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g weekly -W 0 -H 4 -m 45 -b 1 -s 1
+$ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g weekly \
+    -W 0 -H 4 -m 45 -b 1 -s 1
 {"type": "application/astra-schedule", "version": "1.1", "id": "aa174808-4f8c-4a0b-839e-5ceecf7c0f2d", "name": "weekly-uh8hq", "enabled": "true", "granularity": "weekly", "minute": "45", "hour": "4", "dayOfWeek": "0", "snapshotRetention": "1", "backupRetention": "1", "metadata": {"labels": [], "creationTimestamp": "2022-05-23T16:23:36Z", "modificationTimestamp": "2022-05-23T16:23:36Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
 
@@ -119,7 +122,8 @@ $ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g w
 This example creates a `monthly` protection schedule, on the 1st day of the month at 03:45 UTC, while keeping the last backup and last snapshot.
 
 ```text
-./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g monthly -M 1 -H 3 -m 45 -b 1 -s 1
+./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g monthly \
+    -M 1 -H 3 -m 45 -b 1 -s 1
 {"type": "application/astra-schedule", "version": "1.1", "id": "f9dad3d7-a085-4e07-99be-88a90fc8362b", "name": "monthly-teds6", "enabled": "true", "granularity": "monthly", "minute": "45", "hour": "3", "dayOfMonth": "1", "snapshotRetention": "1", "backupRetention": "1", "metadata": {"labels": [], "creationTimestamp": "2022-05-23T16:24:52Z", "modificationTimestamp": "2022-05-23T16:24:52Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
 

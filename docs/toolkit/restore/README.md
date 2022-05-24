@@ -7,7 +7,8 @@ The `restore` argument allows you to restore a [managed application](../manage/R
 The overall command usage is:
 
 ```text
-./toolkit.py restore <optionalBackgroundArg> <appID> <snapshotOrBackgroundArgument> <snapshotOrBackgroundID>
+./toolkit.py restore <optionalBackgroundArg> <appID> <snapshotOrBackgroundArgument> \
+    <snapshotOrBackgroundID>
 ```
 
 The [appID](../list/README.md#apps) can be gathered from the [list](../list/README.md) command.
@@ -36,16 +37,18 @@ optional arguments:
 When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the restore operation every 5 seconds, and reports back once complete.
 
 ```text
-./toolkit.py restore a643b5dc-bfa0-4624-8bdd-5ad5325f20fd --snapshotID 136c0d8e-d4a7-4034-a846-021f0afc0b2b
-Restore job in progress........................................................
-...............................................................................
-................................................Success!
+./toolkit.py restore a643b5dc-bfa0-4624-8bdd-5ad5325f20fd --snapshotID \
+    136c0d8e-d4a7-4034-a846-021f0afc0b2b
+Restore job in progress............................................................................
+...................................................................................................
+........Success!
 ```
 
 When the optional `--background`/`-b` argument **is** specified, the command simply initiates the restore task, and leaves it to the user to validate the restore operation completion.
 
 ```text
-$ ./toolkit.py restore -b a643b5dc-bfa0-4624-8bdd-5ad5325f20fd --backupID 7be82451-7e89-43fb-8251-9a347ce513e0
+$ ./toolkit.py restore -b a643b5dc-bfa0-4624-8bdd-5ad5325f20fd --backupID \
+    7be82451-7e89-43fb-8251-9a347ce513e0
 Restore job submitted successfully
 Background restore flag selected, run 'list apps' to get status
 $ ./toolkit.py list apps

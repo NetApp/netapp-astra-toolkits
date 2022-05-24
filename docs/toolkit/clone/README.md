@@ -5,30 +5,35 @@ The `clone` argument allows you to clone a [managed application](../manage/READM
 The overall command usage is:
 
 ```text
-./toolkit.py clone <optionalBackgroundArg> --sourceNamespace <sourceAppNamespace> --backupID <backupID> --clusterID <clusterID> --destName <destAppName> --destNamespace <destNamespaceName>
+./toolkit.py clone <optionalBackgroundArg> --sourceNamespace <sourceAppNamespace> --backupID \
+    <backupID> --clusterID <clusterID> --destName <destAppName> --destNamespace <destNamespaceName>
 ```
 
 * `--sourceNamespace`: must specify a [managed application](../manage/README.md#app) with a **source** as `namespace`
 * `--backupID`: the backupID to create the clone from (if a backup does not exist, do not specify the argument and one will be created for you)
-* `--clusterID`: the destination clusterID (it can be the same as the source application)
+* `--clusterID`: the destination clusterID (it can be any cluster manged by Astra Control)
 * `--destName`: the name of the new application
 * `--destNamespace`: the name of the new namespace on the destination cluster (it **must not** exist already)
 
 When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the clone operation every 3 seconds, and reports back once complete.
 
 ```text
-$ ./toolkit.py clone --sourceNamespace a643b5dc-bfa0-4624-8bdd-5ad5325f20fd --backupID 7be82451-7e89-43fb-8251-9a347ce513e0 --clusterID f098c896-5c56-48e3-9956-2552088c1018 --destName wordpress-clone1 --destNamespace wordpress-clone1
+$ ./toolkit.py clone --sourceNamespace a643b5dc-bfa0-4624-8bdd-5ad5325f20fd --backupID \
+    7be82451-7e89-43fb-8251-9a347ce513e0 --clusterID f098c896-5c56-48e3-9956-2552088c1018 \
+    --destName wordpress-clone1 --destNamespace wordpress-clone1
 Submitting clone succeeded.
-Waiting for clone to become available..........................................
-...............................................................................
-...............................................................................
-.............................................Cloning operation complete.
+Waiting for clone to become available..............................................................
+...................................................................................................
+....................................................................................Cloning
+operation complete.
 ```
 
 When the optional `--background`/`-b` argument **is** specified, the command simply initiates the clone task, and leaves it to the user to validate the clone operation completion.
 
 ```text
-$ ./toolkit.py clone -b --sourceNamespace a643b5dc-bfa0-4624-8bdd-5ad5325f20fd --backupID 7be82451-7e89-43fb-8251-9a347ce513e0 --clusterID f098c896-5c56-48e3-9956-2552088c1018 --destName wordpress-clone2 --destNamespace wordpress-clone2
+$ ./toolkit.py clone -b --sourceNamespace a643b5dc-bfa0-4624-8bdd-5ad5325f20fd --backupID \
+    7be82451-7e89-43fb-8251-9a347ce513e0 --clusterID f098c896-5c56-48e3-9956-2552088c1018 \
+    --destName wordpress-clone2 --destNamespace wordpress-clone2
 Submitting clone succeeded.
 Background clone flag selected, run 'list apps' to get status.
 $ ./toolkit.py list apps
