@@ -646,7 +646,7 @@ if __name__ == "__main__":
                         len(sys.argv) > verbPosition + 2
                         and snapshot["appID"] == sys.argv[verbPosition + 2]
                     ):
-                        snapshotList.append(backup["id"])
+                        snapshotList.append(snapshot["id"])
         elif (
             verbs["create"]
             and len(sys.argv) - verbPosition >= 2
