@@ -197,10 +197,8 @@ $ ./toolkit.py -o json list apps | jq
       "managedState": "managed",
       "managedStateUnready": [],
       "managedTimestamp": "2022-05-19T15:14:38Z",
-      "protectionState": "partial",
-      "protectionStateUnready": [
-        "Missing a recent backup"
-      ],
+      "protectionState": "none",
+      "protectionStateUnready": [],
       "collectionState": "fullyCollected",
       "collectionStateTransitions": [
         {
@@ -301,7 +299,7 @@ $ ./toolkit.py -o json list apps | jq
       "managedState": "managed",
       "managedStateUnready": [],
       "managedTimestamp": "2022-05-20T16:00:06Z",
-      "protectionState": "protected",
+      "protectionState": "none",
       "protectionStateUnready": [],
       "collectionState": "fullyCollected",
       "collectionStateTransitions": [
@@ -355,7 +353,7 @@ $ ./toolkit.py -o json list apps | jq '.items[] | {id, name, protectionState}'
 {
   "id": "a8dc676e-d182-4d7c-9113-43f5a2963b54",
   "name": "wordpress-west",
-  "protectionState": "partial"
+  "protectionState": "none"
 }
 {
   "id": "ad125374-e090-425b-a048-d719b93b0feb",
@@ -365,7 +363,7 @@ $ ./toolkit.py -o json list apps | jq '.items[] | {id, name, protectionState}'
 {
   "id": "cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0",
   "name": "jfrogcr",
-  "protectionState": "protected"
+  "protectionState": "none"
 }
 ```
 
@@ -390,6 +388,21 @@ $ for i in `tk -o json list snapshots --app cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0
 Snapshot 4e0c53cc-820b-4935-a65a-c89f665e7fbd destroyed
 === destroying snapshot 5700cc40-f446-46a1-ab36-bc053616d84e ===
 Snapshot 5700cc40-f446-46a1-ab36-bc053616d84e destroyed
+```
+
+Or, say you wanted to [protect](../create/README.md#protectionpolicy) all of your apps that are currently unprotected:
+
+```text
+$ for i in `./toolkit.py -o json list apps \
+    | jq -r '.items[] | select(.protectionState == "none") | {id} | join(" ")'`; \
+    do echo "=== protecting app $i ==="; \
+    ./toolkit.py create protectionpolicy $i -g hourly -b 2 -s 3; done
+=== protecting app a8dc676e-d182-4d7c-9113-43f5a2963b54 ===
+{"type": "application/astra-schedule", "version": "1.1", "id": "a8dc676e-d182-4d7c-9113-43f5a2963b54", "name": "hourly-trpvk", "enabled": "true", "granularity": "hourly", "minute": "0", "snapshotRetention": "3", "backupRetention": "2", "metadata": {"labels": [], "creationTimestamp": "2022-05-24T20:24:14Z", "modificationTimestamp": "2022-05-24T20:24:14Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
+=== protecting app ad125374-e090-425b-a048-d719b93b0feb ===
+{"type": "application/astra-schedule", "version": "1.1", "id": "ad125374-e090-425b-a048-d719b93b0feb", "name": "hourly-d4bcx", "enabled": "true", "granularity": "hourly", "minute": "0", "snapshotRetention": "3", "backupRetention": "2", "metadata": {"labels": [], "creationTimestamp": "2022-05-24T20:24:15Z", "modificationTimestamp": "2022-05-24T20:24:15Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
+=== protecting app cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 ===
+{"type": "application/astra-schedule", "version": "1.1", "id": "cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0", "name": "hourly-r8pr3", "enabled": "true", "granularity": "hourly", "minute": "0", "snapshotRetention": "3", "backupRetention": "2", "metadata": {"labels": [], "creationTimestamp": "2022-05-24T20:24:17Z", "modificationTimestamp": "2022-05-24T20:24:17Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
 
 ### Yaml
