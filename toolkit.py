@@ -25,6 +25,7 @@ import sys
 import tempfile
 import time
 import yaml
+import kubernetes
 
 
 def subKeys(subObject, key):
@@ -72,6 +73,20 @@ def userSelect(pickList, keys):
                 continue
         except (IndexError, TypeError, ValueError):
             continue
+
+
+def createHelmStr(flagName, values):
+    """Create a string to be appended to a helm command which contains a list
+    of --set {value} and/or --values {file} arguments"""
+    returnStr = ""
+    if values:
+        for value in values:
+            if type(value) == list:
+                for v in value:
+                    returnStr += f" --{flagName} {v}"
+            else:
+                returnStr += f" --{flagName} {value}"
+    return returnStr
 
 
 def updateHelm():
@@ -220,9 +235,14 @@ class toolkit:
     def __init__(self):
         self.conf = astraSDK.getConfig().main()
 
-    def deploy(self, chartName, repoName, appName, nameSpace, domain, email, ssl):
+    def deploy(
+        self, chartName, repoName, appName, nameSpace, domain, email, ssl, setValues, fileValues
+    ):
         """Deploy a helm chart <chartName>, from helm repo <repoName>
         naming the app <appName> into <nameSpace>"""
+
+        setStr = createHelmStr("set", setValues)
+        valueStr = createHelmStr("values", fileValues)
 
         if chartName == "gitlab":
             assert domain is not None
@@ -356,56 +376,56 @@ class toolkit:
             }
             stsPatch(gitalyPatch, f"{appName}-gitaly")
 
-        elif chartName == "cloudbees-core":
-            run(f"helm install {appName} {repoName}/{chartName} --set ingress-nginx.Enabled=true")
-            # I could've included straight up YAML here but that seemed..the opposite of elegent.
-            cbPatch = {
-                "kind": "StatefulSet",
-                "spec": {
-                    "template": {
-                        "spec": {
-                            "containers": [
-                                {
-                                    "name": "jenkins",
-                                    "securityContext": {"runAsUser": 1000},
-                                }
-                            ],
-                            "initContainers": [
-                                {
-                                    "name": "init-chown",
-                                    "image": "alpine",
-                                    "env": [
-                                        {
-                                            "name": "JENKINS_HOME",
-                                            "value": "/var/jenkins_home",
-                                        },
-                                        {"name": "MARKER", "value": ".cplt2-5503"},
-                                        {"name": "UID", "value": "1000"},
-                                    ],
-                                    "command": [
-                                        "sh",
-                                        "-c",
-                                        "if [ ! -f $JENKINS_HOME/$MARKER ]; "
-                                        "then chown $UID:$UID -R $JENKINS_HOME; "
-                                        "touch $JENKINS_HOME/$MARKER; "
-                                        "chown $UID:$UID $JENKINS_HOME/$MARKER; fi",
-                                    ],
-                                    "volumeMounts": [
-                                        {
-                                            "mountPath": "/var/jenkins_home",
-                                            "name": "jenkins-home",
-                                        }
-                                    ],
-                                }
-                            ],
-                        }
-                    }
-                },
-            }
-            stsPatch(cbPatch, "cjoc")
+        # elif chartName == "cloudbees-core":
+        #    run(f"helm install {appName} {repoName}/{chartName} --set ingress-nginx.Enabled=true")
+        #    # I could've included straight up YAML here but that seemed..the opposite of elegent.
+        #    cbPatch = {
+        #        "kind": "StatefulSet",
+        #        "spec": {
+        #            "template": {
+        #                "spec": {
+        #                    "containers": [
+        #                        {
+        #                            "name": "jenkins",
+        #                            "securityContext": {"runAsUser": 1000},
+        #                        }
+        #                    ],
+        #                    "initContainers": [
+        #                        {
+        #                            "name": "init-chown",
+        #                            "image": "alpine",
+        #                            "env": [
+        #                                {
+        #                                    "name": "JENKINS_HOME",
+        #                                    "value": "/var/jenkins_home",
+        #                                },
+        #                                {"name": "MARKER", "value": ".cplt2-5503"},
+        #                                {"name": "UID", "value": "1000"},
+        #                            ],
+        #                            "command": [
+        #                                "sh",
+        #                                "-c",
+        #                                "if [ ! -f $JENKINS_HOME/$MARKER ]; "
+        #                                "then chown $UID:$UID -R $JENKINS_HOME; "
+        #                                "touch $JENKINS_HOME/$MARKER; "
+        #                                "chown $UID:$UID $JENKINS_HOME/$MARKER; fi",
+        #                            ],
+        #                            "volumeMounts": [
+        #                                {
+        #                                    "mountPath": "/var/jenkins_home",
+        #                                    "name": "jenkins-home",
+        #                                }
+        #                            ],
+        #                        }
+        #                    ],
+        #                }
+        #            }
+        #        },
+        #    }
+        #    stsPatch(cbPatch, "cjoc")
 
         else:
-            run(f"helm install {appName} {repoName}/{chartName}")
+            run(f"helm install {appName} {repoName}/{chartName}{setStr}{valueStr}")
         print("Waiting for Astra to discover apps.", end="")
         sys.stdout.flush()
 
@@ -483,9 +503,46 @@ class toolkit:
         #         appID
         # {'e6661eba-229b-4d7c-8c6c-cfca0db9068e':
         #    ['appName', 'clusterNameAppIsRunningOn', 'clusterIDthatAppIsRunningOn', 'namespace']}
+        needsIngressclass = False
         for app in namespaces["items"]:
             if sourceAppID == app["id"]:
                 sourceClusterID = app["clusterID"]
+                for pod in app["pods"]:
+                    for container in pod["containers"]:
+                        if "cloudbees/cloudbees-cloud-core-oc" in container["image"]:
+                            needsIngressclass = True
+
+        # Clone 'ingressclass' cluster object
+        if needsIngressclass and sourceClusterID != clusterID:
+            clusters = astraSDK.getClusters().main(hideUnmanaged=True)
+            contexts, _ = kubernetes.config.list_kube_config_contexts()
+            # Loop through clusters and contexts, find matches and open api_client
+            for cluster in clusters["items"]:
+                for context in contexts:
+                    if cluster["id"] == clusterID:
+                        if cluster["name"] in context["name"]:
+                            destClient = kubernetes.client.NetworkingV1Api(
+                                api_client=kubernetes.config.new_client_from_config(
+                                    context=context["name"]
+                                )
+                            )
+                    elif cluster["id"] == sourceClusterID:
+                        if cluster["name"] in context["name"]:
+                            sourceClient = kubernetes.client.NetworkingV1Api(
+                                api_client=kubernetes.config.new_client_from_config(
+                                    context=context["name"]
+                                )
+                            )
+            # Get the source cluster ingressclass and apply it to the dest cluster
+            try:
+                sourceResp = sourceClient.read_ingress_class("nginx", _preload_content=False)
+                sourceIngress = json.loads(sourceResp.data)
+                del sourceIngress["metadata"]["resourceVersion"]
+                del sourceIngress["metadata"]["creationTimestamp"]
+                destClient.create_ingress_class(sourceIngress)
+                # kubernetes.config.load_kube_config(context=active_context["name"])
+            except kubernetes.client.rest.ApiException as e:
+                SystemExit(e)
 
         cloneRet = astraSDK.cloneApp().main(
             cloneName,
@@ -609,7 +666,7 @@ if __name__ == "__main__":
                 chartsList.append(k)
 
         elif verbs["clone"]:
-            namespaces = astraSDK.getApps().main(source="namespace")
+            namespaces = astraSDK.getApps().main(source="namespace", delPods=False)
             for app in namespaces["items"]:
                 namespacesList.append(app["id"])
             destCluster = astraSDK.getClusters().main(hideUnmanaged=True)
@@ -1193,6 +1250,21 @@ if __name__ == "__main__":
         action="store_false",
         help="Create self signed SSL certs",
     )
+    parserDeploy.add_argument(
+        "-f",
+        "--values",
+        required=False,
+        action="append",
+        nargs="*",
+        help="Specify Helm values in a YAML file",
+    )
+    parserDeploy.add_argument(
+        "--set",
+        required=False,
+        action="append",
+        nargs="*",
+        help="Individual helm chart parameters",
+    )
     #######
     # end of deploy args and flags
     #######
@@ -1331,6 +1403,8 @@ if __name__ == "__main__":
             domain,
             email,
             ssl,
+            args.set,
+            args.values,
         )
     elif args.subcommand == "list":
         if args.objectType == "apps":
