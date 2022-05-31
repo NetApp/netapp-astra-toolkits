@@ -376,54 +376,6 @@ class toolkit:
             }
             stsPatch(gitalyPatch, f"{appName}-gitaly")
 
-        # elif chartName == "cloudbees-core":
-        #    run(f"helm install {appName} {repoName}/{chartName} --set ingress-nginx.Enabled=true")
-        #    # I could've included straight up YAML here but that seemed..the opposite of elegent.
-        #    cbPatch = {
-        #        "kind": "StatefulSet",
-        #        "spec": {
-        #            "template": {
-        #                "spec": {
-        #                    "containers": [
-        #                        {
-        #                            "name": "jenkins",
-        #                            "securityContext": {"runAsUser": 1000},
-        #                        }
-        #                    ],
-        #                    "initContainers": [
-        #                        {
-        #                            "name": "init-chown",
-        #                            "image": "alpine",
-        #                            "env": [
-        #                                {
-        #                                    "name": "JENKINS_HOME",
-        #                                    "value": "/var/jenkins_home",
-        #                                },
-        #                                {"name": "MARKER", "value": ".cplt2-5503"},
-        #                                {"name": "UID", "value": "1000"},
-        #                            ],
-        #                            "command": [
-        #                                "sh",
-        #                                "-c",
-        #                                "if [ ! -f $JENKINS_HOME/$MARKER ]; "
-        #                                "then chown $UID:$UID -R $JENKINS_HOME; "
-        #                                "touch $JENKINS_HOME/$MARKER; "
-        #                                "chown $UID:$UID $JENKINS_HOME/$MARKER; fi",
-        #                            ],
-        #                            "volumeMounts": [
-        #                                {
-        #                                    "mountPath": "/var/jenkins_home",
-        #                                    "name": "jenkins-home",
-        #                                }
-        #                            ],
-        #                        }
-        #                    ],
-        #                }
-        #            }
-        #        },
-        #    }
-        #    stsPatch(cbPatch, "cjoc")
-
         else:
             run(f"helm install {appName} {repoName}/{chartName}{setStr}{valueStr}")
         print("Waiting for Astra to discover apps.", end="")
@@ -533,16 +485,78 @@ class toolkit:
                                     context=context["name"]
                                 )
                             )
-            # Get the source cluster ingressclass and apply it to the dest cluster
             try:
-                sourceResp = sourceClient.read_ingress_class("nginx", _preload_content=False)
+                # Get the source cluster ingressclass and apply it to the dest cluster
+                sourceResp = sourceClient.read_ingress_class(
+                    "nginx", _preload_content=False, _request_timeout=5
+                )
                 sourceIngress = json.loads(sourceResp.data)
                 del sourceIngress["metadata"]["resourceVersion"]
                 del sourceIngress["metadata"]["creationTimestamp"]
-                destClient.create_ingress_class(sourceIngress)
-                # kubernetes.config.load_kube_config(context=active_context["name"])
+                sourceIngress["metadata"]["labels"]["app.kubernetes.io/instance"] = destNamespace
+                sourceIngress["metadata"]["annotations"][
+                    "meta.helm.sh/release-name"
+                ] = destNamespace
+                sourceIngress["metadata"]["annotations"][
+                    "meta.helm.sh/release-namespace"
+                ] = destNamespace
+            except:
+                # In the event the sourceCluster no longer exists or isn't in kubeconfig
+                sourceIngress = {
+                    "kind": "IngressClass",
+                    "apiVersion": "networking.k8s.io/v1",
+                    "metadata": {
+                        "name": "nginx",
+                        "generation": 1,
+                        "labels": {
+                            "app.kubernetes.io/component": "controller",
+                            "app.kubernetes.io/instance": destNamespace,
+                            "app.kubernetes.io/managed-by": "Helm",
+                            "app.kubernetes.io/name": "ingress-nginx",
+                            "app.kubernetes.io/version": "1.1.0",
+                            "helm.sh/chart": "ingress-nginx-4.0.13",
+                        },
+                        "annotations": {
+                            "meta.helm.sh/release-name": destNamespace,
+                            "meta.helm.sh/release-namespace": destNamespace,
+                        },
+                        "managedFields": [
+                            {
+                                "manager": "helm",
+                                "operation": "Update",
+                                "apiVersion": "networking.k8s.io/v1",
+                                "fieldsType": "FieldsV1",
+                                "fieldsV1": {
+                                    "f:metadata": {
+                                        "f:annotations": {
+                                            ".": {},
+                                            "f:meta.helm.sh/release-name": {},
+                                            "f:meta.helm.sh/release-namespace": {},
+                                        },
+                                        "f:labels": {
+                                            ".": {},
+                                            "f:app.kubernetes.io/component": {},
+                                            "f:app.kubernetes.io/instance": {},
+                                            "f:app.kubernetes.io/managed-by": {},
+                                            "f:app.kubernetes.io/name": {},
+                                            "f:app.kubernetes.io/version": {},
+                                            "f:helm.sh/chart": {},
+                                        },
+                                    },
+                                    "f:spec": {"f:controller": {}},
+                                },
+                            }
+                        ],
+                    },
+                    "spec": {"controller": "k8s.io/ingress-nginx"},
+                }
+            try:
+                # Add the ingressclass to the new cluster
+                destClient.create_ingress_class(sourceIngress, _request_timeout=10)
+            except NameError:
+                raise SystemExit(f"Error: {clusterID} not found in kubeconfig")
             except kubernetes.client.rest.ApiException as e:
-                SystemExit(e)
+                raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
 
         cloneRet = astraSDK.cloneApp().main(
             cloneName,
