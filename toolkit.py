@@ -556,7 +556,11 @@ class toolkit:
             except NameError:
                 raise SystemExit(f"Error: {clusterID} not found in kubeconfig")
             except kubernetes.client.rest.ApiException as e:
-                raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
+                # If the failure is due to the resource already existing, then we're all set,
+                # otherwise it's more serious and we must raise an exception
+                body = json.loads(e.body)
+                if not (body.get("reason") == "AlreadyExists"):
+                    raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
 
         cloneRet = astraSDK.cloneApp().main(
             cloneName,
