@@ -182,7 +182,15 @@ class getApps(SDKCommon):
         super().__init__()
         self.preflight = super().preflight()
 
-    def main(self, discovered=False, source=None, namespace=None, cluster=None, ignored=False):
+    def main(
+        self,
+        discovered=False,
+        source=None,
+        namespace=None,
+        cluster=None,
+        ignored=False,
+        delPods=True,
+    ):
         """discovered: True: show unmanaged apps False: show managed apps
         source: Filter by the app source field.  eg: helm, namespace
         namespace: Filter by the namespace the app is in
@@ -300,9 +308,10 @@ class getApps(SDKCommon):
                     appsCooked["items"].remove(apps["items"][counter])
 
             # At this time, pods just seem to muddy the waters with too much info, so delete
-            for app in appsCooked.get("items"):
-                if app.get("pods"):
-                    del app["pods"]
+            if delPods:
+                for app in appsCooked.get("items"):
+                    if app.get("pods"):
+                        del app["pods"]
 
             if self.output == "json":
                 dataReturn = appsCooked

@@ -25,6 +25,7 @@ import sys
 import tempfile
 import time
 import yaml
+import kubernetes
 
 
 def subKeys(subObject, key):
@@ -72,6 +73,20 @@ def userSelect(pickList, keys):
                 continue
         except (IndexError, TypeError, ValueError):
             continue
+
+
+def createHelmStr(flagName, values):
+    """Create a string to be appended to a helm command which contains a list
+    of --set {value} and/or --values {file} arguments"""
+    returnStr = ""
+    if values:
+        for value in values:
+            if type(value) == list:
+                for v in value:
+                    returnStr += f" --{flagName} {v}"
+            else:
+                returnStr += f" --{flagName} {value}"
+    return returnStr
 
 
 def updateHelm():
@@ -220,9 +235,14 @@ class toolkit:
     def __init__(self):
         self.conf = astraSDK.getConfig().main()
 
-    def deploy(self, chartName, repoName, appName, nameSpace, domain, email, ssl):
+    def deploy(
+        self, chartName, repoName, appName, nameSpace, domain, email, ssl, setValues, fileValues
+    ):
         """Deploy a helm chart <chartName>, from helm repo <repoName>
         naming the app <appName> into <nameSpace>"""
+
+        setStr = createHelmStr("set", setValues)
+        valueStr = createHelmStr("values", fileValues)
 
         if chartName == "gitlab":
             assert domain is not None
@@ -356,56 +376,8 @@ class toolkit:
             }
             stsPatch(gitalyPatch, f"{appName}-gitaly")
 
-        elif chartName == "cloudbees-core":
-            run(f"helm install {appName} {repoName}/{chartName} --set ingress-nginx.Enabled=true")
-            # I could've included straight up YAML here but that seemed..the opposite of elegent.
-            cbPatch = {
-                "kind": "StatefulSet",
-                "spec": {
-                    "template": {
-                        "spec": {
-                            "containers": [
-                                {
-                                    "name": "jenkins",
-                                    "securityContext": {"runAsUser": 1000},
-                                }
-                            ],
-                            "initContainers": [
-                                {
-                                    "name": "init-chown",
-                                    "image": "alpine",
-                                    "env": [
-                                        {
-                                            "name": "JENKINS_HOME",
-                                            "value": "/var/jenkins_home",
-                                        },
-                                        {"name": "MARKER", "value": ".cplt2-5503"},
-                                        {"name": "UID", "value": "1000"},
-                                    ],
-                                    "command": [
-                                        "sh",
-                                        "-c",
-                                        "if [ ! -f $JENKINS_HOME/$MARKER ]; "
-                                        "then chown $UID:$UID -R $JENKINS_HOME; "
-                                        "touch $JENKINS_HOME/$MARKER; "
-                                        "chown $UID:$UID $JENKINS_HOME/$MARKER; fi",
-                                    ],
-                                    "volumeMounts": [
-                                        {
-                                            "mountPath": "/var/jenkins_home",
-                                            "name": "jenkins-home",
-                                        }
-                                    ],
-                                }
-                            ],
-                        }
-                    }
-                },
-            }
-            stsPatch(cbPatch, "cjoc")
-
         else:
-            run(f"helm install {appName} {repoName}/{chartName}")
+            run(f"helm install {appName} {repoName}/{chartName}{setStr}{valueStr}")
         print("Waiting for Astra to discover apps.", end="")
         sys.stdout.flush()
 
@@ -483,9 +455,112 @@ class toolkit:
         #         appID
         # {'e6661eba-229b-4d7c-8c6c-cfca0db9068e':
         #    ['appName', 'clusterNameAppIsRunningOn', 'clusterIDthatAppIsRunningOn', 'namespace']}
+        needsIngressclass = False
         for app in namespaces["items"]:
             if sourceAppID == app["id"]:
                 sourceClusterID = app["clusterID"]
+                for pod in app["pods"]:
+                    for container in pod["containers"]:
+                        if "cloudbees/cloudbees-cloud-core-oc" in container["image"]:
+                            needsIngressclass = True
+
+        # Clone 'ingressclass' cluster object
+        if needsIngressclass and sourceClusterID != clusterID:
+            clusters = astraSDK.getClusters().main(hideUnmanaged=True)
+            contexts, _ = kubernetes.config.list_kube_config_contexts()
+            # Loop through clusters and contexts, find matches and open api_client
+            for cluster in clusters["items"]:
+                for context in contexts:
+                    if cluster["id"] == clusterID:
+                        if cluster["name"] in context["name"]:
+                            destClient = kubernetes.client.NetworkingV1Api(
+                                api_client=kubernetes.config.new_client_from_config(
+                                    context=context["name"]
+                                )
+                            )
+                    elif cluster["id"] == sourceClusterID:
+                        if cluster["name"] in context["name"]:
+                            sourceClient = kubernetes.client.NetworkingV1Api(
+                                api_client=kubernetes.config.new_client_from_config(
+                                    context=context["name"]
+                                )
+                            )
+            try:
+                # Get the source cluster ingressclass and apply it to the dest cluster
+                sourceResp = sourceClient.read_ingress_class(
+                    "nginx", _preload_content=False, _request_timeout=5
+                )
+                sourceIngress = json.loads(sourceResp.data)
+                del sourceIngress["metadata"]["resourceVersion"]
+                del sourceIngress["metadata"]["creationTimestamp"]
+                sourceIngress["metadata"]["labels"]["app.kubernetes.io/instance"] = destNamespace
+                sourceIngress["metadata"]["annotations"][
+                    "meta.helm.sh/release-name"
+                ] = destNamespace
+                sourceIngress["metadata"]["annotations"][
+                    "meta.helm.sh/release-namespace"
+                ] = destNamespace
+            except:
+                # In the event the sourceCluster no longer exists or isn't in kubeconfig
+                sourceIngress = {
+                    "kind": "IngressClass",
+                    "apiVersion": "networking.k8s.io/v1",
+                    "metadata": {
+                        "name": "nginx",
+                        "generation": 1,
+                        "labels": {
+                            "app.kubernetes.io/component": "controller",
+                            "app.kubernetes.io/instance": destNamespace,
+                            "app.kubernetes.io/managed-by": "Helm",
+                            "app.kubernetes.io/name": "ingress-nginx",
+                            "app.kubernetes.io/version": "1.1.0",
+                            "helm.sh/chart": "ingress-nginx-4.0.13",
+                        },
+                        "annotations": {
+                            "meta.helm.sh/release-name": destNamespace,
+                            "meta.helm.sh/release-namespace": destNamespace,
+                        },
+                        "managedFields": [
+                            {
+                                "manager": "helm",
+                                "operation": "Update",
+                                "apiVersion": "networking.k8s.io/v1",
+                                "fieldsType": "FieldsV1",
+                                "fieldsV1": {
+                                    "f:metadata": {
+                                        "f:annotations": {
+                                            ".": {},
+                                            "f:meta.helm.sh/release-name": {},
+                                            "f:meta.helm.sh/release-namespace": {},
+                                        },
+                                        "f:labels": {
+                                            ".": {},
+                                            "f:app.kubernetes.io/component": {},
+                                            "f:app.kubernetes.io/instance": {},
+                                            "f:app.kubernetes.io/managed-by": {},
+                                            "f:app.kubernetes.io/name": {},
+                                            "f:app.kubernetes.io/version": {},
+                                            "f:helm.sh/chart": {},
+                                        },
+                                    },
+                                    "f:spec": {"f:controller": {}},
+                                },
+                            }
+                        ],
+                    },
+                    "spec": {"controller": "k8s.io/ingress-nginx"},
+                }
+            try:
+                # Add the ingressclass to the new cluster
+                destClient.create_ingress_class(sourceIngress, _request_timeout=10)
+            except NameError:
+                raise SystemExit(f"Error: {clusterID} not found in kubeconfig")
+            except kubernetes.client.rest.ApiException as e:
+                # If the failure is due to the resource already existing, then we're all set,
+                # otherwise it's more serious and we must raise an exception
+                body = json.loads(e.body)
+                if not (body.get("reason") == "AlreadyExists"):
+                    raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
 
         cloneRet = astraSDK.cloneApp().main(
             cloneName,
@@ -609,7 +684,7 @@ if __name__ == "__main__":
                 chartsList.append(k)
 
         elif verbs["clone"]:
-            namespaces = astraSDK.getApps().main(source="namespace")
+            namespaces = astraSDK.getApps().main(source="namespace", delPods=False)
             for app in namespaces["items"]:
                 namespacesList.append(app["id"])
             destCluster = astraSDK.getClusters().main(hideUnmanaged=True)
@@ -1193,6 +1268,21 @@ if __name__ == "__main__":
         action="store_false",
         help="Create self signed SSL certs",
     )
+    parserDeploy.add_argument(
+        "-f",
+        "--values",
+        required=False,
+        action="append",
+        nargs="*",
+        help="Specify Helm values in a YAML file",
+    )
+    parserDeploy.add_argument(
+        "--set",
+        required=False,
+        action="append",
+        nargs="*",
+        help="Individual helm chart parameters",
+    )
     #######
     # end of deploy args and flags
     #######
@@ -1331,6 +1421,8 @@ if __name__ == "__main__":
             domain,
             email,
             ssl,
+            args.set,
+            args.values,
         )
     elif args.subcommand == "list":
         if args.objectType == "apps":
