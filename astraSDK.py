@@ -536,10 +536,9 @@ class takeBackup(SDKCommon):
             else:
                 return results.get("id") or True
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
+            print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+            if ret.text.strip():
+                print(f"Error text: {ret.text}")
             return False
 
 
@@ -1065,10 +1064,9 @@ class takeSnap(SDKCommon):
             else:
                 return results.get("id") or True
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
+            print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+            if ret.text.strip():
+                print(f"Error text: {ret.text}")
             return False
 
 

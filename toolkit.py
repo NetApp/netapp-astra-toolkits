@@ -162,6 +162,8 @@ def doProtectionTask(protectionType, appID, name, background):
         protectionID = astraSDK.takeBackup().main(appID, name)
     elif protectionType == "snapshot":
         protectionID = astraSDK.takeSnap().main(appID, name)
+    if protectionID == False:
+        sys.exit(1)
 
     print(f"Starting {protectionType} of {appID}")
     if background:
