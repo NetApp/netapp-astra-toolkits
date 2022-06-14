@@ -70,7 +70,7 @@ class getConfig:
             try:
                 assert self.conf.get(item) is not None
             except AssertionError:
-                print(f"astra_project is a required field in {configFile}")
+                print(f"{item} is a required field in {configFile}")
                 sys.exit(3)
 
         if "." in self.conf.get("astra_project"):
