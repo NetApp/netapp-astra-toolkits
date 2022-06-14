@@ -11,20 +11,24 @@ In all likelyhood these classes will not need to be invoked on their own, rather
 1. `/etc/astra-toolkits/`
 1. The directory pointed to by the shell env var `ASTRATOOLKITS_CONF`
 
-It then sets the `base` url, `headers`, and `verifySSL` values based on the `config.yaml` file.
+It then sets the following values based on the `config.yaml` file:
+
+* `self.base`: The URL of the Astra Control instance, including the project, hostname, '/accounts/' and account UID
+* `self.headers`: The authorization headers for the Astra Control user
+* `self.verifySSL`: A bool for whether or not to verify SSL headers when making API calls (useful for Astra Control Center)
 
 ## SDKCommon
 
 The SDKCommon class is the parent class for all other classes within `astraSDK.py`.  It relies on the values set via [getConfig](#getConfig), and has the below functions.
 
-## apicall
+### apicall
 
 `apicall` uses the [requests](https://pypi.org/project/requests/) module to make API calls.
 
-## jsonifyResults
+### jsonifyResults
 
-`jsonifyResults` takes in an API response, and returns a JSON object, with error handling.
+`jsonifyResults` takes in an API response, and returns a JSON object (python dict), with error handling.
 
-## preflight
+### preflight
 
 `preflight` performs a `get` on `topology/v1/clouds` to validate that the access information in the `config.yaml` file is valid.
