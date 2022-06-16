@@ -24,7 +24,7 @@ jobs:
           DOCKERIMAGE_TAG: ${{ inputs.tag }}
       run: |
         docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
-        docker build . --file Dockerfile --tag netapp/astra-toolkit:latest --tag netapp/astra-toolkit:$DOCKERIMAGE_TAG
+        docker build . --file Dockerfile --tag netapp/astra-toolkits:latest --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG
 
     - name: Push the Docker image
       env:
@@ -33,5 +33,5 @@ jobs:
           DOCKERIMAGE_TAG: ${{ inputs.tag }}
       run: |
         docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
-        docker push netapp/astra-toolkit:latest
-        docker push netapp/astra-toolkit:$DOCKERIMAGE_TAG
+        docker push netapp/astra-toolkits:latest
+        docker push netapp/astra-toolkits:$DOCKERIMAGE_TAG
