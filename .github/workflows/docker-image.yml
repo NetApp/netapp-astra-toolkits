@@ -20,7 +20,7 @@ jobs:
     - name: Build the Docker image
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           DOCKERIMAGE_TAG: ${{ inputs.tag }}
       run: |
         docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
@@ -29,7 +29,7 @@ jobs:
     - name: Push the Docker image
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           DOCKERIMAGE_TAG: ${{ inputs.tag }}
       run: |
         docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
