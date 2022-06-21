@@ -455,8 +455,6 @@ class toolkit:
         # The REST API for cloning requires the sourceClusterID, we look that
         # up from the passed in namespaces var.
         #         appID
-        # {'e6661eba-229b-4d7c-8c6c-cfca0db9068e':
-        #    ['appName', 'clusterNameAppIsRunningOn', 'clusterIDthatAppIsRunningOn', 'namespace']}
         needsIngressclass = False
         for app in namespaces["items"]:
             if sourceAppID == app["id"]:
@@ -628,6 +626,7 @@ if __name__ == "__main__":
             "clone": False,
             "restore": False,
             "list": False,
+            "get": False,
             "create": False,
             "manage": False,
             "destroy": False,
@@ -831,6 +830,7 @@ if __name__ == "__main__":
     )
     parserList = subparsers.add_parser(
         "list",
+        aliases=["get"],
         help="List all items in a class",
     )
     parserCreate = subparsers.add_parser(
@@ -1426,8 +1426,8 @@ if __name__ == "__main__":
             args.set,
             args.values,
         )
-    elif args.subcommand == "list":
-        if args.objectType == "apps":
+    elif args.subcommand == "list" or args.subcommand == "get":
+        if args.objectType == "apps" or args.objectType == "app":
             rc = astraSDK.getApps(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
                 discovered=args.unmanaged,
                 source=args.source,

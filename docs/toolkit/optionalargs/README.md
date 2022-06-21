@@ -24,7 +24,7 @@ positional arguments:
     deploy              deploy a bitnami chart
     clone               clone a namespace to a destination cluster
     restore             restore an app from a backup or snapshot
-    list                List all items in a class
+    list (get)          List all items in a class
     create              Create an object
     manage              Manage an object
     destroy             Destroy an object
