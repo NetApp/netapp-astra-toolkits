@@ -1269,7 +1269,7 @@ class getStorageClasses(SDKCommon):
         for cloud in self.clouds["items"]:
             for cluster in self.clusters["items"]:
                 # exclude invalid combinations of cloud/cluster
-                if cluster["cloudID"] != cloud["id"]:
+                if cluster["cloudID"] != cloud["id"] or cluster["managedState"] == "ineligible":
                     continue
                 endpoint = (
                     f"topology/v1/clouds/{cloud['id']}/clusters/{cluster['id']}/storageClasses"
