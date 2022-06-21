@@ -378,8 +378,6 @@ class getBackups(SDKCommon):
         if self.apps is False:
             print("Call to getApps().main() failed")
             return False
-        if len(self.apps["items"]) == 0:
-            return True
 
         """self.apps = {"items":[{"appDefnSource":"namespace","appLabels":[],
             "clusterID":"420a9ab0-1608-4e2e-a5ed-ca5b26a7fe69","clusterName":"useast1-cluster",
@@ -1096,9 +1094,6 @@ class getSnaps(SDKCommon):
         if self.apps is False:
             print("Call to getApps() failed")
             return False
-        if len(self.apps["items"]) == 0:
-            print("No apps found")
-            return True
 
         snaps = {}
         snaps["items"] = []
