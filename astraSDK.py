@@ -106,7 +106,7 @@ class SDKCommon:
         self.headers = self.conf.get("headers")
         self.verifySSL = self.conf.get("verifySSL")
 
-    def apicall(self, method, url, data, headers, params, verify):
+    def apicall(self, method, url, data, headers, params, verify, quiet=False):
         """Make a call using the requests module.
         method can be get, put, post, patch, or delete"""
         try:
@@ -117,7 +117,7 @@ class SDKCommon:
             ret = r(url, json=data, headers=headers, params=params, verify=verify)
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
-        if not ret.ok:
+        if not ret.ok and not quiet:
             if ret.status_code >= 400 and ret.status_code < 500:
                 if "x-pcloud-accountid" in ret.text:
                     print("preflight API call to Astra Control failed (check uid in config.json)")
@@ -125,11 +125,6 @@ class SDKCommon:
                     print(
                         "preflight API call to Astra Control failed "
                         "(check Authoriztion in config.json)"
-                    )
-                else:
-                    print(
-                        "preflight API call to Astra Control failed "
-                        "(possible problem in config.yaml)"
                     )
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
                 print(f"text: {ret.text}")
@@ -904,7 +899,7 @@ class manageApp(SDKCommon):
             print(colored(f"API data: {data}", "green"))
             print(colored(f"API params: {params}", "green"))
 
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL, self.quiet)
 
         if self.verbose:
             print(f"API HTTP Status Code: {ret.status_code}")
