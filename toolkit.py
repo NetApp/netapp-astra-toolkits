@@ -17,7 +17,6 @@
 
 import astraSDK
 import argparse
-import dns.resolver
 import json
 import os
 import subprocess
@@ -237,18 +236,12 @@ class toolkit:
     def __init__(self):
         self.conf = astraSDK.getConfig().main()
 
-    def deploy(
-        self, chartName, repoName, appName, nameSpace, domain, email, ssl, setValues, fileValues
-    ):
+    def deploy(self, chartName, repoName, appName, nameSpace, setValues, fileValues):
         """Deploy a helm chart <chartName>, from helm repo <repoName>
         naming the app <appName> into <nameSpace>"""
 
         setStr = createHelmStr("set", setValues)
         valueStr = createHelmStr("values", fileValues)
-
-        if chartName == "gitlab":
-            assert domain is not None
-            assert email is not None
 
         getAppsObj = astraSDK.getApps()
         retval = run("kubectl get ns -o json", captureOutput=True)
@@ -293,43 +286,14 @@ class toolkit:
                 if 'pod "curl" deleted' in retString:
                     kubeHost = retString.split('pod "curl" deleted')[0]
                     clusters = astraSDK.getClusters().main()
-                    for cluster in clusters:
-                        if clusters[cluster][0] == kubeHost and clusters[cluster][1] == "gke":
+                    for cluster in clusters["items"]:
+                        if cluster["name"] == kubeHost and cluster["clusterType"] == "gke":
                             gitalyStorageClass = "standard-rwo"
 
-            myResolver = dns.resolver.Resolver()
-            myResolver.nameservers = ["8.8.8.8"]
-            try:
-                answer = myResolver.resolve(f"gitlab.{domain}")
-            except dns.resolver.NXDOMAIN as e:
-                print(f"Can't resolve gitlab.{domain}: {e}")
-                sys.exit(17)
-            for i in answer:
-                ip = i
-            if ssl:
-                glhelmCmd = (
-                    f"helm install {appName} {repoName}/{chartName} --timeout 600s "
-                    f"--set certmanager-issuer.email={email} "
-                    f"--set global.hosts.domain={domain} "
-                    "--set prometheus.alertmanager.persistentVolume.enabled=false "
-                    "--set prometheus.server.persistentVolume.enabled=false "
-                    f"--set global.hosts.externalIP={ip} "
-                )
-            else:
-                glhelmCmd = (
-                    f"helm install {appName} {repoName}/{chartName} --timeout 600s "
-                    f"--set certmanager-issuer.email={email} "
-                    f"--set global.hosts.domain={domain} "
-                    "--set prometheus.alertmanager.persistentVolume.enabled=false "
-                    "--set prometheus.server.persistentVolume.enabled=false "
-                    f"--set global.hosts.externalIP={ip} "
-                    "--set certmanager.install=false "
-                    "--set global.ingress.configureCertmanager=false "
-                    "--set gitlab-runner.install=false "
-                )
             if gitalyStorageClass:
-                glhelmCmd += f"--set gitlab.gitaly.persistence.storageClass={gitalyStorageClass}"
-            run(glhelmCmd)
+                setStr += f" --set gitlab.gitaly.persistence.storageClass={gitalyStorageClass}"
+            print(f"running: 'helm install {appName} {repoName}/{chartName}{setStr}{valueStr}'")
+            run(f"helm install {appName} {repoName}/{chartName}{setStr}{valueStr}")
 
             # I could've included straight up YAML here but that seemed..the opposite of elegent.
             gitalyPatch = {
@@ -1252,25 +1216,6 @@ if __name__ == "__main__":
     )
     parserDeploy.add_argument("namespace", help="Namespace to deploy into (must not already exist)")
     parserDeploy.add_argument(
-        "--domain",
-        "-d",
-        required=False,
-        help="Default domain to pass gitlab deployment",
-    )
-    parserDeploy.add_argument(
-        "--email",
-        "-e",
-        required=False,
-        help="Email address for self-signed certs (gitlab only)",
-    )
-    parserDeploy.add_argument(
-        "-s",
-        "--ssl",
-        default=True,
-        action="store_false",
-        help="Create self signed SSL certs",
-    )
-    parserDeploy.add_argument(
         "-f",
         "--values",
         required=False,
@@ -1420,9 +1365,6 @@ if __name__ == "__main__":
             chartsDict[args.chart],
             args.app,
             args.namespace,
-            domain,
-            email,
-            ssl,
             args.set,
             args.values,
         )
