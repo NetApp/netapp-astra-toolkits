@@ -15,7 +15,12 @@
    limitations under the License.
 """
 
-import astraSDK
+try:
+    from . import astraSDK
+except ImportError:
+    import astraSDK
+
+
 import argparse
 import dns.resolver
 import json
@@ -596,7 +601,7 @@ class toolkit:
             print("Submitting clone failed.")
 
 
-if __name__ == "__main__":
+def main():
     # This is a pretty big hack.  The various functions to populate the lists
     # used for choices() in the options are expensive.  argparse provides no
     # way to know what subcommand was selected prior to parsing the options.
@@ -1721,3 +1726,7 @@ if __name__ == "__main__":
             backupID=args.backupID,
             background=args.background,
         )
+
+
+if __name__ == "__main__":
+    main()
