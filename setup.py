@@ -8,7 +8,7 @@ with open("requirements.txt", "r") as req:
 
 
 setuptools.setup(
-    name="pyastractl",
+    name="actoolkit",
     version="2.1.1",
     py_modules=["toolkit", "astraSDK"],
     author="Michael Haigh",
@@ -21,7 +21,7 @@ setuptools.setup(
     install_requires=all_reqs,
     entry_points={
         "console_scripts": [
-            "pyastractl=toolkit:main",
+            "actoolkit=toolkit:main",
         ]
     },
     classifiers=[
