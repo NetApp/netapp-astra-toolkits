@@ -9,7 +9,7 @@ with open("requirements.txt", "r") as req:
 
 setuptools.setup(
     name="actoolkit",
-    version="2.1.2",
+    version="2.1.3",
     py_modules=["toolkit", "astraSDK"],
     author="Michael Haigh",
     author_email="Michael.Haigh@netapp.com",
@@ -19,6 +19,7 @@ setuptools.setup(
     url="https://github.com/NetApp/netapp-astra-toolkits",
     packages=setuptools.find_packages(),
     install_requires=all_reqs,
+    python_requires=">=3.8",
     entry_points={
         "console_scripts": [
             "actoolkit=toolkit:main",
