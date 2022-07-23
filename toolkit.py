@@ -255,7 +255,7 @@ class toolkit:
             assert domain is not None
             assert email is not None
 
-        getAppsObj = astraSDK.getApps()
+        getNsObj = astraSDK.getNamespaces()
         retval = run("kubectl get ns -o json", captureOutput=True)
         retvalJSON = json.loads(retval)
         for item in retvalJSON["items"]:
@@ -394,10 +394,10 @@ class toolkit:
             time.sleep(3)
             print(".", end="")
             sys.stdout.flush()
-            apps = getAppsObj.main(discovered=True, namespace=nameSpace)
+            apps = getNsObj.main()
             # Cycle through the apps and see if one matches our new namespace
             for app in apps["items"]:
-                if app["name"] == nameSpace and app["namespace"] == nameSpace:
+                if app["name"] == nameSpace:
                     print("Discovery complete!")
                     sys.stdout.flush()
                     appID = app["id"]
@@ -609,20 +609,15 @@ def main():
     # the various choices the differing options for each subcommand needs.
     # So we just go around argparse's back and introspect sys.argv directly
     chartsList = []
-    namespacesList = []
+    namespaceList = []
     backupList = []
     snapshotList = []
     destclusterList = []
     appList = []
     clusterList = []
     storageClassList = []
+
     if len(sys.argv) > 1:
-        returnNames = False
-        if "-s" in sys.argv or "--symbolicnames" in sys.argv:
-            returnNames = True
-        # since we support symbolic names we have to guard against
-        # commands like ./toolkit.py -s create backup clone backupname
-        # where the toolkit verbs are also used as object names.
 
         # verbs must manually be kept in sync with the top level subcommands in the argparse
         # section of this code.
@@ -634,6 +629,7 @@ def main():
             "get": False,
             "create": False,
             "manage": False,
+            "define": False,
             "destroy": False,
             "unmanage": False,
         }
@@ -692,7 +688,7 @@ def main():
         elif verbs["clone"]:
             namespaces = astraSDK.getApps().main(source="namespace", delPods=False)
             for app in namespaces["items"]:
-                namespacesList.append(app["id"])
+                namespaceList.append(app["id"])  # TODO: figure our if this should be ns
             destCluster = astraSDK.getClusters().main(hideUnmanaged=True)
             for cluster in destCluster["items"]:
                 destclusterList.append(cluster["id"])
@@ -740,10 +736,13 @@ def main():
             for app in astraSDK.getApps().main()["items"]:
                 appList.append(app["id"])
 
-        elif verbs["manage"] and len(sys.argv) - verbPosition >= 2:
+        elif (verbs["manage"] or verbs["define"]) and len(sys.argv) - verbPosition >= 2:
             if sys.argv[verbPosition + 1] == "app":
-                for app in astraSDK.getApps().main(discovered=True)["items"]:
-                    appList.append(app["id"])
+                namespaceDict = astraSDK.getNamespaces().main()
+                for namespace in namespaceDict["items"]:
+                    namespaceList.append(namespace["name"])
+                    clusterList.append(namespace["clusterID"])
+                clusterList = list(set(clusterList))
             elif sys.argv[verbPosition + 1] == "cluster":
                 clusterDict = astraSDK.getClusters(quiet=True).main()
                 for cluster in clusterDict["items"]:
@@ -781,7 +780,7 @@ def main():
 
         elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
             if sys.argv[verbPosition + 1] == "app":
-                for app in astraSDK.getApps().main(discovered=False)["items"]:
+                for app in astraSDK.getApps().main()["items"]:
                     appList.append(app["id"])
 
             elif sys.argv[verbPosition + 1] == "cluster":
@@ -844,6 +843,7 @@ def main():
     )
     parserManage = subparsers.add_parser(
         "manage",
+        aliases=["define"],
         help="Manage an object",
     )
     parserDestroy = subparsers.add_parser(
@@ -897,6 +897,10 @@ def main():
         "clusters",
         help="list clusters",
     )
+    subparserListNamespaces = subparserList.add_parser(
+        "namespaces",
+        help="list namespaces",
+    )
     subparserListSnapshots = subparserList.add_parser(
         "snapshots",
         help="list snapshots",
@@ -912,22 +916,6 @@ def main():
     #######
     # list apps args and flags
     #######
-    group = subparserListApps.add_mutually_exclusive_group(required=False)
-    group.add_argument(
-        "-u",
-        "--unmanaged",
-        default=False,
-        action="store_true",
-        help="Show only unmanaged apps",
-    )
-    group.add_argument(
-        "-i",
-        "--ignored",
-        default=False,
-        action="store_true",
-        help="Show ignored apps",
-    )
-    subparserListApps.add_argument("-s", "--source", help="app source")
     subparserListApps.add_argument(
         "-n", "--namespace", default=None, help="Only show apps from this namespace"
     )
@@ -967,7 +955,7 @@ def main():
         help="Hide managed clusters",
     )
     subparserListClusters.add_argument(
-        "-u",
+        "-n",
         "--hideUnmanaged",
         default=False,
         action="store_true",
@@ -975,6 +963,16 @@ def main():
     )
     #######
     # end of list clusters args and flags
+    #######
+
+    #######
+    # list namespaces args and flags
+    #######
+    subparserListNamespaces.add_argument(
+        "-c", "--cluster", default=None, help="Only show namespaces from this cluster"
+    )
+    #######
+    # end of list namespaces args and flags
     #######
 
     #######
@@ -1129,10 +1127,17 @@ def main():
     #######
     # manage app args and flags
     #######
+    subparserManageApp.add_argument("appName", help="The logical name of the newly defined app")
     subparserManageApp.add_argument(
-        "appID",
-        choices=appList,
-        help="appID of app to move from discovered to managed",
+        "namespace",
+        choices=namespaceList,
+        help="The namespace to move from undefined (aka unmanaged) to defined (aka managed)",
+    )
+    # TODO: add label argument
+    subparserManageApp.add_argument(
+        "clusterID",
+        choices=clusterList,
+        help="The clusterID hosting the newly defined app",
     )
     #######
     # end of manage app args and flags
@@ -1225,7 +1230,7 @@ def main():
     subparserUnmanageApp.add_argument(
         "appID",
         choices=appList,
-        help="appID of app to move from managed to discovered",
+        help="appID of app to move from managed to unmanaged",
     )
     #######
     # end of unmanage app args and flags
@@ -1306,7 +1311,7 @@ def main():
     )
     parserClone.add_argument(
         "--sourceNamespace",
-        choices=namespacesList,
+        choices=namespaceList,
         required=False,
         default=None,
         help="Source namespace to clone",
@@ -1432,13 +1437,10 @@ def main():
             args.values,
         )
     elif args.subcommand == "list" or args.subcommand == "get":
-        if args.objectType == "apps" or args.objectType == "app":
+        if args.objectType == "apps":
             rc = astraSDK.getApps(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
-                discovered=args.unmanaged,
-                source=args.source,
                 namespace=args.namespace,
                 cluster=args.cluster,
-                ignored=args.ignored,
             )
             if rc is False:
                 print("astraSDK.getApps() failed")
@@ -1469,6 +1471,15 @@ def main():
             ).main(hideManaged=args.hideManaged, hideUnmanaged=args.hideUnmanaged)
             if rc is False:
                 print("astraSDK.getClusters() Failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
+        elif args.objectType == "namespaces":
+            rc = astraSDK.getNamespaces(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(clusterID=args.cluster)
+            if rc is False:
+                print("astraSDK.getNamespaces() Failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -1522,9 +1533,11 @@ def main():
             else:
                 sys.exit(0)
 
-    elif args.subcommand == "manage":
+    elif args.subcommand == "manage" or args.subcommand == "define":
         if args.objectType == "app":
-            rc = astraSDK.manageApp(quiet=args.quiet, verbose=args.verbose).main(args.appID)
+            rc = astraSDK.manageApp(quiet=args.quiet, verbose=args.verbose).main(
+                args.appName, args.namespace, args.clusterID
+            )
             if rc is False:
                 print("astraSDK.manageApp() Failed")
                 sys.exit(1)

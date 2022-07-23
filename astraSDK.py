@@ -144,13 +144,12 @@ class SDKCommon:
 
 
 class getApps(SDKCommon):
-    """List all apps known to Astra.
+    """List all apps known to Astra.  With App 2.0 API spec in the Aug 2022 release, there's
+    no longer a "discovered" or "ignored" construct with apps.  There's simply managed apps
+    (which is what this class covers), or yet-to-be-managed (referred to as unmanaged) apps,
+    which are handled by the getNamespaces class.
 
-    Note that there is an API endpoint that will just list managedApps.  However
-    it has the same return value as topology/v1/apps when filtering for
-    managedState="managed"
-
-    One thing this class won't do is list all of the managed and unmanaged apps.
+    Therefore this class cannot list all of the managed and unmanaged apps.
     """
 
     def __init__(self, quiet=True, verbose=False, output="json"):
@@ -166,29 +165,17 @@ class getApps(SDKCommon):
 
     def main(
         self,
-        discovered=False,
-        source=None,
         namespace=None,
         cluster=None,
-        ignored=False,
         delPods=True,
     ):
-        """discovered: True: show unmanaged apps False: show managed apps
-        source: Filter by the app source field.  eg: helm, namespace
-        namespace: Filter by the namespace the app is in
-        cluster: Filter by a specific k8s cluster
-        ignored: True: show ignored apps"""
+        """namespace: Filter by the namespace the app is in
+        cluster: Filter by a specific k8s cluster"""
 
-        endpoint = "topology/v1/apps"
+        endpoint = "k8s/v2/apps"
         params = {}
         url = self.base + endpoint
         data = {}
-
-        # There's no such thing as a managed and ignored app, this prevents always having no results
-        # if we are called with discovered=False,ignored=True
-        # as well as simplifies CLI flags for toolkit.py
-        if ignored:
-            discovered = True
 
         if self.verbose:
             print(colored(f"API URL: {url}", "green"))
@@ -209,80 +196,70 @@ class getApps(SDKCommon):
             """
             self.results = {"items":[
                     {
-                        "appDefnSource":"namespace",
-                        "appLabels":[],
-                        "clusterID":"420a9ab0-1608-4e2e-a5ed-ca5b26a7fe69",
-                        "clusterName":"useast1-cluster",
-                        "clusterType":"gke",
-                        "collectionState":"fullyCollected",
-                        "collectionStateDetails":[],
-                        "collectionStateTransitions":[
+                        "type": "application/astra-app",
+                        "version": "2.0",
+                        "id": "36ba2699-66dc-4ad1-949b-26c1108f42e2",
+                        "name": "wordpress-app",
+                        "namespaceScopedResources": [
                             {
-                                "from":"notCollected",
-                                "to":["partiallyCollected", "fullyCollected"]
-                            },
-                            {
-                                "from":"partiallyCollected",
-                                "to":["fullyCollected"]
-                            },
-                            {
-                                "from":"fullyCollected",
-                                "to":[]
+                                "namespace": "wordpress",
+                                "labelSelectors": []
                             }
                         ],
-                        "id":"d8cf2f17-d8d6-4b9f-aa42-f945d43b9a87",
-                        "managedState":"managed",
-                        "managedStateUnready":[],
-                        "managedTimestamp":"2022-05-12T14:35:36Z",
-                        "metadata":{
-                            "createdBy":"system",
-                            "creationTimestamp":"2022-05-12T14:35:27Z",
-                            "labels":[],
-                            "modificationTimestamp":"2022-05-12T18:47:45Z"
-                        },
-                        "name":"wordpress-ns",
-                        "namespace":"wordpress-ns",
-                        "pods":<OMITTED>,
-                        "protectionState":"protected",
-                        "protectionStateUnready":[],
-                        "state":"running",
-                        "stateUnready":[],
-                        "system":"false",
-                        "type":"application/astra-app",
-                        "version":"1.1"
+                        "state": "ready",
+                        "lastResourceCollectionTimestamp": "2022-07-20T18:19:35Z",
+                        "stateTransitions": [
+                            { "to": ["pending"] },
+                            { "to": ["provisioning"] },
+                            { "from": "pending", "to": ["discovering", "failed"] },
+                            { "from": "discovering", "to": ["ready", "failed"] },
+                            {
+                                "from": "ready",
+                                "to": [ "discovering", "restoring", "unavailable", "failed"]
+                            },
+                            { "from": "unavailable", "to": ["ready", "restoring"] },
+                            { "from": "provisioning", "to": ["discovering", "failed"] },
+                            { "from": "restoring", "to": ["discovering", "failed"] }
+                        ],
+                        "stateDetails": [],
+                        "protectionState": "none",
+                        "protectionStateDetails": [],
+                        "namespaces": [
+                            "wordpress"
+                        ],
+                        "clusterName": "uscentral1-cluster",
+                        "clusterID": "b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d",
+                        "clusterType": "gke",
+                        "metadata": {
+                            "labels": [],
+                            "creationTimestamp": "2022-07-20T18:19:30Z",
+                            "modificationTimestamp": "2022-07-20T18:20:36Z",
+                            "createdBy": "12a5d9dd-851e-4235-af27-86c0b63bf3a9"
+                        }
                     }],
                 "metadata":{}
             }
             """
 
-            if discovered:
-                managedFilter = "unmanaged"
-            else:
-                managedFilter = "managed"
-
             # Loop through all apps and delete those that don't match filters
             for counter, app in enumerate(apps.get("items")):
 
                 # Find ignored apps based on labels
-                ignoreFound = False
-                for label in app["metadata"]["labels"]:
-                    if (
-                        label["name"] == "astra.netapp.io/labels/app.ignore"
-                        and label["value"] == "true"
-                    ):
-                        ignoreFound = True
+                # for label in app["metadata"]["labels"]:
+                #    if (
+                #        label["name"] == "astra.netapp.io/labels/app.ignore"
+                #        and label["value"] == "true"
+                #    ):
+                #        ignoreFound = True
 
                 # If there's a given filter, delete non-matching values
-                if app["system"] == "true":
-                    appsCooked["items"].remove(apps["items"][counter])
-                elif (ignored and not ignoreFound) or (not ignored and ignoreFound):
-                    appsCooked["items"].remove(apps["items"][counter])
-                elif managedFilter != app["managedState"]:
-                    appsCooked["items"].remove(apps["items"][counter])
-                elif source and source != app["appDefnSource"]:
-                    appsCooked["items"].remove(apps["items"][counter])
-                elif namespace and namespace != app["namespace"]:
-                    appsCooked["items"].remove(apps["items"][counter])
+                if namespace:
+                    delApp = True
+                    for ns in app["namespaces"]:
+                        if ns == namespace:
+                            delApp = False
+                    if delApp:
+                        appsCooked["items"].remove(apps["items"][counter])
                 elif cluster and cluster != app["clusterName"]:
                     appsCooked["items"].remove(apps["items"][counter])
 
@@ -312,9 +289,8 @@ class getApps(SDKCommon):
                             app["name"],
                             app["id"],
                             app["clusterName"],
-                            app["namespace"],
+                            ", ".join(app["namespaces"]),
                             app["state"],
-                            app["appDefnSource"],
                         ]
                     )
                 dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
@@ -869,7 +845,7 @@ class createProtectionpolicy(SDKCommon):
 
 
 class manageApp(SDKCommon):
-    """This class switches a discovered app to a managed app."""
+    """This class switches an unmanaged (aka undefined) app to a managed (aka defined) app."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -880,19 +856,23 @@ class manageApp(SDKCommon):
         self.headers["accept"] = "application/astra-managedApp+json"
         self.headers["Content-Type"] = "application/managedApp+json"
 
-    def main(self, appID):
+    def main(self, appName, namespace, clusterID, label=None):
 
-        endpoint = "k8s/v1/managedApps"
+        endpoint = "k8s/v2/apps"
         url = self.base + endpoint
         params = {}
         data = {
-            "type": "application/astra-managedApp",
-            "version": "1.1",
-            "id": appID,
+            "clusterID": clusterID,
+            "name": appName,
+            "namespaceScopedResources": [{"namespace": namespace}],
+            "type": "application/astra-app",
+            "version": "2.0",
         }
+        if label:
+            data["namespaceScopedResources"][0]["labelSelectors"] = [label]
 
         if self.verbose:
-            print(f"Managing app: {appID}")
+            print(f"Managing app: {appName}")
             print(colored(f"API URL: {url}", "green"))
             print(colored("API Method: POST", "green"))
             print(colored(f"API Headers: {self.headers}", "green"))
@@ -1426,6 +1406,79 @@ class unmanageCluster(SDKCommon):
             if not self.quiet:
                 print("Cluster unmanaged")
             return True
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class getNamespaces(SDKCommon):
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        super().__init__()
+
+    def main(self, clusterID=None):
+
+        if clusterID:
+            endpoint = f"topology/v1/clusters/{clusterID}/namespaces"
+        else:
+            endpoint = "topology/v1/namespaces"
+        url = self.base + endpoint
+
+        data = {}
+        params = {}
+
+        if self.verbose:
+            print("Getting namespaces...")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            namespaces = super().jsonifyResults(ret)
+            # Delete the 'systemType' namespaces
+            namespacesCooked = copy.deepcopy(namespaces)
+            for counter, namespace in enumerate(namespaces.get("items")):
+                if namespace.get("systemType"):
+                    namespacesCooked["items"].remove(namespaces["items"][counter])
+
+            if self.output == "json":
+                dataReturn = namespacesCooked
+            elif self.output == "yaml":
+                dataReturn = yaml.dump(namespacesCooked)
+            elif self.output == "table":
+                tabHeader = ["name", "namespaceID", "clusterID"]
+                tabData = []
+                for namespace in namespacesCooked["items"]:
+                    tabData.append(
+                        [
+                            namespace["name"],
+                            namespace["id"],
+                            namespace["clusterID"],
+                        ]
+                    )
+                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+            if not self.quiet:
+                print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+            return dataReturn
+
         else:
             if not self.quiet:
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
