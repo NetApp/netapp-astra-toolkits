@@ -355,7 +355,7 @@ class getBackups(SDKCommon):
             if appFilter:
                 if app["name"] != appFilter and app["id"] != appFilter:
                     continue
-            endpoint = f"k8s/v1/managedApps/{app['id']}/appBackups"
+            endpoint = f"k8s/v1/apps/{app['id']}/appBackups"
             url = self.base + endpoint
 
             data = {}
@@ -453,12 +453,12 @@ class takeBackup(SDKCommon):
 
     def main(self, appID, backupName):
 
-        endpoint = f"k8s/v1/managedApps/{appID}/appBackups"
+        endpoint = f"k8s/v1/apps/{appID}/appBackups"
         url = self.base + endpoint
         params = {}
         data = {
             "type": "application/astra-appBackup",
-            "version": "1.0",
+            "version": "1.1",
             "name": backupName,
         }
 
@@ -504,12 +504,12 @@ class destroyBackup(SDKCommon):
 
     def main(self, appID, backupID):
 
-        endpoint = f"k8s/v1/managedApps/{appID}/appBackups/{backupID}"
+        endpoint = f"k8s/v1/apps/{appID}/appBackups/{backupID}"
         url = self.base + endpoint
         params = {}
         data = {
             "type": "application/astra-appBackup",
-            "version": "1.0",
+            "version": "1.1",
         }
 
         if self.verbose:
@@ -853,8 +853,8 @@ class manageApp(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-managedApp+json"
-        self.headers["Content-Type"] = "application/managedApp+json"
+        self.headers["accept"] = "application/astra-app+json"
+        self.headers["Content-Type"] = "application/astra-app+json"
 
     def main(self, appName, namespace, clusterID, label=None):
 
@@ -907,12 +907,12 @@ class unmanageApp(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-managedApp+json"
-        self.headers["Content-Type"] = "application/managedApp+json"
+        self.headers["accept"] = "application/astra-app+json"
+        self.headers["Content-Type"] = "application/astra-app+json"
 
     def main(self, appID):
 
-        endpoint = f"k8s/v1/managedApps/{appID}"
+        endpoint = f"k8s/v2/apps/{appID}"
         url = self.base + endpoint
         params = {}
         data = {}
@@ -959,12 +959,12 @@ class takeSnap(SDKCommon):
 
     def main(self, appID, snapName):
 
-        endpoint = f"k8s/v1/managedApps/{appID}/appSnaps"
+        endpoint = f"k8s/v1/apps/{appID}/appSnaps"
         url = self.base + endpoint
         params = {}
         data = {
             "type": "application/astra-appSnap",
-            "version": "1.0",
+            "version": "1.1",
             "name": snapName,
         }
 
@@ -1029,7 +1029,7 @@ class getSnaps(SDKCommon):
             if appFilter:
                 if app["name"] != appFilter and app["id"] != appFilter:
                     continue
-            endpoint = f"k8s/v1/managedApps/{app['id']}/appSnaps"
+            endpoint = f"k8s/v1/apps/{app['id']}/appSnaps"
             url = self.base + endpoint
 
             data = {}
@@ -1115,12 +1115,12 @@ class destroySnapshot(SDKCommon):
 
     def main(self, appID, snapID):
 
-        endpoint = f"k8s/v1/managedApps/{appID}/appSnaps/{snapID}"
+        endpoint = f"k8s/v1/apps/{appID}/appSnaps/{snapID}"
         url = self.base + endpoint
         params = {}
         data = {
             "type": "application/astra-appSnap",
-            "version": "1.0",
+            "version": "1.1",
         }
 
         if self.verbose:
@@ -1456,7 +1456,7 @@ class getNamespaces(SDKCommon):
             # Delete the 'systemType' namespaces
             namespacesCooked = copy.deepcopy(namespaces)
             for counter, namespace in enumerate(namespaces.get("items")):
-                if namespace.get("systemType"):
+                if namespace.get("systemType") or namespace.get("name") == "kube-public":
                     namespacesCooked["items"].remove(namespaces["items"][counter])
 
             if self.output == "json":
