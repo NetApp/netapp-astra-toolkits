@@ -92,13 +92,13 @@ API HTTP Status Code: 200
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
 | appName        | appID                                | clusterName     | namespace      | state        | source    |
 +================+======================================+=================+================+==============+===========+
-| wordpress-east | 8f462cea-a166-438d-85b1-8aa5cfb0ad9f | useast1-cluster | wordpress      | running      | namespace |
+| wordpress-east | 8f462cea-a166-438d-85b1-8aa5cfb0ad9f | useast1-cluster | wordpress      | ready        | namespace |
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| wordpress-west | a8dc676e-d182-4d7c-9113-43f5a2963b54 | uswest1-cluster | wordpress-prod | running      | namespace |
+| wordpress-west | a8dc676e-d182-4d7c-9113-43f5a2963b54 | uswest1-cluster | wordpress-prod | ready        | namespace |
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
 | temp-clone     | ad125374-e090-425b-a048-d719b93b0feb | uswest1-cluster | clonens        | provisioning | namespace |
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| jfrogcr        | cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 | uswest1-cluster | jfrogcr        | running      | namespace |
+| jfrogcr        | cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 | uswest1-cluster | jfrogcr        | ready        | namespace |
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
 ```
 
@@ -115,13 +115,13 @@ $ ./toolkit.py -o table list apps
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
 | appName        | appID                                | clusterName     | namespace      | state        | source    | 
 +================+======================================+=================+================+==============+===========+
-| wordpress-east | 8f462cea-a166-438d-85b1-8aa5cfb0ad9f | useast1-cluster | wordpress      | running      | namespace | 
+| wordpress-east | 8f462cea-a166-438d-85b1-8aa5cfb0ad9f | useast1-cluster | wordpress      | ready        | namespace | 
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| wordpress-west | a8dc676e-d182-4d7c-9113-43f5a2963b54 | uswest1-cluster | wordpress-prod | running      | namespace | 
+| wordpress-west | a8dc676e-d182-4d7c-9113-43f5a2963b54 | uswest1-cluster | wordpress-prod | ready        | namespace | 
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
 | temp-clone     | ad125374-e090-425b-a048-d719b93b0feb | uswest1-cluster | clonens        | provisioning | namespace | 
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| jfrogcr        | cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 | uswest1-cluster | jfrogcr        | running      | namespace | 
+| jfrogcr        | cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 | uswest1-cluster | jfrogcr        | ready        | namespace | 
 +----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
 ```
 
@@ -131,7 +131,7 @@ The `json` output prints the full API object in json format.
 
 ```text
 $ ./toolkit.py -o json list apps
-{"items": [{"type": "application/astra-app", "version": "1.1", "id": "8f462cea-a166-438d-85b1-8aa5cfb0ad9f", "name": "wordpress", "state": "running", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T15:12:05Z", "protectionState": "protected", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "wordpress", "clusterName": "useast1-cluster", "clusterID": "9fd690f3-4ae5-423d-9b58-95b6ba4f02e4", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-19T15:11:31Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "system"`, {"type": "application/astra-app", "version": "1.1", "id": "a8dc676e-d182-4d7c-9113-43f5a2963b54", "name": "wordpress-w", "state": "running", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T15:14:38Z", "protectionState": "partial", "protectionStateUnready": ["Missing a recent backup"], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "wordpress-w", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-19T15:14:13Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "system"`, {"type": "application/astra-managedApp", "version": "1.1", "id": "ad125374-e090-425b-a048-d719b93b0feb", "name": "clonens", "state": "running", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T19:25:50Z", "protectionState": "none", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "clonens", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "sourceAppID": "8f462cea-a166-438d-85b1-8aa5cfb0ad9f", "sourceClusterID": "9fd690f3-4ae5-423d-9b58-95b6ba4f02e4", "backupID": "fa8b87a2-8533-4fec-82dd-dd9cbeec2c9b", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/appType", "value": "clone"}], "creationTimestamp": "2022-05-19T19:25:50Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"`, {"type": "application/astra-app", "version": "1.1", "id": "cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0", "name": "jfrogcr", "state": "running", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-20T16:00:06Z", "protectionState": "protected", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "jfrogcr", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-20T15:59:35Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "system"`], "metadata": {`
+{"items": [{"type": "application/astra-app", "version": "1.1", "id": "8f462cea-a166-438d-85b1-8aa5cfb0ad9f", "name": "wordpress", "state": "ready  ", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T15:12:05Z", "protectionState": "protected", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "wordpress", "clusterName": "useast1-cluster", "clusterID": "9fd690f3-4ae5-423d-9b58-95b6ba4f02e4", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-19T15:11:31Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "system"`, {"type": "application/astra-app", "version": "1.1", "id": "a8dc676e-d182-4d7c-9113-43f5a2963b54", "name": "wordpress-w", "state": "ready  ", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T15:14:38Z", "protectionState": "partial", "protectionStateUnready": ["Missing a recent backup"], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "wordpress-w", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-19T15:14:13Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "system"`, {"type": "application/astra-managedApp", "version": "1.1", "id": "ad125374-e090-425b-a048-d719b93b0feb", "name": "clonens", "state": "ready  ", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T19:25:50Z", "protectionState": "none", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "clonens", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "sourceAppID": "8f462cea-a166-438d-85b1-8aa5cfb0ad9f", "sourceClusterID": "9fd690f3-4ae5-423d-9b58-95b6ba4f02e4", "backupID": "fa8b87a2-8533-4fec-82dd-dd9cbeec2c9b", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/appType", "value": "clone"}], "creationTimestamp": "2022-05-19T19:25:50Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"`, {"type": "application/astra-app", "version": "1.1", "id": "cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0", "name": "jfrogcr", "state": "ready  ", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-20T16:00:06Z", "protectionState": "protected", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "jfrogcr", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-20T15:59:35Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "system"`], "metadata": {`
 ```
 
 This is useful in conjunction with the [jq](https://stedolan.github.io/jq/) utility, first for pretty-printing the output:
@@ -145,7 +145,7 @@ $ ./toolkit.py -o json list apps | jq
       "version": "1.1",
       "id": "8f462cea-a166-438d-85b1-8aa5cfb0ad9f",
       "name": "wordpress-east",
-      "state": "running",
+      "state": "ready  ",
       "stateUnready": [],
       "managedState": "managed",
       "managedStateUnready": [],
@@ -192,7 +192,7 @@ $ ./toolkit.py -o json list apps | jq
       "version": "1.1",
       "id": "a8dc676e-d182-4d7c-9113-43f5a2963b54",
       "name": "wordpress-west",
-      "state": "running",
+      "state": "ready  ",
       "stateUnready": [],
       "managedState": "managed",
       "managedStateUnready": [],
@@ -239,7 +239,7 @@ $ ./toolkit.py -o json list apps | jq
       "version": "1.1",
       "id": "ad125374-e090-425b-a048-d719b93b0feb",
       "name": "temp-clone",
-      "state": "running",
+      "state": "ready  ",
       "stateUnready": [],
       "managedState": "managed",
       "managedStateUnready": [],
@@ -294,7 +294,7 @@ $ ./toolkit.py -o json list apps | jq
       "version": "1.1",
       "id": "cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0",
       "name": "jfrogcr",
-      "state": "running",
+      "state": "ready  ",
       "stateUnready": [],
       "managedState": "managed",
       "managedStateUnready": [],
@@ -451,7 +451,7 @@ items:
   - kube-system
   - trident
   - wordpress-w
-  state: running
+  state: ready  
   stateUnready: []
   tridentVersion: 22.01.0
   type: application/astra-cluster
@@ -492,7 +492,7 @@ items:
   - kube-system
   - trident
   - wordpress
-  state: running
+  state: ready  
   stateUnready: []
   tridentVersion: 22.01.0
   type: application/astra-cluster
@@ -505,7 +505,7 @@ The `--quiet` argument suppresses output, while still utilizing proper exit code
 
 ```text
 $ ./toolkit.py manage app 1d16c9f0-1b7f-4f21-804c-4162b0cfd56e 
-{"type": "application/astra-managedApp", "version": "1.1", "id": "1d16c9f0-1b7f-4f21-804c-4162b0cfd56e", "name": "jfrogcr-artifactory", "state": "running", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-20T18:52:51Z", "protectionState": "none", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "helm", "appLabels": [{"name": "app", "value": "artifactory"}, {"name": "release", "value": "jfrogcr"}], "system": "false", "pods": [{"podName": "jfrogcr-artifactory-0", "podNamespace": "jfrogcr", "nodeName": "gke-uswest1-cluster-default-node-pool-3ee0f741-kkxr", "containers": [{"containerName": "artifactory", "image": "releases-docker.jfrog.io/jfrog/artifactory-jcr:7.38.10", "containerState": "available", "containerStateUnready": []}], "podState": "available", "podStateUnready": [], "podLabels": [{"name": "release", "value": "jfrogcr"}, {"name": "role", "value": "artifactory"}, {"name": "statefulset.kubernetes.io/pod-name", "value": "jfrogcr-artifactory-0"}, {"name": "app", "value": "artifactory"}, {"name": "chart", "value": "artifactory-107.38.10"}, {"name": "component", "value": "artifactory"}, {"name": "controller-revision-hash", "value": "jfrogcr-artifactory-585f5f66f6"}, {"name": "heritage", "value": "Helm"}], "podCreationTimestamp": "2022-05-20T15:58:53Z"}, {"podName": "jfrogcr-artifactory-nginx-748d4c8894-ntcjp", "podNamespace": "jfrogcr", "nodeName": "gke-uswest1-cluster-default-node-pool-3ee0f741-stm6", "containers": [{"containerName": "nginx", "image": "releases-docker.jfrog.io/jfrog/nginx-artifactory-pro:7.38.10", "containerState": "provisioning", "containerStateUnready": ["Container 'nginx' is not ready"]}], "podState": "provisioning", "podStateUnready": ["Ready condition is false: containers with unready status: [nginx]", "ContainersReady condition is false: containers with unready status: [nginx]", "Container 'nginx' is not ready"], "podLabels": [{"name": "heritage", "value": "Helm"}, {"name": "pod-template-hash", "value": "748d4c8894"}, {"name": "release", "value": "jfrogcr"}, {"name": "app", "value": "artifactory"}, {"name": "chart", "value": "artifactory-107.38.10"}, {"name": "component", "value": "nginx"}], "podCreationTimestamp": "2022-05-20T15:58:53Z"}], "namespace": "jfrogcr", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-20T15:59:36Z", "modificationTimestamp": "2022-05-20T17:13:12Z", "createdBy": "system"`
+{"type": "application/astra-managedApp", "version": "1.1", "id": "1d16c9f0-1b7f-4f21-804c-4162b0cfd56e", "name": "jfrogcr-artifactory", "state": "ready  ", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-20T18:52:51Z", "protectionState": "none", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "helm", "appLabels": [{"name": "app", "value": "artifactory"}, {"name": "release", "value": "jfrogcr"}], "system": "false", "pods": [{"podName": "jfrogcr-artifactory-0", "podNamespace": "jfrogcr", "nodeName": "gke-uswest1-cluster-default-node-pool-3ee0f741-kkxr", "containers": [{"containerName": "artifactory", "image": "releases-docker.jfrog.io/jfrog/artifactory-jcr:7.38.10", "containerState": "available", "containerStateUnready": []}], "podState": "available", "podStateUnready": [], "podLabels": [{"name": "release", "value": "jfrogcr"}, {"name": "role", "value": "artifactory"}, {"name": "statefulset.kubernetes.io/pod-name", "value": "jfrogcr-artifactory-0"}, {"name": "app", "value": "artifactory"}, {"name": "chart", "value": "artifactory-107.38.10"}, {"name": "component", "value": "artifactory"}, {"name": "controller-revision-hash", "value": "jfrogcr-artifactory-585f5f66f6"}, {"name": "heritage", "value": "Helm"}], "podCreationTimestamp": "2022-05-20T15:58:53Z"}, {"podName": "jfrogcr-artifactory-nginx-748d4c8894-ntcjp", "podNamespace": "jfrogcr", "nodeName": "gke-uswest1-cluster-default-node-pool-3ee0f741-stm6", "containers": [{"containerName": "nginx", "image": "releases-docker.jfrog.io/jfrog/nginx-artifactory-pro:7.38.10", "containerState": "provisioning", "containerStateUnready": ["Container 'nginx' is not ready"]}], "podState": "provisioning", "podStateUnready": ["Ready condition is false: containers with unready status: [nginx]", "ContainersReady condition is false: containers with unready status: [nginx]", "Container 'nginx' is not ready"], "podLabels": [{"name": "heritage", "value": "Helm"}, {"name": "pod-template-hash", "value": "748d4c8894"}, {"name": "release", "value": "jfrogcr"}, {"name": "app", "value": "artifactory"}, {"name": "chart", "value": "artifactory-107.38.10"}, {"name": "component", "value": "nginx"}], "podCreationTimestamp": "2022-05-20T15:58:53Z"}], "namespace": "jfrogcr", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-20T15:59:36Z", "modificationTimestamp": "2022-05-20T17:13:12Z", "createdBy": "system"`
 ```
 
 With the `--quiet` argument instead:

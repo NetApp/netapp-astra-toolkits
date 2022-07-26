@@ -1,4 +1,4 @@
-# Manage
+# Manage (aka Define)
 
 The `manage` argument allows you to manage a discovered [application](#app), or a currently unmanaged [cluster](#cluster).
 
@@ -17,19 +17,19 @@ objectType:
 
 ## App
 
-To manage an app, you must first gather the [app ID](../list/README.md#apps).  The app must be in a "discovered" state, not in an "ignored" state.  After an application is managed, it is recommended to [create a protectionpolicy](../create/README.md#protectionpolicy) for the app.
+To define (or manage) an app, you must first gather the [namespace name](../list/README.md#namespaces) and [cluster ID](../list/README.md#clusters).  After an application is managed, it is recommended to [create a protectionpolicy](../create/README.md#protectionpolicy) for the app.
 
 Command usage:
 
 ```text
-./toolkit.py manage app <appID>
+./toolkit.py manage app <appLogicalName> <namespaceName> <clusterID>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py manage app 1d16c9f0-1b7f-4f21-804c-4162b0cfd56e
-{"type": "application/astra-managedApp", "version": "1.1", "id": "1d16c9f0-1b7f-4f21-804c-4162b0cfd56e", "name": "jfrogcr-artifactory", "state": "running", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-20T17:13:19Z", "protectionState": "none", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "helm", "appLabels": [{"name": "app", "value": "artifactory"}, {"name": "release", "value": "jfrogcr"}], "system": "false", "pods": [{"podName": "jfrogcr-artifactory-0", "podNamespace": "jfrogcr", "nodeName": "gke-uswest1-cluster-default-node-pool-3ee0f741-kkxr", "containers": [{"containerName": "artifactory", "image": "releases-docker.jfrog.io/jfrog/artifactory-jcr:7.38.10", "containerState": "available", "containerStateUnready": []}], "podState": "available", "podStateUnready": [], "podLabels": [{"name": "release", "value": "jfrogcr"}, {"name": "role", "value": "artifactory"}, {"name": "statefulset.kubernetes.io/pod-name", "value": "jfrogcr-artifactory-0"}, {"name": "app", "value": "artifactory"}, {"name": "chart", "value": "artifactory-107.38.10"}, {"name": "component", "value": "artifactory"}, {"name": "controller-revision-hash", "value": "jfrogcr-artifactory-585f5f66f6"}, {"name": "heritage", "value": "Helm"}], "podCreationTimestamp": "2022-05-20T15:58:53Z"}, {"podName": "jfrogcr-artifactory-nginx-748d4c8894-ntcjp", "podNamespace": "jfrogcr", "nodeName": "gke-uswest1-cluster-default-node-pool-3ee0f741-stm6", "containers": [{"containerName": "nginx", "image": "releases-docker.jfrog.io/jfrog/nginx-artifactory-pro:7.38.10", "containerState": "provisioning", "containerStateUnready": ["Container 'nginx' is not ready"]}], "podState": "provisioning", "podStateUnready": ["Ready condition is false: containers with unready status: [nginx]", "ContainersReady condition is false: containers with unready status: [nginx]", "Container 'nginx' is not ready"], "podLabels": [{"name": "pod-template-hash", "value": "748d4c8894"}, {"name": "release", "value": "jfrogcr"}, {"name": "app", "value": "artifactory"}, {"name": "chart", "value": "artifactory-107.38.10"}, {"name": "component", "value": "nginx"}, {"name": "heritage", "value": "Helm"}], "podCreationTimestamp": "2022-05-20T15:58:53Z"}], "namespace": "jfrogcr", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-20T15:59:36Z", "modificationTimestamp": "2022-05-20T17:13:12Z", "createdBy": "system"`
+$ ./toolkit.py manage app wordpress wordpress b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d
+{"type": "application/astra-app", "version": "2.0", "id": "40f27720-5e6d-4ab7-8647-cc05f2019319", "name": "wordpress", "namespaceScopedResources": [{"namespace": "wordpress"}], "state": "discovering", "lastResourceCollectionTimestamp": "2022-07-25T14:21:48Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaces": [], "clusterName": "uscentral1-cluster", "clusterID": "b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-07-25T14:21:48Z", "modificationTimestamp": "2022-07-25T14:21:48Z", "createdBy": "12a5d9dd-851e-4235-af27-86c0b63bf3a9"}}
 ```
 
 ## Cluster
