@@ -280,7 +280,6 @@ class getApps(SDKCommon):
                     "clusterName",
                     "namespace",
                     "state",
-                    "source",
                 ]
                 tabData = []
                 for app in appsCooked.get("items"):
@@ -537,17 +536,11 @@ class destroyBackup(SDKCommon):
 
 
 class cloneApp(SDKCommon):
-    """Clone a backup into a new app, in a new namespace.  Note that Astra doesn't
-    currently support in place restores.
+    """Clone an app to a new app and namespace.
 
     Either backupID, snapshotID, or sourceAppID is required.
 
-    The sourceClusterID is something you'd think would be optional, but it
-    is required as well.  Even worse, Astra knows what the (only) correct answer
-    is and requires you to provide it anyways.
-
-    Namespace is the new namespace that Astra will create to put the new app into.
-    It must not exist on the destination cluster or the clone will fail.
+    The sourceClusterID is required as well.
 
     clusterID identifies the cluster for the new clone.  It's perfectly legal to
     clone an app to the same cluster it is running on; in which case clusterID ==
@@ -563,31 +556,30 @@ class cloneApp(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-managedApp+json"
-        self.headers["Content-Type"] = "application/astra-managedApp+json"
+        self.headers["accept"] = "application/astra-app+json"
+        self.headers["Content-Type"] = "application/astra-app+json"
 
     def main(
         self,
         cloneName,
         clusterID,
-        sourceClusterID,
-        namespace,
+        sourceClusterID,  # TODO: see how labels affect clones
+        cloneNamespace=None,
         backupID=None,
         snapshotID=None,
         sourceAppID=None,
     ):
         assert backupID or snapshotID or sourceAppID
 
-        endpoint = "k8s/v1/managedApps"
+        endpoint = "k8s/v2/apps"
         url = self.base + endpoint
         params = {}
         data = {
-            "type": "application/astra-managedApp",
-            "version": "1.0",
+            "type": "application/astra-app",
+            "version": "2.0",
             "name": cloneName,
             "clusterID": clusterID,
             "sourceClusterID": sourceClusterID,
-            "namespace": namespace,
         }
         if sourceAppID:
             data["sourceAppID"] = sourceAppID
@@ -595,6 +587,8 @@ class cloneApp(SDKCommon):
             data["backupID"] = backupID
         if snapshotID:
             data["snapshotID"] = snapshotID
+        if cloneNamespace:
+            data["namespaceScopedResources"] = [{"namespace": cloneNamespace, "labelSelectors": []}]
 
         if self.verbose:
             print("Cloning app")
@@ -655,12 +649,12 @@ class restoreApp(SDKCommon):
     ):
         assert backupID or snapshotID
 
-        endpoint = f"k8s/v1/managedApps/{appID}"
+        endpoint = f"k8s/v2/apps/{appID}"
         url = self.base + endpoint
         params = {}
         data = {
-            "type": "application/astra-managedApp",
-            "version": "1.2",
+            "type": "application/astra-app",
+            "version": "2.0",
         }
         if backupID:
             data["backupID"] = backupID
@@ -1426,7 +1420,7 @@ class getNamespaces(SDKCommon):
         self.output = output
         super().__init__()
 
-    def main(self, clusterID=None):
+    def main(self, clusterID=None, nameFilter=None):
 
         if clusterID:
             endpoint = f"topology/v1/clusters/{clusterID}/namespaces"
@@ -1457,6 +1451,8 @@ class getNamespaces(SDKCommon):
             namespacesCooked = copy.deepcopy(namespaces)
             for counter, namespace in enumerate(namespaces.get("items")):
                 if namespace.get("systemType") or namespace.get("name") == "kube-public":
+                    namespacesCooked["items"].remove(namespaces["items"][counter])
+                elif nameFilter and nameFilter not in namespace.get("name"):
                     namespacesCooked["items"].remove(namespaces["items"][counter])
 
             if self.output == "json":

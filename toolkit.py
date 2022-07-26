@@ -59,7 +59,7 @@ def userSelect(pickList, keys):
         return False
 
     for counter, item in enumerate(pickList["items"], start=1):
-        outputStr = str(counter) + ":\t\t"
+        outputStr = str(counter) + ":\t"
         for key in keys:
             if item.get(key):
                 outputStr += str(item[key]) + "\t"
@@ -448,26 +448,29 @@ class toolkit:
 
     def clone(
         self,
+        cloneAppName,
         clusterID,
-        destNamespace,
-        cloneName,
-        namespaces,
-        sourceAppID,
+        sourceClusterID,
+        cloneNamespace,
+        apps,
         backupID,
+        snapshotID,
+        sourceAppID,
         background,
+        verbose,
     ):
         """Create a clone."""
-        # The REST API for cloning requires the sourceClusterID, we look that
-        # up from the passed in namespaces var.
+        """# The REST API for cloning requires the sourceClusterID, we look that
+        # up from the passed in apps var.
         #         appID
         needsIngressclass = False
-        for app in namespaces["items"]:
+        for app in apps["items"]:
             if sourceAppID == app["id"]:
                 sourceClusterID = app["clusterID"]
-                for pod in app["pods"]:
-                    for container in pod["containers"]:
-                        if "cloudbees/cloudbees-cloud-core-oc" in container["image"]:
-                            needsIngressclass = True
+                # for pod in app["pods"]: # TODO: fix this for cloudbees
+                #    for container in pod["containers"]:
+                #        if "cloudbees/cloudbees-cloud-core-oc" in container["image"]:
+                #            needsIngressclass = True
 
         # Clone 'ingressclass' cluster object
         if needsIngressclass and sourceClusterID != clusterID:
@@ -565,15 +568,15 @@ class toolkit:
                 # otherwise it's more serious and we must raise an exception
                 body = json.loads(e.body)
                 if not (body.get("reason") == "AlreadyExists"):
-                    raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
+                    raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")"""
 
-        cloneRet = astraSDK.cloneApp().main(
-            cloneName,
+        cloneRet = astraSDK.cloneApp(verbose=verbose).main(
+            cloneAppName,
             clusterID,
             sourceClusterID,
-            destNamespace,
+            cloneNamespace=cloneNamespace,
             backupID=backupID,
-            snapshotID=None,
+            snapshotID=snapshotID,
             sourceAppID=sourceAppID,
         )
         if cloneRet:
@@ -585,11 +588,11 @@ class toolkit:
             sys.stdout.flush()
             appID = cloneRet.get("id")
             state = cloneRet.get("state")
-            while state != "running":
+            while state != "ready":
                 apps = astraSDK.getApps().main()
                 for app in apps["items"]:
                     if app["id"] == appID:
-                        if app["state"] == "running":
+                        if app["state"] == "ready":
                             state = app["state"]
                             print("Cloning operation complete.")
                             sys.stdout.flush()
@@ -686,21 +689,18 @@ def main():
                 chartsList.append(k)
 
         elif verbs["clone"]:
-            namespaces = astraSDK.getApps().main(source="namespace", delPods=False)
-            for app in namespaces["items"]:
-                namespaceList.append(app["id"])  # TODO: figure our if this should be ns
+            apps = astraSDK.getApps().main()
+            for app in apps["items"]:
+                appList.append(app["id"])
             destCluster = astraSDK.getClusters().main(hideUnmanaged=True)
             for cluster in destCluster["items"]:
                 destclusterList.append(cluster["id"])
             backups = astraSDK.getBackups().main()
-            if backups is False:
-                print("astraSDK.getBackups().main() failed")
-                sys.exit(1)
-            elif backups is True:
-                print("No apps found")
-                sys.exit(1)
             for backup in backups["items"]:
                 backupList.append(backup["id"])
+            snapshots = astraSDK.getSnaps().main()
+            for snap in snapshots["items"]:
+                snapshotList.append(snap["id"])
 
         elif verbs["restore"]:
             for app in astraSDK.getApps().main()["items"]:
@@ -955,7 +955,7 @@ def main():
         help="Hide managed clusters",
     )
     subparserListClusters.add_argument(
-        "-n",
+        "-u",
         "--hideUnmanaged",
         default=False,
         action="store_true",
@@ -970,6 +970,12 @@ def main():
     #######
     subparserListNamespaces.add_argument(
         "-c", "--cluster", default=None, help="Only show namespaces from this cluster"
+    )
+    subparserListNamespaces.add_argument(
+        "-f",
+        "--nameFilter",
+        default=None,
+        help="Filter namespaces by this value to minimize output",
     )
     #######
     # end of list namespaces args and flags
@@ -1310,37 +1316,45 @@ def main():
         help="Run clone operation in the background",
     )
     parserClone.add_argument(
-        "--sourceNamespace",
-        choices=namespaceList,
+        "--cloneAppName",
         required=False,
         default=None,
-        help="Source namespace to clone",
+        help="Clone app name",
     )
     parserClone.add_argument(
-        "--backupID",
-        choices=backupList,
+        "--cloneNamespace",
         required=False,
         default=None,
-        help="Source backup to clone",
+        help="Clone namespace name (optional, if not specified cloneAppName is used)",
     )
     parserClone.add_argument(
         "--clusterID",
         choices=destclusterList,
         required=False,
         default=None,
-        help="Cluster to clone to",
+        help="Cluster to clone into (can be same as source)",
     )
-    parserClone.add_argument(
-        "--destName",
+    group = parserClone.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "--backupID",
+        choices=backupList,
         required=False,
         default=None,
-        help="clone name",
+        help="Source backup to clone",
     )
-    parserClone.add_argument(
-        "--destNamespace",
+    group.add_argument(
+        "--snapshotID",
+        choices=snapshotList,
         required=False,
         default=None,
-        help="Destination namespace",
+        help="Source snapshot to restore from",
+    )
+    group.add_argument(
+        "--sourceAppID",
+        choices=appList,
+        required=False,
+        default=None,
+        help="Source app to clone",
     )
     #######
     # end of clone args and flags
@@ -1477,7 +1491,7 @@ def main():
         elif args.objectType == "namespaces":
             rc = astraSDK.getNamespaces(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(clusterID=args.cluster)
+            ).main(clusterID=args.cluster, nameFilter=args.nameFilter)
             if rc is False:
                 print("astraSDK.getNamespaces() Failed")
                 sys.exit(1)
@@ -1606,7 +1620,7 @@ def main():
                 if state == "restoring":
                     print(".", end="")
                     sys.stdout.flush()
-                elif state == "running":
+                elif state == "ready":
                     print("Success!")
                     break
                 elif state == "failed":
@@ -1618,126 +1632,40 @@ def main():
             sys.exit(3)
 
     elif args.subcommand == "clone":
+        if not args.cloneAppName:
+            args.cloneAppName = input("App name for the clone: ")
         if not args.clusterID:
             print("Select destination cluster for the clone")
             print("Index\tClusterID\t\t\t\tclusterName\tclusterPlatform")
             args.clusterID = userSelect(destCluster, ["id", "name", "clusterType"])
-        if not args.destNamespace:
-            args.destNamespace = input(
-                "Namespace for the clone "
-                "(This must not be a namespace that currently exists on the destination cluster): "
-            )
-        if not args.destName:
-            args.destName = input("Name for the clone: ")
-        if not args.sourceNamespace:
-            if not args.backupID:
-                # no source namespace/app or source backup
-                print(
-                    "sourceNamespace and backupID are unspecified, you can pick a"
-                    " sourceNamespace, then select a backup of that sourceNamespace."
-                    " (If a backup of that namespace doesn't exist one"
-                    " will be created.  Or you can specify a backupID to use directly."
-                )
-                while True:
-                    retval = input("sourceNamespace or backupID: ")
-                    if retval.lower().startswith("s"):
-                        retval = "sourceNamespace"
-                        break
-                    elif retval.lower().startswith("b"):
-                        retval = "backupID"
-                        break
-                    else:
-                        print("Enter sourceNamespace or backupID")
-                if retval == "sourceNamespace":
-                    print("Select source namespace to be cloned")
-                    print("Index\tAppID\t\t\t\t\tappName\t\tclusterName\tClusterID")
-                    args.sourceNamespace = userSelect(
-                        namespaces, ["id", "name", "clusterName", "clusterID"]
-                    )
-                    appBackupscooked = {}
-                    appBackupscooked["items"] = []
-                    for backup in backups["items"]:
-                        if (
-                            backup["appID"] == args.sourceNamespace
-                            and backup["state"] == "completed"
-                        ):
-                            appBackupscooked["items"].append(backup)
-                    if len(appBackupscooked["items"]) > 0:
-                        print("Select source backup")
-                        print("Index\tBackupID\t\t\t\tBackupName\t\tTimestamp\t\tAppID")
-                        args.backupID = userSelect(
-                            appBackupscooked, ["id", "name", "metadata/creationTimestamp", "appID"]
-                        )
-                    else:
-                        # Take a backup
-                        print("No backups found, taking backup.")
-                        backupRetval = doProtectionTask(
-                            "backup", args.sourceNamespace, f"toolkit-{args.destName}", False
-                        )
-                        if not backupRetval:
-                            print("Exiting due to backup task failing.")
-                            sys.exit(7)
-                elif retval == "backupID":
-                    # No namespace or backupID was specified on the CLI
-                    # user opted to specify a backupID, from there we
-                    # can work backwards to get the namespace.
-                    appBackupscooked = {}
-                    appBackupscooked["items"] = []
-                    for backup in backups["items"]:
-                        if backup["state"] == "completed":
-                            appBackupscooked["items"].append(backup)
-                    if len(appBackupscooked["items"]) == 0:
-                        print("No backups found.")
-                        sys.exit(6)
-                    print("Index\tBackupID\t\t\t\tBackupName\t\tTimestamp\t\tAppID")
-                    args.backupID = userSelect(
-                        appBackupscooked, ["id", "name", "metadata/creationTimestamp", "appID"]
-                    )
-                    for backup in backups["items"]:
-                        if backup["id"] == args.backupID:
-                            args.sourceNamespace = backup["appID"]
 
-            else:
-                # no source namespace/app but we have a backupID
-                # work backwards to get the appID
+        sourceClusterID = ""
+        if args.sourceAppID:
+            for app in apps["items"]:
+                if app["id"] == args.sourceAppID:
+                    sourceClusterID = app["clusterID"]
+        elif args.backupID:
+            for app in apps["items"]:
                 for backup in backups["items"]:
-                    if backup["id"] == args.backupID:
-                        args.sourceNamespace = backup["appID"]
-                if not args.sourceNamespace:
-                    print("Can't determine appID from backupID")
-                    sys.exit(9)
-        else:
-            # we have a source namespace/app
-            # if we have a backupID we have everything we need
-            if not args.backupID:
-                appBackupscooked = {}
-                appBackupscooked["items"] = []
-                for backup in backups["items"]:
-                    if backup["appID"] == args.sourceNamespace and backup["state"] == "completed":
-                        appBackupscooked["items"].append(backup)
-                if len(appBackupscooked["items"]) > 0:
-                    print("Select source backup")
-                    print("Index\tBackupID\t\t\t\tBackupName\t\tTimestamp\t\tAppID")
-                    args.backupID = userSelect(
-                        appBackupscooked, ["id", "name", "metadata/creationTimestamp", "appID"]
-                    )
-                    print(f"args.backupID: {args.backupID}")
-                else:
-                    # Take a backup
-                    backupRetval = doProtectionTask(
-                        "backup", args.sourceNamespace, f"toolkit-{args.destName}", False
-                    )
-                    if not backupRetval:
-                        print("Exiting due to backup task failing.")
-                        sys.exit(7)
+                    if app["id"] == backup["appID"] and backup["id"] == args.backupID:
+                        sourceClusterID = app["clusterID"]
+        elif args.snapshotID:
+            for app in apps["items"]:
+                for snapshot in snapshots["items"]:
+                    if app["id"] == snapshot["appID"] and snapshot["id"] == args.snapshotID:
+                        sourceClusterID = app["clusterID"]
+
         tk.clone(
+            args.cloneAppName,
             args.clusterID,
-            args.destNamespace,
-            args.destName,
-            namespaces,
-            sourceAppID=args.sourceNamespace,
+            sourceClusterID,
+            args.cloneNamespace,
+            apps,
             backupID=args.backupID,
+            snapshotID=args.snapshotID,
+            sourceAppID=args.sourceAppID,
             background=args.background,
+            verbose=args.verbose,
         )
 
 
