@@ -31,6 +31,7 @@ import tempfile
 import time
 import yaml
 import kubernetes
+from datetime import datetime, timedelta
 
 
 def subKeys(subObject, key):
@@ -242,29 +243,27 @@ class toolkit:
     def __init__(self):
         self.conf = astraSDK.getConfig().main()
 
-    def deploy(
-        self, chartName, repoName, appName, nameSpace, domain, email, ssl, setValues, fileValues
-    ):
+    def deploy(self, chartName, repoName, appName, namespace, setValues, fileValues, verbose):
         """Deploy a helm chart <chartName>, from helm repo <repoName>
-        naming the app <appName> into <nameSpace>"""
+        naming the app <appName> into <namespace>"""
 
         setStr = createHelmStr("set", setValues)
         valueStr = createHelmStr("values", fileValues)
 
-        if chartName == "gitlab":
+        """if chartName == "gitlab":
             assert domain is not None
-            assert email is not None
+            assert email is not None"""
 
-        getNsObj = astraSDK.getNamespaces()
+        nsObj = astraSDK.getNamespaces(verbose=verbose)
         retval = run("kubectl get ns -o json", captureOutput=True)
         retvalJSON = json.loads(retval)
         for item in retvalJSON["items"]:
-            if item["metadata"]["name"] == nameSpace:
-                print(f"Namespace {nameSpace} already exists!")
+            if item["metadata"]["name"] == namespace:
+                print(f"Namespace {namespace} already exists!")
                 sys.exit(24)
-        run(f"kubectl create namespace {nameSpace}")
-        run(f"kubectl config set-context --current --namespace={nameSpace}")
-        if chartName == "gitlab":
+        run(f"kubectl create namespace {namespace}")
+        run(f"kubectl config set-context --current --namespace={namespace}")
+        """if chartName == "gitlab":
             gitalyStorageClass = None
             # Are we running on GKE?
             # If we are running on GKE and installing gitlab, we'll use google persistant disk
@@ -383,9 +382,9 @@ class toolkit:
             }
             stsPatch(gitalyPatch, f"{appName}-gitaly")
 
-        else:
-            run(f"helm install {appName} {repoName}/{chartName}{setStr}{valueStr}")
-        print("Waiting for Astra to discover apps.", end="")
+        else:"""
+        run(f"helm install {appName} {repoName}/{chartName}{setStr}{valueStr}")
+        print("Waiting for Astra to discover the namespace.", end="")
         sys.stdout.flush()
 
         appID = ""
@@ -394,27 +393,31 @@ class toolkit:
             time.sleep(3)
             print(".", end="")
             sys.stdout.flush()
-            apps = getNsObj.main()
+            namespaces = nsObj.main()
             # Cycle through the apps and see if one matches our new namespace
-            for app in apps["items"]:
-                if app["name"] == nameSpace:
-                    print("Discovery complete!")
+            for ns in namespaces["items"]:
+                # Check to make sure our namespace name matches, it's in a discovered state,
+                # and that it's a recently created namespace (less than 10 minutes old)
+                if (
+                    ns["name"] == namespace
+                    and ns["namespaceState"] == "discovered"
+                    and (
+                        datetime.utcnow()
+                        - datetime.strptime(
+                            ns["metadata"]["creationTimestamp"], "%Y-%m-%dT%H:%M:%SZ"
+                        )
+                    )
+                    < timedelta(minutes=10)
+                ):
+                    print("Namespace discovered!")
                     sys.stdout.flush()
-                    appID = app["id"]
-                    # Spin on managing apps.  Astra Control won't allow switching an
-                    # app that is in the pending state to managed.  So we retry endlessly
-                    # with the assumption that eventually the app will switch from
-                    # pending to running and the manageapp call will succeed.
-                    print(f"Managing: {app['name']}.", end="")
-                    sys.stdout.flush()
-                    rv = astraSDK.manageApp().main(appID)
-                    while not rv:
-                        print(".", end="")
-                        sys.stdout.flush()
-                        time.sleep(3)
-                        rv = astraSDK.manageApp().main(appID)
+                    time.sleep(3)
+                    print(f"Managing app: {ns['name']}.")
+                    rc = astraSDK.manageApp(verbose=verbose).main(
+                        ns["name"], ns["name"], ns["clusterID"]
+                    )
+                    appID = rc["id"]
                     print("Success.")
-                    sys.stdout.flush()
                     break
 
         # Create a protection policy on that namespace (using its appID)
@@ -797,16 +800,6 @@ def main():
         action="store_true",
         help="print verbose/verbose output",
     )
-    # Note that this is just to integrate with argparse
-    # The actual work done by this flag is done before
-    # the argparse object is instantiated
-    parser.add_argument(
-        "-s",
-        "--symbolicnames",
-        default=False,
-        action="store_true",
-        help="list choices using names not UUIDs",
-    )
     parser.add_argument(
         "-o",
         "--output",
@@ -822,15 +815,15 @@ def main():
     #######
     parserDeploy = subparsers.add_parser(
         "deploy",
-        help="deploy a bitnami chart",
+        help="Deploy a helm chart",
     )
     parserClone = subparsers.add_parser(
         "clone",
-        help="clone a namespace to a destination cluster",
+        help="Clone an app",
     )
     parserRestore = subparsers.add_parser(
         "restore",
-        help="restore an app from a backup or snapshot",
+        help="Restore an app from a backup or snapshot",
     )
     parserList = subparsers.add_parser(
         "list",
@@ -976,6 +969,13 @@ def main():
         "--nameFilter",
         default=None,
         help="Filter namespaces by this value to minimize output",
+    )
+    subparserListNamespaces.add_argument(
+        "-r",
+        "--showRemoved",
+        default=False,
+        action="store_true",
+        help="Show namespaces in a 'removed' state",
     )
     #######
     # end of list namespaces args and flags
@@ -1268,25 +1268,6 @@ def main():
     )
     parserDeploy.add_argument("namespace", help="Namespace to deploy into (must not already exist)")
     parserDeploy.add_argument(
-        "--domain",
-        "-d",
-        required=False,
-        help="Default domain to pass gitlab deployment",
-    )
-    parserDeploy.add_argument(
-        "--email",
-        "-e",
-        required=False,
-        help="Email address for self-signed certs (gitlab only)",
-    )
-    parserDeploy.add_argument(
-        "-s",
-        "--ssl",
-        default=True,
-        action="store_false",
-        help="Create self signed SSL certs",
-    )
-    parserDeploy.add_argument(
         "-f",
         "--values",
         required=False,
@@ -1427,28 +1408,14 @@ def main():
 
     tk = toolkit()
     if args.subcommand == "deploy":
-        if hasattr(args, "domain"):
-            domain = args.domain
-        else:
-            domain = None
-        if hasattr(args, "email"):
-            email = args.email
-        else:
-            email = None
-        if hasattr(args, "ssl"):
-            ssl = args.ssl
-        else:
-            ssl = True
         tk.deploy(
             args.chart,
             chartsDict[args.chart],
             args.app,
             args.namespace,
-            domain,
-            email,
-            ssl,
             args.set,
             args.values,
+            args.verbose,
         )
     elif args.subcommand == "list" or args.subcommand == "get":
         if args.objectType == "apps":
@@ -1491,7 +1458,7 @@ def main():
         elif args.objectType == "namespaces":
             rc = astraSDK.getNamespaces(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(clusterID=args.cluster, nameFilter=args.nameFilter)
+            ).main(clusterID=args.cluster, nameFilter=args.nameFilter, showRemoved=args.showRemoved)
             if rc is False:
                 print("astraSDK.getNamespaces() Failed")
                 sys.exit(1)

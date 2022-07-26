@@ -794,12 +794,12 @@ class createProtectionpolicy(SDKCommon):
         appID,
     ):
 
-        endpoint = f"k8s/v1/managedApps/{appID}/schedules"
+        endpoint = f"k8s/v1/apps/{appID}/schedules"
         url = self.base + endpoint
         params = {}
         data = {
             "type": "application/astra-schedule",
-            "version": "1.0",
+            "version": "1.2",
             "backupRetention": backupRetention,
             "dayOfMonth": dayOfMonth,
             "dayOfWeek": dayOfWeek,
@@ -883,7 +883,7 @@ class manageApp(SDKCommon):
             results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(json.dumps(results))
-            return True
+            return results
         else:
             if not self.quiet:
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
@@ -1420,7 +1420,7 @@ class getNamespaces(SDKCommon):
         self.output = output
         super().__init__()
 
-    def main(self, clusterID=None, nameFilter=None):
+    def main(self, clusterID=None, nameFilter=None, showRemoved=False):
 
         if clusterID:
             endpoint = f"topology/v1/clusters/{clusterID}/namespaces"
@@ -1447,12 +1447,14 @@ class getNamespaces(SDKCommon):
 
         if ret.ok:
             namespaces = super().jsonifyResults(ret)
-            # Delete the 'systemType' namespaces
+            # Delete the unneeded namespaces based on filters
             namespacesCooked = copy.deepcopy(namespaces)
             for counter, namespace in enumerate(namespaces.get("items")):
                 if namespace.get("systemType") or namespace.get("name") == "kube-public":
                     namespacesCooked["items"].remove(namespaces["items"][counter])
                 elif nameFilter and nameFilter not in namespace.get("name"):
+                    namespacesCooked["items"].remove(namespaces["items"][counter])
+                elif not showRemoved and namespace.get("namespaceState") == "removed":
                     namespacesCooked["items"].remove(namespaces["items"][counter])
 
             if self.output == "json":
@@ -1460,13 +1462,14 @@ class getNamespaces(SDKCommon):
             elif self.output == "yaml":
                 dataReturn = yaml.dump(namespacesCooked)
             elif self.output == "table":
-                tabHeader = ["name", "namespaceID", "clusterID"]
+                tabHeader = ["name", "namespaceID", "namespaceState", "clusterID"]
                 tabData = []
                 for namespace in namespacesCooked["items"]:
                     tabData.append(
                         [
                             namespace["name"],
                             namespace["id"],
+                            namespace["namespaceState"],
                             namespace["clusterID"],
                         ]
                     )
