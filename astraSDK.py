@@ -563,7 +563,7 @@ class cloneApp(SDKCommon):
         self,
         cloneName,
         clusterID,
-        sourceClusterID,  # TODO: see how labels affect clones
+        sourceClusterID,
         cloneNamespace=None,
         backupID=None,
         snapshotID=None,
@@ -637,8 +637,8 @@ class restoreApp(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-managedApp+json"
-        self.headers["Content-Type"] = "application/astra-managedApp+json"
+        self.headers["accept"] = "application/astra-app+json"
+        self.headers["Content-Type"] = "application/astra-app+json"
         self.headers["ForceUpdate"] = "true"
 
     def main(

@@ -962,7 +962,7 @@ def main():
     # list namespaces args and flags
     #######
     subparserListNamespaces.add_argument(
-        "-c", "--cluster", default=None, help="Only show namespaces from this cluster"
+        "-c", "--clusterID", default=None, help="Only show namespaces from this clusterID"
     )
     subparserListNamespaces.add_argument(
         "-f",
@@ -1139,7 +1139,14 @@ def main():
         choices=namespaceList,
         help="The namespace to move from undefined (aka unmanaged) to defined (aka managed)",
     )
-    # TODO: add label argument
+    subparserManageApp.add_argument(
+        "-l",
+        "--labelSelectors",
+        required=False,
+        default=None,
+        help="Optional label selectors to filter resources to be included or excluded from "
+        + "the application definition",
+    )
     subparserManageApp.add_argument(
         "clusterID",
         choices=clusterList,
@@ -1458,7 +1465,9 @@ def main():
         elif args.objectType == "namespaces":
             rc = astraSDK.getNamespaces(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(clusterID=args.cluster, nameFilter=args.nameFilter, showRemoved=args.showRemoved)
+            ).main(
+                clusterID=args.clusterID, nameFilter=args.nameFilter, showRemoved=args.showRemoved
+            )
             if rc is False:
                 print("astraSDK.getNamespaces() Failed")
                 sys.exit(1)
@@ -1517,7 +1526,7 @@ def main():
     elif args.subcommand == "manage" or args.subcommand == "define":
         if args.objectType == "app":
             rc = astraSDK.manageApp(quiet=args.quiet, verbose=args.verbose).main(
-                args.appName, args.namespace, args.clusterID
+                args.appName, args.namespace, args.clusterID, args.labelSelectors
             )
             if rc is False:
                 print("astraSDK.manageApp() Failed")
