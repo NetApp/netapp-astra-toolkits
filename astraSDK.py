@@ -1419,8 +1419,12 @@ class getNamespaces(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
+        self.apps = getApps().main()
 
     def main(self, clusterID=None, nameFilter=None, showRemoved=False):
+        if self.apps is False:
+            print("Call to getApps().main() failed")
+            return False
 
         if clusterID:
             endpoint = f"topology/v1/clusters/{clusterID}/namespaces"
@@ -1447,6 +1451,14 @@ class getNamespaces(SDKCommon):
 
         if ret.ok:
             namespaces = super().jsonifyResults(ret)
+            # Add in a custom key/value "associatedApps"
+            for ns in namespaces["items"]:
+                ns["associatedApps"] = []
+                for app in self.apps["items"]:
+                    if ns["clusterID"] == app["clusterID"]:
+                        for nsr in app["namespaceScopedResources"]:
+                            if ns["name"] == nsr["namespace"]:
+                                ns["associatedApps"].append(app["name"])
             # Delete the unneeded namespaces based on filters
             namespacesCooked = copy.deepcopy(namespaces)
             for counter, namespace in enumerate(namespaces.get("items")):
@@ -1462,7 +1474,7 @@ class getNamespaces(SDKCommon):
             elif self.output == "yaml":
                 dataReturn = yaml.dump(namespacesCooked)
             elif self.output == "table":
-                tabHeader = ["name", "namespaceID", "namespaceState", "clusterID"]
+                tabHeader = ["name", "namespaceID", "namespaceState", "associatedApps", "clusterID"]
                 tabData = []
                 for namespace in namespacesCooked["items"]:
                     tabData.append(
@@ -1470,6 +1482,7 @@ class getNamespaces(SDKCommon):
                             namespace["name"],
                             namespace["id"],
                             namespace["namespaceState"],
+                            ", ".join(namespace["associatedApps"]),
                             namespace["clusterID"],
                         ]
                     )
