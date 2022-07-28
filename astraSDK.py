@@ -718,7 +718,7 @@ class getClusters(SDKCommon):
             if self.verbose:
                 print(f"Getting clusters in cloud {cloud['id']} ({cloud['name']})...")
                 print(colored(f"API URL: {url}", "green"))
-                print(colored("API Method: POST", "green"))
+                print(colored("API Method: GET", "green"))
                 print(colored(f"API Headers: {self.headers}", "green"))
                 print(colored(f"API data: {data}", "green"))
                 print(colored(f"API params: {params}", "green"))
@@ -1164,7 +1164,7 @@ class getClouds(SDKCommon):
         if self.verbose:
             print("Getting clouds...")
             print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
+            print(colored("API Method: GET", "green"))
             print(colored(f"API Headers: {self.headers}", "green"))
             print(colored(f"API data: {data}", "green"))
             print(colored(f"API params: {params}", "green"))
@@ -1438,7 +1438,7 @@ class getNamespaces(SDKCommon):
         if self.verbose:
             print("Getting namespaces...")
             print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
+            print(colored("API Method: GET", "green"))
             print(colored(f"API Headers: {self.headers}", "green"))
             print(colored(f"API data: {data}", "green"))
             print(colored(f"API params: {params}", "green"))
@@ -1484,6 +1484,76 @@ class getNamespaces(SDKCommon):
                             namespace["namespaceState"],
                             ", ".join(namespace["associatedApps"]),
                             namespace["clusterID"],
+                        ]
+                    )
+                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+            if not self.quiet:
+                print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+            return dataReturn
+
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class getScripts(SDKCommon):
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        super().__init__()
+
+    def main(self, scriptSourceName=None):
+
+        endpoint = "core/v1/hookSources"
+        url = self.base + endpoint
+
+        data = {}
+        params = {}
+
+        if self.verbose:
+            print("Getting scripts...")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: GET", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            scripts = super().jsonifyResults(ret)
+            scriptsCooked = copy.deepcopy(scripts)
+            if scriptSourceName:
+                for counter, script in enumerate(scripts.get("items")):
+                    if script.get("name") != scriptSourceName:
+                        scriptsCooked["items"].remove(scripts["items"][counter])
+
+            if self.output == "json":
+                dataReturn = scriptsCooked
+            elif self.output == "yaml":
+                dataReturn = yaml.dump(scriptsCooked)
+            elif self.output == "table":
+                tabHeader = ["scriptName", "scriptID", "description"]
+                tabData = []
+                for script in scriptsCooked["items"]:
+                    tabData.append(
+                        [
+                            script["name"],
+                            script["id"],
+                            script["description"],
                         ]
                     )
                 dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")

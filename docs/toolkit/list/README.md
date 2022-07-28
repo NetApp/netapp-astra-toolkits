@@ -7,6 +7,7 @@ The `list` command shows various resources known to Astra.
 * [Clouds](#clouds)
 * [Clusters](#clusters)
 * [Namespaces](#namespaces)
+* [Scripts](#scripts)
 * [Snapshots](#snapshots)
 * [Storageclasses](#storageclasses)
 
@@ -51,17 +52,6 @@ $ ./toolkit.py list apps --namespace wordpress-prod
 +================+======================================+=================+================+=======+
 | wordpress-west | a8dc676e-d182-4d7c-9113-43f5a2963b54 | uswest1-cluster | wordpress-prod | ready |
 +----------------+--------------------------------------+-----------------+----------------+-------+
-```
-
-```text
-$ ./toolkit.py list apps --unmanaged
-+-----------------+--------------------------------------+-----------------+------------+-------+
-| appName         | appID                                | clusterName     | namespace  | state |
-+=================+======================================+=================+============+=======+
-| staging-magento | d00964bb-8d83-4151-99e8-7d31fb7e0611 | useast1-cluster | magneto846 | ready |
-+-----------------+--------------------------------------+-----------------+------------+-------+
-| staging-spark   | 5cd31c6a-2f3e-434b-8649-735569637c4b | uswest1-cluster | spark034   | ready |
-+-----------------+--------------------------------------+-----------------+------------+-------+
 ```
 
 ## Backups
@@ -236,6 +226,39 @@ $ ./toolkit.py list namespaces --showRemoved
 +----------------+--------------------------------------+----------------+----------------+--------------------------------------+
 | wordpressclone | 9d54366c-ba9b-46e6-8dec-3bbc55699ffd | removed        | wordpressclone | af0aecb9-9b18-473f-b417-54fb38e1e28d |
 +----------------+--------------------------------------+----------------+----------------+--------------------------------------+
+```
+
+## Scripts
+
+`list scripts` shows all of the account's scripts, which are used with [execution hooks](../create/README.md#execution-hook).  With the `-s`/`--getScriptSource` argument, providing a matching script name will output the body of the script.
+
+Command usage:
+
+```text
+./toolkit.py list scripts <optional-arguments>
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py list scripts
++---------------+--------------------------------------+----------------------------------+
+| scriptName    | scriptID                             | description                      |
++===============+======================================+==================================+
+| postgres      | e3daff37-5611-4f33-86d2-e64eeb48b7c0 | Validated on PostgreSQL 14.4.0   |
++---------------+--------------------------------------+----------------------------------+
+| mongoDB       | c842e867-bafd-4490-a0b1-a77311633456 | Validated on MongoDB 5.0.8       |
++---------------+--------------------------------------+----------------------------------+
+| elasticsearch | 29c97315-8cc0-43aa-acec-12ff02998fa4 | Validated on Elasticsearch 8.2.3 |
++---------------+--------------------------------------+----------------------------------+
+| exampleScript | e6e633f7-5ed3-4598-b773-e0d13631f5a6 |                                  |
++---------------+--------------------------------------+----------------------------------+
+```
+
+```text
+$ ./toolkit.py list scripts -s exampleScript
+#!/bin/bash
+echo "this is just an example"
 ```
 
 ## Snapshots
