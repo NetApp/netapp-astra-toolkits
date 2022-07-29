@@ -31,6 +31,7 @@ import tempfile
 import time
 import yaml
 import kubernetes
+import base64
 from datetime import datetime, timedelta
 
 
@@ -894,6 +895,10 @@ def main():
         "namespaces",
         help="list namespaces",
     )
+    subparserListScripts = subparserList.add_parser(
+        "scripts",
+        help="list scripts (hookSources)",
+    )
     subparserListSnapshots = subparserList.add_parser(
         "snapshots",
         help="list snapshots",
@@ -982,6 +987,19 @@ def main():
     #######
 
     #######
+    # list scripts args and flags
+    #######
+    subparserListScripts.add_argument(
+        "-s",
+        "--getScriptSource",
+        default=None,
+        help="Provide a script name to view the script source code",
+    )
+    #######
+    # end of list scripts args and flags
+    #######
+
+    #######
     # list snapshots args and flags
     #######
     subparserListSnapshots.add_argument(
@@ -1009,6 +1027,10 @@ def main():
     subparserCreateProtectionpolicy = subparserCreate.add_parser(
         "protectionpolicy",
         help="create protectionpolicy",
+    )
+    subparserCreateScript = subparserCreate.add_parser(
+        "script",
+        help="create script (hook source)",
     )
     subparserCreateSnapshot = subparserCreate.add_parser(
         "snapshot",
@@ -1472,6 +1494,23 @@ def main():
                 print("astraSDK.getNamespaces() Failed")
                 sys.exit(1)
             else:
+                sys.exit(0)
+        elif args.objectType == "scripts":
+            if args.getScriptSource:
+                args.quiet = True
+                args.output = "json"
+            rc = astraSDK.getScripts(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(scriptSourceName=args.getScriptSource)
+            if rc is False:
+                print("astraSDK.getScripts() Failed")
+                sys.exit(1)
+            else:
+                if args.getScriptSource:
+                    if len(rc["items"]) == 0:
+                        print(f"Script of name '{args.getScriptSource}' not found.")
+                    for script in rc["items"]:
+                        print(base64.b64decode(script["source"]).decode("utf-8"))
                 sys.exit(0)
         elif args.objectType == "snapshots":
             rc = astraSDK.getSnaps(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
