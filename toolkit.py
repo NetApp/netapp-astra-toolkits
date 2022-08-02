@@ -455,8 +455,8 @@ class toolkit:
         cloneAppName,
         clusterID,
         sourceClusterID,
+        appIDstr,
         cloneNamespace,
-        apps,
         backupID,
         snapshotID,
         sourceAppID,
@@ -464,20 +464,16 @@ class toolkit:
         verbose,
     ):
         """Create a clone."""
-        """# The REST API for cloning requires the sourceClusterID, we look that
-        # up from the passed in apps var.
-        #         appID
+        # Check to see if cluster-level resources are needed to be manually created
         needsIngressclass = False
-        for app in apps["items"]:
-            if sourceAppID == app["id"]:
-                sourceClusterID = app["clusterID"]
-                # for pod in app["pods"]: # TODO: fix this for cloudbees
-                #    for container in pod["containers"]:
-                #        if "cloudbees/cloudbees-cloud-core-oc" in container["image"]:
-                #            needsIngressclass = True
-
+        for asset in astraSDK.getAppAssets().main(appIDstr)["items"]:
+            print(asset["assetName"] + " " + asset["assetType"])
+            if asset["assetName"] == "cjoc" and asset["assetType"] == "Ingress":
+                needsIngressclass = True
         # Clone 'ingressclass' cluster object
         if needsIngressclass and sourceClusterID != clusterID:
+            if not cloneNamespace:
+                cloneNamespace = cloneAppName
             clusters = astraSDK.getClusters().main(hideUnmanaged=True)
             contexts, _ = kubernetes.config.list_kube_config_contexts()
             # Loop through clusters and contexts, find matches and open api_client
@@ -505,13 +501,13 @@ class toolkit:
                 sourceIngress = json.loads(sourceResp.data)
                 del sourceIngress["metadata"]["resourceVersion"]
                 del sourceIngress["metadata"]["creationTimestamp"]
-                sourceIngress["metadata"]["labels"]["app.kubernetes.io/instance"] = destNamespace
+                sourceIngress["metadata"]["labels"]["app.kubernetes.io/instance"] = cloneNamespace
                 sourceIngress["metadata"]["annotations"][
                     "meta.helm.sh/release-name"
-                ] = destNamespace
+                ] = cloneNamespace
                 sourceIngress["metadata"]["annotations"][
                     "meta.helm.sh/release-namespace"
-                ] = destNamespace
+                ] = cloneNamespace
             except:
                 # In the event the sourceCluster no longer exists or isn't in kubeconfig
                 sourceIngress = {
@@ -522,15 +518,15 @@ class toolkit:
                         "generation": 1,
                         "labels": {
                             "app.kubernetes.io/component": "controller",
-                            "app.kubernetes.io/instance": destNamespace,
+                            "app.kubernetes.io/instance": cloneNamespace,
                             "app.kubernetes.io/managed-by": "Helm",
                             "app.kubernetes.io/name": "ingress-nginx",
                             "app.kubernetes.io/version": "1.1.0",
                             "helm.sh/chart": "ingress-nginx-4.0.13",
                         },
                         "annotations": {
-                            "meta.helm.sh/release-name": destNamespace,
-                            "meta.helm.sh/release-namespace": destNamespace,
+                            "meta.helm.sh/release-name": cloneNamespace,
+                            "meta.helm.sh/release-namespace": cloneNamespace,
                         },
                         "managedFields": [
                             {
@@ -572,7 +568,7 @@ class toolkit:
                 # otherwise it's more serious and we must raise an exception
                 body = json.loads(e.body)
                 if not (body.get("reason") == "AlreadyExists"):
-                    raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")"""
+                    raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
 
         cloneRet = astraSDK.cloneApp(verbose=verbose).main(
             cloneAppName,
@@ -741,6 +737,14 @@ def main():
             for app in astraSDK.getApps().main()["items"]:
                 appList.append(app["id"])
 
+        elif (
+            verbs["list"]
+            and len(sys.argv) - verbPosition >= 2
+            and sys.argv[verbPosition + 1] == "assets"
+        ):
+            for app in astraSDK.getApps().main()["items"]:
+                appList.append(app["id"])
+
         elif (verbs["manage"] or verbs["define"]) and len(sys.argv) - verbPosition >= 2:
             if sys.argv[verbPosition + 1] == "app":
                 namespaceDict = astraSDK.getNamespaces().main()
@@ -883,6 +887,10 @@ def main():
         "apps",
         help="list apps",
     )
+    subparserListAssets = subparserList.add_parser(
+        "assets",
+        help="list app assets",
+    )
     subparserListBackups = subparserList.add_parser(
         "backups",
         help="list backups",
@@ -926,6 +934,16 @@ def main():
     )
     #######
     # end of list apps args and flags
+    #######
+
+    #######
+    # list assets args and flags
+    #######
+    subparserListAssets.add_argument(
+        "appID", choices=appList, help="The appID from which to display the assets"
+    )
+    #######
+    # end of list assets args and flags
     #######
 
     #######
@@ -1498,6 +1516,14 @@ def main():
                 sys.exit(1)
             else:
                 sys.exit(0)
+        elif args.objectType == "assets":
+            rc = astraSDK.getAppAssets(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(args.appID)
+            if rc is False:
+                print("astraSDK.getAppAssets() failed")
+            else:
+                sys.exit(0)
         elif args.objectType == "backups":
             rc = astraSDK.getBackups(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -1521,7 +1547,7 @@ def main():
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(hideManaged=args.hideManaged, hideUnmanaged=args.hideUnmanaged)
             if rc is False:
-                print("astraSDK.getClusters() Failed")
+                print("astraSDK.getClusters() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -1532,7 +1558,7 @@ def main():
                 clusterID=args.clusterID, nameFilter=args.nameFilter, showRemoved=args.showRemoved
             )
             if rc is False:
-                print("astraSDK.getNamespaces() Failed")
+                print("astraSDK.getNamespaces() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -1711,28 +1737,35 @@ def main():
             print("Index\tClusterID\t\t\t\tclusterName\tclusterPlatform")
             args.clusterID = userSelect(destCluster, ["id", "name", "clusterType"])
 
+        # Determine sourceClusterID and the appID (appID could be provided by args.sourceAppID,
+        # however if it's not that value will be 'None', and if so it needs to stay 'None' when
+        # a backup or snapshot ID is provided for the app to be cloned from the correctly).
         sourceClusterID = ""
+        appIDstr = ""
         if args.sourceAppID:
             for app in apps["items"]:
                 if app["id"] == args.sourceAppID:
                     sourceClusterID = app["clusterID"]
+                    appIDstr = app["id"]
         elif args.backupID:
             for app in apps["items"]:
                 for backup in backups["items"]:
                     if app["id"] == backup["appID"] and backup["id"] == args.backupID:
                         sourceClusterID = app["clusterID"]
+                        appIDstr = app["id"]
         elif args.snapshotID:
             for app in apps["items"]:
                 for snapshot in snapshots["items"]:
                     if app["id"] == snapshot["appID"] and snapshot["id"] == args.snapshotID:
                         sourceClusterID = app["clusterID"]
+                        appIDstr = app["id"]
 
         tk.clone(
             args.cloneAppName,
             args.clusterID,
             sourceClusterID,
+            appIDstr,
             args.cloneNamespace,
-            apps,
             backupID=args.backupID,
             snapshotID=args.snapshotID,
             sourceAppID=args.sourceAppID,

@@ -3,6 +3,7 @@
 The `list` command shows various resources known to Astra.
 
 * [Apps](#apps)
+* [Assets](#assets)
 * [Backups](#backups)
 * [Clouds](#clouds)
 * [Clusters](#clusters)
@@ -52,6 +53,49 @@ $ ./toolkit.py list apps --namespace wordpress-prod
 +================+======================================+=================+================+=======+
 | wordpress-west | a8dc676e-d182-4d7c-9113-43f5a2963b54 | uswest1-cluster | wordpress-prod | ready |
 +----------------+--------------------------------------+-----------------+----------------+-------+
+```
+
+## Assets
+
+`list assets` shows a single application's assets which are managed via Astra Control.
+
+Command usage:
+
+```text
+./toolkit.py list assets <appID>
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py list assets fad776eb-f80f-4a2b-b297-c4d4ff255b14
++---------------------------------+-----------------------+
+| assetName                       | assetType             |
++=================================+=======================+
+| cassandra                       | ServiceAccount        |
++---------------------------------+-----------------------+
+| default                         | ServiceAccount        |
++---------------------------------+-----------------------+
+| kube-root-ca.crt                | ConfigMap             |
++---------------------------------+-----------------------+
+| data-cassandra-0                | PersistentVolumeClaim |
++---------------------------------+-----------------------+
+| cassandra                       | Secret                |
++---------------------------------+-----------------------+
+| cassandra-token-rqrdr           | Secret                |
++---------------------------------+-----------------------+
+| default-token-p2m7l             | Secret                |
++---------------------------------+-----------------------+
+| sh.helm.release.v1.cassandra.v1 | Secret                |
++---------------------------------+-----------------------+
+| cassandra                       | Service               |
++---------------------------------+-----------------------+
+| cassandra-headless              | Service               |
++---------------------------------+-----------------------+
+| cassandra                       | StatefulSet           |
++---------------------------------+-----------------------+
+| cassandra-0                     | Pod                   |
++---------------------------------+-----------------------+
 ```
 
 ## Backups

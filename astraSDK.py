@@ -1677,3 +1677,67 @@ class destroyScript(SDKCommon):
                 if ret.text.strip():
                     print(f"Error text: {ret.text}")
             return False
+
+
+class getAppAssets(SDKCommon):
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        super().__init__()
+
+    def main(self, appID):
+
+        endpoint = f"k8s/v1/apps/{appID}/appAssets"
+        url = self.base + endpoint
+
+        data = {}
+        params = {}
+
+        if self.verbose:
+            print("Getting app assets...")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: GET", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            assets = super().jsonifyResults(ret)
+
+            if self.output == "json":
+                dataReturn = assets
+            elif self.output == "yaml":
+                dataReturn = yaml.dump(assets)
+            elif self.output == "table":
+                tabHeader = ["assetName", "assetType"]
+                tabData = []
+                for asset in assets["items"]:
+                    tabData.append(
+                        [
+                            asset.get("assetName"),
+                            asset.get("assetType"),
+                        ]
+                    )
+                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+            if not self.quiet:
+                print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+            return dataReturn
+
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
