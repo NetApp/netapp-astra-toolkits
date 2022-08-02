@@ -1553,7 +1553,7 @@ class getScripts(SDKCommon):
                         [
                             script["name"],
                             script["id"],
-                            script["description"],
+                            script.get("description"),
                         ]
                     )
                 dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
@@ -1561,6 +1561,116 @@ class getScripts(SDKCommon):
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
             return dataReturn
 
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class createScript(SDKCommon):
+    """Create a script (aka hook source).
+    This class does no validation of the arguments, leaving that
+    to the API call itself.  toolkit.py can be used as a guide as to
+    what the API requirements are in case the swagger isn't sufficient.
+    """
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-hookSource+json"
+        self.headers["Content-Type"] = "application/astra-hookSource+json"
+
+    def main(
+        self,
+        name,
+        source,
+        description=None,
+    ):
+
+        endpoint = f"core/v1/hookSources"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-hookSource",
+            "version": "1.0",
+            "name": name,
+            "source": source,
+            "sourceType": "script",
+        }
+        if description:
+            data["description"] = description
+
+        if self.verbose:
+            print(f"Creating script {name}")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class destroyScript(SDKCommon):
+    """Given a scriptID destroy the script.  Note that this doesn't unmanage
+    a script, it actively destroys it. There is no coming back from this."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-hookSource+json"
+        self.headers["Content-Type"] = "application/astra-hookSource+json"
+
+    def main(self, scriptID):
+
+        endpoint = f"core/v1/hookSources/{scriptID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-hookSource",
+            "version": "1.0",
+        }
+
+        if self.verbose:
+            print(f"Deleting scriptID {scriptID}")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: DELETE", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            return True
         else:
             if not self.quiet:
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")

@@ -622,6 +622,7 @@ def main():
     destclusterList = []
     appList = []
     clusterList = []
+    scriptList = []
     storageClassList = []
 
     if len(sys.argv) > 1:
@@ -781,6 +782,9 @@ def main():
                 for snapshot in snapshots["items"]:
                     if snapshot["appID"] == sys.argv[verbPosition + 2]:
                         snapshotList.append(snapshot["id"])
+            elif sys.argv[verbPosition + 1] == "script" and len(sys.argv) - verbPosition >= 3:
+                for script in astraSDK.getScripts().main()["items"]:
+                    scriptList.append(script["id"])
 
         elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
             if sys.argv[verbPosition + 1] == "app":
@@ -1115,6 +1119,27 @@ def main():
     #######
 
     #######
+    # create script args and flags
+    #######
+    subparserCreateScript.add_argument(
+        "name",
+        help="Name of the script",
+    )
+    subparserCreateScript.add_argument(
+        "filePath",
+        help="the local filesystem path to the script",
+    )
+    subparserCreateScript.add_argument(
+        "-d",
+        "--description",
+        default=None,
+        help="The optional description of the script",
+    )
+    #######
+    # end of create script args and flags
+    #######
+
+    #######
     # create snapshot args and flags
     #######
     subparserCreateSnapshot.add_argument(
@@ -1202,6 +1227,10 @@ def main():
         "backup",
         help="destroy backup",
     )
+    subparserDestroyScript = subparserDestroy.add_parser(
+        "script",
+        help="destroy script (hook source)",
+    )
     subparserDestroySnapshot = subparserDestroy.add_parser(
         "snapshot",
         help="destroy snapshot",
@@ -1225,6 +1254,18 @@ def main():
     )
     #######
     # end of destroy backup args and flags
+    #######
+
+    #######
+    # destroy script args and flags
+    #######
+    subparserDestroyScript.add_argument(
+        "scriptID",
+        choices=scriptList,
+        help="scriptID of script to destroy",
+    )
+    #######
+    # end of destroy script args and flags
     #######
 
     #######
@@ -1554,6 +1595,16 @@ def main():
                 sys.exit(1)
             else:
                 sys.exit(0)
+        elif args.objectType == "script":
+            with open(args.filePath, encoding="utf8") as f:
+                encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
+            rc = astraSDK.createScript(quiet=args.quiet, verbose=args.verbose).main(
+                name=args.name, source=encodedStr, description=args.description
+            )
+            if rc is False:
+                print("astraSDK.createScript() Failed")
+            else:
+                sys.exit(0)
         elif args.objectType == "snapshot":
             rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
             if rc is False:
@@ -1590,6 +1641,12 @@ def main():
                 print(f"Backup {args.backupID} destroyed")
             else:
                 print(f"Failed destroying backup: {args.backupID}")
+        elif args.objectType == "script":
+            rc = astraSDK.destroyScript(quiet=args.quiet, verbose=args.verbose).main(args.scriptID)
+            if rc:
+                print(f"Script {args.scriptID} destroyed")
+            else:
+                print(f"Failed destroying script: {args.scriptID}")
         elif args.objectType == "snapshot":
             rc = astraSDK.destroySnapshot(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID, args.snapshotID
