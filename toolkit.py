@@ -96,6 +96,28 @@ def createHelmStr(flagName, values):
     return returnStr
 
 
+def createHookList(hookArguments):
+    """Create a list of strings to be used for --hookArguments, as nargs="*" can provide
+    a variety of different types of lists of lists depending on how the user ueses it.
+    User Input                    argParse Value                      createHookList Return
+    ----------                    --------------                      ---------------------
+    -a arg1                       [['arg1']]                          ['arg1']
+    -a arg1 arg2                  [['arg1', 'arg2']]                  ['arg1', 'arg2']
+    -a arg1 -a arg2               [['arg1'], ['arg2']]                ['arg1', 'arg2']
+    -a "arg1 s_arg" arg2          [['arg1 s_arg', 'arg2']]            ['arg1 s_arg', 'arg2']
+    -a "arg1 s_arg" arg2 -a arg3  [['arg1 s_arg', 'arg2'], ['arg3']]  ['arg1 s_arg', 'arg2', 'arg3']
+    """
+    returnList = []
+    if hookArguments:
+        for arg in hookArguments:
+            if type(arg) == list:
+                for a in arg:
+                    returnList.append(a)
+            else:
+                returnList.append(arg)
+    return returnList
+
+
 def updateHelm():
     """Check to see if the bitnami helm repo is installed
     If it is, get the name of the repo
@@ -467,7 +489,6 @@ class toolkit:
         # Check to see if cluster-level resources are needed to be manually created
         needsIngressclass = False
         for asset in astraSDK.getAppAssets().main(appIDstr)["items"]:
-            print(asset["assetName"] + " " + asset["assetType"])
             if asset["assetName"] == "cjoc" and asset["assetType"] == "Ingress":
                 needsIngressclass = True
         # Clone 'ingressclass' cluster object
@@ -611,14 +632,15 @@ def main():
     # By then it's too late to decide which functions to run to populate
     # the various choices the differing options for each subcommand needs.
     # So we just go around argparse's back and introspect sys.argv directly
-    chartsList = []
-    namespaceList = []
-    backupList = []
-    snapshotList = []
-    destclusterList = []
     appList = []
+    backupList = []
+    chartsList = []
     clusterList = []
+    destclusterList = []
+    hookList = []
+    namespaceList = []
     scriptList = []
+    snapshotList = []
     storageClassList = []
 
     if len(sys.argv) > 1:
@@ -730,12 +752,16 @@ def main():
             and len(sys.argv) - verbPosition >= 2
             and (
                 sys.argv[verbPosition + 1] == "backup"
+                or sys.argv[verbPosition + 1] == "hook"
                 or sys.argv[verbPosition + 1] == "protectionpolicy"
                 or sys.argv[verbPosition + 1] == "snapshot"
             )
         ):
             for app in astraSDK.getApps().main()["items"]:
                 appList.append(app["id"])
+            if sys.argv[verbPosition + 1] == "hook":
+                for script in astraSDK.getScripts().main()["items"]:
+                    scriptList.append(script["id"])
 
         elif (
             verbs["list"]
@@ -779,6 +805,13 @@ def main():
                 for backup in backups["items"]:
                     if backup["appID"] == sys.argv[verbPosition + 2]:
                         backupList.append(backup["id"])
+            if sys.argv[verbPosition + 1] == "hook" and len(sys.argv) - verbPosition >= 3:
+                for app in astraSDK.getApps().main()["items"]:
+                    appList.append(app["id"])
+                hooks = astraSDK.getHooks().main()
+                for hook in hooks["items"]:
+                    if hook["appID"] == sys.argv[verbPosition + 2]:
+                        hookList.append(hook["id"])
             elif sys.argv[verbPosition + 1] == "snapshot" and len(sys.argv) - verbPosition >= 3:
                 for app in astraSDK.getApps().main()["items"]:
                     appList.append(app["id"])
@@ -903,6 +936,7 @@ def main():
         "clusters",
         help="list clusters",
     )
+    subparserListHooks = subparserList.add_parser("hooks", help="list hooks (executionHooks)")
     subparserListNamespaces = subparserList.add_parser(
         "namespaces",
         help="list namespaces",
@@ -986,6 +1020,16 @@ def main():
     #######
 
     #######
+    # list hooks args and flags
+    #######
+    subparserListHooks.add_argument(
+        "-a", "--app", default=None, help="Only show execution hooks from this app"
+    )
+    #######
+    # end of list hooks args and flags
+    #######
+
+    #######
     # list namespaces args and flags
     #######
     subparserListNamespaces.add_argument(
@@ -1046,13 +1090,17 @@ def main():
         "backup",
         help="create backup",
     )
+    subparserCreateHook = subparserCreate.add_parser(
+        "hook",
+        help="create hook (executionHook)",
+    )
     subparserCreateProtectionpolicy = subparserCreate.add_parser(
         "protectionpolicy",
         help="create protectionpolicy",
     )
     subparserCreateScript = subparserCreate.add_parser(
         "script",
-        help="create script (hook source)",
+        help="create script (hookSource)",
     )
     subparserCreateSnapshot = subparserCreate.add_parser(
         "snapshot",
@@ -1083,6 +1131,52 @@ def main():
     )
     #######
     # end of create backups args and flags
+    #######
+
+    #######
+    # create hooks args and flags
+    #######
+    subparserCreateHook.add_argument(
+        "appID",
+        choices=appList,
+        help="appID to create an execution hook for",
+    )
+    subparserCreateHook.add_argument(
+        "name",
+        help="Name of the execution hook to be created",
+    )
+    subparserCreateHook.add_argument(
+        "scriptID",
+        choices=scriptList,
+        help="scriptID to use for the execution hook",
+    )
+    subparserCreateHook.add_argument(
+        "-o",
+        "--operation",
+        choices=["pre-snapshot", "post-snapshot", "pre-backup", "post-backup", "post-restore"],
+        required=True,
+        type=str.lower,
+        help="The operation type for the execution hook",
+    )
+    subparserCreateHook.add_argument(
+        "-a",
+        "--hookArguments",
+        required=False,
+        default=None,
+        action="append",
+        nargs="*",
+        help="The (optional) arguments for the execution hook script",
+    )
+    subparserCreateHook.add_argument(
+        "-r",
+        "--containerRegex",
+        default=None,
+        # type=ascii,
+        help="The (optional) container image name regex to match "
+        + "(do not specify to match on all images)",
+    )
+    #######
+    # end of create hooks args and flags
     #######
 
     #######
@@ -1245,9 +1339,13 @@ def main():
         "backup",
         help="destroy backup",
     )
+    subparserDestroyHook = subparserDestroy.add_parser(
+        "hook",
+        help="destroy hook (executionHook)",
+    )
     subparserDestroyScript = subparserDestroy.add_parser(
         "script",
-        help="destroy script (hook source)",
+        help="destroy script (hookSource)",
     )
     subparserDestroySnapshot = subparserDestroy.add_parser(
         "snapshot",
@@ -1255,6 +1353,8 @@ def main():
     )
     #######
     # end of destroy 'X'
+    #######
+
     #######
 
     #######
@@ -1269,6 +1369,22 @@ def main():
         "backupID",
         choices=backupList,
         help="backupID to destroy",
+    )
+    #######
+    # end of destroy backup args and flags
+    #######
+
+    # destroy hook args and flags
+    #######
+    subparserDestroyHook.add_argument(
+        "appID",
+        choices=appList,
+        help="appID of app to destroy hooks from",
+    )
+    subparserDestroyHook.add_argument(
+        "hookID",
+        choices=hookList,
+        help="hookID to destroy",
     )
     #######
     # end of destroy backup args and flags
@@ -1551,6 +1667,15 @@ def main():
                 sys.exit(1)
             else:
                 sys.exit(0)
+        elif args.objectType == "hooks":
+            rc = astraSDK.getHooks(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
+                appFilter=args.app
+            )
+            if rc is False:
+                print("astraSDK.getHooks() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         elif args.objectType == "namespaces":
             rc = astraSDK.getNamespaces(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -1570,7 +1695,7 @@ def main():
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(scriptSourceName=args.getScriptSource)
             if rc is False:
-                print("astraSDK.getScripts() Failed")
+                print("astraSDK.getScripts() failed")
                 sys.exit(1)
             else:
                 if args.getScriptSource:
@@ -1584,7 +1709,7 @@ def main():
                 appFilter=args.app
             )
             if rc is False:
-                print("astraSDK.getSnaps() Failed")
+                print("astraSDK.getSnaps() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -1593,7 +1718,7 @@ def main():
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main()
             if rc is False:
-                print("astraSDK.getStorageClasses() Failed")
+                print("astraSDK.getStorageClasses() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -1601,8 +1726,22 @@ def main():
         if args.objectType == "backup":
             rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
             if rc is False:
-                print("doProtectionTask() Failed")
+                print("doProtectionTask() failed")
                 sys.exit(1)
+            else:
+                sys.exit(0)
+        elif args.objectType == "hook":
+            rc = astraSDK.createHook(quiet=args.quiet, verbose=args.verbose).main(
+                args.appID,
+                args.name,
+                args.scriptID,
+                args.operation.split("-")[0],
+                args.operation.split("-")[1],
+                createHookList(args.hookArguments),
+                args.containerRegex,
+            )
+            if rc is False:
+                print("astraSDK.createHook() failed")
             else:
                 sys.exit(0)
         elif args.objectType == "protectionpolicy":
@@ -1617,7 +1756,7 @@ def main():
                 args.appID,
             )
             if rc is False:
-                print("astraSDK.createProtectionpolicy() Failed")
+                print("astraSDK.createProtectionpolicy() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -1628,13 +1767,13 @@ def main():
                 name=args.name, source=encodedStr, description=args.description
             )
             if rc is False:
-                print("astraSDK.createScript() Failed")
+                print("astraSDK.createScript() failed")
             else:
                 sys.exit(0)
         elif args.objectType == "snapshot":
             rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
             if rc is False:
-                print("doProtectionTask() Failed")
+                print("doProtectionTask() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -1645,7 +1784,7 @@ def main():
                 args.appName, args.namespace, args.clusterID, args.labelSelectors
             )
             if rc is False:
-                print("astraSDK.manageApp() Failed")
+                print("astraSDK.manageApp() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -1654,7 +1793,7 @@ def main():
                 args.clusterID, args.storageClassID
             )
             if rc is False:
-                print("astraSDK.manageCluster() Failed")
+                print("astraSDK.manageCluster() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -1667,6 +1806,14 @@ def main():
                 print(f"Backup {args.backupID} destroyed")
             else:
                 print(f"Failed destroying backup: {args.backupID}")
+        if args.objectType == "hook":
+            rc = astraSDK.destroyHook(quiet=args.quiet, verbose=args.verbose).main(
+                args.appID, args.hookID
+            )
+            if rc:
+                print(f"Hook {args.hookID} destroyed")
+            else:
+                print(f"Failed destroying hook: {args.hookID}")
         elif args.objectType == "script":
             rc = astraSDK.destroyScript(quiet=args.quiet, verbose=args.verbose).main(args.scriptID)
             if rc:
@@ -1685,7 +1832,7 @@ def main():
         if args.objectType == "app":
             rc = astraSDK.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(args.appID)
             if rc is False:
-                print("astraSDK.unmanageApp() Failed")
+                print("astraSDK.unmanageApp() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -1694,7 +1841,7 @@ def main():
                 args.clusterID
             )
             if rc is False:
-                print("astraSDK.unmanageCluster() Failed")
+                print("astraSDK.unmanageCluster() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
