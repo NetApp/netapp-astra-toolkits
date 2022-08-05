@@ -132,9 +132,6 @@ def updateHelm():
     }
     if ret != 1:
         retYaml = yaml.load(ret, Loader=yaml.SafeLoader)
-        # [{'name': 'stable', 'url': 'https://charts.helm.sh/stable'},
-        #  {'name': 'bitnami', 'url': 'https://charts.bitnami.com/bitnami'}
-        # ]
         # Adding support for user-defined repos
         for item in retYaml:
             if item.get("url") not in repos:
@@ -151,11 +148,11 @@ def updateHelm():
 
     run("helm repo update")
     chartsDict = {}
+    chartsDict["items"] = []
     for val in repos.values():
-        charts = run(f"helm -o yaml search repo {val}", captureOutput=True)
-        chartsYaml = yaml.load(charts, Loader=yaml.SafeLoader)
-        for line in chartsYaml:
-            chartsDict[(line.get("name").split("/")[1])] = val
+        charts = run(f"helm -o json search repo {val}", captureOutput=True)
+        for chart in json.loads(charts.decode("utf-8")):
+            chartsDict["items"].append(chart)
     return chartsDict
 
 
@@ -266,16 +263,11 @@ class toolkit:
     def __init__(self):
         self.conf = astraSDK.getConfig().main()
 
-    def deploy(self, chartName, repoName, appName, namespace, setValues, fileValues, verbose):
-        """Deploy a helm chart <chartName>, from helm repo <repoName>
-        naming the app <appName> into <namespace>"""
+    def deploy(self, chart, appName, namespace, setValues, fileValues, verbose):
+        """Deploy a helm chart <chart>, naming the app <appName> into <namespace>"""
 
         setStr = createHelmStr("set", setValues)
         valueStr = createHelmStr("values", fileValues)
-
-        """if chartName == "gitlab":
-            assert domain is not None
-            assert email is not None"""
 
         nsObj = astraSDK.getNamespaces(verbose=verbose)
         retval = run("kubectl get ns -o json", captureOutput=True)
@@ -406,7 +398,7 @@ class toolkit:
             stsPatch(gitalyPatch, f"{appName}-gitaly")
 
         else:"""
-        run(f"helm install {appName} {repoName}/{chartName}{setStr}{valueStr}")
+        run(f"helm install {appName} {chart}{setStr}{valueStr}")
         print("Waiting for Astra to discover the namespace.", end="")
         sys.stdout.flush()
 
@@ -704,135 +696,141 @@ def main():
                             verbs[verb] = False
                             verbPosition = None
 
-        # It isn't intuitive, however only one key in verbs can be True
+        # Turn off verification to speed things up if true
+        plaidMode = False
+        for counter, item in enumerate(sys.argv):
+            if counter < verbPosition and (item == "-f" or item == "--fast"):
+                plaidMode = True
 
-        if verbs["deploy"]:
-            chartsDict = updateHelm()
-            for k in chartsDict:
-                chartsList.append(k)
+        if not plaidMode:
+            # It isn't intuitive, however only one key in verbs can be True
+            if verbs["deploy"]:
+                chartsDict = updateHelm()
+                for chart in chartsDict["items"]:
+                    chartsList.append(chart["name"])
 
-        elif verbs["clone"]:
-            apps = astraSDK.getApps().main()
-            for app in apps["items"]:
-                appList.append(app["id"])
-            destCluster = astraSDK.getClusters().main(hideUnmanaged=True)
-            for cluster in destCluster["items"]:
-                destclusterList.append(cluster["id"])
-            backups = astraSDK.getBackups().main()
-            for backup in backups["items"]:
-                backupList.append(backup["id"])
-            snapshots = astraSDK.getSnaps().main()
-            for snap in snapshots["items"]:
-                snapshotList.append(snap["id"])
-
-        elif verbs["restore"]:
-            for app in astraSDK.getApps().main()["items"]:
-                appList.append(app["id"])
-
-            # This expression translates to "Is there an arg after the verb we found?"
-            if len(sys.argv) - verbPosition >= 2:
-                # If that arg after the verb "restore" matches an appID then
-                # populate the lists of backups and snapshots for that appID
+            elif verbs["clone"]:
+                apps = astraSDK.getApps().main()
+                for app in apps["items"]:
+                    appList.append(app["id"])
+                destCluster = astraSDK.getClusters().main(hideUnmanaged=True)
+                for cluster in destCluster["items"]:
+                    destclusterList.append(cluster["id"])
                 backups = astraSDK.getBackups().main()
                 for backup in backups["items"]:
-                    if backup["appID"] == sys.argv[verbPosition + 1] or (
-                        len(sys.argv) > verbPosition + 2
-                        and backup["appID"] == sys.argv[verbPosition + 2]
-                    ):
-                        backupList.append(backup["id"])
+                    backupList.append(backup["id"])
                 snapshots = astraSDK.getSnaps().main()
-                for snapshot in snapshots["items"]:
-                    if snapshot["appID"] == sys.argv[verbPosition + 1] or (
-                        len(sys.argv) > verbPosition + 2
-                        and snapshot["appID"] == sys.argv[verbPosition + 2]
-                    ):
-                        snapshotList.append(snapshot["id"])
-        elif (
-            verbs["create"]
-            and len(sys.argv) - verbPosition >= 2
-            and (
-                sys.argv[verbPosition + 1] == "backup"
-                or sys.argv[verbPosition + 1] == "hook"
-                or sys.argv[verbPosition + 1] == "protectionpolicy"
-                or sys.argv[verbPosition + 1] == "snapshot"
-            )
-        ):
-            for app in astraSDK.getApps().main()["items"]:
-                appList.append(app["id"])
-            if sys.argv[verbPosition + 1] == "hook":
-                for script in astraSDK.getScripts().main()["items"]:
-                    scriptList.append(script["id"])
+                for snap in snapshots["items"]:
+                    snapshotList.append(snap["id"])
 
-        elif (
-            verbs["list"]
-            and len(sys.argv) - verbPosition >= 2
-            and sys.argv[verbPosition + 1] == "assets"
-        ):
-            for app in astraSDK.getApps().main()["items"]:
-                appList.append(app["id"])
-
-        elif (verbs["manage"] or verbs["define"]) and len(sys.argv) - verbPosition >= 2:
-            if sys.argv[verbPosition + 1] == "app":
-                namespaceDict = astraSDK.getNamespaces().main()
-                for namespace in namespaceDict["items"]:
-                    namespaceList.append(namespace["name"])
-                    clusterList.append(namespace["clusterID"])
-                clusterList = list(set(clusterList))
-            elif sys.argv[verbPosition + 1] == "cluster":
-                clusterDict = astraSDK.getClusters(quiet=True).main()
-                for cluster in clusterDict["items"]:
-                    if cluster["managedState"] == "unmanaged":
-                        clusterList.append(cluster["id"])
-                storageClassDict = astraSDK.getStorageClasses(quiet=True).main()
-                if isinstance(storageClassDict, bool):
-                    # astraSDK.getStorageClasses(quiet=True).main() returns either True
-                    # or False if it doesn't work, or if there are no clouds or clusters
-                    sys.exit(1)
-                for storageClass in storageClassDict["items"]:
-                    if (
-                        len(sys.argv) - verbPosition >= 3
-                        and sys.argv[verbPosition + 2] in clusterList
-                        and storageClass["clusterID"] != sys.argv[verbPosition + 2]
-                    ):
-                        continue
-                    storageClassList.append(storageClass["id"])
-
-        elif verbs["destroy"] and len(sys.argv) - verbPosition >= 2:
-            if sys.argv[verbPosition + 1] == "backup" and len(sys.argv) - verbPosition >= 3:
-                for app in astraSDK.getApps().main()["items"]:
-                    appList.append(app["id"])
-                backups = astraSDK.getBackups().main()
-                for backup in backups["items"]:
-                    if backup["appID"] == sys.argv[verbPosition + 2]:
-                        backupList.append(backup["id"])
-            if sys.argv[verbPosition + 1] == "hook" and len(sys.argv) - verbPosition >= 3:
-                for app in astraSDK.getApps().main()["items"]:
-                    appList.append(app["id"])
-                hooks = astraSDK.getHooks().main()
-                for hook in hooks["items"]:
-                    if hook["appID"] == sys.argv[verbPosition + 2]:
-                        hookList.append(hook["id"])
-            elif sys.argv[verbPosition + 1] == "snapshot" and len(sys.argv) - verbPosition >= 3:
-                for app in astraSDK.getApps().main()["items"]:
-                    appList.append(app["id"])
-                snapshots = astraSDK.getSnaps().main()
-                for snapshot in snapshots["items"]:
-                    if snapshot["appID"] == sys.argv[verbPosition + 2]:
-                        snapshotList.append(snapshot["id"])
-            elif sys.argv[verbPosition + 1] == "script" and len(sys.argv) - verbPosition >= 3:
-                for script in astraSDK.getScripts().main()["items"]:
-                    scriptList.append(script["id"])
-
-        elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
-            if sys.argv[verbPosition + 1] == "app":
+            elif verbs["restore"]:
                 for app in astraSDK.getApps().main()["items"]:
                     appList.append(app["id"])
 
-            elif sys.argv[verbPosition + 1] == "cluster":
-                clusterDict = astraSDK.getClusters(quiet=True).main()
-                for cluster in clusterDict["items"]:
-                    if cluster["managedState"] == "managed":
-                        clusterList.append(cluster["id"])
+                # This expression translates to "Is there an arg after the verb we found?"
+                if len(sys.argv) - verbPosition >= 2:
+                    # If that arg after the verb "restore" matches an appID then
+                    # populate the lists of backups and snapshots for that appID
+                    backups = astraSDK.getBackups().main()
+                    for backup in backups["items"]:
+                        if backup["appID"] == sys.argv[verbPosition + 1] or (
+                            len(sys.argv) > verbPosition + 2
+                            and backup["appID"] == sys.argv[verbPosition + 2]
+                        ):
+                            backupList.append(backup["id"])
+                    snapshots = astraSDK.getSnaps().main()
+                    for snapshot in snapshots["items"]:
+                        if snapshot["appID"] == sys.argv[verbPosition + 1] or (
+                            len(sys.argv) > verbPosition + 2
+                            and snapshot["appID"] == sys.argv[verbPosition + 2]
+                        ):
+                            snapshotList.append(snapshot["id"])
+            elif (
+                verbs["create"]
+                and len(sys.argv) - verbPosition >= 2
+                and (
+                    sys.argv[verbPosition + 1] == "backup"
+                    or sys.argv[verbPosition + 1] == "hook"
+                    or sys.argv[verbPosition + 1] == "protectionpolicy"
+                    or sys.argv[verbPosition + 1] == "snapshot"
+                )
+            ):
+                for app in astraSDK.getApps().main()["items"]:
+                    appList.append(app["id"])
+                if sys.argv[verbPosition + 1] == "hook":
+                    for script in astraSDK.getScripts().main()["items"]:
+                        scriptList.append(script["id"])
+
+            elif (
+                verbs["list"]
+                and len(sys.argv) - verbPosition >= 2
+                and sys.argv[verbPosition + 1] == "assets"
+            ):
+                for app in astraSDK.getApps().main()["items"]:
+                    appList.append(app["id"])
+
+            elif (verbs["manage"] or verbs["define"]) and len(sys.argv) - verbPosition >= 2:
+                if sys.argv[verbPosition + 1] == "app":
+                    namespaceDict = astraSDK.getNamespaces().main()
+                    for namespace in namespaceDict["items"]:
+                        namespaceList.append(namespace["name"])
+                        clusterList.append(namespace["clusterID"])
+                    clusterList = list(set(clusterList))
+                elif sys.argv[verbPosition + 1] == "cluster":
+                    clusterDict = astraSDK.getClusters(quiet=True).main()
+                    for cluster in clusterDict["items"]:
+                        if cluster["managedState"] == "unmanaged":
+                            clusterList.append(cluster["id"])
+                    storageClassDict = astraSDK.getStorageClasses(quiet=True).main()
+                    if isinstance(storageClassDict, bool):
+                        # astraSDK.getStorageClasses(quiet=True).main() returns either True
+                        # or False if it doesn't work, or if there are no clouds or clusters
+                        sys.exit(1)
+                    for storageClass in storageClassDict["items"]:
+                        if (
+                            len(sys.argv) - verbPosition >= 3
+                            and sys.argv[verbPosition + 2] in clusterList
+                            and storageClass["clusterID"] != sys.argv[verbPosition + 2]
+                        ):
+                            continue
+                        storageClassList.append(storageClass["id"])
+
+            elif verbs["destroy"] and len(sys.argv) - verbPosition >= 2:
+                if sys.argv[verbPosition + 1] == "backup" and len(sys.argv) - verbPosition >= 3:
+                    for app in astraSDK.getApps().main()["items"]:
+                        appList.append(app["id"])
+                    backups = astraSDK.getBackups().main()
+                    for backup in backups["items"]:
+                        if backup["appID"] == sys.argv[verbPosition + 2]:
+                            backupList.append(backup["id"])
+                if sys.argv[verbPosition + 1] == "hook" and len(sys.argv) - verbPosition >= 3:
+                    for app in astraSDK.getApps().main()["items"]:
+                        appList.append(app["id"])
+                    hooks = astraSDK.getHooks().main()
+                    for hook in hooks["items"]:
+                        if hook["appID"] == sys.argv[verbPosition + 2]:
+                            hookList.append(hook["id"])
+                elif sys.argv[verbPosition + 1] == "snapshot" and len(sys.argv) - verbPosition >= 3:
+                    for app in astraSDK.getApps().main()["items"]:
+                        appList.append(app["id"])
+                    snapshots = astraSDK.getSnaps().main()
+                    for snapshot in snapshots["items"]:
+                        if snapshot["appID"] == sys.argv[verbPosition + 2]:
+                            snapshotList.append(snapshot["id"])
+                elif sys.argv[verbPosition + 1] == "script" and len(sys.argv) - verbPosition >= 3:
+                    for script in astraSDK.getScripts().main()["items"]:
+                        scriptList.append(script["id"])
+
+            elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
+                if sys.argv[verbPosition + 1] == "app":
+                    for app in astraSDK.getApps().main()["items"]:
+                        appList.append(app["id"])
+
+                elif sys.argv[verbPosition + 1] == "cluster":
+                    clusterDict = astraSDK.getClusters(quiet=True).main()
+                    for cluster in clusterDict["items"]:
+                        if cluster["managedState"] == "managed":
+                            clusterList.append(cluster["id"])
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -850,6 +848,14 @@ def main():
         help="command output format",
     )
     parser.add_argument("-q", "--quiet", default=False, action="store_true", help="supress output")
+    parser.add_argument(
+        "-f",
+        "--fast",
+        default=False,
+        action="store_true",
+        help="prioritize speed over validation (using this will not validate arguments, which "
+        + "have unintended consequences)",
+    )
     subparsers = parser.add_subparsers(dest="subcommand", required=True, help="subcommand help")
     #######
     # Top level subcommands
@@ -974,7 +980,9 @@ def main():
     # list assets args and flags
     #######
     subparserListAssets.add_argument(
-        "appID", choices=appList, help="The appID from which to display the assets"
+        "appID",
+        choices=(None if plaidMode else appList),
+        help="The appID from which to display the assets",
     )
     #######
     # end of list assets args and flags
@@ -1115,7 +1123,7 @@ def main():
     #######
     subparserCreateBackup.add_argument(
         "appID",
-        choices=appList,
+        choices=(None if plaidMode else appList),
         help="appID to backup",
     )
     subparserCreateBackup.add_argument(
@@ -1138,7 +1146,7 @@ def main():
     #######
     subparserCreateHook.add_argument(
         "appID",
-        choices=appList,
+        choices=(None if plaidMode else appList),
         help="appID to create an execution hook for",
     )
     subparserCreateHook.add_argument(
@@ -1147,7 +1155,7 @@ def main():
     )
     subparserCreateHook.add_argument(
         "scriptID",
-        choices=scriptList,
+        choices=(None if plaidMode else scriptList),
         help="scriptID to use for the execution hook",
     )
     subparserCreateHook.add_argument(
@@ -1223,7 +1231,7 @@ def main():
     )
     subparserCreateProtectionpolicy.add_argument(
         "appID",
-        choices=appList,
+        choices=(None if plaidMode else appList),
         help="appID of the application to create protection schecule for",
     )
     #######
@@ -1256,7 +1264,7 @@ def main():
     #######
     subparserCreateSnapshot.add_argument(
         "appID",
-        choices=appList,
+        choices=(None if plaidMode else appList),
         help="appID to snapshot",
     )
     subparserCreateSnapshot.add_argument(
@@ -1295,7 +1303,7 @@ def main():
     subparserManageApp.add_argument("appName", help="The logical name of the newly defined app")
     subparserManageApp.add_argument(
         "namespace",
-        choices=namespaceList,
+        choices=(None if plaidMode else namespaceList),
         help="The namespace to move from undefined (aka unmanaged) to defined (aka managed)",
     )
     subparserManageApp.add_argument(
@@ -1308,7 +1316,7 @@ def main():
     )
     subparserManageApp.add_argument(
         "clusterID",
-        choices=clusterList,
+        choices=(None if plaidMode else clusterList),
         help="The clusterID hosting the newly defined app",
     )
     #######
@@ -1320,12 +1328,12 @@ def main():
     #######
     subparserManageCluster.add_argument(
         "clusterID",
-        choices=clusterList,
+        choices=(None if plaidMode else clusterList),
         help="clusterID of the cluster to manage",
     )
     subparserManageCluster.add_argument(
         "storageClassID",
-        choices=storageClassList,
+        choices=(None if plaidMode else storageClassList),
         help="Default storage class ID",
     )
     #######
@@ -1362,12 +1370,12 @@ def main():
     #######
     subparserDestroyBackup.add_argument(
         "appID",
-        choices=appList,
+        choices=(None if plaidMode else appList),
         help="appID of app to destroy backups from",
     )
     subparserDestroyBackup.add_argument(
         "backupID",
-        choices=backupList,
+        choices=(None if plaidMode else backupList),
         help="backupID to destroy",
     )
     #######
@@ -1378,12 +1386,12 @@ def main():
     #######
     subparserDestroyHook.add_argument(
         "appID",
-        choices=appList,
+        choices=(None if plaidMode else appList),
         help="appID of app to destroy hooks from",
     )
     subparserDestroyHook.add_argument(
         "hookID",
-        choices=hookList,
+        choices=(None if plaidMode else hookList),
         help="hookID to destroy",
     )
     #######
@@ -1395,7 +1403,7 @@ def main():
     #######
     subparserDestroyScript.add_argument(
         "scriptID",
-        choices=scriptList,
+        choices=(None if plaidMode else scriptList),
         help="scriptID of script to destroy",
     )
     #######
@@ -1407,12 +1415,12 @@ def main():
     #######
     subparserDestroySnapshot.add_argument(
         "appID",
-        choices=appList,
+        choices=(None if plaidMode else appList),
         help="appID of app to destroy snapshot from",
     )
     subparserDestroySnapshot.add_argument(
         "snapshotID",
-        choices=snapshotList,
+        choices=(None if plaidMode else snapshotList),
         help="snapshotID to destroy",
     )
     #######
@@ -1439,7 +1447,7 @@ def main():
     #######
     subparserUnmanageApp.add_argument(
         "appID",
-        choices=appList,
+        choices=(None if plaidMode else appList),
         help="appID of app to move from managed to unmanaged",
     )
     #######
@@ -1451,7 +1459,7 @@ def main():
     #######
     subparserUnmanageCluster.add_argument(
         "clusterID",
-        choices=clusterList,
+        choices=(None if plaidMode else clusterList),
         help="clusterID of the cluster to unmanage",
     )
     #######
@@ -1462,15 +1470,17 @@ def main():
     # deploy args and flags
     #######
     parserDeploy.add_argument(
-        "chart",
-        choices=chartsList,
-        help="chart to deploy",
-    )
-    parserDeploy.add_argument(
         "app",
         help="name of app",
     )
-    parserDeploy.add_argument("namespace", help="Namespace to deploy into (must not already exist)")
+    parserDeploy.add_argument(
+        "chart",
+        choices=(None if plaidMode else chartsList),
+        help="chart to deploy",
+    )
+    parserDeploy.add_argument(
+        "-n", "--namespace", required=True, help="Namespace to deploy into (must not already exist)"
+    )
     parserDeploy.add_argument(
         "-f",
         "--values",
@@ -1514,7 +1524,7 @@ def main():
     )
     parserClone.add_argument(
         "--clusterID",
-        choices=destclusterList,
+        choices=(None if plaidMode else destclusterList),
         required=False,
         default=None,
         help="Cluster to clone into (can be same as source)",
@@ -1522,21 +1532,21 @@ def main():
     group = parserClone.add_mutually_exclusive_group(required=True)
     group.add_argument(
         "--backupID",
-        choices=backupList,
+        choices=(None if plaidMode else backupList),
         required=False,
         default=None,
         help="Source backup to clone",
     )
     group.add_argument(
         "--snapshotID",
-        choices=snapshotList,
+        choices=(None if plaidMode else snapshotList),
         required=False,
         default=None,
         help="Source snapshot to restore from",
     )
     group.add_argument(
         "--sourceAppID",
-        choices=appList,
+        choices=(None if plaidMode else appList),
         required=False,
         default=None,
         help="Source app to clone",
@@ -1557,20 +1567,20 @@ def main():
     )
     parserRestore.add_argument(
         "appID",
-        choices=appList,
+        choices=(None if plaidMode else appList),
         help="appID to restore",
     )
     group = parserRestore.add_mutually_exclusive_group(required=True)
     group.add_argument(
         "--backupID",
-        choices=backupList,
+        choices=(None if plaidMode else backupList),
         required=False,
         default=None,
         help="Source backup to restore from",
     )
     group.add_argument(
         "--snapshotID",
-        choices=snapshotList,
+        choices=(None if plaidMode else snapshotList),
         required=False,
         default=None,
         help="Source snapshot to restore from",
@@ -1614,7 +1624,6 @@ def main():
     if args.subcommand == "deploy":
         tk.deploy(
             args.chart,
-            chartsDict[args.chart],
             args.app,
             args.namespace,
             args.set,
