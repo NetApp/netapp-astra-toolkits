@@ -480,7 +480,8 @@ class toolkit:
         """Create a clone."""
         # Check to see if cluster-level resources are needed to be manually created
         needsIngressclass = False
-        for asset in astraSDK.getAppAssets().main(appIDstr)["items"]:
+        appAssets = astraSDK.getAppAssets(verbose=verbose).main(appIDstr)
+        for asset in appAssets["items"]:
             if asset["assetName"] == "cjoc" and asset["assetType"] == "Ingress":
                 needsIngressclass = True
         # Clone 'ingressclass' cluster object
@@ -1898,23 +1899,37 @@ def main():
         # a backup or snapshot ID is provided for the app to be cloned from the correctly).
         sourceClusterID = ""
         appIDstr = ""
+        # Handle -f/--fast/plaidMode cases
+        if plaidMode:
+            apps = astraSDK.getApps().main()
         if args.sourceAppID:
             for app in apps["items"]:
                 if app["id"] == args.sourceAppID:
                     sourceClusterID = app["clusterID"]
                     appIDstr = app["id"]
         elif args.backupID:
+            if plaidMode:
+                backups = astraSDK.getBackups().main()
             for app in apps["items"]:
                 for backup in backups["items"]:
                     if app["id"] == backup["appID"] and backup["id"] == args.backupID:
                         sourceClusterID = app["clusterID"]
                         appIDstr = app["id"]
         elif args.snapshotID:
+            if plaidMode:
+                snapshots = astraSDK.getSnaps().main()
             for app in apps["items"]:
                 for snapshot in snapshots["items"]:
                     if app["id"] == snapshot["appID"] and snapshot["id"] == args.snapshotID:
                         sourceClusterID = app["clusterID"]
                         appIDstr = app["id"]
+        # Ensure appIDstr is not equal to "", if so bad values were passed in with plaidMode
+        if appIDstr == "":
+            print(
+                "Error: the corresponding appID was not found in the system, please check "
+                + "your inputs and try again."
+            )
+            sys.exit(1)
 
         tk.clone(
             args.cloneAppName,
