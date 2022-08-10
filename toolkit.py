@@ -424,15 +424,17 @@ class toolkit:
                     )
                     < timedelta(minutes=10)
                 ):
-                    print("Namespace discovered!")
+                    print(" Namespace discovered!")
                     sys.stdout.flush()
                     time.sleep(3)
-                    print(f"Managing app: {ns['name']}.")
+                    print(f"Managing app: {ns['name']}.", end="")
+                    sys.stdout.flush()
                     rc = astraSDK.manageApp(verbose=verbose).main(
                         ns["name"], ns["name"], ns["clusterID"]
                     )
                     appID = rc["id"]
-                    print("Success.")
+                    print(" Success!")
+                    sys.stdout.flush()
                     break
 
         # Create a protection policy on that namespace (using its appID)

@@ -53,9 +53,8 @@ NOTES:
 
 For more information on running CloudBees Core on Kubernetes, visit:
 https://go.cloudbees.com/docs/cloudbees-core/cloud-admin-guide/
-Waiting for Astra to discover the namespace..Namespace discovered!
-Managing app: cloudbees-core.
-Success.
+Waiting for Astra to discover the namespace.. Namespace discovered!
+Managing app: cloudbees-core. Success!
 Setting hourly protection policy on 855d7fb2-5a7f-494f-ab0b-aea35344ad86
 Setting daily protection policy on 855d7fb2-5a7f-494f-ab0b-aea35344ad86
 Setting weekly protection policy on 855d7fb2-5a7f-494f-ab0b-aea35344ad86
