@@ -829,7 +829,7 @@ class createProtectionpolicy(SDKCommon):
             results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(json.dumps(results))
-            return True
+            return results
         else:
             if not self.quiet:
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
@@ -1351,7 +1351,7 @@ class manageCluster(SDKCommon):
             results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(json.dumps(results))
-            return True
+            return results
         else:
             if not self.quiet:
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
@@ -1867,7 +1867,7 @@ class createHook(SDKCommon):
         description=None,
     ):
 
-        #endpoint = f"k8s/v1/apps/{appID}/executionHooks"
+        # endpoint = f"k8s/v1/apps/{appID}/executionHooks"
         endpoint = f"core/v1/executionHooks"
         url = self.base + endpoint
         params = {}
@@ -1930,14 +1930,14 @@ class destroyHook(SDKCommon):
 
     def main(self, appID, hookID):
 
-        #endpoint = f"k8s/v1/apps/{appID}/executionHooks/{hookID}"
+        # endpoint = f"k8s/v1/apps/{appID}/executionHooks/{hookID}"
         endpoint = f"core/v1/executionHooks/{hookID}"
         url = self.base + endpoint
         params = {}
         data = {
             "type": "application/astra-hookSource",
             "version": "1.0",
-            "appID": appID, # Not strictly required at this time
+            "appID": appID,  # Not strictly required at this time
         }
 
         if self.verbose:
