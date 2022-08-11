@@ -9,6 +9,7 @@ There are currently 4 global arguments that modify command output.  Most of thes
   * [Json](#json)
   * [Yaml](#yaml)
 * [Quiet](#quiet)
+* [Fast](#fast)
 
 ## Help
 
@@ -573,3 +574,94 @@ toolkit.py manage app: error: argument clusterID: invalid choice: '11111111-1111
 $ echo $?
 2
 ```
+
+## Fast
+
+The `-f`/`--fast` argument increases the toolkit speed by disabling the `choices` list within argparse.  This has a couple of advantages, but also some drawbacks, so it should be used with caution.
+
+Take for instance running a `./toolkit.py clone -h` command, which prints out the help text of the `clone` command.  Since by default the `choices` lists of objects are populated for each potential argument, several API calls must be made to populate these lists.  Depending on your location and network speed, this can result in help commands taking several seconds (almost 4 seconds in this example).
+
+```text
+$ time ./toolkit.py clone -h
+usage: toolkit.py clone [-h] [-b] [--cloneAppName CLONEAPPNAME] [--cloneNamespace CLONENAMESPACE]
+                        [--clusterID {51a01591-1b00-4404-b6f4-4b6262c248bf,e2d5bcad-0008-499e-a598-61a86d1edecb}]
+                        (--backupID {0022a7a3-3ab8-4796-aa5f-fd31f073a3ea,bbe423ec-e068-423a-aa63-6ac94ed666ba,7aa6661d-f0b2-41ca-8f5b-8345b71c1902} | --snapshotID {5e3ca1e6-2605-447b-9dcc-f25caf8b6904,5ea6d987-aee7-4c6b-86a0-fac42caf4088,e2908442-0e54-43cc-a7d9-aecb9203f9b1} | --sourceAppID {7ab349be-7112-414f-8e90-8aca9543037b,d214246b-2c96-4661-ba5a-e2a5c230faea,3378b940-3043-4602-b233-e9ebf10cb757})
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -b, --background      Run clone operation in the background
+  --cloneAppName CLONEAPPNAME
+                        Clone app name
+  --cloneNamespace CLONENAMESPACE
+                        Clone namespace name (optional, if not specified cloneAppName is used)
+  --clusterID {51a01591-1b00-4404-b6f4-4b6262c248bf,e2d5bcad-0008-499e-a598-61a86d1edecb}
+                        Cluster to clone into (can be same as source)
+  --backupID {0022a7a3-3ab8-4796-aa5f-fd31f073a3ea,bbe423ec-e068-423a-aa63-6ac94ed666ba,7aa6661d-f0b2-41ca-8f5b-8345b71c1902}
+                        Source backup to clone
+  --snapshotID {5e3ca1e6-2605-447b-9dcc-f25caf8b6904,5ea6d987-aee7-4c6b-86a0-fac42caf4088,e2908442-0e54-43cc-a7d9-aecb9203f9b1}
+                        Source snapshot to restore from
+  --sourceAppID {7ab349be-7112-414f-8e90-8aca9543037b,d214246b-2c96-4661-ba5a-e2a5c230faea,3378b940-3043-4602-b233-e9ebf10cb757}
+                        Source app to clone
+./toolkit.py clone -h  0.46s user 0.09s system 13% cpu 3.996 total
+```
+
+If instead the `-f`/`--fast` argument is used, the `choices` lists are not populated, which results in zero API calls being made for a simple help operation, resulting in only local processing time (around 1/4 of a second).
+
+```text
+$ time ./toolkit.py --fast clone -h
+usage: toolkit.py clone [-h] [-b] [--cloneAppName CLONEAPPNAME] [--cloneNamespace CLONENAMESPACE] [--clusterID CLUSTERID]
+                        (--backupID BACKUPID | --snapshotID SNAPSHOTID | --sourceAppID SOURCEAPPID)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -b, --background      Run clone operation in the background
+  --cloneAppName CLONEAPPNAME
+                        Clone app name
+  --cloneNamespace CLONENAMESPACE
+                        Clone namespace name (optional, if not specified cloneAppName is used)
+  --clusterID CLUSTERID
+                        Cluster to clone into (can be same as source)
+  --backupID BACKUPID   Source backup to clone
+  --snapshotID SNAPSHOTID
+                        Source snapshot to restore from
+  --sourceAppID SOURCEAPPID
+                        Source app to clone
+./toolkit.py --fast clone -h  0.19s user 0.06s system 95% cpu 0.259 total
+```
+
+This has a secondary advantage of cleaning up the help text in busy environments.
+
+The `fast` argument can also be used with all other toolkit operations, which will see a variety of speed improvments based on the number of API calls that normally are made to populate the `choices` list.  For example, managing a cluster with and without the `fast` argument (8 seconds versus 3 seconds):
+
+```text
+time ./toolkit.py manage cluster e2d5bcad-0008-499e-a598-61a86d1edecb 81a9302a-d4dd-473c-b386-93c67508c823
+{"type": "application/astra-managedCluster", "version": "1.1", "id": "e2d5bcad-0008-499e-a598-61a86d1edecb", "name": "uscentral1-cluster", "state": "pending", "stateUnready": [], "managedState": "managed", "restoreTargetSupported": "true", "snapshotSupported": "true", "managedStateUnready": [], "managedTimestamp": "2022-08-11T16:35:55Z", "inUse": "false", "clusterType": "gke", "clusterVersion": "1.22", "clusterVersionString": "v1.22.10-gke.600", "clusterCreationTimestamp": "2022-08-10T13:42:26Z", "namespaces": [], "defaultStorageClass": "81a9302a-d4dd-473c-b386-93c67508c823", "cloudID": "0ec2e027-80bc-426a-b844-692de243b29e", "credentialID": "86ae5829-6ac5-4515-94c8-50b9bc33ebe4", "location": "us-central1-b", "isMultizonal": "true", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/gcp/projectNumber", "value": "239048101169"}, {"name": "astra.netapp.io/labels/read-only/gcp/HostVpcProjectID", "value": "xxxxxxx01169"}, {"name": "astra.netapp.io/labels/read-only/hasNonTridentCSIDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/hasTridentDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "GCP"}], "creationTimestamp": "2022-08-11T16:35:55Z", "modificationTimestamp": "2022-08-11T16:35:57Z", "createdBy": "system"}}
+./toolkit.py manage cluster e2d5bcad-0008-499e-a598-61a86d1edecb   0.43s user 0.09s system 6% cpu 8.108 total
+```
+
+```text
+time ./toolkit.py -f manage cluster e2d5bcad-0008-499e-a598-61a86d1edecb 81a9302a-d4dd-473c-b386-93c67508c823
+{"type": "application/astra-managedCluster", "version": "1.1", "id": "e2d5bcad-0008-499e-a598-61a86d1edecb", "name": "uscentral1-cluster", "state": "pending", "stateUnready": [], "managedState": "managed", "restoreTargetSupported": "true", "snapshotSupported": "true", "managedStateUnready": [], "managedTimestamp": "2022-08-11T16:36:36Z", "inUse": "false", "clusterType": "gke", "clusterVersion": "1.22", "clusterVersionString": "v1.22.10-gke.600", "clusterCreationTimestamp": "2022-08-10T13:42:26Z", "namespaces": [], "defaultStorageClass": "81a9302a-d4dd-473c-b386-93c67508c823", "cloudID": "0ec2e027-80bc-426a-b844-692de243b29e", "credentialID": "5235c3a7-6a1b-42af-aa59-ac350c08130d", "location": "us-central1-b", "isMultizonal": "true", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/gcp/projectNumber", "value": "239048101169"}, {"name": "astra.netapp.io/labels/read-only/gcp/HostVpcProjectID", "value": "xxxxxxx01169"}, {"name": "astra.netapp.io/labels/read-only/hasNonTridentCSIDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/hasTridentDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "GCP"}], "creationTimestamp": "2022-08-11T16:36:37Z", "modificationTimestamp": "2022-08-11T16:36:38Z", "createdBy": "system"}}
+./toolkit.py -f manage cluster e2d5bcad-0008-499e-a598-61a86d1edecb   0.22s user 0.06s system 9% cpu 3.002 total
+```
+
+**However**, the drawback of the `fast` argument is the lack of guardrails.  Take for instance trying to manage that same cluster, but accidentally missing the last character on the storage class UUID when pasting it in:
+
+```text
+$ ./toolkit.py manage cluster e2d5bcad-0008-499e-a598-61a86d1edecb 81a9302a-d4dd-473c-b386-93c67508c82 
+usage: toolkit.py manage cluster [-h]
+                                 {e2d5bcad-0008-499e-a598-61a86d1edecb}
+                                 {b3843cb8-7de4-4a5b-9734-f9a54f89369c,dbff270b-b6b6-4fc4-afd1-74fb43710755,81a9302a-d4dd-473c-b386-93c67508c823,f6322d5c-755d-42ad-96f0-552a20610741,a908dda1-89ba-4122-9830-6637ab3cbf78}
+toolkit.py manage cluster: error: argument storageClassID: invalid choice: '81a9302a-d4dd-473c-b386-93c67508c82' (choose from 'b3843cb8-7de4-4a5b-9734-f9a54f89369c', 'dbff270b-b6b6-4fc4-afd1-74fb43710755', '81a9302a-d4dd-473c-b386-93c67508c823', 'f6322d5c-755d-42ad-96f0-552a20610741', 'a908dda1-89ba-4122-9830-6637ab3cbf78')
+```
+
+Argparse detects that the storage class UUID is incorrect, and catches the error prior to making any API calls.  When using the `fast` argument, this error checking is not performed, resulting in a 400 API response:
+
+```text
+$ ./toolkit.py -f manage cluster e2d5bcad-0008-499e-a598-61a86d1edecb 81a9302a-d4dd-473c-b386-93c67508c82
+API HTTP Status Code: 400 - Bad Request
+Error text: {"error":"failed to create managed cluster: failed to get storage class name: failed to find storage class with ID: 81a9302a-d4dd-473c-b386-93c67508c82"}
+astraSDK.manageCluster() failed
+```
+
+For this reason use the `fast` argument **AT YOUR OWN RISK**, and please take extra care to be sure that the commands entered are correct.

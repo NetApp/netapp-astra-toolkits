@@ -702,7 +702,7 @@ def main():
         # Turn off verification to speed things up if true
         plaidMode = False
         for counter, item in enumerate(sys.argv):
-            if counter < verbPosition and (item == "-f" or item == "--fast"):
+            if verbPosition and counter < verbPosition and (item == "-f" or item == "--fast"):
                 plaidMode = True
 
         if not plaidMode:
@@ -857,7 +857,7 @@ def main():
         default=False,
         action="store_true",
         help="prioritize speed over validation (using this will not validate arguments, which "
-        + "have unintended consequences)",
+        + "may have unintended consequences)",
     )
     subparsers = parser.add_subparsers(dest="subcommand", required=True, help="subcommand help")
     #######
