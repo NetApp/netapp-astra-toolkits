@@ -16,17 +16,17 @@ The `--help` / `-h` argument can be utilized at any location within `./toolkit.p
 
 ```text
 $ ./toolkit.py --help
-usage: toolkit.py [-h] [-v] [-o {json,yaml,table}] [-q] {deploy,clone,restore,list,create,manage,destroy,unmanage} ...
+usage: toolkit.py [-h] [-v] [-o {json,yaml,table}] [-q] {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage} ...
 
 positional arguments:
-  {deploy,clone,restore,list,create,manage,destroy,unmanage}
+  {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage}
                         subcommand help
-    deploy              deploy a bitnami chart
-    clone               clone a namespace to a destination cluster
-    restore             restore an app from a backup or snapshot
+    deploy              Deploy a helm chart
+    clone               Clone an app
+    restore             Restore an app from a backup or snapshot
     list (get)          List all items in a class
     create              Create an object
-    manage              Manage an object
+    manage (define)     Manage an object
     destroy             Destroy an object
     unmanage            Unmanage an object
 
@@ -42,17 +42,18 @@ If utilized after positional arguments, then information about that specific com
 
 ```text
 $ ./toolkit.py list --help
-usage: toolkit.py list [-h] {apps,backups,clouds,clusters,snapshots,storageclasses} ...
+usage: toolkit.py list [-h] {apps,backups,clouds,clusters,namespaces,snapshots,storageclasses} ...
 
 optional arguments:
   -h, --help            show this help message and exit
 
 objectType:
-  {apps,backups,clouds,clusters,snapshots,storageclasses}
+  {apps,backups,clouds,clusters,namespaces,snapshots,storageclasses}
     apps                list apps
     backups             list backups
     clouds              list clouds
     clusters            list clusters
+    namespaces          list namespaces
     snapshots           list snapshots
     storageclasses      list storageclasses
 ```
@@ -60,15 +61,10 @@ objectType:
 Additionally, if the positional arguments require sub-arguments, the `--help` displays further information.
 
 ```text
-$ ./toolkit.py list apps -h
-usage: toolkit.py list apps [-h] [-u | -i] [-s SOURCE] [-n NAMESPACE] [-c CLUSTER]
+usage: toolkit.py list apps [-h] [-n NAMESPACE] [-c CLUSTER]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -u, --unmanaged       Show only unmanaged apps
-  -i, --ignored         Show ignored apps
-  -s SOURCE, --source SOURCE
-                        app source
   -n NAMESPACE, --namespace NAMESPACE
                         Only show apps from this namespace
   -c CLUSTER, --cluster CLUSTER
@@ -82,24 +78,23 @@ The `--verbose` global argument prints additional output, such API call informat
 **Caution**: be mindful of running this command in front of others, as API credential information is displayed.
 
 ```text
-API URL: https://hidden.astra.netapp.io/accounts/12345678-abcd-4567-8901-abcd01234567/topology/v1/apps
+$ ./toolkit.py --verbose list apps
+API URL: https://hidden.astra.netapp.io/accounts/737c6a6e-930f-48ce-82ba-afcafc0633dd/k8s/v2/apps
 API Method: GET
 API Headers: {'Authorization': 'Bearer KroeirTcUoMs6baBcUhXcAGK0-4tbm_ol1hJC2OtaDg='}
 API data: {}
 API params: {}
 API HTTP Status Code: 200
 
-+----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| appName        | appID                                | clusterName     | namespace      | state        | source    |
-+================+======================================+=================+================+==============+===========+
-| wordpress-east | 8f462cea-a166-438d-85b1-8aa5cfb0ad9f | useast1-cluster | wordpress      | running      | namespace |
-+----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| wordpress-west | a8dc676e-d182-4d7c-9113-43f5a2963b54 | uswest1-cluster | wordpress-prod | running      | namespace |
-+----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| temp-clone     | ad125374-e090-425b-a048-d719b93b0feb | uswest1-cluster | clonens        | provisioning | namespace |
-+----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| jfrogcr        | cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 | uswest1-cluster | jfrogcr        | running      | namespace |
-+----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
++------------------------------+--------------------------------------+--------------------+-------------+--------------+
+| appName                      | appID                                | clusterName        | namespace   | state        |
++==============================+======================================+====================+=============+==============+
+| wordpress                    | 79c608be-828d-4b3b-92d4-5589c0a4e515 | uscentral1-cluster | wordpress   | ready        |
++------------------------------+--------------------------------------+--------------------+-------------+--------------+
+| cassandra                    | 79871ad1-2f69-4532-806a-42ba11cc45ac | uscentral1-cluster | cassandra   | ready        |
++------------------------------+--------------------------------------+--------------------+-------------+--------------+
+| wordpress-clone-202207271713 | 7c212175-9cbd-4bb9-96a4-3a61a8ea0fda | useast4-cluster    |             | provisioning |
++------------------------------+--------------------------------------+--------------------+-------------+--------------+
 ```
 
 ## Output
@@ -112,17 +107,15 @@ The `table` output is the default option, so it's not necessary to explicitly us
 
 ```text
 $ ./toolkit.py -o table list apps
-+----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| appName        | appID                                | clusterName     | namespace      | state        | source    | 
-+================+======================================+=================+================+==============+===========+
-| wordpress-east | 8f462cea-a166-438d-85b1-8aa5cfb0ad9f | useast1-cluster | wordpress      | running      | namespace | 
-+----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| wordpress-west | a8dc676e-d182-4d7c-9113-43f5a2963b54 | uswest1-cluster | wordpress-prod | running      | namespace | 
-+----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| temp-clone     | ad125374-e090-425b-a048-d719b93b0feb | uswest1-cluster | clonens        | provisioning | namespace | 
-+----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
-| jfrogcr        | cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0 | uswest1-cluster | jfrogcr        | running      | namespace | 
-+----------------+--------------------------------------+-----------------+----------------+--------------+-----------+
++------------------------------+--------------------------------------+--------------------+-------------+--------------+
+| appName                      | appID                                | clusterName        | namespace   | state        |
++==============================+======================================+====================+=============+==============+
+| wordpress                    | 79c608be-828d-4b3b-92d4-5589c0a4e515 | uscentral1-cluster | wordpress   | ready        |
++------------------------------+--------------------------------------+--------------------+-------------+--------------+
+| cassandra                    | 79871ad1-2f69-4532-806a-42ba11cc45ac | uscentral1-cluster | cassandra   | ready        |
++------------------------------+--------------------------------------+--------------------+-------------+--------------+
+| wordpress-clone-202207271713 | 7c212175-9cbd-4bb9-96a4-3a61a8ea0fda | useast4-cluster    |             | provisioning |
++------------------------------+--------------------------------------+--------------------+-------------+--------------+
 ```
 
 ### Json
@@ -131,7 +124,7 @@ The `json` output prints the full API object in json format.
 
 ```text
 $ ./toolkit.py -o json list apps
-{"items": [{"type": "application/astra-app", "version": "1.1", "id": "8f462cea-a166-438d-85b1-8aa5cfb0ad9f", "name": "wordpress", "state": "running", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T15:12:05Z", "protectionState": "protected", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "wordpress", "clusterName": "useast1-cluster", "clusterID": "9fd690f3-4ae5-423d-9b58-95b6ba4f02e4", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-19T15:11:31Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "system"`, {"type": "application/astra-app", "version": "1.1", "id": "a8dc676e-d182-4d7c-9113-43f5a2963b54", "name": "wordpress-w", "state": "running", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T15:14:38Z", "protectionState": "partial", "protectionStateUnready": ["Missing a recent backup"], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "wordpress-w", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-19T15:14:13Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "system"`, {"type": "application/astra-managedApp", "version": "1.1", "id": "ad125374-e090-425b-a048-d719b93b0feb", "name": "clonens", "state": "running", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T19:25:50Z", "protectionState": "none", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "clonens", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "sourceAppID": "8f462cea-a166-438d-85b1-8aa5cfb0ad9f", "sourceClusterID": "9fd690f3-4ae5-423d-9b58-95b6ba4f02e4", "backupID": "fa8b87a2-8533-4fec-82dd-dd9cbeec2c9b", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/appType", "value": "clone"}], "creationTimestamp": "2022-05-19T19:25:50Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"`, {"type": "application/astra-app", "version": "1.1", "id": "cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0", "name": "jfrogcr", "state": "running", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-20T16:00:06Z", "protectionState": "protected", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "namespace", "appLabels": [], "system": "false", "namespace": "jfrogcr", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-20T15:59:35Z", "modificationTimestamp": "2022-05-20T18:15:00Z", "createdBy": "system"`], "metadata": {`
+{"items": [{"type": "application/astra-app", "version": "2.0", "id": "79c608be-828d-4b3b-92d4-5589c0a4e515", "name": "wordpress", "namespaceScopedResources": [{"namespace": "wordpress"}], "state": "ready", "lastResourceCollectionTimestamp": "2022-07-27T21:09:26Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "partial", "protectionStateDetails": [], "namespaces": ["wordpress"], "clusterName": "uscentral1-cluster", "clusterID": "b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-07-27T21:07:28Z", "modificationTimestamp": "2022-07-27T21:09:54Z", "createdBy": "12a5d9dd-851e-4235-af27-86c0b63bf3a9"}}, {"type": "application/astra-app", "version": "2.0", "id": "79871ad1-2f69-4532-806a-42ba11cc45ac", "name": "cassandra", "namespaceScopedResources": [{"namespace": "cassandra", "labelSelectors": ["app.kubernetes.io/instance=cassandra"]}], "state": "ready", "lastResourceCollectionTimestamp": "2022-07-27T21:09:31Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "partial", "protectionStateDetails": [], "namespaces": ["cassandra"], "clusterName": "uscentral1-cluster", "clusterID": "b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-07-27T21:07:33Z", "modificationTimestamp": "2022-07-27T21:09:54Z", "createdBy": "12a5d9dd-851e-4235-af27-86c0b63bf3a9"}}], "metadata": {}}
 ```
 
 This is useful in conjunction with the [jq](https://stedolan.github.io/jq/) utility, first for pretty-printing the output:
@@ -142,141 +135,253 @@ $ ./toolkit.py -o json list apps | jq
   "items": [
     {
       "type": "application/astra-app",
-      "version": "1.1",
-      "id": "8f462cea-a166-438d-85b1-8aa5cfb0ad9f",
-      "name": "wordpress-east",
-      "state": "running",
-      "stateUnready": [],
-      "managedState": "managed",
-      "managedStateUnready": [],
-      "managedTimestamp": "2022-05-19T15:12:05Z",
-      "protectionState": "protected",
-      "protectionStateUnready": [],
-      "collectionState": "fullyCollected",
-      "collectionStateTransitions": [
+      "version": "2.0",
+      "id": "79c608be-828d-4b3b-92d4-5589c0a4e515",
+      "name": "wordpress",
+      "namespaceScopedResources": [
         {
-          "from": "notCollected",
-          "to": [
-            "partiallyCollected",
-            "fullyCollected"
-          ]
-        },
-        {
-          "from": "partiallyCollected",
-          "to": [
-            "fullyCollected"
-          ]
-        },
-        {
-          "from": "fullyCollected",
-          "to": []
+          "namespace": "wordpress"
         }
       ],
-      "collectionStateDetails": [],
-      "appDefnSource": "namespace",
-      "appLabels": [],
-      "system": "false",
-      "namespace": "wordpress",
-      "clusterName": "useast1-cluster",
-      "clusterID": "9fd690f3-4ae5-423d-9b58-95b6ba4f02e4",
+      "state": "ready",
+      "lastResourceCollectionTimestamp": "2022-07-27T21:09:26Z",
+      "stateTransitions": [
+        {
+          "to": [
+            "pending"
+          ]
+        },
+        {
+          "to": [
+            "provisioning"
+          ]
+        },
+        {
+          "from": "pending",
+          "to": [
+            "discovering",
+            "failed"
+          ]
+        },
+        {
+          "from": "discovering",
+          "to": [
+            "ready",
+            "failed"
+          ]
+        },
+        {
+          "from": "ready",
+          "to": [
+            "discovering",
+            "restoring",
+            "unavailable",
+            "failed"
+          ]
+        },
+        {
+          "from": "unavailable",
+          "to": [
+            "ready",
+            "restoring"
+          ]
+        },
+        {
+          "from": "provisioning",
+          "to": [
+            "discovering",
+            "failed"
+          ]
+        },
+        {
+          "from": "restoring",
+          "to": [
+            "discovering",
+            "failed"
+          ]
+        }
+      ],
+      "stateDetails": [],
+      "protectionState": "protected",
+      "protectionStateDetails": [],
+      "namespaces": [
+        "wordpress"
+      ],
+      "clusterName": "uscentral1-cluster",
+      "clusterID": "b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d",
       "clusterType": "gke",
       "metadata": {
         "labels": [],
-        "creationTimestamp": "2022-05-19T15:11:31Z",
-        "modificationTimestamp": "2022-05-20T18:18:15Z",
-        "createdBy": "system"
+        "creationTimestamp": "2022-07-27T21:07:28Z",
+        "modificationTimestamp": "2022-07-27T21:20:03Z",
+        "createdBy": "12a5d9dd-851e-4235-af27-86c0b63bf3a9"
       }
     },
     {
       "type": "application/astra-app",
-      "version": "1.1",
-      "id": "a8dc676e-d182-4d7c-9113-43f5a2963b54",
-      "name": "wordpress-west",
-      "state": "running",
-      "stateUnready": [],
-      "managedState": "managed",
-      "managedStateUnready": [],
-      "managedTimestamp": "2022-05-19T15:14:38Z",
-      "protectionState": "none",
-      "protectionStateUnready": [],
-      "collectionState": "fullyCollected",
-      "collectionStateTransitions": [
+      "version": "2.0",
+      "id": "79871ad1-2f69-4532-806a-42ba11cc45ac",
+      "name": "cassandra",
+      "namespaceScopedResources": [
         {
-          "from": "notCollected",
-          "to": [
-            "partiallyCollected",
-            "fullyCollected"
+          "namespace": "cassandra",
+          "labelSelectors": [
+            "app.kubernetes.io/instance=cassandra"
           ]
-        },
-        {
-          "from": "partiallyCollected",
-          "to": [
-            "fullyCollected"
-          ]
-        },
-        {
-          "from": "fullyCollected",
-          "to": []
         }
       ],
-      "collectionStateDetails": [],
-      "appDefnSource": "namespace",
-      "appLabels": [],
-      "system": "false",
-      "namespace": "wordpress-prod",
-      "clusterName": "uswest1-cluster",
-      "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57",
+      "state": "ready",
+      "lastResourceCollectionTimestamp": "2022-07-27T21:16:27Z",
+      "stateTransitions": [
+        {
+          "to": [
+            "pending"
+          ]
+        },
+        {
+          "to": [
+            "provisioning"
+          ]
+        },
+        {
+          "from": "pending",
+          "to": [
+            "discovering",
+            "failed"
+          ]
+        },
+        {
+          "from": "discovering",
+          "to": [
+            "ready",
+            "failed"
+          ]
+        },
+        {
+          "from": "ready",
+          "to": [
+            "discovering",
+            "restoring",
+            "unavailable",
+            "failed"
+          ]
+        },
+        {
+          "from": "unavailable",
+          "to": [
+            "ready",
+            "restoring"
+          ]
+        },
+        {
+          "from": "provisioning",
+          "to": [
+            "discovering",
+            "failed"
+          ]
+        },
+        {
+          "from": "restoring",
+          "to": [
+            "discovering",
+            "failed"
+          ]
+        }
+      ],
+      "stateDetails": [],
+      "protectionState": "partial",
+      "protectionStateDetails": [],
+      "namespaces": [
+        "cassandra"
+      ],
+      "clusterName": "uscentral1-cluster",
+      "clusterID": "b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d",
       "clusterType": "gke",
       "metadata": {
         "labels": [],
-        "creationTimestamp": "2022-05-19T15:14:13Z",
-        "modificationTimestamp": "2022-05-20T18:18:15Z",
-        "createdBy": "system"
+        "creationTimestamp": "2022-07-27T21:07:33Z",
+        "modificationTimestamp": "2022-07-27T21:20:03Z",
+        "createdBy": "12a5d9dd-851e-4235-af27-86c0b63bf3a9"
       }
     },
     {
-      "type": "application/astra-managedApp",
-      "version": "1.1",
-      "id": "ad125374-e090-425b-a048-d719b93b0feb",
-      "name": "temp-clone",
-      "state": "running",
-      "stateUnready": [],
-      "managedState": "managed",
-      "managedStateUnready": [],
-      "managedTimestamp": "2022-05-19T19:25:50Z",
-      "protectionState": "none",
-      "protectionStateUnready": [],
-      "collectionState": "fullyCollected",
-      "collectionStateTransitions": [
+      "type": "application/astra-app",
+      "version": "2.0",
+      "id": "7c212175-9cbd-4bb9-96a4-3a61a8ea0fda",
+      "name": "wordpress-clone-202207271713",
+      "namespaceScopedResources": [
         {
-          "from": "notCollected",
-          "to": [
-            "partiallyCollected",
-            "fullyCollected"
-          ]
-        },
-        {
-          "from": "partiallyCollected",
-          "to": [
-            "fullyCollected"
-          ]
-        },
-        {
-          "from": "fullyCollected",
-          "to": []
+          "namespace": "wordpress-clonens-202207271713",
+          "labelSelectors": []
         }
       ],
-      "collectionStateDetails": [],
-      "appDefnSource": "namespace",
-      "appLabels": [],
-      "system": "false",
-      "namespace": "clonens",
-      "clusterName": "uswest1-cluster",
-      "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57",
+      "state": "provisioning",
+      "lastResourceCollectionTimestamp": "2022-07-27T21:13:22Z",
+      "stateTransitions": [
+        {
+          "to": [
+            "pending"
+          ]
+        },
+        {
+          "to": [
+            "provisioning"
+          ]
+        },
+        {
+          "from": "pending",
+          "to": [
+            "discovering",
+            "failed"
+          ]
+        },
+        {
+          "from": "discovering",
+          "to": [
+            "ready",
+            "failed"
+          ]
+        },
+        {
+          "from": "ready",
+          "to": [
+            "discovering",
+            "restoring",
+            "unavailable",
+            "failed"
+          ]
+        },
+        {
+          "from": "unavailable",
+          "to": [
+            "ready",
+            "restoring"
+          ]
+        },
+        {
+          "from": "provisioning",
+          "to": [
+            "discovering",
+            "failed"
+          ]
+        },
+        {
+          "from": "restoring",
+          "to": [
+            "discovering",
+            "failed"
+          ]
+        }
+      ],
+      "stateDetails": [],
+      "protectionState": "none",
+      "protectionStateDetails": [],
+      "namespaces": [],
+      "clusterName": "useast4-cluster",
+      "clusterID": "9857d628-dc4b-4227-8470-7b7dd4ed84e9",
       "clusterType": "gke",
-      "sourceAppID": "8f462cea-a166-438d-85b1-8aa5cfb0ad9f",
-      "sourceClusterID": "9fd690f3-4ae5-423d-9b58-95b6ba4f02e4",
-      "backupID": "fa8b87a2-8533-4fec-82dd-dd9cbeec2c9b",
+      "sourceClusterID": "b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d",
+      "backupID": "22b699cf-5a0f-4598-9840-1be055dd672b",
       "metadata": {
         "labels": [
           {
@@ -284,56 +389,9 @@ $ ./toolkit.py -o json list apps | jq
             "value": "clone"
           }
         ],
-        "creationTimestamp": "2022-05-19T19:25:50Z",
-        "modificationTimestamp": "2022-05-20T18:18:15Z",
-        "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"
-      }
-    },
-    {
-      "type": "application/astra-app",
-      "version": "1.1",
-      "id": "cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0",
-      "name": "jfrogcr",
-      "state": "running",
-      "stateUnready": [],
-      "managedState": "managed",
-      "managedStateUnready": [],
-      "managedTimestamp": "2022-05-20T16:00:06Z",
-      "protectionState": "none",
-      "protectionStateUnready": [],
-      "collectionState": "fullyCollected",
-      "collectionStateTransitions": [
-        {
-          "from": "notCollected",
-          "to": [
-            "partiallyCollected",
-            "fullyCollected"
-          ]
-        },
-        {
-          "from": "partiallyCollected",
-          "to": [
-            "fullyCollected"
-          ]
-        },
-        {
-          "from": "fullyCollected",
-          "to": []
-        }
-      ],
-      "collectionStateDetails": [],
-      "appDefnSource": "namespace",
-      "appLabels": [],
-      "system": "false",
-      "namespace": "jfrogcr",
-      "clusterName": "uswest1-cluster",
-      "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57",
-      "clusterType": "gke",
-      "metadata": {
-        "labels": [],
-        "creationTimestamp": "2022-05-20T15:59:35Z",
-        "modificationTimestamp": "2022-05-20T18:18:15Z",
-        "createdBy": "system"
+        "creationTimestamp": "2022-07-27T21:13:21Z",
+        "modificationTimestamp": "2022-07-27T21:20:03Z",
+        "createdBy": "12a5d9dd-851e-4235-af27-86c0b63bf3a9"
       }
     }
   ],
@@ -346,23 +404,18 @@ Second, it can be used to extract certain information, for instance if you wante
 ```text
 $ ./toolkit.py -o json list apps | jq '.items[] | {id, name, protectionState}'
 {
-  "id": "8f462cea-a166-438d-85b1-8aa5cfb0ad9f",
-  "name": "wordpress-east",
+  "id": "79c608be-828d-4b3b-92d4-5589c0a4e515",
+  "name": "wordpress",
   "protectionState": "protected"
 }
 {
-  "id": "a8dc676e-d182-4d7c-9113-43f5a2963b54",
-  "name": "wordpress-west",
-  "protectionState": "none"
+  "id": "79871ad1-2f69-4532-806a-42ba11cc45ac",
+  "name": "cassandra",
+  "protectionState": "partial"
 }
 {
-  "id": "ad125374-e090-425b-a048-d719b93b0feb",
-  "name": "clonens",
-  "protectionState": "none"
-}
-{
-  "id": "cbffb71a-a96b-4c13-9d36-e1fbeac8aaa0",
-  "name": "jfrogcr",
+  "id": "7c212175-9cbd-4bb9-96a4-3a61a8ea0fda",
+  "name": "wordpress-clone-202207271713",
   "protectionState": "none"
 }
 ```
@@ -412,66 +465,22 @@ If you prefer `yaml` over json, the `--output yaml` argument can be utilized.  I
 ```text
 $ ./toolkit.py -o yaml list clusters
 items:
-- cloudID: 0ec2e027-80bc-426a-b844-692de243b29e
-  clusterCreationTimestamp: '2022-05-16T15:51:54Z'
+- cloudID: e7a0bf84-0256-4ab6-a4ec-4aa5a4e49705
+  clusterCreationTimestamp: '2022-07-26T20:33:55Z'
   clusterType: gke
   clusterVersion: '1.21'
-  clusterVersionString: v1.21.10-gke.2000
-  defaultStorageClass: 0f17bdd2-38e0-4f10-a351-9844de4243ee
-  id: c9456cae-b2d4-400b-ac53-60637d57da57
+  clusterVersionString: v1.21.11-gke.1100
+  defaultStorageClass: 81a9302a-d4dd-473c-b386-93c67508c823
+  id: b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d
   inUse: 'true'
   isMultizonal: 'true'
-  location: us-west1-b
+  location: us-central1-b
   managedState: managed
   managedStateUnready: []
-  managedTimestamp: '2022-05-19T15:08:10Z'
+  managedTimestamp: '2022-07-27T21:06:27Z'
   metadata:
-    createdBy: system
-    creationTimestamp: '2022-05-16T16:00:21Z'
-    labels:
-    - name: astra.netapp.io/labels/read-only/hasTridentDriverSupport
-      value: 'true'
-    - name: astra.netapp.io/labels/read-only/gcp/projectNumber
-      value: '239048101169'
-    - name: astra.netapp.io/labels/read-only/gcp/HostVpcProjectID
-      value: xxxxxxx01169
-    - name: astra.netapp.io/labels/read-only/hasNonTridentCSIDriverSupport
-      value: 'true'
-    - name: astra.netapp.io/labels/read-only/cloudName
-      value: GCP
-    modificationTimestamp: '2022-05-20T18:51:22Z'
-  name: uswest1-cluster
-  namespaces:
-  - clonens
-  - default
-  - hourly-vydir-n1hfv
-  - jfrogcr
-  - kube-node-lease
-  - kube-public
-  - kube-system
-  - trident
-  - wordpress-w
-  state: running
-  stateUnready: []
-  tridentVersion: 22.01.0
-  type: application/astra-cluster
-  version: '1.1'
-- cloudID: 0ec2e027-80bc-426a-b844-692de243b29e
-  clusterCreationTimestamp: '2022-05-16T16:06:34Z'
-  clusterType: gke
-  clusterVersion: '1.21'
-  clusterVersionString: v1.21.10-gke.2000
-  defaultStorageClass: 0f17bdd2-38e0-4f10-a351-9844de4243ee
-  id: 9fd690f3-4ae5-423d-9b58-95b6ba4f02e4
-  inUse: 'true'
-  isMultizonal: 'true'
-  location: us-east1-b
-  managedState: managed
-  managedStateUnready: []
-  managedTimestamp: '2022-05-19T15:09:04Z'
-  metadata:
-    createdBy: 8146d293-d897-4e16-ab10-8dca934637ab
-    creationTimestamp: '2022-05-16T16:09:26Z'
+    createdBy: 12a5d9dd-851e-4235-af27-86c0b63bf3a9
+    creationTimestamp: '2022-07-20T17:40:45Z'
     labels:
     - name: astra.netapp.io/labels/read-only/gcp/HostVpcProjectID
       value: xxxxxxx01169
@@ -483,18 +492,56 @@ items:
       value: 'true'
     - name: astra.netapp.io/labels/read-only/cloudName
       value: GCP
-    modificationTimestamp: '2022-05-20T18:51:22Z'
-  name: useast1-cluster
+    modificationTimestamp: '2022-07-27T21:13:28Z'
+  name: uscentral1-cluster
   namespaces:
+  - cassandra
   - default
   - kube-node-lease
   - kube-public
   - kube-system
   - trident
   - wordpress
+  restoreTargetSupported: 'true'
+  snapshotSupported: 'true'
   state: running
   stateUnready: []
-  tridentVersion: 22.01.0
+  type: application/astra-cluster
+  version: '1.1'
+- cloudID: e7a0bf84-0256-4ab6-a4ec-4aa5a4e49705
+  clusterCreationTimestamp: '2022-07-27T20:37:06Z'
+  clusterType: gke
+  clusterVersion: '1.21'
+  clusterVersionString: v1.21.11-gke.1100
+  defaultStorageClass: 81a9302a-d4dd-473c-b386-93c67508c823
+  id: 9857d628-dc4b-4227-8470-7b7dd4ed84e9
+  inUse: 'true'
+  isMultizonal: 'true'
+  location: us-east4-b
+  managedState: managed
+  managedStateUnready: []
+  managedTimestamp: '2022-07-27T21:06:21Z'
+  metadata:
+    createdBy: 12a5d9dd-851e-4235-af27-86c0b63bf3a9
+    creationTimestamp: '2022-07-27T20:38:58Z'
+    labels:
+    - name: astra.netapp.io/labels/read-only/gcp/projectNumber
+      value: '239048101169'
+    - name: astra.netapp.io/labels/read-only/gcp/HostVpcProjectID
+      value: xxxxxxx01169
+    - name: astra.netapp.io/labels/read-only/hasNonTridentCSIDriverSupport
+      value: 'true'
+    - name: astra.netapp.io/labels/read-only/hasTridentDriverSupport
+      value: 'true'
+    - name: astra.netapp.io/labels/read-only/cloudName
+      value: GCP
+    modificationTimestamp: '2022-07-27T21:13:28Z'
+  name: useast4-cluster
+  namespaces: []
+  restoreTargetSupported: 'true'
+  snapshotSupported: 'true'
+  state: pending
+  stateUnready: []
   type: application/astra-cluster
   version: '1.1'
 ```
@@ -504,14 +551,15 @@ items:
 The `--quiet` argument suppresses output, while still utilizing proper exit codes, and throwing error messages for incorrect commands.  Consider this command (without the `--quiet` argument):
 
 ```text
-$ ./toolkit.py manage app 1d16c9f0-1b7f-4f21-804c-4162b0cfd56e 
-{"type": "application/astra-managedApp", "version": "1.1", "id": "1d16c9f0-1b7f-4f21-804c-4162b0cfd56e", "name": "jfrogcr-artifactory", "state": "running", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-20T18:52:51Z", "protectionState": "none", "protectionStateUnready": [], "collectionState": "fullyCollected", "collectionStateTransitions": [{"from": "notCollected", "to": ["partiallyCollected", "fullyCollected"]}, {"from": "partiallyCollected", "to": ["fullyCollected"]}, {"from": "fullyCollected", "to": []}], "collectionStateDetails": [], "appDefnSource": "helm", "appLabels": [{"name": "app", "value": "artifactory"}, {"name": "release", "value": "jfrogcr"}], "system": "false", "pods": [{"podName": "jfrogcr-artifactory-0", "podNamespace": "jfrogcr", "nodeName": "gke-uswest1-cluster-default-node-pool-3ee0f741-kkxr", "containers": [{"containerName": "artifactory", "image": "releases-docker.jfrog.io/jfrog/artifactory-jcr:7.38.10", "containerState": "available", "containerStateUnready": []}], "podState": "available", "podStateUnready": [], "podLabels": [{"name": "release", "value": "jfrogcr"}, {"name": "role", "value": "artifactory"}, {"name": "statefulset.kubernetes.io/pod-name", "value": "jfrogcr-artifactory-0"}, {"name": "app", "value": "artifactory"}, {"name": "chart", "value": "artifactory-107.38.10"}, {"name": "component", "value": "artifactory"}, {"name": "controller-revision-hash", "value": "jfrogcr-artifactory-585f5f66f6"}, {"name": "heritage", "value": "Helm"}], "podCreationTimestamp": "2022-05-20T15:58:53Z"}, {"podName": "jfrogcr-artifactory-nginx-748d4c8894-ntcjp", "podNamespace": "jfrogcr", "nodeName": "gke-uswest1-cluster-default-node-pool-3ee0f741-stm6", "containers": [{"containerName": "nginx", "image": "releases-docker.jfrog.io/jfrog/nginx-artifactory-pro:7.38.10", "containerState": "provisioning", "containerStateUnready": ["Container 'nginx' is not ready"]}], "podState": "provisioning", "podStateUnready": ["Ready condition is false: containers with unready status: [nginx]", "ContainersReady condition is false: containers with unready status: [nginx]", "Container 'nginx' is not ready"], "podLabels": [{"name": "heritage", "value": "Helm"}, {"name": "pod-template-hash", "value": "748d4c8894"}, {"name": "release", "value": "jfrogcr"}, {"name": "app", "value": "artifactory"}, {"name": "chart", "value": "artifactory-107.38.10"}, {"name": "component", "value": "nginx"}], "podCreationTimestamp": "2022-05-20T15:58:53Z"}], "namespace": "jfrogcr", "clusterName": "uswest1-cluster", "clusterID": "c9456cae-b2d4-400b-ac53-60637d57da57", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-05-20T15:59:36Z", "modificationTimestamp": "2022-05-20T17:13:12Z", "createdBy": "system"`
+$ ./toolkit.py manage app cassandra default -l name=cassandra b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d
+{'clusterID': 'b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d', 'name': 'cassandra', 'namespaceScopedResources': [{'namespace': 'default', 'labelSelectors': ['name=cassandra']}], 'type': 'application/astra-app', 'version': '2.0'}
+{"type": "application/astra-app", "version": "2.0", "id": "9dc08664-3d5d-4f7d-b2fd-266d12114f3b", "name": "cassandra", "namespaceScopedResources": [{"namespace": "default", "labelSelectors": ["name=cassandra"]}], "state": "discovering", "lastResourceCollectionTimestamp": "2022-07-27T17:38:05Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaces": [], "clusterName": "uscentral1-cluster", "clusterID": "b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-07-27T17:38:05Z", "modificationTimestamp": "2022-07-27T17:38:05Z", "createdBy": "12a5d9dd-851e-4235-af27-86c0b63bf3a9"}}
 ```
 
 With the `--quiet` argument instead:
 
 ```text
-$ ./toolkit --quiet manage app 1d16c9f0-1b7f-4f21-804c-4162b0cfd56e
+$ ./toolkit.py manage app cassandra default -l name=cassandra b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d
 $ echo $?
 0
 ```
@@ -519,10 +567,9 @@ $ echo $?
 While incorrect commands still display output even with the `--quiet` argument:
 
 ```text
-$ ./toolkit --quiet manage app 11111111-1111-1111-1111-111111111111
-usage: toolkit.py manage app [-h]
-                             {d00964bb-8d83-4151-99e8-7d31fb7e0611,5cd31c6a-2f3e-434b-8649-735569637c4b,a1a4b844-f2c4-4047-a886-ddfa80a12c2d,ded34e23-02ec-47f5-9702-0afb413b344e,125e9d1e-a278-491f-b278-134edf38d44c,ac374e80-4acb-41d5-8276-096b0259be00,df32149a-1fe7-4e1a-89dc-6201343ee6f0}
-toolkit.py manage app: error: argument appID: invalid choice: '11111111-1111-1111-1111-111111111111' (choose from 'd00964bb-8d83-4151-99e8-7d31fb7e0611', '5cd31c6a-2f3e-434b-8649-735569637c4b', 'a1a4b844-f2c4-4047-a886-ddfa80a12c2d', 'ded34e23-02ec-47f5-9702-0afb413b344e', '125e9d1e-a278-491f-b278-134edf38d44c', 'ac374e80-4acb-41d5-8276-096b0259be00', 'df32149a-1fe7-4e1a-89dc-6201343ee6f0')
+$ ./toolkit.py --quiet manage app cassandra default -l name=cassandra 11111111-1111-1111-1111-111111111111
+usage: toolkit.py manage app [-h] [-l LABELSELECTORS] appName {cassandra,default,wordpress} {b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d}
+toolkit.py manage app: error: argument clusterID: invalid choice: '11111111-1111-1111-1111-111111111111' (choose from 'b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d')
 $ echo $?
 2
 ```
