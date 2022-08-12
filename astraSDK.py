@@ -1420,6 +1420,7 @@ class getNamespaces(SDKCommon):
         self.output = output
         super().__init__()
         self.apps = getApps().main()
+        self.clusters = getClusters().main()
 
     def main(self, clusterID=None, nameFilter=None, showRemoved=False):
         if self.apps is False:
@@ -1450,6 +1451,7 @@ class getNamespaces(SDKCommon):
             print()
 
         if ret.ok:
+            systemNS = ["kube-node-lease", "kube-public", "kube-system", "trident"]
             namespaces = super().jsonifyResults(ret)
             # Add in a custom key/value "associatedApps"
             for ns in namespaces["items"]:
@@ -1461,12 +1463,18 @@ class getNamespaces(SDKCommon):
                                 ns["associatedApps"].append(app["name"])
             # Delete the unneeded namespaces based on filters
             namespacesCooked = copy.deepcopy(namespaces)
+            clusterList = []
+            for cluster in self.clusters["items"]:
+                if cluster["managedState"] == "managed":
+                    clusterList.append(cluster["id"])
             for counter, namespace in enumerate(namespaces.get("items")):
-                if namespace.get("systemType") or namespace.get("name") == "kube-public":
+                if namespace.get("systemType") or namespace.get("name") in systemNS:
                     namespacesCooked["items"].remove(namespaces["items"][counter])
                 elif nameFilter and nameFilter not in namespace.get("name"):
                     namespacesCooked["items"].remove(namespaces["items"][counter])
                 elif not showRemoved and namespace.get("namespaceState") == "removed":
+                    namespacesCooked["items"].remove(namespaces["items"][counter])
+                elif namespace["clusterID"] not in clusterList:
                     namespacesCooked["items"].remove(namespaces["items"][counter])
 
             if self.output == "json":
