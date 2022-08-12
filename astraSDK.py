@@ -25,6 +25,7 @@ from tabulate import tabulate
 from termcolor import colored
 import requests
 from urllib3 import disable_warnings
+from datetime import datetime, timedelta
 
 
 class getConfig:
@@ -167,7 +168,6 @@ class getApps(SDKCommon):
         self,
         namespace=None,
         cluster=None,
-        delPods=True,
     ):
         """namespace: Filter by the namespace the app is in
         cluster: Filter by a specific k8s cluster"""
@@ -244,14 +244,6 @@ class getApps(SDKCommon):
             # Loop through all apps and delete those that don't match filters
             for counter, app in enumerate(apps.get("items")):
 
-                # Find ignored apps based on labels
-                # for label in app["metadata"]["labels"]:
-                #    if (
-                #        label["name"] == "astra.netapp.io/labels/app.ignore"
-                #        and label["value"] == "true"
-                #    ):
-                #        ignoreFound = True
-
                 # If there's a given filter, delete non-matching values
                 if namespace:
                     delApp = True
@@ -262,12 +254,6 @@ class getApps(SDKCommon):
                         appsCooked["items"].remove(apps["items"][counter])
                 elif cluster and cluster != app["clusterName"]:
                     appsCooked["items"].remove(apps["items"][counter])
-
-            # At this time, pods just seem to muddy the waters with too much info, so delete
-            if delPods:
-                for app in appsCooked.get("items"):
-                    if app.get("pods"):
-                        del app["pods"]
 
             if self.output == "json":
                 dataReturn = appsCooked
@@ -1422,7 +1408,7 @@ class getNamespaces(SDKCommon):
         self.apps = getApps().main()
         self.clusters = getClusters().main()
 
-    def main(self, clusterID=None, nameFilter=None, showRemoved=False):
+    def main(self, clusterID=None, nameFilter=None, showRemoved=False, minuteFilter=False):
         if self.apps is False:
             print("Call to getApps().main() failed")
             return False
@@ -1475,6 +1461,14 @@ class getNamespaces(SDKCommon):
                 elif not showRemoved and namespace.get("namespaceState") == "removed":
                     namespacesCooked["items"].remove(namespaces["items"][counter])
                 elif namespace["clusterID"] not in clusterList:
+                    namespacesCooked["items"].remove(namespaces["items"][counter])
+                elif minuteFilter and (
+                    datetime.utcnow()
+                    - datetime.strptime(
+                        namespace.get("metadata").get("creationTimestamp"), "%Y-%m-%dT%H:%M:%SZ"
+                    )
+                    > timedelta(minutes=minuteFilter)
+                ):
                     namespacesCooked["items"].remove(namespaces["items"][counter])
 
             if self.output == "json":

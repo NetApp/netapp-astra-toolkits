@@ -1059,6 +1059,13 @@ def main():
         action="store_true",
         help="Show namespaces in a 'removed' state",
     )
+    subparserListNamespaces.add_argument(
+        "-m",
+        "--minutes",
+        default=False,
+        type=int,
+        help="Only show namespaces created within the last X minutes",
+    )
     #######
     # end of list namespaces args and flags
     #######
@@ -1692,7 +1699,10 @@ def main():
             rc = astraSDK.getNamespaces(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(
-                clusterID=args.clusterID, nameFilter=args.nameFilter, showRemoved=args.showRemoved
+                clusterID=args.clusterID,
+                nameFilter=args.nameFilter,
+                showRemoved=args.showRemoved,
+                minuteFilter=args.minutes,
             )
             if rc is False:
                 print("astraSDK.getNamespaces() failed")

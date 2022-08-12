@@ -248,6 +248,7 @@ $ ./toolkit.py list hooks --app cassandra
 * `--clusterID`/`-c`: show namespaces only from the matching cluster ID
 * `--nameFilter`/`-f`: show namespaces which *contain* the filter provided (`ss` would match on both `cassandra` and `wordpress`)
 * `--showRemoved`/`-r`: *also* show namespaces which are in a `removed` namespaceState
+* `--minutes`/`-m`: show namespaces only created within the last X minutes
 
 Command usage:
 
@@ -307,6 +308,15 @@ $ ./toolkit.py list namespaces --showRemoved
 +----------------+--------------------------------------+----------------+----------------+--------------------------------------+
 | wordpressclone | 9d54366c-ba9b-46e6-8dec-3bbc55699ffd | removed        | wordpressclone | af0aecb9-9b18-473f-b417-54fb38e1e28d |
 +----------------+--------------------------------------+----------------+----------------+--------------------------------------+
+```
+
+```text
+$ ./toolkit.py list namespaces --minutes 60
++-----------+--------------------------------------+----------------+----------------+--------------------------------------+
+| name      | namespaceID                          | namespaceState | associatedApps | clusterID                            |
++===========+======================================+================+================+======================================+
+| cassandra | 0c81f720-ab01-42a5-bb48-8bb3abab8817 | discovered     | cassandra      | b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d |
++-----------+--------------------------------------+----------------+----------------+--------------------------------------+
 ```
 
 ## Scripts
