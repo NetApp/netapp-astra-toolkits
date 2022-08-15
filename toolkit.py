@@ -973,6 +973,12 @@ def main():
         "-n", "--namespace", default=None, help="Only show apps from this namespace"
     )
     subparserListApps.add_argument(
+        "-f",
+        "--nameFilter",
+        default=None,
+        help="Filter app names by this value to minimize output (partial match)",
+    )
+    subparserListApps.add_argument(
         "-c", "--cluster", default=None, help="Only show apps from this cluster"
     )
     #######
@@ -1050,7 +1056,7 @@ def main():
         "-f",
         "--nameFilter",
         default=None,
-        help="Filter namespaces by this value to minimize output",
+        help="Filter namespaces by this value to minimize output (partial match)",
     )
     subparserListNamespaces.add_argument(
         "-r",
@@ -1644,6 +1650,7 @@ def main():
         if args.objectType == "apps":
             rc = astraSDK.getApps(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
                 namespace=args.namespace,
+                nameFilter=args.nameFilter,
                 cluster=args.cluster,
             )
             if rc is False:

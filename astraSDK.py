@@ -167,6 +167,7 @@ class getApps(SDKCommon):
     def main(
         self,
         namespace=None,
+        nameFilter=None,
         cluster=None,
     ):
         """namespace: Filter by the namespace the app is in
@@ -252,7 +253,9 @@ class getApps(SDKCommon):
                             delApp = False
                     if delApp:
                         appsCooked["items"].remove(apps["items"][counter])
-                elif cluster and cluster != app["clusterName"]:
+                elif cluster and not (cluster == app["clusterName"] or cluster == app["clusterID"]):
+                    appsCooked["items"].remove(apps["items"][counter])
+                elif nameFilter and nameFilter not in app.get("name"):
                     appsCooked["items"].remove(apps["items"][counter])
 
             if self.output == "json":

@@ -15,7 +15,7 @@ The `list` command shows various resources known to Astra.
 
 ## Apps
 
-`list apps` displays applications known to Astra.  The default command (without arguments) shows `managed` applications, but `unmanaged` applications can also be shown with optional arguments.  Additionally, apps may be filtered by a cluster name.
+`list apps` displays applications that have been defined in Astra.  Apps may also be filtered by a cluster name (exact match), cluster ID (exact match), app name filter (partial match), or namespace name (exact match).
 
 Command usage:
 
@@ -45,6 +45,17 @@ $ ./toolkit.py list apps --cluster useast1-cluster
 +================+======================================+=================+=============+=======+
 | wordpress-east | 8f462cea-a166-438d-85b1-8aa5cfb0ad9f | useast1-cluster | wordpress   | ready |
 +----------------+--------------------------------------+-----------------+-------------+-------+
+```
+
+```text
+$ ./toolkit.py list apps --nameFilter word
++----------------+--------------------------------------+-----------------+----------------+-------+
+| appName        | appID                                | clusterName     | namespace      | state |
++================+======================================+=================+================+=======+
+| wordpress-east | 8f462cea-a166-438d-85b1-8aa5cfb0ad9f | useast1-cluster | wordpress      | ready |
++----------------+--------------------------------------+-----------------+----------------+-------+
+| wordpress-west | a8dc676e-d182-4d7c-9113-43f5a2963b54 | uswest1-cluster | wordpress-prod | ready |
++----------------+--------------------------------------+-----------------+----------------+-------+
 ```
 
 ```text
