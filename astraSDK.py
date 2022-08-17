@@ -689,7 +689,7 @@ class getClusters(SDKCommon):
         super().__init__()
         self.clouds = getClouds(quiet=True).main()
 
-    def main(self, hideManaged=False, hideUnmanaged=False):
+    def main(self, hideManaged=False, hideUnmanaged=False, nameFilter=None):
         clusters = {}
         clusters["items"] = []
         if self.clouds is False:
@@ -721,12 +721,12 @@ class getClusters(SDKCommon):
             if ret.ok:
                 results = super().jsonifyResults(ret)
                 for item in results["items"]:
-                    if hideManaged:
-                        if item.get("managedState") == "managed":
-                            continue
-                    if hideUnmanaged:
-                        if item.get("managedState") == "unmanaged":
-                            continue
+                    if nameFilter and nameFilter not in item.get("name"):
+                        continue
+                    if hideManaged and item.get("managedState") == "managed":
+                        continue
+                    if hideUnmanaged and item.get("managedState") == "unmanaged":
+                        continue
                     clusters["items"].append(item)
 
         if self.output == "json":
@@ -1349,6 +1349,55 @@ class manageCluster(SDKCommon):
             return False
 
 
+class deleteCluster(SDKCommon):
+    """This class deletes a cluster.  It's meant for ACC environments only, and is
+    automatically called via unmanageCluster if it's an ACC-managed cluster."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-cluster+json"
+        self.headers["Content-Type"] = "application/astra-cluster+json"
+
+    def main(self, clusterID, cloudID):
+
+        endpoint = f"topology/v1/clouds/{cloudID}/clusters/{clusterID}"
+        url = self.base + endpoint
+        params = {}
+        data = {}
+
+        if self.verbose:
+            print()
+            print(f"Deleting: {clusterID}")
+            print()
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: DELETE", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+            print()
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            if not self.quiet:
+                print("Cluster deleted")
+            return True
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
 class unmanageCluster(SDKCommon):
     """This class switches a managed cluster to an un managed cluster"""
 
@@ -1360,6 +1409,7 @@ class unmanageCluster(SDKCommon):
         super().__init__()
         self.headers["accept"] = "application/astra-managedCluster+json"
         self.headers["Content-Type"] = "application/managedCluster+json"
+        self.clusters = getClusters().main()
 
     def main(self, clusterID):
 
@@ -1388,6 +1438,16 @@ class unmanageCluster(SDKCommon):
         if ret.ok:
             if not self.quiet:
                 print("Cluster unmanaged")
+            # ACC clusters also should be deleted
+            acsList = ["gke", "aks", "eks"]
+            for cluster in self.clusters["items"]:
+                if cluster["id"] == clusterID and cluster["clusterType"] not in acsList:
+                    if deleteCluster(quiet=self.quiet, verbose=self.verbose).main(
+                        clusterID, cluster["cloudID"]
+                    ):
+                        deleteCredential(quiet=self.quiet, verbose=self.verbose).main(
+                            cluster.get("credentialID")
+                        )
             return True
         else:
             if not self.quiet:
@@ -1961,6 +2021,242 @@ class destroyHook(SDKCommon):
 
         if ret.ok:
             return True
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class getCredentials(SDKCommon):
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        super().__init__()
+
+    def main(self, kubeconfigOnly=True):
+
+        endpoint = "core/v1/credentials"
+        url = self.base + endpoint
+
+        data = {}
+        params = {}
+
+        if self.verbose:
+            print("Getting credentials...")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: GET", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+
+            creds = super().jsonifyResults(ret)
+            credsCooked = copy.deepcopy(creds)
+            if kubeconfigOnly:
+                for counter, cred in enumerate(creds.get("items")):
+                    if cred.get("keyType") != "kubeconfig":
+                        credsCooked["items"].remove(creds["items"][counter])
+
+            if self.output == "json":
+                dataReturn = credsCooked
+            elif self.output == "yaml":
+                dataReturn = yaml.dump(credsCooked)
+            elif self.output == "table":
+                tabHeader = ["credName", "credID", "keyType"]
+                tabData = []
+                for cred in credsCooked["items"]:
+                    tabData.append(
+                        [
+                            cred["name"],
+                            cred["id"],
+                            cred["keyType"],
+                        ]
+                    )
+                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+            if not self.quiet:
+                print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+            return dataReturn
+
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class createCredential(SDKCommon):
+    """Create a kubeconfig credential"""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-credential+json"
+        self.headers["Content-Type"] = "application/astra-credential+json"
+
+    def main(
+        self,
+        credName,
+        encodedCred,
+        cloudName="private",
+    ):
+
+        endpoint = "core/v1/credentials"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-credential",
+            "version": "1.1",
+            "keyStore": {"base64": encodedCred},
+            "keyType": "kubeconfig",
+            "name": credName,
+            "metadata": {
+                "labels": [
+                    {"name": "astra.netapp.io/labels/read-only/credType", "value": "kubeconfig"},
+                    {"name": "astra.netapp.io/labels/read-only/cloudName", "value": cloudName},
+                ],
+            },
+        }
+
+        if self.verbose:
+            print(f"Creating credential {credName}")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class deleteCredential(SDKCommon):
+    """This class deletes a credential. Use with caution, as there's no going back."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-credential+json"
+        self.headers["Content-Type"] = "application/astra-credential+json"
+
+    def main(self, credentialID):
+
+        endpoint = f"core/v1/credentials/{credentialID}"
+        url = self.base + endpoint
+        params = {}
+        data = {}
+
+        if self.verbose:
+            print()
+            print(f"Deleting: {credentialID}")
+            print()
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: DELETE", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+            print()
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            if not self.quiet:
+                print("Credential deleted")
+            return True
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class addCluster(SDKCommon):
+    """This class adds an (ACC) Kubernetes cluster into the 'unmanaged' cluster list,
+    after which it can then be changed from an unmanged to a managed cluster."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-cluster+json"
+        self.headers["Content-Type"] = "application/astra-cluster+json"
+
+    def main(self, cloudID, credentialID):
+
+        endpoint = f"topology/v1/clouds/{cloudID}/clusters"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-cluster",
+            "version": "1.1",
+            "credentialID": credentialID,
+        }
+
+        if self.verbose:
+            print()
+            print(f"Adding cluster from credential: {credentialID}")
+            print()
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+            print()
+
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
         else:
             if not self.quiet:
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")

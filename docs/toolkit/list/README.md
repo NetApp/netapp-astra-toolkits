@@ -173,7 +173,7 @@ $ ./toolkit.py list clouds
 
 ## Clusters
 
-`list clusters` shows all clusters deployed within the clouds managed by Astra.  By default both managed and unmanaged clusters are displayed, with arguments for hiding either.
+`list clusters` shows all clusters deployed within the clouds managed by Astra.  By default both managed and unmanaged clusters are displayed, with arguments for hiding either.  Additionaly a partial match name filter argument is possible to minimize output.
 
 Command usage:
 
@@ -214,6 +214,17 @@ $ ./toolkit.py list clusters --hideUnmanaged
 +-----------------+--------------------------------------+-------------+--------------+
 | useast1-cluster | 9fd690f3-4ae5-423d-9b58-95b6ba4f02e4 | gke         | managed      |
 +-----------------+--------------------------------------+-------------+--------------+
+```
+
+```text
+$ ./toolkit.py list clusters --nameFilter east
++--------------------+--------------------------------------+-------------+--------------+
+| clusterName        | clusterID                            | clusterType | managedState |
++====================+======================================+=============+==============+
+| aks-eastus-cluster | 80d6bef8-300c-44bd-9e36-04ef874bdc29 | aks         | unmanaged    |
++--------------------+--------------------------------------+-------------+--------------+
+| useast1-cluster    | 9fd690f3-4ae5-423d-9b58-95b6ba4f02e4 | gke         | managed      |
++--------------------+--------------------------------------+-------------+--------------+
 ```
 
 ## Hooks

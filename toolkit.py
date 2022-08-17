@@ -630,6 +630,7 @@ def main():
     appList = []
     backupList = []
     chartsList = []
+    cloudList = []
     clusterList = []
     destclusterList = []
     hookList = []
@@ -763,6 +764,15 @@ def main():
                 if sys.argv[verbPosition + 1] == "hook":
                     for script in astraSDK.getScripts().main()["items"]:
                         scriptList.append(script["id"])
+
+            elif (
+                verbs["create"]
+                and len(sys.argv) - verbPosition >= 2
+                and sys.argv[verbPosition + 1] == "cluster"
+            ):
+                for cloud in astraSDK.getClouds().main()["items"]:
+                    if cloud["cloudType"] not in ["GCP", "Azure", "AWS"]:
+                        cloudList.append(cloud["id"])
 
             elif (
                 verbs["list"]
@@ -1032,6 +1042,12 @@ def main():
         action="store_true",
         help="Hide unmanaged clusters",
     )
+    subparserListClusters.add_argument(
+        "-f",
+        "--nameFilter",
+        default=None,
+        help="Filter cluster names by this value to minimize output (partial match)",
+    )
     #######
     # end of list clusters args and flags
     #######
@@ -1114,6 +1130,9 @@ def main():
         "backup",
         help="create backup",
     )
+    subparserCreateCluster = subparserCreate.add_parser(
+        "cluster", help="create cluster (upload a K8s cluster kubeconfig to then manage)"
+    )
     subparserCreateHook = subparserCreate.add_parser(
         "hook",
         help="create hook (executionHook)",
@@ -1155,6 +1174,25 @@ def main():
     )
     #######
     # end of create backups args and flags
+    #######
+
+    #######
+    # create cluster args and flags
+    #######
+    subparserCreateCluster.add_argument(
+        "filePath",
+        help="the local filesystem path to the cluster kubeconfig",
+    )
+    subparserCreateCluster.add_argument(
+        "-c",
+        "--cloudID",
+        choices=(None if plaidMode else cloudList),
+        default=(cloudList[0] if len(cloudList) == 1 else None),
+        required=(False if len(cloudList) == 1 else True),
+        help="The cloudID to add the cluster to (only required if # of clouds > 1)",
+    )
+    #######
+    # end of create cluster args and flags
     #######
 
     #######
@@ -1687,7 +1725,11 @@ def main():
         elif args.objectType == "clusters":
             rc = astraSDK.getClusters(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(hideManaged=args.hideManaged, hideUnmanaged=args.hideUnmanaged)
+            ).main(
+                hideManaged=args.hideManaged,
+                hideUnmanaged=args.hideUnmanaged,
+                nameFilter=args.nameFilter,
+            )
             if rc is False:
                 print("astraSDK.getClusters() failed")
                 sys.exit(1)
@@ -1759,6 +1801,27 @@ def main():
                 sys.exit(1)
             else:
                 sys.exit(0)
+        elif args.objectType == "cluster":
+            with open(args.filePath, encoding="utf8") as f:
+                kubeconfigDict = yaml.load(f.read().rstrip(), Loader=yaml.SafeLoader)
+                encodedStr = base64.b64encode(json.dumps(kubeconfigDict).encode("utf-8")).decode(
+                    "utf-8"
+                )
+            rc = astraSDK.createCredential(quiet=args.quiet, verbose=args.verbose).main(
+                kubeconfigDict["clusters"][0]["name"], encodedStr
+            )
+            if rc:
+                rc = astraSDK.addCluster(quiet=args.quiet, verbose=args.verbose).main(
+                    args.cloudID,
+                    rc["id"],
+                )
+                if rc is False:
+                    print("astraSDK.createCloud() failed")
+                else:
+                    sys.exit(0)
+            else:
+                print("astraSDK.createCredential() failed")
+                sys.exit(1)
         elif args.objectType == "hook":
             rc = astraSDK.createHook(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID,

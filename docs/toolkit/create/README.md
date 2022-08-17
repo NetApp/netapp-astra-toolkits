@@ -3,6 +3,7 @@
 The `create` argument allows you to create Astra resources, including:
 
 * [Backups](#backup)
+* [Clusters](#cluster)
 * [Hooks](#hook)
 * [Protection policies](#protectionpolicy)
 * [Scripts](#script)
@@ -58,6 +59,27 @@ $ ./toolkit.py list backups
 +--------------------------------------+----------------------+--------------------------------------+-------------+
 | a643b5dc-bfa0-4624-8bdd-5ad5325f20fd | 20220523-cli-backup2 | c06ec1e4-ae3d-4a32-bea0-771505f88203 | ready       |
 +--------------------------------------+----------------------+--------------------------------------+-------------+
+```
+
+## Clusters
+
+The `create cluster` command allows you to create non-public-cloud-managed Kubernetes clusters from a kubeconfig file.  After the cluster is "created" it **must** still be [managed](../manage/README.md#cluster) to be fully brought under Astra's control.  The command usage is:
+
+```text
+./toolkit.py create cluster <kubeconfig-filePath> -c <optionalCloudIdArg>
+```
+
+Additional information on each argument is as follows:
+
+* `filePath` is the local filesystem path to the [kubeconfig](https://docs.netapp.com/us-en/astra-control-center/get-started/add-cluster-reqs.html#create-an-admin-role-kubeconfig) file which has an admin-role for the Kubernetes cluster
+* `-c`/`--cloudID` can be gathered from a [list clouds](../list/README.md#clouds) command, however it is only needed in the event there are multiple, **non-public** clouds on the system.  In the event there is only a single non-public cloud within Astra Control, then that cloudID is automatically used.
+
+When running the `create cluster` command, you will notice two API responses, the first for creating the kubeconfig credential, the second for creating the cluster object which references the same credential.
+
+```text
+$ ./toolkit.py create cluster ~/.kube/oc-tmecluster02-config.yaml
+{"type": "application/astra-credential", "version": "1.1", "id": "68af1e92-1b5a-439b-935c-b0605b7efd3a", "name": "openshift-tmecluster02", "keyType": "kubeconfig", "metadata": {"creationTimestamp": "2022-08-17T17:09:47Z", "modificationTimestamp": "2022-08-17T17:09:47Z", "createdBy": "79b66aad-aba6-4673-9cef-994fa91c8de6", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "kubeconfig"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "private"}]}}
+{"type": "application/astra-cluster", "version": "1.1", "id": "1fe9f33e-a560-41db-a72a-9544e2a4adcf", "name": "openshift-tmecluster02", "state": "running", "stateUnready": [], "managedState": "unmanaged", "managedStateUnready": [], "inUse": "false", "clusterType": "openshift", "namespaces": [], "defaultStorageClass": "5f71d427-bee2-44cf-9ce3-30649676f6d4", "cloudID": "bd976721-6d70-464b-8c84-fa70b5009b1e", "credentialID": "68af1e92-1b5a-439b-935c-b0605b7efd3a", "isMultizonal": "false", "tridentVersion": "22.01.0", "metadata": {"labels": [], "creationTimestamp": "2022-08-17T17:09:49Z", "modificationTimestamp": "2022-08-17T17:09:49Z", "createdBy": "79b66aad-aba6-4673-9cef-994fa91c8de6"}}
 ```
 
 ## Hook

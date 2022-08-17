@@ -1,6 +1,6 @@
 # Unmanage
 
-The `unmanage` argument allows you to unmanage a currently managed [application](#app), or a currently unmanaged [cluster](#cluster).
+The `unmanage` argument allows you to unmanage a currently managed [application](#app), or a currently managed [cluster](#cluster).
 
 ```text
 $ ./toolkit.py unmanage -h
@@ -43,4 +43,13 @@ Sample output:
 ```text
 $ ./toolkit.py unmanage cluster 80d6bef8-300c-44bd-9e36-04ef874bdc29
 Cluster unmanaged
+```
+
+In the event the cluster in question is a **non-public-cloud-managed** Kubernetes cluster (meaning it was added via a [create cluster](../create/README.md#cluster) command), the `unmanage cluster` command **also** deletes the cluster and cluster kubeconfig credentials from the system.
+
+```text
+$ ./toolkit.py unmanage cluster 1fe9f33e-a560-41db-a72a-9544e2a4adcf
+Cluster unmanaged
+Cluster deleted
+Credential deleted
 ```
