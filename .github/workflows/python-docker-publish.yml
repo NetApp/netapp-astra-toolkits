@@ -1,6 +1,8 @@
-# This workflow will build and upload a Docker image when a new tag is pushed
+# This workflow will first upload a Python Package using Twine
+# It will then build and upload a Docker image
+# These steps happen when a new tag is pushed
 
-name: Docker Image CI
+name: Python and Docker CI
 
 on:
   push:
@@ -9,17 +11,33 @@ on:
 
 jobs:
 
-  build:
-
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build
+    - name: Build package
+      run: python -m build --wheel
+    - name: Publish package
+      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
 
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
     - name: Set tag output
       id: vars
       run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-
     - name: Build the Docker image
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -28,7 +46,6 @@ jobs:
       run: |
         docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
         docker build . --file Dockerfile --tag netapp/astra-toolkits:latest --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG
-
     - name: Push the Docker image
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
