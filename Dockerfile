@@ -2,13 +2,14 @@ FROM google/cloud-sdk:alpine
 
 # Ignore to update version here, it is controlled by .travis.yml and build.sh
 # docker build --no-cache --build-arg KUBECTL_VERSION=${tag} --build-arg HELM_VERSION=${helm} --build-arg KUSTOMIZE_VERSION=${kustomize_version} -t ${image}:${tag} .
-ARG HELM_VERSION=3.2.1
-ARG KUBECTL_VERSION=1.17.5
-ARG KUSTOMIZE_VERSION=v3.8.1
-ARG KUBESEAL_VERSION=v0.15.0
+ARG HELM_VERSION=3.9.4
+ARG KUBECTL_VERSION=1.23.9
+ARG KUSTOMIZE_VERSION=v4.5.7
+ARG KUBESEAL_VERSION=v0.18.2
+ARG EKSCTL_VERSION=v0.109.0
 
 # https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html
-ARG AWS_IAM_AUTH_VERSION_URL=https://amazon-eks.s3.us-west-2.amazonaws.com/1.17.9/2020-08-04/bin/linux/amd64/aws-iam-authenticator
+ARG AWS_IAM_AUTH_VERSION_URL=https://s3.us-west-2.amazonaws.com/amazon-eks/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator
 
 # Install helm (latest release)
 # ENV BASE_URL="https://storage.googleapis.com/kubernetes-helm"
@@ -26,28 +27,28 @@ RUN helm plugin install https://github.com/databus23/helm-diff && rm -rf /tmp/he
 # add helm-unittest
 RUN helm plugin install https://github.com/quintush/helm-unittest && rm -rf /tmp/helm-*
 
-# Install kubectl (same version of aws esk)
+# Install kubectl
 RUN curl -sLO https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
     mv kubectl /usr/bin/kubectl && \
     chmod +x /usr/bin/kubectl
 
-# Install kustomize (latest release)
+# Install kustomize
 RUN curl -sLO https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz && \
     tar xvzf kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz && \
     mv kustomize /usr/bin/kustomize && \
     chmod +x /usr/bin/kustomize
 
-# Install aws-iam-authenticator (latest version)
+# Install aws-iam-authenticator
 RUN curl -sLO ${AWS_IAM_AUTH_VERSION_URL} && \
     mv aws-iam-authenticator /usr/bin/aws-iam-authenticator && \
     chmod +x /usr/bin/aws-iam-authenticator
 
-# Install eksctl (latest version)
-RUN curl -sL "https://github.com/weaveworks/eksctl/releases/download/v0.77.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
+# Install eksctl
+RUN curl -sL "https://github.com/weaveworks/eksctl/releases/download/${EKSCTL_VERSION}/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/eksctl /usr/bin && \
     chmod +x /usr/bin/eksctl
 
-# Install awscli
+# Install awscli and required python packages
 RUN apk add --update --no-cache python3 && \
     python3 -m ensurepip && \
     pip3 install --upgrade pip && \
