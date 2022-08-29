@@ -11,7 +11,7 @@ on:
 
 jobs:
 
-  deploy:
+  python-package:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -31,7 +31,8 @@ jobs:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
 
-  build:
+  docker-image:
+    needs: python-package
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
