@@ -8,10 +8,10 @@ We don't recommend the use of `toolkit.py` in production, but the code is heavil
 
 ## Installation
 
-The NetApp Astra Control SDK can be consumed three different ways, depending upon your use case:
+The NetApp Astra Control SDK can be utilized three different ways, depending upon your use case:
 
 1. **Consumer**: if you plan to consume the toolkit as-is, it is recommended to utilize the [prepared Docker image](#1-docker-installation), as it has all of the required dependencies and binaries configured and ready to go (including `actoolkit`).
-1. **Pipeline: if utilizing the toolkit in a software pipeline, the [python package](#2-python-package-installation) ([actoolkit](https://pypi.org/project/actoolkit/)) is *typically* the most straightforward method of consumption. A simple `pip install` command results in the toolkit.py file being available in the user's PATH and all python-related dependencies installed.
+1. **Pipeline**: if utilizing the toolkit in a software pipeline, the [python package](#2-python-package-installation) ([actoolkit](https://pypi.org/project/actoolkit/)) is *typically* the most straightforward method of consumption. A simple `pip install` command results in the toolkit.py file being available in the user's PATH and all python-related dependencies installed.
 1. **Developer**: if you plan to modify the SDK for internal consumption, [manual installation](#3-manual-installation) is recommended by cloning (or forking) this repository and working in your local development environment. Ensure that all dependencies mentioned below are met.
 
 ### Prerequisites
@@ -63,7 +63,7 @@ To get your API token, click **+ Generate API token**. Generate a new API token,
 
 When you are done, the `config.yaml` looks like:
 
-```Shell
+```text
 headers:
   Authorization: Bearer ABCDEFGHI0123456789
 uid: 123456789-1234-123456789
@@ -74,7 +74,7 @@ astra_project: preview
 
 Launch the prepared Docker image. Docker will automatically download the image if you don't already have it on your system.
 
-```Shell
+```text
 docker run -it netapp/astra-toolkits:2.2.3 /bin/bash
 ```
 
@@ -86,7 +86,7 @@ Configure your `config.yaml` as detailed in the [authentication](#authentication
 
 Since the [actoolkit](https://pypi.org/project/actoolkit/) python package is bundled with the Docker image, you can immediately use it to interact with Astra Control:
 
-```Shell
+```text
 actoolkit list clusters
 ```
 
@@ -96,7 +96,7 @@ Alternatively, you can also follow the [manual installation](#3-manual-installat
 
 Install [actoolkit](https://pypi.org/project/actoolkit/) with the following command:
 
-```Shell
+```text
 python3 -m pip install actoolkit
 ```
 
@@ -104,7 +104,7 @@ Configure your `config.yaml` as detailed in the [authentication](#authentication
 
 You can now use `actoolkit` to invoke the NetApp Astra Control SDK. For example, [list](docs/toolkit/list/README.md#clusters) your Astra Control Kubernetes clusters with the command:
 
-```Shell
+```text
 actoolkit list clusters
 ```
 
@@ -112,27 +112,29 @@ actoolkit list clusters
 
 Clone the NetApp Astra Control SDK repo.
 
-```Shell
+```text
 git clone https://github.com/NetApp/netapp-astra-toolkits.git
 ```
 
 Move into the repo directory.
 
-```Shell
+```text
 cd netapp-astra-toolkits
 ```
 
 Run the following commands to add the required Python elements:
 
-```Shell
+```text
 virtualenv toolkit
 source toolkit/bin/activate
 pip install -r requirements.txt
 ```
 
+Configure your `config.yaml` as detailed in the [authentication](#authentication) section.
+
 You can now use `./toolkit.py` to invoke the NetApp Astra Control SDK. For example, [list](docs/toolkit/list/README.md#clusters) your Astra Control Kubernetes clusters with the command:
 
-```Shell
+```text
 ./toolkit.py list clusters
 ```
 
