@@ -39,6 +39,8 @@ jobs:
     - name: Set tag output
       id: vars
       run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+    - name: wait for actoolkit
+      run: sleep 300
     - name: Build the Docker image
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
