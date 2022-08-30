@@ -40,7 +40,14 @@ jobs:
       id: vars
       run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
     - name: wait for actoolkit
-      run: sleep 300
+      run: |
+        pip install actoolkit== 2>&1 | grep ${{ steps.vars.outputs.tag }}
+        while [[ $? -ne 0 ]]
+        do
+          echo "sleeping for 10 to wait for actoolkit==${{ steps.vars.outputs.tag }}"
+          sleep 10
+          pip install actoolkit== 2>&1 | grep ${{ steps.vars.outputs.tag }}
+        done
     - name: Build the Docker image
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
