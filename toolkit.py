@@ -278,126 +278,35 @@ class toolkit:
                 sys.exit(24)
         run(f"kubectl create namespace {namespace}")
         run(f"kubectl config set-context --current --namespace={namespace}")
-        """if chartName == "gitlab":
-            gitalyStorageClass = None
-            # Are we running on GKE?
-            # If we are running on GKE and installing gitlab, we'll use google persistant disk
-            # for the gitaly PV
-            # We can't use run() here as it splits args incorrectly
-            command = [
-                "kubectl",
-                "run",
-                "curl",
-                "--rm",
-                "--restart=Never",
-                "-it",
-                "--image=appropriate/curl",
-                "--",
-                "-H",
-                "Metadata-Flavor: Google",
-                "http://metadata.google.internal/"
-                "computeMetadata/v1/instance/attributes/cluster-name",
+
+        # If we're deploying gitlab, we need to ensure at least a premium storageclass
+        # for postgresql and gitaly
+        if chart.split("/")[1] == "gitlab":
+            pgStorageClass = None
+            scMapping = [
+                ["standard-rwo", "premium-rwo"],
+                ["netapp-cvs-perf-standard", "netapp-cvs-perf-premium"],
+                ["azurefile", "azurefile-premium"],
+                ["azurefile-csi", "azurefile-csi-premium"],
+                ["managed", "managed-premium"],
+                ["managed-csi", "managed-csi-premium"],
             ]
-            try:
-                ret = subprocess.run(command, capture_output=True)
-            except OSError:
-                gitalyStorageClass = False
-            if gitalyStorageClass is not False and not ret.returncode:
-                # Shell command returned 0 RC (success)
-                # ret.stdout = b'cluster-1-jppod "curl" deleted\n'
-                # If this is GKE the first part of the returned value will
-                # be the cluster name
-                # TODO: Fragile, replace this whole bit with something robust
-                retString = ret.stdout.decode("utf-8").strip()
-                if 'pod "curl" deleted' in retString:
-                    kubeHost = retString.split('pod "curl" deleted')[0]
-                    clusters = astraSDK.getClusters().main()
-                    for cluster in clusters:
-                        if clusters[cluster][0] == kubeHost and clusters[cluster][1] == "gke":
-                            gitalyStorageClass = "standard-rwo"
+            configuration = kubernetes.config.load_kube_config()
+            with kubernetes.client.ApiClient(configuration) as api_client:
+                api_instance = kubernetes.client.StorageV1Api(api_client)
+                api_response = api_instance.list_storage_class()
+                for i in api_response.items:
+                    if (
+                        i.metadata.annotations.get("storageclass.kubernetes.io/is-default-class")
+                        == "true"
+                    ):
+                        for sc in scMapping:
+                            if i.metadata.name == sc[0]:
+                                pgStorageClass = sc[1]
+            if pgStorageClass:
+                setStr += f" --set postgresql.global.storageClass={pgStorageClass}"
+                setStr += f" --set gitlab.gitaly.persistence.storageClass={pgStorageClass}"
 
-            myResolver = dns.resolver.Resolver()
-            myResolver.nameservers = ["8.8.8.8"]
-            try:
-                answer = myResolver.resolve(f"gitlab.{domain}")
-            except dns.resolver.NXDOMAIN as e:
-                print(f"Can't resolve gitlab.{domain}: {e}")
-                sys.exit(17)
-            for i in answer:
-                ip = i
-            if ssl:
-                glhelmCmd = (
-                    f"helm install {appName} {repoName}/{chartName} --timeout 600s "
-                    f"--set certmanager-issuer.email={email} "
-                    f"--set global.hosts.domain={domain} "
-                    "--set prometheus.alertmanager.persistentVolume.enabled=false "
-                    "--set prometheus.server.persistentVolume.enabled=false "
-                    f"--set global.hosts.externalIP={ip} "
-                )
-            else:
-                glhelmCmd = (
-                    f"helm install {appName} {repoName}/{chartName} --timeout 600s "
-                    f"--set certmanager-issuer.email={email} "
-                    f"--set global.hosts.domain={domain} "
-                    "--set prometheus.alertmanager.persistentVolume.enabled=false "
-                    "--set prometheus.server.persistentVolume.enabled=false "
-                    f"--set global.hosts.externalIP={ip} "
-                    "--set certmanager.install=false "
-                    "--set global.ingress.configureCertmanager=false "
-                    "--set gitlab-runner.install=false "
-                )
-            if gitalyStorageClass:
-                glhelmCmd += f"--set gitlab.gitaly.persistence.storageClass={gitalyStorageClass}"
-            run(glhelmCmd)
-
-            # I could've included straight up YAML here but that seemed..the opposite of elegent.
-            gitalyPatch = {
-                "kind": "StatefulSet",
-                "spec": {
-                    "template": {
-                        "spec": {
-                            "containers": [
-                                {
-                                    "name": "gitaly",
-                                    "securityContext": {"runAsUser": 1000},
-                                }
-                            ],
-                            "initContainers": [
-                                {
-                                    "name": "init-chown",
-                                    "image": "alpine",
-                                    "securityContext": {"runAsUser": 0},
-                                    "env": [
-                                        {
-                                            "name": "REPOS_HOME",
-                                            "value": "/home/git/repositories",
-                                        },
-                                        {"name": "MARKER", "value": ".cplt2-5503"},
-                                        {"name": "UID", "value": "1000"},
-                                    ],
-                                    "command": [
-                                        "sh",
-                                        "-c",
-                                        "if [ ! -f $REPOS_HOME/$MARKER ]; "
-                                        "then chown $UID:$UID -R $REPOS_HOME; "
-                                        "touch $REPOS_HOME/$MARKER; "
-                                        "chown $UID:$UID $REPOS_HOME/$MARKER; fi",
-                                    ],
-                                    "volumeMounts": [
-                                        {
-                                            "mountPath": "/home/git/repositories",
-                                            "name": "repo-data",
-                                        }
-                                    ],
-                                }
-                            ],
-                        }
-                    }
-                },
-            }
-            stsPatch(gitalyPatch, f"{appName}-gitaly")
-
-        else:"""
         run(f"helm install {appName} {chart}{setStr}{valueStr}")
         print("Waiting for Astra to discover the namespace.", end="")
         sys.stdout.flush()
@@ -484,8 +393,12 @@ class toolkit:
         needsIngressclass = False
         appAssets = astraSDK.getAppAssets(verbose=verbose).main(appIDstr)
         for asset in appAssets["items"]:
-            if asset["assetName"] == "cjoc" and asset["assetType"] == "Ingress":
+            if (
+                "nginx-ingress-controller" in asset["assetName"]
+                or "ingress-nginx-controller" in asset["assetName"]
+            ) and asset["assetType"] == "Pod":
                 needsIngressclass = True
+                assetName = asset["assetName"]
         # Clone 'ingressclass' cluster object
         if needsIngressclass and sourceClusterID != clusterID:
             if not cloneNamespace:
@@ -511,12 +424,28 @@ class toolkit:
                             )
             try:
                 # Get the source cluster ingressclass and apply it to the dest cluster
+                listResp = sourceClient.list_ingress_class(
+                    _preload_content=False, _request_timeout=5
+                )
+                for i in json.loads(listResp.data)["items"]:
+                    for asset in appAssets["items"]:
+                        if "nginx" in i["metadata"]["name"] and asset["assetName"] == assetName:
+                            for ilKey, ilValue in i["metadata"]["labels"].items():
+                                for al in asset["labels"]:
+                                    if ilKey == al["name"] and ilValue == al["value"]:
+                                        ingName = i["metadata"]["name"]
                 sourceResp = sourceClient.read_ingress_class(
-                    "nginx", _preload_content=False, _request_timeout=5
+                    ingName, _preload_content=False, _request_timeout=5
                 )
                 sourceIngress = json.loads(sourceResp.data)
-                del sourceIngress["metadata"]["resourceVersion"]
-                del sourceIngress["metadata"]["creationTimestamp"]
+                if sourceIngress["metadata"].get("resourceVersion"):
+                    del sourceIngress["metadata"]["resourceVersion"]
+                if sourceIngress["metadata"].get("creationTimestamp"):
+                    del sourceIngress["metadata"]["creationTimestamp"]
+                if sourceIngress["metadata"].get("uid"):
+                    del sourceIngress["metadata"]["uid"]
+                if sourceIngress["metadata"]["managedFields"][0].get("time"):
+                    del sourceIngress["metadata"]["managedFields"][0]["time"]
                 sourceIngress["metadata"]["labels"]["app.kubernetes.io/instance"] = cloneNamespace
                 sourceIngress["metadata"]["annotations"][
                     "meta.helm.sh/release-name"
@@ -574,6 +503,16 @@ class toolkit:
                     },
                     "spec": {"controller": "k8s.io/ingress-nginx"},
                 }
+                if "gitlab" in assetName:
+                    sourceIngress["metadata"]["name"] = "gitlab-nginx"
+                    sourceIngress["metadata"]["labels"]["release"] = cloneNamespace
+                    sourceIngress["metadata"]["labels"]["app"] = "nginx-ingress"
+                    sourceIngress["metadata"]["managedFields"][0]["fieldsV1"]["f:metadata"][
+                        "f:labels"
+                    ]["f:release"] = {}
+                    sourceIngress["metadata"]["managedFields"][0]["fieldsV1"]["f:metadata"][
+                        "f:labels"
+                    ]["f:app"] = {}
             try:
                 # Add the ingressclass to the new cluster
                 destClient.create_ingress_class(sourceIngress, _request_timeout=10)
