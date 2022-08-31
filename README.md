@@ -16,7 +16,7 @@ The NetApp Astra Control SDK can be utilized three different ways, depending upo
 
 ### Prerequisites
 
-For the consumer use case with the [prepared Docker image](#1-docker-installation):
+For the **consumer** use case with the [prepared Docker image](#1-docker-installation):
 
 * Docker 20.10.7+
 
@@ -44,7 +44,17 @@ No matter the method of installation, the SDK authenticates by reading in the `c
 1. `/etc/astra-toolkits/`
 1. The directory pointed to by the shell env var `ASTRATOOLKITS_CONF`
 
-Edit the `config.yaml` file to add your NetApp Astra Control account information:
+Again, no matter the method of installation, the `config.yaml` file should have the following syntax:
+
+```text
+headers:
+  Authorization: Bearer <Bearer-Token-From-API-Access-Page>
+uid: <Account-ID-From-API-Access-Page>
+astra_project: <Shortname-for-ACS-or-FQDN-for-ACC>
+verifySSL: <True-or-False>
+```
+
+Create (if using `actoolkit`) or edit (if using the git repo) the `config.yaml` file in one of the above mentioned locations with your NetApp Astra Control account information:
 
 * `Authorization: Bearer`: Your API token
 * `uid`: Your Astra Control Account ID
@@ -65,9 +75,10 @@ When you are done, the `config.yaml` looks like:
 
 ```text
 headers:
-  Authorization: Bearer ABCDEFGHI0123456789
-uid: 123456789-1234-123456789
+  Authorization: Bearer thisIsJustAnExample_token-replaceWithYours==
+uid: 12345678-abcd-4efg-1234-567890abcdef
 astra_project: preview
+verifySSL: True
 ```
 
 ### 1. Docker Installation
