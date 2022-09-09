@@ -6,20 +6,26 @@ The `destroy` argument allows you to destroy Astra resources.  Its opposite comm
 
 * [Backup](#backup)
 * [Hook](#hook)
+* [Protection](#protection)
+* [Replication](#replication)
 * [Script](#script)
 * [Snapshot](#snapshot)
 
 ```text
 $ ./toolkit.py destroy -h
-usage: toolkit.py destroy [-h] {backup,snapshot} ...
+usage: toolkit.py destroy [-h] {backup,hook,protection,replication,script,snapshot} ...
 
 optional arguments:
-  -h, --help         show this help message and exit
+  -h, --help            show this help message and exit
 
 objectType:
-  {backup,snapshot}
-    backup           destroy backup
-    snapshot         destroy snapshot
+  {backup,hook,protection,replication,script,snapshot}
+    backup              destroy backup
+    hook                destroy hook (executionHook)
+    protection          destroy protection policy
+    replication         destroy replication policy
+    script              destroy script (hookSource)
+    snapshot            destroy snapshot
 ```
 
 ## Backup
@@ -52,6 +58,38 @@ Sample output:
 $ ./toolkit.py destroy hook 7b647ab6-834b-4553-9b23-02ecdd8562f7 \
     6f9e8190-96fd-420c-be36-7324c6b54ce1
 Hook 6f9e8190-96fd-420c-be36-7324c6b54ce1 destroyed
+```
+
+## Protection
+
+The `destroy protection` command allows you to destroy a single protection policy.  The command usage is:
+
+```text
+./toolkit.py destroy protection <appID> <protectionID>
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py destroy protection 0c6cbc25-cd47-4418-8cdb-833f1934a9c0 \
+    abc3c28b-d8bc-4a91-9aa7-18c3a2db6e8b
+Protection policy abc3c28b-d8bc-4a91-9aa7-18c3a2db6e8b destroyed
+```
+
+## Replication
+
+The `destroy replication` command allows you to destroy a single replication policy.  The command usage is:
+
+```text
+./toolkit.py destroy replication <replicationID>
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py destroy replication a0342d41-3c9c-447f-9d61-650bee68c21a
+Replication policy a0342d41-3c9c-447f-9d61-650bee68c21a destroyed
+Underlying replication schedule a81b0cdf-af1e-4194-ab61-ccc8c8ff21ab destroyed
 ```
 
 ## Script

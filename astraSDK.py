@@ -274,7 +274,11 @@ class getApps(SDKCommon):
                 for app in appsCooked.get("items"):
                     tabData.append(
                         [
-                            app["name"],
+                            (
+                                app["name"]
+                                if "replicationSourceAppID" not in app
+                                else app["name"] + colored(" (replication destination)", "blue")
+                            ),
                             app["id"],
                             app["clusterName"],
                             ", ".join(app["namespaces"]),
@@ -752,6 +756,137 @@ class getClusters(SDKCommon):
         return dataReturn
 
 
+class getProtectionpolicies(SDKCommon):
+    """Get all the Protection policies (aka backup / snapshot schedules) for each app, unless an
+    optional appFilter is passed (can be either app name or app ID, but must be an exact match."""
+
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        super().__init__()
+        self.apps = getApps().main()
+
+    def main(self, appFilter=None):
+        if self.apps is False:
+            print("Call to getApps() failed")
+            return False
+
+        protections = {}
+        protections["items"] = []
+        if self.output == "table":
+            globaltabHeader = [
+                "appID",
+                "protectionID",
+                "granularity",
+                "minute",
+                "hour",
+                "dayOfWeek",
+                "dayOfMonth",
+                "snapRetention",
+                "backupRetention",
+            ]
+            globaltabData = []
+
+        for app in self.apps["items"]:
+            if appFilter:
+                if app["name"] != appFilter and app["id"] != appFilter:
+                    continue
+            endpoint = f"k8s/v1/apps/{app['id']}/schedules"
+            url = self.base + endpoint
+
+            data = {}
+            params = {}
+
+            if self.verbose:
+                print(f"Getting protection policies for {app['id']} {app['name']}...")
+                print(colored(f"API URL: {url}", "green"))
+                print(colored("API Method: GET", "green"))
+                print(colored(f"API Headers: {self.headers}", "green"))
+                print(colored(f"API data: {data}", "green"))
+                print(colored(f"API params: {params}", "green"))
+
+            ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
+
+            if self.verbose:
+                print(f"API HTTP Status Code: {ret.status_code}")
+                print()
+
+            if ret.ok:
+                results = super().jsonifyResults(ret)
+                if results is None:
+                    continue
+                for item in results["items"]:
+                    # Adding custom 'appID' key/value pair
+                    if not item.get("appID"):
+                        item["appID"] = app["id"]
+                    protections["items"].append(item)
+                if self.output == "table":
+                    tabHeader = [
+                        "protectionID",
+                        "granularity",
+                        "minute",
+                        "hour",
+                        "dayOfWeek",
+                        "dayOfMonth",
+                        "snapRetention",
+                        "backupRetention",
+                    ]
+                    tabData = []
+                    for protect in results["items"]:
+                        tabData.append(
+                            [
+                                protect["id"],
+                                protect["granularity"],
+                                "N/A" if "minute" not in protect else protect["minute"],
+                                "N/A" if "hour" not in protect else protect["hour"],
+                                "N/A" if "dayOfWeek" not in protect else protect["dayOfWeek"],
+                                "N/A" if "dayOfMonth" not in protect else protect["dayOfMonth"],
+                                protect["snapshotRetention"],
+                                protect["backupRetention"],
+                            ]
+                        )
+                        globaltabData.append(
+                            [
+                                app["id"],
+                                protect["id"],
+                                protect["granularity"],
+                                "N/A" if "minute" not in protect else protect["minute"],
+                                "N/A" if "hour" not in protect else protect["hour"],
+                                "N/A" if "dayOfWeek" not in protect else protect["dayOfWeek"],
+                                "N/A" if "dayOfMonth" not in protect else protect["dayOfMonth"],
+                                protect["snapshotRetention"],
+                                protect["backupRetention"],
+                            ]
+                        )
+                if not self.quiet and self.verbose:
+                    print(f"Protection policies for {app['id']}")
+                    if self.output == "json":
+                        print(json.dumps(results))
+                    elif self.output == "yaml":
+                        print(yaml.dump(results))
+                    elif self.output == "table":
+                        print(tabulate(tabData, tabHeader, tablefmt="grid"))
+                        print()
+            else:
+                continue
+        if self.output == "json":
+            dataReturn = protections
+        elif self.output == "yaml":
+            dataReturn = yaml.dump(protections)
+        elif self.output == "table":
+            dataReturn = tabulate(globaltabData, globaltabHeader, tablefmt="grid")
+
+        if not self.quiet:
+            print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+        return dataReturn
+
+
 class createProtectionpolicy(SDKCommon):
     """Create a backup or snapshot policy on an appID.
     The rules of how dayOfWeek, dayOfMonth, hour, and minute
@@ -781,6 +916,7 @@ class createProtectionpolicy(SDKCommon):
         hour,
         minute,
         appID,
+        recurrenceRule=None,
     ):
 
         endpoint = f"k8s/v1/apps/{appID}/schedules"
@@ -799,6 +935,9 @@ class createProtectionpolicy(SDKCommon):
             "name": f"{granularity} schedule",
             "snapshotRetention": snapshotRetention,
         }
+        if recurrenceRule:
+            data["recurrenceRule"] = recurrenceRule
+            data["replicate"] = "true"
 
         if self.verbose:
             print(f"Creating {granularity} protection policy for app: {appID}")
@@ -819,6 +958,52 @@ class createProtectionpolicy(SDKCommon):
             if not self.quiet:
                 print(json.dumps(results))
             return results
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class destroyProtectiontionpolicy(SDKCommon):
+    """This class destroys a protection policy"""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-schedule+json"
+        self.headers["Content-Type"] = "application/astra-schedule+json"
+
+    def main(self, appID, protectionID):
+
+        endpoint = f"k8s/v1/apps/{appID}/schedules/{protectionID}"
+        url = self.base + endpoint
+        params = {}
+        data = {}
+
+        if self.verbose:
+            print()
+            print(f"Deleting {protectionID} of app {appID}")
+            print()
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: DELETE", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+            print()
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            return True
         else:
             if not self.quiet:
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
@@ -1350,8 +1535,8 @@ class manageCluster(SDKCommon):
 
 
 class deleteCluster(SDKCommon):
-    """This class deletes a cluster.  It's meant for ACC environments only, and is
-    automatically called via unmanageCluster if it's an ACC-managed cluster."""
+    """This class deletes a cluster.  It's meant for ACC environments only, and should
+    be called after unmanageCluster if it's an ACC-managed cluster."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -1438,16 +1623,6 @@ class unmanageCluster(SDKCommon):
         if ret.ok:
             if not self.quiet:
                 print("Cluster unmanaged")
-            # ACC clusters also should be deleted
-            acsList = ["gke", "aks", "eks"]
-            for cluster in self.clusters["items"]:
-                if cluster["id"] == clusterID and cluster["clusterType"] not in acsList:
-                    if deleteCluster(quiet=self.quiet, verbose=self.verbose).main(
-                        clusterID, cluster["cloudID"]
-                    ):
-                        deleteCredential(quiet=self.quiet, verbose=self.verbose).main(
-                            cluster.get("credentialID")
-                        )
             return True
         else:
             if not self.quiet:
@@ -2163,8 +2338,8 @@ class createCredential(SDKCommon):
             return False
 
 
-class deleteCredential(SDKCommon):
-    """This class deletes a credential. Use with caution, as there's no going back."""
+class destroyCredential(SDKCommon):
+    """This class destroys a credential. Use with caution, as there's no going back."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -2257,6 +2432,230 @@ class addCluster(SDKCommon):
             if not self.quiet:
                 print(json.dumps(results))
             return results
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class getReplicationpolicies(SDKCommon):
+    """Get all the Replication policies (aka snap mirror / app mirror)"""
+
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        super().__init__()
+        self.apps = getApps().main()
+
+    def main(self, appFilter=None):
+        if self.apps is False:
+            print("Call to getApps() failed")
+            return False
+
+        endpoint = "k8s/v1/appMirrors"
+        url = self.base + endpoint
+
+        data = {}
+        params = {}
+
+        if self.verbose:
+            print("Getting replication policies...")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: GET", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            replPolicies = super().jsonifyResults(ret)
+            # Add custom app name entry
+            for app in self.apps["items"]:
+                for repl in replPolicies["items"]:
+                    if app["id"] == repl["sourceAppID"]:
+                        repl["sourceAppName"] = app["name"]
+                    elif app["id"] == repl["destinationAppID"]:
+                        repl["destinationAppName"] = app["name"]
+            # Deep copy to remove items that don't match appFilter
+            replCooked = copy.deepcopy(replPolicies)
+            if appFilter:
+                for counter, repl in enumerate(replPolicies.get("items")):
+                    delRepl = False
+                    for app in self.apps["items"]:
+                        if (
+                            app["name"] != appFilter
+                            and app["id"] != appFilter
+                            and (
+                                app["id"] == repl["sourceAppID"]
+                                or app["id"] == repl["destinationAppID"]
+                            )
+                        ):
+                            delRepl = True
+                    if delRepl:
+                        replCooked["items"].remove(replPolicies["items"][counter])
+
+            if self.output == "json":
+                dataReturn = replCooked
+            elif self.output == "yaml":
+                dataReturn = yaml.dump(replCooked)
+            elif self.output == "table":
+                tabHeader = [
+                    "replicationID",
+                    "sourceAppID",
+                    "sourceClusterID",
+                    "sourceNamespace",
+                    "destClusterID",
+                    "destNamespace",
+                ]
+                tabData = []
+                for repl in replCooked["items"]:
+                    sourceNS = ""
+                    destNS = ""
+                    if repl.get("namespaceMapping"):
+                        for ns in repl["namespaceMapping"]:
+                            if ns["clusterID"] == repl["sourceClusterID"]:
+                                sourceNS = ", ".join(ns["namespaces"])
+                            elif ns["clusterID"] == repl["destinationClusterID"]:
+                                destNS = ", ".join(ns["namespaces"])
+                    tabData.append(
+                        [
+                            repl["id"],
+                            repl["sourceAppID"],
+                            repl["sourceClusterID"],
+                            sourceNS,
+                            repl["destinationClusterID"],
+                            destNS,
+                        ]
+                    )
+                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+            if not self.quiet:
+                print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+            return dataReturn
+
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class createReplicationpolicy(SDKCommon):
+    """Create a replication policy for a source app to a destination cluster.
+    This class does no validation of the arguments, leaving that
+    to the API call itself.  toolkit.py can be used as a guide as to
+    what the API requirements are in case the swagger isn't sufficient.
+    """
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-appMirror+json"
+        self.headers["Content-Type"] = "application/astra-appMirror+json"
+
+    def main(
+        self,
+        sourceAppID,
+        destinationClusterID,
+        namespaceMapping,
+        destinationStorageClass=None,
+    ):
+
+        endpoint = f"k8s/v1/appMirrors"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-appMirror",
+            "version": "1.0",
+            "sourceAppID": sourceAppID,
+            "destinationClusterID": destinationClusterID,
+            "namespaceMapping": namespaceMapping,
+            "stateDesired": "established",
+        }
+        if destinationStorageClass:
+            data["destinationStorageClass"] = destinationStorageClass
+
+        if self.verbose:
+            print(f"Creating replication policy for app: {sourceAppID}")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class destroyReplicationpolicy(SDKCommon):
+    """This class destroys a replication policy"""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-appMirror+json"
+        self.headers["Content-Type"] = "application/astra-appMirror+json"
+
+    def main(self, replicationID):
+
+        endpoint = f"k8s/v1/appMirrors/{replicationID}"
+        url = self.base + endpoint
+        params = {}
+        data = {}
+
+        if self.verbose:
+            print()
+            print(f"Deleting: {replicationID}")
+            print()
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: DELETE", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+            print()
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            return True
         else:
             if not self.quiet:
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")

@@ -5,7 +5,8 @@ The `create` argument allows you to create Astra resources, including:
 * [Backups](#backup)
 * [Clusters](#cluster)
 * [Hooks](#hook)
-* [Protection policies](#protectionpolicy)
+* [Protections](#protection)
+* [Replications](#replication)
 * [Scripts](#script)
 * [Snapshots](#snapshot)
 
@@ -13,16 +14,20 @@ Its opposite command is [destroy](../destroy/README.md), which allows you to des
 
 ```text
 $ ./toolkit.py create -h
-usage: toolkit.py create [-h] {backup,protectionpolicy,script,snapshot} ...
+usage: toolkit.py create [-h] {backup,cluster,hook,protection,protectionpolicy,replication,script,snapshot} ...
 
 optional arguments:
   -h, --help            show this help message and exit
 
 objectType:
-  {backup,protectionpolicy,script,snapshot}
+  {backup,cluster,hook,protection,protectionpolicy,replication,script,snapshot}
     backup              create backup
-    protectionpolicy    create protectionpolicy
-    script              create script (hook source)
+    cluster             create cluster (upload a K8s cluster kubeconfig to then manage)
+    hook                create hook (executionHook)
+    protection (protectionpolicy)
+                        create protection policy
+    replication         create replication policy
+    script              create script (hookSource)
     snapshot            create snapshot
 ```
 
@@ -126,18 +131,18 @@ $ ./toolkit.py create hook eebd59f2-e9b3-47b0-b0e8-1306d805f104 cassandra-post-r
 {"metadata": {"labels": [], "creationTimestamp": "2022-08-03T19:01:22Z", "modificationTimestamp": "2022-08-03T19:01:22Z", "createdBy": "59c784bb-9b28-4da5-ae8a-f20794ec562f"}, "type": "application/astra-executionHook", "version": "1.0", "id": "a1a1ca43-1aee-4707-a514-0f251a336e06", "name": "cassandra-post-restore", "hookType": "custom", "matchingCriteria": [{"type": "containerImage", "value": "\\bcassandra\\b"}], "action": "restore", "stage": "post", "hookSourceID": "db17a907-9518-4836-850f-1d21bc7651d7", "arguments": ["post-restore", "false"], "appID": "eebd59f2-e9b3-47b0-b0e8-1306d805f104", "enabled": "true"}
 ```
 
-## Protectionpolicy
+## Protection
 
-The `create protectionpolicy` command allows you to create (or add to) a protection policy for an [application](../manage/README.md#app).  The high level command usage is:
+The `create protection` command allows you to create a protection policy for an [application](../manage/README.md#app).  The high level command usage is:
 
 ```text
-./toolkit.py create protectionpolicy <appID> -g <granularity> <date/time args> \
+./toolkit.py create protection <appID> -g <granularity> <date/time args> \
     -b <backupsToRetain> -s <snapshotsToRetain>
 ```
 
 The \<appID\> argument can be gathered from a [list apps](../list/README.md#apps) command.
 
-To configure a protection policy with all four protection schedules, the `create protectionpolicy` command must be ran four times, once for each level of granularity:
+To configure a protection policy with all four protection schedules, the `create protection` command must be ran four times, once for each level of granularity:
 
 * [Hourly](#hourly)
 * [Daily](#daily)
@@ -167,7 +172,7 @@ The `--backupRetention`/`-b` and `--snapshotRetention`/`-s` arguments specify th
 This example creates an `hourly` protection schedule, on the 15 minute mark, while keeping the last two backups and last three snapshots.
 
 ```text
-$ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g hourly \
+$ ./toolkit.py create protection a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g hourly \
     -m 15 -b 2 -s 3
 {"type": "application/astra-schedule", "version": "1.1", "id": "c94a0c35-4e24-4664-b3f5-211e5aecf498", "name": "hourly-cpesy", "enabled": "true", "granularity": "hourly", "minute": "15", "snapshotRetention": "3", "backupRetention": "2", "metadata": {"labels": [], "creationTimestamp": "2022-05-23T16:03:23Z", "modificationTimestamp": "2022-05-23T16:03:23Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
@@ -177,7 +182,7 @@ $ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g h
 This example creates a `daily` protection schedule, at 05:30 UTC, while keeping the last two backups and last two snapshots.
 
 ```text
-$ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g daily \
+$ ./toolkit.py create protection a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g daily \
     -H 5 -m 30 -b 2 -s 2
 {"type": "application/astra-schedule", "version": "1.1", "id": "cbd5edd2-21c9-4283-a7cc-4eaae5c25952", "name": "daily-xok21", "enabled": "true", "granularity": "daily", "minute": "30", "hour": "5", "snapshotRetention": "2", "backupRetention": "2", "metadata": {"labels": [], "creationTimestamp": "2022-05-23T16:07:54Z", "modificationTimestamp": "2022-05-23T16:07:54Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
@@ -187,7 +192,7 @@ $ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g d
 This example creates a `weekly` protection schedule, on Sundays at 04:45 UTC, while keeping the last backup and last snapshot.
 
 ```text
-$ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g weekly \
+$ ./toolkit.py create protection a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g weekly \
     -W 0 -H 4 -m 45 -b 1 -s 1
 {"type": "application/astra-schedule", "version": "1.1", "id": "aa174808-4f8c-4a0b-839e-5ceecf7c0f2d", "name": "weekly-uh8hq", "enabled": "true", "granularity": "weekly", "minute": "45", "hour": "4", "dayOfWeek": "0", "snapshotRetention": "1", "backupRetention": "1", "metadata": {"labels": [], "creationTimestamp": "2022-05-23T16:23:36Z", "modificationTimestamp": "2022-05-23T16:23:36Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
@@ -197,7 +202,7 @@ $ ./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g w
 This example creates a `monthly` protection schedule, on the 1st day of the month at 03:45 UTC, while keeping the last backup and last snapshot.
 
 ```text
-./toolkit.py create protectionpolicy a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g monthly \
+./toolkit.py create protection a643b5dc-bfa0-4624-8bdd-5ad5325f20fd -g monthly \
     -M 1 -H 3 -m 45 -b 1 -s 1
 {"type": "application/astra-schedule", "version": "1.1", "id": "f9dad3d7-a085-4e07-99be-88a90fc8362b", "name": "monthly-teds6", "enabled": "true", "granularity": "monthly", "minute": "45", "hour": "3", "dayOfMonth": "1", "snapshotRetention": "1", "backupRetention": "1", "metadata": {"labels": [], "creationTimestamp": "2022-05-23T16:24:52Z", "modificationTimestamp": "2022-05-23T16:24:52Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
@@ -224,6 +229,45 @@ $ ./toolkit.py create script cassandra ~/Verda/Cassandra/cassandra-snap-hooks.sh
 ```text
 $ ./toolkit.py create script -d "example script upload" testScript example.sh
 {"metadata": {"labels": [], "creationTimestamp": "2022-08-02T14:41:51Z", "modificationTimestamp": "2022-08-02T14:41:51Z", "createdBy": "7cc9170d-d227-49ac-bf9e-6b080ce59524"}, "type": "application/astra-hookSource", "version": "1.0", "id": "b5cb8496-65e9-4e62-addf-bbfe08b7f3bd", "name": "testScript", "private": "false", "preloaded": "false", "sourceType": "script", "source": "IyEvYmluL2Jhc2gKZWNobyAidGhpcyBpcyBqdXN0IGFuIGV4YW1wbGUi", "sourceMD5Checksum": "8ad9d02befca7ef9a0fd51f7ec4aebe7", "description": "test upload"}
+```
+
+## Replication
+
+The `create replication` command allows you to create a replication policy for an [application](../manage/README.md#app).  It is currently **only** supported for ACC environments.  The high level command usage is:
+
+```text
+./toolkit.py create replication <appID> -c <destClusterID> -n <destNamespace> \
+    -s <destStorageClass> -f <replicationFrequency> -o <offset>
+```
+
+The \<appID\> argument can be gathered from a [list apps](../list/README.md#apps) command, and the \<destClusterID\> argument can be gathered from a [list clusters](../list/README.md#clusters) command.
+
+Both the \<destStorageClass\> and \<offset\> arguments are optional.  If either are not provided, the default storage class on the destination cluster is used, and the replications are based off of 00:00.
+
+```text
+$ ./toolkit.py create replication 28efc6fa-324e-42fd-8cd8-e1aacd7ada2c \
+    -c 3ee521b3-e0dc-4d36-9fe7-3a7945e4ce45 -n cassandra-repl -f 30m
+{"type": "application/astra-appMirror", "version": "1.0", "id": "230f80a6-6312-4d14-a708-78b6b7826a6d", "sourceAppID": "28efc6fa-324e-42fd-8cd8-e1aacd7ada2c", "sourceClusterID": "7b4620be-cc20-4680-8ae7-2048dbd872c8", "destinationClusterID": "3ee521b3-e0dc-4d36-9fe7-3a7945e4ce45", "namespaceMapping": [{"clusterID": "7b4620be-cc20-4680-8ae7-2048dbd872c8", "namespaces": ["cassandra"]}, {"clusterID": "3ee521b3-e0dc-4d36-9fe7-3a7945e4ce45", "namespaces": ["cassandra-repl"]}], "state": "establishing", "stateTransitions": [{"from": "establishing", "to": ["established", "deleting"]}, {"from": "established", "to": ["failingOver", "deleting"]}, {"from": "failingOver", "to": ["failedOver", "deleting"]}, {"from": "failedOver", "to": ["establishing", "deleting"]}], "stateDesired": "established", "stateAllowed": ["established"], "stateDetails": [], "transferState": "idle", "transferStateTransitions": [{"from": "transferring", "to": ["idle"]}, {"from": "idle", "to": ["transferring"]}], "transferStateDetails": [], "healthState": "normal", "healthStateTransitions": [], "healthStateDetails": [], "metadata": {"labels": [], "creationTimestamp": "2022-09-09T14:49:55Z", "modificationTimestamp": "2022-09-09T14:49:55Z", "createdBy": "a4569807-c217-4105-abbb-04ccc5ea6047"}}
+{"type": "application/astra-schedule", "version": "1.1", "id": "72cee9b9-e994-47d1-80f0-ec5cc02c7cbe", "name": "replication-schedule-knwun", "enabled": "true", "granularity": "custom", "minute": "0", "recurrenceRule": "DTSTART:20220101T000000Z\nRRULE:FREQ=MINUTELY;INTERVAL=30", "snapshotRetention": "0", "backupRetention": "0", "replicate": "true", "metadata": {"labels": [], "creationTimestamp": "2022-09-09T14:49:55Z", "modificationTimestamp": "2022-09-09T14:49:55Z", "createdBy": "a4569807-c217-4105-abbb-04ccc5ea6047"}}
+```
+
+The \<offset\> argument can be provided in either a "hh:mm" or "mm" format.  In this example, a snapshot is created and replicated at 01:22, 05:22, 09:22, and so on.
+
+```text
+$ ./toolkit.py create replication 0c6cbc25-cd47-4418-8cdb-833f1934a9c0 \
+    -c 3ee521b3-e0dc-4d36-9fe7-3a7945e4ce45 -n wordpress-repl -f 4h -o 1:22
+{"type": "application/astra-appMirror", "version": "1.0", "id": "a0342d41-3c9c-447f-9d61-650bee68c21a", "sourceAppID": "0c6cbc25-cd47-4418-8cdb-833f1934a9c0", "sourceClusterID": "7b4620be-cc20-4680-8ae7-2048dbd872c8", "destinationClusterID": "3ee521b3-e0dc-4d36-9fe7-3a7945e4ce45", "namespaceMapping": [{"clusterID": "7b4620be-cc20-4680-8ae7-2048dbd872c8", "namespaces": ["wordpress2"]}, {"clusterID": "3ee521b3-e0dc-4d36-9fe7-3a7945e4ce45", "namespaces": ["wordpress-repl"]}], "state": "establishing", "stateTransitions": [{"from": "establishing", "to": ["established", "deleting"]}, {"from": "established", "to": ["failingOver", "deleting"]}, {"from": "failingOver", "to": ["failedOver", "deleting"]}, {"from": "failedOver", "to": ["establishing", "deleting"]}], "stateDesired": "established", "stateAllowed": ["established"], "stateDetails": [], "transferState": "idle", "transferStateTransitions": [{"from": "transferring", "to": ["idle"]}, {"from": "idle", "to": ["transferring"]}], "transferStateDetails": [], "healthState": "normal", "healthStateTransitions": [], "healthStateDetails": [], "metadata": {"labels": [], "creationTimestamp": "2022-09-09T14:52:57Z", "modificationTimestamp": "2022-09-09T14:52:57Z", "createdBy": "a4569807-c217-4105-abbb-04ccc5ea6047"}}
+{"type": "application/astra-schedule", "version": "1.1", "id": "a81b0cdf-af1e-4194-ab61-ccc8c8ff21ab", "name": "replication-schedule-h4fyv", "enabled": "true", "granularity": "custom", "minute": "0", "recurrenceRule": "DTSTART:20220101T012200Z\nRRULE:FREQ=HOURLY;INTERVAL=4", "snapshotRetention": "0", "backupRetention": "0", "replicate": "true", "metadata": {"labels": [], "creationTimestamp": "2022-09-09T14:52:57Z", "modificationTimestamp": "2022-09-09T14:52:57Z", "createdBy": "a4569807-c217-4105-abbb-04ccc5ea6047"}}
+```
+
+This example specifies a destination storage class of "ontap-gold" with a snapshot being created and replicated at 00:07, 00:37, 01:07, and so on.
+
+```text
+$ ./toolkit.py create replication 28efc6fa-324e-42fd-8cd8-e1aacd7ada2c \
+    -c 3ee521b3-e0dc-4d36-9fe7-3a7945e4ce45 -n cassandra-repl -s ontap-gold \
+    -f 30m -o 7
+{"type": "application/astra-appMirror", "version": "1.0", "id": "d7ab2644-ce0b-464c-b93a-e78317a3e243", "sourceAppID": "28efc6fa-324e-42fd-8cd8-e1aacd7ada2c", "sourceClusterID": "7b4620be-cc20-4680-8ae7-2048dbd872c8", "destinationClusterID": "3ee521b3-e0dc-4d36-9fe7-3a7945e4ce45", "namespaceMapping": [{"clusterID": "7b4620be-cc20-4680-8ae7-2048dbd872c8", "namespaces": ["cassandra"]}, {"clusterID": "3ee521b3-e0dc-4d36-9fe7-3a7945e4ce45", "namespaces": ["cassandra-repl"]}], "state": "establishing", "stateTransitions": [{"from": "establishing", "to": ["established", "deleting"]}, {"from": "established", "to": ["failingOver", "deleting"]}, {"from": "failingOver", "to": ["failedOver", "deleting"]}, {"from": "failedOver", "to": ["establishing", "deleting"]}], "stateDesired": "established", "stateAllowed": ["established"], "stateDetails": [], "transferState": "idle", "transferStateTransitions": [{"from": "transferring", "to": ["idle"]}, {"from": "idle", "to": ["transferring"]}], "transferStateDetails": [], "healthState": "normal", "healthStateTransitions": [], "healthStateDetails": [], "metadata": {"labels": [], "creationTimestamp": "2022-09-09T14:59:17Z", "modificationTimestamp": "2022-09-09T14:59:17Z", "createdBy": "a4569807-c217-4105-abbb-04ccc5ea6047"}}
+{"type": "application/astra-schedule", "version": "1.1", "id": "f978c627-5448-4418-b81d-093b776a0591", "name": "replication-schedule-rxs83", "enabled": "true", "granularity": "custom", "minute": "0", "recurrenceRule": "DTSTART:20220101T000700Z\nRRULE:FREQ=MINUTELY;INTERVAL=30", "snapshotRetention": "0", "backupRetention": "0", "replicate": "true", "metadata": {"labels": [], "creationTimestamp": "2022-09-09T14:59:44Z", "modificationTimestamp": "2022-09-09T14:59:44Z", "createdBy": "a4569807-c217-4105-abbb-04ccc5ea6047"}}
 ```
 
 ## Snapshot
