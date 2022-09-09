@@ -14,15 +14,16 @@ The `list` command shows various resources known to Astra.
 * [Scripts](#scripts)
 * [Snapshots](#snapshots)
 * [Storageclasses](#storageclasses)
+* [Users](#users)
 
 ```text
-$ usage: toolkit.py list [-h] {apps,assets,backups,clouds,clusters,hooks,namespaces,protections,replications,scripts,snapshots,storageclasses} ...
+usage: toolkit.py list [-h] {apps,assets,backups,clouds,clusters,hooks,namespaces,protections,replications,scripts,snapshots,storageclasses,users} ...
 
 optional arguments:
   -h, --help            show this help message and exit
 
 objectType:
-  {apps,assets,backups,clouds,clusters,hooks,namespaces,protections,replications,scripts,snapshots,storageclasses}
+  {apps,assets,backups,clouds,clusters,hooks,namespaces,protections,replications,scripts,snapshots,storageclasses,users}
     apps                list apps
     assets              list app assets
     backups             list backups
@@ -35,6 +36,7 @@ objectType:
     scripts             list scripts (hookSources)
     snapshots           list snapshots
     storageclasses      list storageclasses
+    users               list users
 ```
 
 ## Apps
@@ -589,4 +591,36 @@ Sample output:
 +---------+--------------------+--------------------------------------+--------------------------+
 | Azure   | aks-eastus-cluster | e1b9b067-20c5-4b4a-8023-8a873d4b25fc | azurefile-premium        |
 +---------+--------------------+--------------------------------------+--------------------------+
+```
+
+## Users
+
+The `list users` command lists all of the users within the Astra Control account.  There's also an optional partial match `nameFilter` argument to minimize output.
+
+Command usage:
+
+```text
+./toolkit.py list users -f <optionalNameFilter>
+```
+
+Sample output:
+
+```text
+./toolkit.py list users
++--------------------------------------+-------------+---------------------+----------------+---------+
+| userID                               | name        | email               | authProvider   | state   |
++======================================+=============+=====================+================+=========+
+| 8146d293-d897-4e16-ab10-8dca934637ab | John Doe    | jdoe@example.com    | cloud-central  | active  |
++--------------------------------------+-------------+---------------------+----------------+---------+
+| f0d5e243-5bfe-4aa5-9c98-f1d3da83110d | Jane Smith  | jsmith@example.com  | cloud-central  | active  |
++--------------------------------------+-------------+---------------------+----------------+---------+
+```
+
+```text
+./toolkit.py list users -f smith
++--------------------------------------+-------------+---------------------+----------------+---------+
+| userID                               | name        | email               | authProvider   | state   |
++======================================+=============+=====================+================+=========+
+| f0d5e243-5bfe-4aa5-9c98-f1d3da83110d | Jane Smith  | jsmith@example.com  | cloud-central  | active  |
++--------------------------------------+-------------+---------------------+----------------+---------+
 ```

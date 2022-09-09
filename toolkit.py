@@ -964,6 +964,10 @@ def main():
         "storageclasses",
         help="list storageclasses",
     )
+    subparserListUsers = subparserList.add_parser(
+        "users",
+        help="list users",
+    )
     #######
     # end of list 'X'
     #######
@@ -1133,6 +1137,19 @@ def main():
 
     #######
     # end of list storageclasses args and flags
+    #######
+
+    #######
+    # list users args and flags
+    #######
+    subparserListUsers.add_argument(
+        "-f",
+        "--nameFilter",
+        default=None,
+        help="Filter users by this value to minimize output (partial match)",
+    )
+    #######
+    # end of list users args and flags
     #######
 
     #######
@@ -1924,6 +1941,15 @@ def main():
             ).main()
             if rc is False:
                 print("astraSDK.getStorageClasses() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
+        elif args.objectType == "users":
+            rc = astraSDK.getUsers(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(nameFilter=args.nameFilter)
+            if rc is False:
+                print("astraSDK.getUsers() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)

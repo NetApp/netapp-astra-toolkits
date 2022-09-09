@@ -2662,3 +2662,156 @@ class destroyReplicationpolicy(SDKCommon):
                 if ret.text.strip():
                     print(f"Error text: {ret.text}")
             return False
+
+
+class getEntitlements(SDKCommon):
+    """Get the Astra Control entitlements, which can be used to determine if it's
+    an Astra Control Service or Center environment."""
+
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        super().__init__()
+
+    def main(self):
+
+        endpoint = "core/v1/entitlements"
+        url = self.base + endpoint
+
+        data = {}
+        params = {}
+
+        if self.verbose:
+            print("Getting entitlements...")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: GET", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            entitlements = super().jsonifyResults(ret)
+
+            if self.output == "json":
+                dataReturn = entitlements
+            elif self.output == "yaml":
+                dataReturn = yaml.dump(entitlements)
+            elif self.output == "table":
+                tabHeader = [
+                    "entitlementID",
+                    "product",
+                    "entitlementType",
+                    "entitlementValue",
+                    "entitlementConsumption",
+                ]
+                tabData = []
+                for entitlement in entitlements["items"]:
+                    tabData.append(
+                        [
+                            entitlement["id"],
+                            entitlement["product"],
+                            entitlement["entitlementType"],
+                            entitlement["entitlementValue"],
+                            entitlement["entitlementConsumption"],
+                        ]
+                    )
+                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+            if not self.quiet:
+                print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+            return dataReturn
+
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class getUsers(SDKCommon):
+    """Get all the users in Astra Control"""
+
+    def __init__(self, quiet=True, verbose=False, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        super().__init__()
+
+    def main(self, nameFilter=None):
+
+        endpoint = "core/v1/users"
+        url = self.base + endpoint
+
+        data = {}
+        params = {}
+
+        if self.verbose:
+            print("Getting users...")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: GET", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
+
+        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            users = super().jsonifyResults(ret)
+            usersCooked = copy.deepcopy(users)
+            if nameFilter:
+                for counter, user in enumerate(users.get("items")):
+                    if (
+                        nameFilter.lower() not in user.get("firstName").lower()
+                        and nameFilter.lower() not in user.get("lastName").lower()
+                    ):
+                        usersCooked["items"].remove(users["items"][counter])
+
+            if self.output == "json":
+                dataReturn = usersCooked
+            elif self.output == "yaml":
+                dataReturn = yaml.dump(usersCooked)
+            elif self.output == "table":
+                tabHeader = ["userID", "name", "email", "authProvider", "state"]
+                tabData = []
+                for user in usersCooked["items"]:
+                    tabData.append(
+                        [
+                            user["id"],
+                            user.get("firstName") + " " + user.get("lastName"),
+                            user["email"],
+                            user.get("authProvider"),
+                            user.get("state"),
+                        ]
+                    )
+                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+            if not self.quiet:
+                print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+            return dataReturn
+
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
