@@ -1646,7 +1646,14 @@ class getNamespaces(SDKCommon):
         self.apps = getApps().main()
         self.clusters = getClusters().main()
 
-    def main(self, clusterID=None, nameFilter=None, showRemoved=False, minuteFilter=False):
+    def main(
+        self,
+        clusterID=None,
+        nameFilter=None,
+        showRemoved=False,
+        unassociated=False,
+        minuteFilter=False,
+    ):
         if self.apps is False:
             print("Call to getApps().main() failed")
             return False
@@ -1699,6 +1706,12 @@ class getNamespaces(SDKCommon):
                 elif not showRemoved and namespace.get("namespaceState") == "removed":
                     namespacesCooked["items"].remove(namespaces["items"][counter])
                 elif namespace["clusterID"] not in clusterList:
+                    namespacesCooked["items"].remove(namespaces["items"][counter])
+                elif (
+                    unassociated
+                    and type(namespace.get("associatedApps")) is list
+                    and len(namespace["associatedApps"]) > 0
+                ):
                     namespacesCooked["items"].remove(namespaces["items"][counter])
                 elif minuteFilter and (
                     datetime.utcnow()
@@ -2216,7 +2229,7 @@ class getCredentials(SDKCommon):
         self.output = output
         super().__init__()
 
-    def main(self, kubeconfigOnly=True):
+    def main(self, kubeconfigOnly=False):
 
         endpoint = "core/v1/credentials"
         url = self.base + endpoint

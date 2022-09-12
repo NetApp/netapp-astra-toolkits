@@ -1078,6 +1078,13 @@ def main():
         help="Show namespaces in a 'removed' state",
     )
     subparserListNamespaces.add_argument(
+        "-u",
+        "--unassociated",
+        default=False,
+        action="store_true",
+        help="Only show namespaces which do not have any associatedApps"
+    )
+    subparserListNamespaces.add_argument(
         "-m",
         "--minutes",
         default=False,
@@ -1902,6 +1909,7 @@ def main():
                 clusterID=args.clusterID,
                 nameFilter=args.nameFilter,
                 showRemoved=args.showRemoved,
+                unassociated=args.unassociated,
                 minuteFilter=args.minutes,
             )
             if rc is False:
