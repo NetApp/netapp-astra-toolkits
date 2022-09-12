@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-   Copyright 2021 NetApp, Inc
+   Copyright 2022 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -144,6 +144,15 @@ class SDKCommon:
         return results
 
 
+def printVerbose(url, method, headers, data, params):
+    """Function to print API call details when in verbose mode"""
+    print(colored(f"API URL: {url}", "green"))
+    print(colored(f"API Method: {method}", "green"))
+    print(colored(f"API Headers: {headers}", "green"))
+    print(colored(f"API data: {data}", "green"))
+    print(colored(f"API params: {params}", "green"))
+
+
 class getApps(SDKCommon):
     """List all apps known to Astra.  With App 2.0 API spec in the Aug 2022 release, there's
     no longer a "discovered" or "ignored" construct with apps.  There's simply managed apps
@@ -179,11 +188,8 @@ class getApps(SDKCommon):
         data = {}
 
         if self.verbose:
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: GET", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            print("Getting apps...")
+            printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -355,11 +361,7 @@ class getBackups(SDKCommon):
 
             if self.verbose:
                 print(f"Listing Backups for {app['id']} {app['name']}")
-                print(colored(f"API URL: {url}", "green"))
-                print(colored("API Method: GET", "green"))
-                print(colored(f"API Headers: {self.headers}", "green"))
-                print(colored(f"API data: {data}", "green"))
-                print(colored(f"API params: {params}", "green"))
+                printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -456,11 +458,7 @@ class takeBackup(SDKCommon):
 
         if self.verbose:
             print(f"Taking backup for {appID}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -506,11 +504,7 @@ class destroyBackup(SDKCommon):
 
         if self.verbose:
             print(f"Deleting backup {backupID} for {appID}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: DELETE", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -530,9 +524,7 @@ class destroyBackup(SDKCommon):
 
 class cloneApp(SDKCommon):
     """Clone an app to a new app and namespace.
-
     Either backupID, snapshotID, or sourceAppID is required.
-
     The sourceClusterID is required as well.
 
     clusterID identifies the cluster for the new clone.  It's perfectly legal to
@@ -585,11 +577,7 @@ class cloneApp(SDKCommon):
 
         if self.verbose:
             print("Cloning app")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -656,11 +644,7 @@ class restoreApp(SDKCommon):
 
         if self.verbose:
             print("Restoring app")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: PUT", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}" % params, "green"))
+            printVerbose(url, "PUT", self.headers, data, params)
 
         ret = super().apicall("put", url, data, self.headers, params, self.verifySSL)
 
@@ -710,11 +694,7 @@ class getClusters(SDKCommon):
 
             if self.verbose:
                 print(f"Getting clusters in cloud {cloud['id']} ({cloud['name']})...")
-                print(colored(f"API URL: {url}", "green"))
-                print(colored("API Method: GET", "green"))
-                print(colored(f"API Headers: {self.headers}", "green"))
-                print(colored(f"API data: {data}", "green"))
-                print(colored(f"API params: {params}", "green"))
+                printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -805,11 +785,7 @@ class getProtectionpolicies(SDKCommon):
 
             if self.verbose:
                 print(f"Getting protection policies for {app['id']} {app['name']}...")
-                print(colored(f"API URL: {url}", "green"))
-                print(colored("API Method: GET", "green"))
-                print(colored(f"API Headers: {self.headers}", "green"))
-                print(colored(f"API data: {data}", "green"))
-                print(colored(f"API params: {params}", "green"))
+                printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -941,11 +917,7 @@ class createProtectionpolicy(SDKCommon):
 
         if self.verbose:
             print(f"Creating {granularity} protection policy for app: {appID}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -986,15 +958,8 @@ class destroyProtectiontionpolicy(SDKCommon):
         data = {}
 
         if self.verbose:
-            print()
             print(f"Deleting {protectionID} of app {appID}")
-            print()
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: DELETE", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
-            print()
+            printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1041,11 +1006,7 @@ class manageApp(SDKCommon):
 
         if self.verbose:
             print(f"Managing app: {appName}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL, self.quiet)
 
@@ -1086,12 +1047,8 @@ class unmanageApp(SDKCommon):
         data = {}
 
         if self.verbose:
-            print(f"unmanaging app: {appID}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: DELETE", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            print(f"Unmanaging app: {appID}")
+            printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1138,11 +1095,7 @@ class takeSnap(SDKCommon):
 
         if self.verbose:
             print(f"Taking snapshot for {appID}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -1205,11 +1158,7 @@ class getSnaps(SDKCommon):
 
             if self.verbose:
                 print(f"Listing Snapshots for {app['id']} {app['name']}")
-                print(colored(f"API URL: {url}", "green"))
-                print(colored("API Method: GET", "green"))
-                print(colored(f"API Headers: {self.headers}", "green"))
-                print(colored(f"API data: {data}", "green"))
-                print(colored(f"API params: {params}", "green"))
+                printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1293,11 +1242,7 @@ class destroySnapshot(SDKCommon):
 
         if self.verbose:
             print(f"Deleting snapshot {snapID} for {appID}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: DELETE", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1337,11 +1282,7 @@ class getClouds(SDKCommon):
 
         if self.verbose:
             print("Getting clouds...")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: GET", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1423,17 +1364,10 @@ class getStorageClasses(SDKCommon):
                 params = {}
 
                 if self.verbose:
-                    print()
                     print(
                         f"Listing StorageClasses for cluster: {cluster['id']} in cloud: {cloud['id']}"
                     )
-                    print()
-                    print(colored(f"API URL: {url}", "green"))
-                    print(colored("API Method: GET", "green"))
-                    print(colored(f"API Headers: {self.headers}", "green"))
-                    print(colored(f"API data: {data}", "green"))
-                    print(colored(f"API params: {params}", "green"))
-                    print()
+                    printVerbose(url, "GET", self.headers, data, params)
 
                 ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1505,15 +1439,8 @@ class manageCluster(SDKCommon):
         }
 
         if self.verbose:
-            print()
             print(f"Managing: {clusterID}")
-            print()
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
-            print()
+            printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -1555,15 +1482,8 @@ class deleteCluster(SDKCommon):
         data = {}
 
         if self.verbose:
-            print()
             print(f"Deleting: {clusterID}")
-            print()
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: DELETE", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
-            print()
+            printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1604,15 +1524,8 @@ class unmanageCluster(SDKCommon):
         data = {}
 
         if self.verbose:
-            print()
             print(f"Unmanaging: {clusterID}")
-            print()
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: DELETE", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
-            print()
+            printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1669,11 +1582,7 @@ class getNamespaces(SDKCommon):
 
         if self.verbose:
             print("Getting namespaces...")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: GET", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1776,11 +1685,7 @@ class getScripts(SDKCommon):
 
         if self.verbose:
             print("Getting scripts...")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: GET", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1858,11 +1763,7 @@ class createScript(SDKCommon):
 
         if self.verbose:
             print(f"Creating script {name}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -1908,11 +1809,7 @@ class destroyScript(SDKCommon):
 
         if self.verbose:
             print(f"Deleting scriptID {scriptID}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: DELETE", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1952,11 +1849,7 @@ class getAppAssets(SDKCommon):
 
         if self.verbose:
             print("Getting app assets...")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: GET", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1966,7 +1859,6 @@ class getAppAssets(SDKCommon):
 
         if ret.ok:
             assets = super().jsonifyResults(ret)
-
             if self.output == "json":
                 dataReturn = assets
             elif self.output == "yaml":
@@ -2032,11 +1924,7 @@ class getHooks(SDKCommon):
 
             if self.verbose:
                 print("Getting execution hooks...")
-                print(colored(f"API URL: {url}", "green"))
-                print(colored("API Method: GET", "green"))
-                print(colored(f"API Headers: {self.headers}", "green"))
-                print(colored(f"API data: {data}", "green"))
-                print(colored(f"API params: {params}", "green"))
+                printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -2143,11 +2031,7 @@ class createHook(SDKCommon):
 
         if self.verbose:
             print(f"Creating executionHook {name}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -2195,11 +2079,7 @@ class destroyHook(SDKCommon):
 
         if self.verbose:
             print(f"Deleting hookID {hookID}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: DELETE", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -2239,11 +2119,7 @@ class getCredentials(SDKCommon):
 
         if self.verbose:
             print("Getting credentials...")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: GET", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -2252,14 +2128,12 @@ class getCredentials(SDKCommon):
             print()
 
         if ret.ok:
-
             creds = super().jsonifyResults(ret)
             credsCooked = copy.deepcopy(creds)
             if kubeconfigOnly:
                 for counter, cred in enumerate(creds.get("items")):
                     if cred.get("keyType") != "kubeconfig":
                         credsCooked["items"].remove(creds["items"][counter])
-
             if self.output == "json":
                 dataReturn = credsCooked
             elif self.output == "yaml":
@@ -2326,11 +2200,7 @@ class createCredential(SDKCommon):
 
         if self.verbose:
             print(f"Creating credential {credName}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -2371,15 +2241,8 @@ class destroyCredential(SDKCommon):
         data = {}
 
         if self.verbose:
-            print()
             print(f"Deleting: {credentialID}")
-            print()
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: DELETE", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
-            print()
+            printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -2424,15 +2287,8 @@ class addCluster(SDKCommon):
         }
 
         if self.verbose:
-            print()
             print(f"Adding cluster from credential: {credentialID}")
-            print()
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
-            print()
+            printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -2481,11 +2337,7 @@ class getReplicationpolicies(SDKCommon):
 
         if self.verbose:
             print("Getting replication policies...")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: GET", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -2606,11 +2458,7 @@ class createReplicationpolicy(SDKCommon):
 
         if self.verbose:
             print(f"Creating replication policy for app: {sourceAppID}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -2651,15 +2499,8 @@ class destroyReplicationpolicy(SDKCommon):
         data = {}
 
         if self.verbose:
-            print()
             print(f"Deleting: {replicationID}")
-            print()
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: DELETE", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
-            print()
+            printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -2702,11 +2543,7 @@ class getEntitlements(SDKCommon):
 
         if self.verbose:
             print("Getting entitlements...")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: GET", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -2716,7 +2553,6 @@ class getEntitlements(SDKCommon):
 
         if ret.ok:
             entitlements = super().jsonifyResults(ret)
-
             if self.output == "json":
                 dataReturn = entitlements
             elif self.output == "yaml":
@@ -2777,11 +2613,7 @@ class getUsers(SDKCommon):
 
         if self.verbose:
             print("Getting users...")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: GET", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
+            printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 

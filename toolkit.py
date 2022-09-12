@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-   Copyright 2021 NetApp, Inc
+   Copyright 2022 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -180,13 +180,13 @@ def run(command, captureOutput=False, ignoreErrors=False):
             return True
 
 
-def doProtectionTask(protectionType, appID, name, background):
+def doProtectionTask(protectionType, appID, name, background, quiet, verbose):
     """Take a snapshot/backup of appID giving it name <name>
     Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
     if protectionType == "backup":
-        protectionID = astraSDK.takeBackup().main(appID, name)
+        protectionID = astraSDK.takeBackup(quiet=quiet, verbose=verbose).main(appID, name)
     elif protectionType == "snapshot":
-        protectionID = astraSDK.takeSnap().main(appID, name)
+        protectionID = astraSDK.takeSnap(quiet=quiet, verbose=verbose).main(appID, name)
     if protectionID == False:
         sys.exit(1)
 
@@ -1964,7 +1964,7 @@ def main():
 
     elif args.subcommand == "create":
         if args.objectType == "backup":
-            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
+            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background, args.quiet, args.verbose)
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
@@ -2093,7 +2093,7 @@ def main():
             else:
                 sys.exit(0)
         elif args.objectType == "snapshot":
-            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
+            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background, args.quiet, args.verbose)
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
