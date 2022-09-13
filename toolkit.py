@@ -349,7 +349,7 @@ class toolkit:
                         sys.stdout.flush()
                         print("\nERROR managing app, trying one more time:")
                         rc = astraSDK.manageApp(quiet=quiet, verbose=verbose).main(
-                                ns["name"], ns["name"], ns["clusterID"]
+                            ns["name"], ns["name"], ns["clusterID"]
                         )
                         if rc:
                             appID = rc["id"]
@@ -580,9 +580,11 @@ def main():
     # So we just go around argparse's back and introspect sys.argv directly
     appList = []
     backupList = []
+    bucketList = []
     chartsList = []
     cloudList = []
     clusterList = []
+    credentialList = []
     destclusterList = []
     hookList = []
     namespaceList = []
@@ -757,6 +759,21 @@ def main():
                         namespaceList.append(namespace["name"])
                         clusterList.append(namespace["clusterID"])
                     clusterList = list(set(clusterList))
+                elif sys.argv[verbPosition + 1] == "bucket":
+                    credentialDict = astraSDK.getCredentials().main()
+                    for credential in credentialDict["items"]:
+                        # if credential["keyType"] == "s3" or (
+                        if credential["metadata"].get("labels"):
+                            credID = None
+                            if credential["keyType"] == "s3":
+                                credID = credential["id"]
+                            else:
+                                for label in credential["metadata"]["labels"]:
+                                    if label["name"] == "astra.netapp.io/labels/read-only/credType":
+                                        if label["value"] in ["AzureContainer", "service-account"]:
+                                            credID = credential["id"]
+                            if credID:
+                                credentialList.append(credential["id"])
                 elif sys.argv[verbPosition + 1] == "cluster":
                     clusterDict = astraSDK.getClusters(quiet=True).main()
                     for cluster in clusterDict["items"]:
@@ -784,6 +801,12 @@ def main():
                     for backup in backups["items"]:
                         if backup["appID"] == sys.argv[verbPosition + 2]:
                             backupList.append(backup["id"])
+                elif (
+                    sys.argv[verbPosition + 1] == "credential" and len(sys.argv) - verbPosition >= 3
+                ):
+                    credentialDict = astraSDK.getCredentials().main()
+                    for credential in credentialDict["items"]:
+                        credentialList.append(credential["id"])
                 elif sys.argv[verbPosition + 1] == "hook" and len(sys.argv) - verbPosition >= 3:
                     for app in astraSDK.getApps().main()["items"]:
                         appList.append(app["id"])
@@ -822,7 +845,10 @@ def main():
                 if sys.argv[verbPosition + 1] == "app":
                     for app in astraSDK.getApps().main()["items"]:
                         appList.append(app["id"])
-
+                elif sys.argv[verbPosition + 1] == "bucket":
+                    bucketDict = astraSDK.getBuckets(quiet=True).main()
+                    for bucket in bucketDict["items"]:
+                        bucketList.append(bucket["id"])
                 elif sys.argv[verbPosition + 1] == "cluster":
                     clusterDict = astraSDK.getClusters(quiet=True).main()
                     for cluster in clusterDict["items"]:
@@ -931,6 +957,10 @@ def main():
         "backups",
         help="list backups",
     )
+    subparserListBuckets = subparserList.add_parser(
+        "buckets",
+        help="list buckets",
+    )
     subparserListClouds = subparserList.add_parser(
         "clouds",
         help="list clouds",
@@ -938,6 +968,10 @@ def main():
     subparserListClusters = subparserList.add_parser(
         "clusters",
         help="list clusters",
+    )
+    subparserListCredentials = subparserList.add_parser(
+        "credentials",
+        help="list credentials",
     )
     subparserListHooks = subparserList.add_parser("hooks", help="list hooks (executionHooks)")
     subparserListNamespaces = subparserList.add_parser(
@@ -1014,6 +1048,25 @@ def main():
     #######
 
     #######
+    # list buckets args and flags
+    #######
+    subparserListBuckets.add_argument(
+        "-f",
+        "--nameFilter",
+        default=None,
+        help="Filter app names by this value to minimize output (partial match)",
+    )
+    subparserListBuckets.add_argument(
+        "-p",
+        "--provider",
+        default=None,
+        help="Only show buckets of a single provider",
+    )
+    #######
+    # end of list buckets args and flags
+    #######
+
+    #######
     # list clouds args and flags
     #######
 
@@ -1046,6 +1099,20 @@ def main():
     )
     #######
     # end of list clusters args and flags
+    #######
+
+    #######
+    # list credentials args and flags
+    #######
+    subparserListCredentials.add_argument(
+        "-k",
+        "--kubeconfigOnly",
+        default=False,
+        action="store_true",
+        help="Only show kubeconfig credentials",
+    )
+    #######
+    # end of list credentials args and flags
     #######
 
     #######
@@ -1082,7 +1149,7 @@ def main():
         "--unassociated",
         default=False,
         action="store_true",
-        help="Only show namespaces which do not have any associatedApps"
+        help="Only show namespaces which do not have any associatedApps",
     )
     subparserListNamespaces.add_argument(
         "-m",
@@ -1444,6 +1511,10 @@ def main():
         "app",
         help="manage app",
     )
+    subparserManageBucket = subparserManage.add_parser(
+        "bucket",
+        help="manage bucket",
+    )
     subparserManageCluster = subparserManage.add_parser(
         "cluster",
         help="manage cluster",
@@ -1479,6 +1550,56 @@ def main():
     #######
 
     #######
+    # manage bucket args and flags
+    #######
+    subparserManageBucket.add_argument(
+        "provider",
+        choices=["aws", "azure", "gcp", "generic-s3", "ontap-s3", "storagegrid-s3"],
+        help="The infrastructure provider of the storage bucket",
+    )
+    subparserManageBucket.add_argument(
+        "bucketName",
+        help="The existing bucket name",
+    )
+    credGroup = subparserManageBucket.add_argument_group(
+        "credentialGroup",
+        "Either an (existing credentialID) OR (accessKey AND accessSecret)",
+    )
+    credGroup.add_argument(
+        "-c",
+        "--credentialID",
+        choices=(None if plaidMode else credentialList),
+        help="The ID of the credentials used to access the bucket",
+        default=None,
+    )
+    credGroup.add_argument(
+        "--accessKey",
+        help="The access key of the bucket",
+        default=None,
+    )
+    credGroup.add_argument(
+        "--accessSecret",
+        help="The access secret of the bucket",
+        default=None,
+    )
+    subparserManageBucket.add_argument(
+        "-u",
+        "--serverURL",
+        help="The URL to the base path of the bucket "
+        + "(only needed for 'aws', 'generic-s3', 'ontap-s3' 'storagegrid-s3')",
+        default=None,
+    )
+    subparserManageBucket.add_argument(
+        "-a",
+        "--storageAccount",
+        help="The  Azure storage account name (only needed for 'Azure')",
+        default=None,
+    )
+    #######
+    # end of manage bucket args and flags
+    #######
+
+    #######
     # manage cluster args and flags
     #######
     subparserManageCluster.add_argument(
@@ -1501,6 +1622,10 @@ def main():
     subparserDestroyBackup = subparserDestroy.add_parser(
         "backup",
         help="destroy backup",
+    )
+    subparserDestroyCredential = subparserDestroy.add_parser(
+        "credential",
+        help="destroy credential",
     )
     subparserDestroyHook = subparserDestroy.add_parser(
         "hook",
@@ -1543,6 +1668,18 @@ def main():
     )
     #######
     # end of destroy backup args and flags
+    #######
+
+    #######
+    # destroy credential args and flags
+    #######
+    subparserDestroyCredential.add_argument(
+        "credentialID",
+        choices=(None if plaidMode else credentialList),
+        help="credentialID to destroy",
+    )
+    #######
+    # end of destroy credential args and flags
     #######
 
     #######
@@ -1627,6 +1764,10 @@ def main():
         "app",
         help="unmanage app",
     )
+    subparserUnmanageBucket = subparserUnmanage.add_parser(
+        "bucket",
+        help="unmanage bucket",
+    )
     subparserUnmanageCluster = subparserUnmanage.add_parser(
         "cluster",
         help="unmanage cluster",
@@ -1642,6 +1783,18 @@ def main():
         "appID",
         choices=(None if plaidMode else appList),
         help="appID of app to move from managed to unmanaged",
+    )
+    #######
+    # end of unmanage app args and flags
+    #######
+
+    #######
+    # unmanage bucket args and flags
+    #######
+    subparserUnmanageBucket.add_argument(
+        "bucketID",
+        choices=(None if plaidMode else bucketList),
+        help="bucketID of bucket to unmanage",
     )
     #######
     # end of unmanage app args and flags
@@ -1854,6 +2007,15 @@ def main():
                 sys.exit(1)
             else:
                 sys.exit(0)
+        elif args.objectType == "buckets":
+            rc = astraSDK.getBuckets(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(nameFilter=args.nameFilter, provider=args.provider)
+            if rc is False:
+                print("astraSDK.getBuckets() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         elif args.objectType == "clouds":
             rc = astraSDK.getClouds(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -1873,6 +2035,15 @@ def main():
             )
             if rc is False:
                 print("astraSDK.getClusters() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
+        elif args.objectType == "credentials":
+            rc = astraSDK.getCredentials(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(kubeconfigOnly=args.kubeconfigOnly)
+            if rc is False:
+                print("astraSDK.getCredentials() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -1953,9 +2124,9 @@ def main():
             else:
                 sys.exit(0)
         elif args.objectType == "users":
-            rc = astraSDK.getUsers(
-                quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(nameFilter=args.nameFilter)
+            rc = astraSDK.getUsers(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
+                nameFilter=args.nameFilter
+            )
             if rc is False:
                 print("astraSDK.getUsers() failed")
                 sys.exit(1)
@@ -1964,7 +2135,9 @@ def main():
 
     elif args.subcommand == "create":
         if args.objectType == "backup":
-            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background, args.quiet, args.verbose)
+            rc = doProtectionTask(
+                args.objectType, args.appID, args.name, args.background, args.quiet, args.verbose
+            )
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
@@ -1977,7 +2150,7 @@ def main():
                     "utf-8"
                 )
             rc = astraSDK.createCredential(quiet=args.quiet, verbose=args.verbose).main(
-                kubeconfigDict["clusters"][0]["name"], encodedStr
+                kubeconfigDict["clusters"][0]["name"], "kubeconfig", {"base64": encodedStr}
             )
             if rc:
                 rc = astraSDK.addCluster(quiet=args.quiet, verbose=args.verbose).main(
@@ -2093,7 +2266,9 @@ def main():
             else:
                 sys.exit(0)
         elif args.objectType == "snapshot":
-            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background, args.quiet, args.verbose)
+            rc = doProtectionTask(
+                args.objectType, args.appID, args.name, args.background, args.quiet, args.verbose
+            )
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
@@ -2110,7 +2285,70 @@ def main():
                 sys.exit(1)
             else:
                 sys.exit(0)
-        if args.objectType == "cluster":
+        elif args.objectType == "bucket":
+            # Validate that both credentialID and accessKey/accessSecret were not specified
+            if args.credentialID is not None and (
+                args.accessKey is not None or args.accessSecret is not None
+            ):
+                print(
+                    f"Error: if a credentialID is specified, neither accessKey nor accessSecret"
+                    + " should be specified."
+                )
+                sys.exit(1)
+            # Validate args and create credential if credentialID was not specified
+            if args.credentialID is None:
+                if args.accessKey is None or args.accessSecret is None:
+                    print(
+                        "Error: if a credentialID is not specified, both accessKey and "
+                        + "accessSecret arguments must be provided."
+                    )
+                    sys.exit(1)
+                encodedKey = base64.b64encode(args.accessKey.encode("utf-8")).decode("utf-8")
+                encodedSecret = base64.b64encode(args.accessSecret.encode("utf-8")).decode("utf-8")
+                crc = astraSDK.createCredential(quiet=args.quiet, verbose=args.verbose).main(
+                    args.bucketName,
+                    "s3",
+                    {"accessKey": encodedKey, "accessSecret": encodedSecret},
+                    cloudName="s3",
+                )
+                if crc:
+                    args.credentialID = crc["id"]
+                else:
+                    print("astraSDK.createCredential() failed")
+                    sys.exit(1)
+            # Validate serverURL and storageAccount args depending upon provider type
+            if args.serverURL is None and args.provider in [
+                "aws",
+                "generic-s3",
+                "ontap-s3",
+                "storagegrid-s3",
+            ]:
+                print(f"Error: --serverURL must be provided for '{args.provider}' provider.")
+                sys.exit(1)
+            if args.storageAccount is None and args.provider == "azure":
+                print("Error: --storageAccount must be provided for 'azure' provider.")
+                sys.exit(1)
+            # Create bucket parameters based on provider and optional arguments
+            if args.provider == "azure":
+                bucketParameters = {
+                    "azure": {"bucketName": args.bucketName, "storageAccount": args.storageAccount}
+                }
+            elif args.provider == "gcp":
+                bucketParameters = {"gcp": {"bucketName": args.bucketName}}
+            else:
+                bucketParameters = {
+                    "s3": {"bucketName": args.bucketName, "serverURL": args.serverURL}
+                }
+            # Call manageBucket class
+            rc = astraSDK.manageBucket(quiet=args.quiet, verbose=args.verbose).main(
+                args.bucketName, args.credentialID, args.provider, bucketParameters
+            )
+            if rc is False:
+                print("astraSDK.manageBucket() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
+        elif args.objectType == "cluster":
             rc = astraSDK.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.clusterID, args.storageClassID
             )
@@ -2129,7 +2367,15 @@ def main():
                 print(f"Backup {args.backupID} destroyed")
             else:
                 print(f"Failed destroying backup: {args.backupID}")
-        if args.objectType == "hook":
+        elif args.objectType == "credential":
+            rc = astraSDK.destroyCredential(quiet=args.quiet, verbose=args.verbose).main(
+                args.credentialID
+            )
+            if rc:
+                print(f"Credential {args.credentialID} destroyed")
+            else:
+                print(f"Failed destroying credential: {args.credentialID}")
+        elif args.objectType == "hook":
             rc = astraSDK.destroyHook(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID, args.hookID
             )
@@ -2137,7 +2383,7 @@ def main():
                 print(f"Hook {args.hookID} destroyed")
             else:
                 print(f"Failed destroying hook: {args.hookID}")
-        if args.objectType == "protection":
+        elif args.objectType == "protection":
             rc = astraSDK.destroyProtectiontionpolicy(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID, args.protectionID
             )
@@ -2145,7 +2391,7 @@ def main():
                 print(f"Protection policy {args.protectionID} destroyed")
             else:
                 print(f"Failed destroying protection policy: {args.protectionID}")
-        if args.objectType == "replication":
+        elif args.objectType == "replication":
             rc = astraSDK.destroyReplicationpolicy(quiet=args.quiet, verbose=args.verbose).main(
                 args.replicationID
             )
@@ -2178,7 +2424,6 @@ def main():
             else:
                 print(f"Failed destroying replication policy: {args.replicationID}")
                 sys.exit(1)
-
         elif args.objectType == "script":
             rc = astraSDK.destroyScript(quiet=args.quiet, verbose=args.verbose).main(args.scriptID)
             if rc:
@@ -2202,7 +2447,14 @@ def main():
                 sys.exit(1)
             else:
                 sys.exit(0)
-        if args.objectType == "cluster":
+        elif args.objectType == "bucket":
+            rc = astraSDK.unmanageBucket(quiet=args.quiet, verbose=args.verbose).main(args.bucketID)
+            if rc is False:
+                print("astraSDK.unmanageBucket() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
+        elif args.objectType == "cluster":
             rc = astraSDK.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.clusterID
             )
@@ -2216,9 +2468,11 @@ def main():
                         if astraSDK.deleteCluster(quiet=args.quiet, verbose=args.verbose).main(
                             args.clusterID, cluster["cloudID"]
                         ):
-                            if not astraSDK.destroyCredential(
+                            if astraSDK.destroyCredential(
                                 quiet=args.quiet, verbose=args.verbose
                             ).main(cluster.get("credentialID")):
+                                print(f"Credential deleted")
+                            else:
                                 print("astraSDK.destroyCredential() failed")
                                 sys.exit(1)
                         else:
@@ -2267,7 +2521,6 @@ def main():
             print("Select destination cluster for the clone")
             print("Index\tClusterID\t\t\t\tclusterName\tclusterPlatform")
             args.clusterID = userSelect(destCluster, ["id", "name", "clusterType"])
-
         # Determine sourceClusterID and the appID (appID could be provided by args.sourceAppID,
         # however if it's not that value will be 'None', and if so it needs to stay 'None' when
         # a backup or snapshot ID is provided for the app to be cloned from the correctly).

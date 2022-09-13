@@ -1,18 +1,23 @@
 # Unmanage
 
-The `unmanage` argument allows you to unmanage a currently managed [application](#app), or a currently managed [cluster](#cluster).
+The `unmanage` argument allows you to unmanage a currently managed object:
+
+* [App](#app)
+* [Bucket](#bucket)
+* [Cluster](#cluster)
 
 ```text
 $ ./toolkit.py unmanage -h
-usage: toolkit.py unmanage [-h] {app,cluster} ...
+usage: toolkit.py unmanage [-h] {app,bucket,cluster} ...
 
 optional arguments:
-  -h, --help     show this help message and exit
+  -h, --help            show this help message and exit
 
 objectType:
-  {app,cluster}
-    app          unmanage app
-    cluster      unmanage cluster
+  {app,bucket,cluster}
+    app                 unmanage app
+    bucket              unmanage bucket
+    cluster             unmanage cluster
 ```
 
 ## App
@@ -28,6 +33,21 @@ Sample output:
 ```text
 $ ./toolkit.py unmanage app 1d16c9f0-1b7f-4f21-804c-4162b0cfd56e
 App unmanaged
+```
+
+## Bucket
+
+Prior to unmanaging a bucket, it is **required** to first [destroy](../destroy/README.md) all [backups](../destroy/README.md#backup) that are stored within the object storage bucket.  Once that is complete, the [bucketID](../list/README.md#buckets) is utilized with the following command.
+
+```text
+./toolkit.py unmanage bucket <bucketID>
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py unmanage bucket d6c59f83-fcb2-4475-87de-cd5dc7277ac6
+Bucket unmanaged
 ```
 
 ## Cluster

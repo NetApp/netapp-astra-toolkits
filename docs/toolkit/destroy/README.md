@@ -5,6 +5,7 @@ The `destroy` argument allows you to destroy Astra resources.  Its opposite comm
 **Use with caution**, as there is no confirmation required for these commands.
 
 * [Backup](#backup)
+* [Credential](#credential)
 * [Hook](#hook)
 * [Protection](#protection)
 * [Replication](#replication)
@@ -13,14 +14,15 @@ The `destroy` argument allows you to destroy Astra resources.  Its opposite comm
 
 ```text
 $ ./toolkit.py destroy -h
-usage: toolkit.py destroy [-h] {backup,hook,protection,replication,script,snapshot} ...
+usage: toolkit.py destroy [-h] {backup,credential,hook,protection,replication,script,snapshot} ...
 
 optional arguments:
   -h, --help            show this help message and exit
 
 objectType:
-  {backup,hook,protection,replication,script,snapshot}
+  {backup,credential,hook,protection,replication,script,snapshot}
     backup              destroy backup
+    credential          destroy credential
     hook                destroy hook (executionHook)
     protection          destroy protection policy
     replication         destroy replication policy
@@ -42,6 +44,21 @@ The command initiates the backup destruction, and then returns the command promp
 $ ./toolkit.py destroy backup a643b5dc-bfa0-4624-8bdd-5ad5325f20fd \
     c06ec1e4-ae3d-4a32-bea0-771505f88203
 Backup c06ec1e4-ae3d-4a32-bea0-771505f88203 destroyed
+```
+
+## Credential
+
+The `destroy credential` command allows you to destroy a specific credential.  Use with caution, as there is no going back.  The command usage is:
+
+```text
+./toolkit.py destroy credential <credentialID>
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py destroy credential 8c2469f3-fcc6-469a-a952-30b7c76b9dad
+Credential 8c2469f3-fcc6-469a-a952-30b7c76b9dad destroyed
 ```
 
 ## Hook

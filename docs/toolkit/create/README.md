@@ -10,7 +10,7 @@ The `create` argument allows you to create Astra resources, including:
 * [Scripts](#script)
 * [Snapshots](#snapshot)
 
-Its opposite command is [destroy](../destroy/README.md), which allows you to destroy these same resources.
+Its opposite command is [destroy](../destroy/README.md), which allows you to destroy these same resources.  **Create** and **destroy** are similar to [manage](../manage/README.md) and [unmanage](../unmanage/README.md), however create/destroy objects live entirely within Astra Control, while manage/unmanage objects do not.  If you create and then destroy a [snapshot](../create/README.md#snapshot), it is gone forever.  However if you manage and then unmanage a cluster, the cluster still exists to re-manage again.
 
 ```text
 $ ./toolkit.py create -h

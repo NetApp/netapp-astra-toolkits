@@ -5,8 +5,10 @@ The `list` command shows various resources known to Astra.
 * [Apps](#apps)
 * [Assets](#assets)
 * [Backups](#backups)
+* [Buckets](#buckets)
 * [Clouds](#clouds)
 * [Clusters](#clusters)
+* [Credentials](#credentials)
 * [Hooks](#hooks)
 * [Namespaces](#namespaces)
 * [Protections](#protections)
@@ -17,18 +19,20 @@ The `list` command shows various resources known to Astra.
 * [Users](#users)
 
 ```text
-usage: toolkit.py list [-h] {apps,assets,backups,clouds,clusters,hooks,namespaces,protections,replications,scripts,snapshots,storageclasses,users} ...
+usage: toolkit.py list [-h] {apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,protections,replications,scripts,snapshots,storageclasses,users} ...
 
 optional arguments:
   -h, --help            show this help message and exit
 
 objectType:
-  {apps,assets,backups,clouds,clusters,hooks,namespaces,protections,replications,scripts,snapshots,storageclasses,users}
+  {apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,protections,replications,scripts,snapshots,storageclasses,users}
     apps                list apps
     assets              list app assets
     backups             list backups
+    buckets             list buckets
     clouds              list clouds
     clusters            list clusters
+    credentials         list credentials
     hooks               list hooks (executionHooks)
     namespaces          list namespaces
     protections         list protection policies
@@ -174,6 +178,53 @@ $ ./toolkit.py list backups --app wordpress
 +--------------------------------------+--------------------+--------------------------------------+-------------+
 ```
 
+## Buckets
+
+The `list buckets` command shows all the object storage buckets available to Astra Control to store backups.  It also has several optional arguments to minimize output.
+
+Command usage:
+
+```text
+./toolkit.py list buckets
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py list buckets
++--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
+| bucketID                             | name                            | credentialID                         | provider   | state     |
++======================================+=================================+======================================+============+===========+
+| 361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac | astra-gcp-backup-fbe43be9aaa0   | 987ab72d-3e48-4b9f-879f-1d14059efa8e | gcp        | available |
++--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
+| ceb69272-ee61-4876-aef5-d6cc21a3e20c | astra-azure-backup-fbe43be9aaa0 | ad544328-1fbb-48af-bff8-ebb21e874540 | azure      | available |
++--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
+| 225080bb-ff5b-4cb6-a834-50604904bfc9 | gcp-secondary-fbe43be9aaa0      | 987ab72d-3e48-4b9f-879f-1d14059efa8e | gcp        | available |
++--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
+```
+
+```text
+$ ./toolkit.py list buckets --provider gcp
++--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
+| bucketID                             | name                            | credentialID                         | provider   | state     |
++======================================+=================================+======================================+============+===========+
+| 361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac | astra-gcp-backup-fbe43be9aaa0   | 987ab72d-3e48-4b9f-879f-1d14059efa8e | gcp        | available |
++--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
+| 225080bb-ff5b-4cb6-a834-50604904bfc9 | gcp-secondary-fbe43be9aaa0      | 987ab72d-3e48-4b9f-879f-1d14059efa8e | gcp        | available |
++--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
+```
+
+```text
+$ ./toolkit.py list buckets --nameFilter backup
++--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
+| bucketID                             | name                            | credentialID                         | provider   | state     |
++======================================+=================================+======================================+============+===========+
+| 361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac | astra-gcp-backup-fbe43be9aaa0   | 987ab72d-3e48-4b9f-879f-1d14059efa8e | gcp        | available |
++--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
+| ceb69272-ee61-4876-aef5-d6cc21a3e20c | astra-azure-backup-fbe43be9aaa0 | ad544328-1fbb-48af-bff8-ebb21e874540 | azure      | available |
++--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
+```
+
 ## Clouds
 
 `list clouds` shows the clouds that have been added to Astra.  Currently only displaying clouds is possible through the SDK, please utilize the UI for adding or removing clouds.
@@ -251,6 +302,40 @@ $ ./toolkit.py list clusters --nameFilter east
 +--------------------+--------------------------------------+-------------+--------------+
 | useast1-cluster    | 9fd690f3-4ae5-423d-9b58-95b6ba4f02e4 | gke         | managed      |
 +--------------------+--------------------------------------+-------------+--------------+
+```
+
+## Credentials
+
+The `list credentials` command shows all credentials within Astra Control.  It can also be filtered to only show kubeconfigs.
+
+```text
+./toolkit.py list credentials <optional-arguments>
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py list credentials
++------------------------+--------------------------------------+-----------------+-------------+---------------+
+| credName               | credID                               | credType        | cloudName   | clusterName   |
++========================+======================================+=================+=============+===============+
+| astragcptmedemo        | 987ab72d-3e48-4b9f-879f-1d14059efa8e | service-account | GCP         | N/A           |
++------------------------+--------------------------------------+-----------------+-------------+---------------+
+| kubeconfig             | aa4a8f75-1568-49ec-a450-b1b021e9a696 | kubeconfig      | GCP         | prod-cluster  |
++------------------------+--------------------------------------+-----------------+-------------+---------------+
+| AzureTMEDemo2          | ad544328-1fbb-48af-bff8-ebb21e874540 | service-account | Azure       | N/A           |
++------------------------+--------------------------------------+-----------------+-------------+---------------+
+| AWS-astra-tme-demo     | f4c061fd-b4c8-4dcd-8b3f-317b07fccd0c | service-account | AWS         | N/A           |
++------------------------+--------------------------------------+-----------------+-------------+---------------+
+```
+
+```text
+$ ./toolkit.py list credentials -k
++------------+--------------------------------------+------------+-------------+---------------+
+| credName   | credID                               | credType   | cloudName   | clusterName   |
++============+======================================+============+=============+===============+
+| kubeconfig | aa4a8f75-1568-49ec-a450-b1b021e9a696 | kubeconfig | GCP         | prod-cluster  |
++------------+--------------------------------------+------------+-------------+---------------+
 ```
 
 ## Hooks
