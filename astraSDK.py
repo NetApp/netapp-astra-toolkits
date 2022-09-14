@@ -143,14 +143,26 @@ class SDKCommon:
             results = None
         return results
 
+    def printVerbose(self, url, method, headers, data, params):
+        """Function to print API call details when in verbose mode"""
+        print(colored(f"API URL: {url}", "green"))
+        print(colored(f"API Method: {method}", "green"))
+        print(colored(f"API Headers: {headers}", "green"))
+        print(colored(f"API data: {data}", "green"))
+        print(colored(f"API params: {params}", "green"))
 
-def printVerbose(url, method, headers, data, params):
-    """Function to print API call details when in verbose mode"""
-    print(colored(f"API URL: {url}", "green"))
-    print(colored(f"API Method: {method}", "green"))
-    print(colored(f"API Headers: {headers}", "green"))
-    print(colored(f"API data: {data}", "green"))
-    print(colored(f"API params: {params}", "green"))
+    def basicTable(self, tabHeader, tabKeys, dataDict):
+        """Function to create a basic tabulate table for terminal printing"""
+        tabData = []
+        for item in dataDict["items"]:
+            # Generate a table row based on the keys list
+            row = [item.get(i) for i in tabKeys]
+            # Handle cases where table row has a nested list
+            for c, r in enumerate(row):
+                if type(r) is list:
+                    row[c] = ", ".join(r)
+            tabData.append(row)
+        return tabulate(tabData, tabHeader, tablefmt="grid")
 
 
 class getApps(SDKCommon):
@@ -189,7 +201,7 @@ class getApps(SDKCommon):
 
         if self.verbose:
             print("Getting apps...")
-            printVerbose(url, "GET", self.headers, data, params)
+            self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -201,7 +213,7 @@ class getApps(SDKCommon):
             apps = super().jsonifyResults(ret)
             appsCooked = copy.deepcopy(apps)
             """
-            self.results = {"items":[
+            apps = {"items":[
                     {
                         "type": "application/astra-app",
                         "version": "2.0",
@@ -250,7 +262,6 @@ class getApps(SDKCommon):
 
             # Loop through all apps and delete those that don't match filters
             for counter, app in enumerate(apps.get("items")):
-
                 # If there's a given filter, delete non-matching values
                 if namespace:
                     delApp = True
@@ -259,7 +270,8 @@ class getApps(SDKCommon):
                             delApp = False
                     if delApp:
                         appsCooked["items"].remove(apps["items"][counter])
-                elif cluster and not (cluster == app["clusterName"] or cluster == app["clusterID"]):
+                        continue
+                if cluster and not (cluster == app["clusterName"] or cluster == app["clusterID"]):
                     appsCooked["items"].remove(apps["items"][counter])
                 elif nameFilter and nameFilter not in app.get("name"):
                     appsCooked["items"].remove(apps["items"][counter])
@@ -345,9 +357,6 @@ class getBackups(SDKCommon):
         """
         backups = {}
         backups["items"] = []
-        if self.output == "table":
-            globaltabHeader = ["AppID", "backupName", "backupID", "backupState"]
-            globaltabData = []
 
         for app in self.apps["items"]:
             if appFilter:
@@ -361,7 +370,7 @@ class getBackups(SDKCommon):
 
             if self.verbose:
                 print(f"Listing Backups for {app['id']} {app['name']}")
-                printVerbose(url, "GET", self.headers, data, params)
+                self.printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -374,40 +383,11 @@ class getBackups(SDKCommon):
                 if results is None:
                     continue
                 # Remember this is on a per AppID basis
-                """results:
-                     {'items':
-                        [['hourly-rlezp-xsxmz',
-                          '493c862d-71a9-4d47-87d3-eab9006c726f',
-                          'completed', {'labels': [],
-                                        'creationTimestamp': '2021-08-16T17:00:01Z',
-                                        'modificationTimestamp': '2021-08-16T17:00:01Z',
-                                        'createdBy': '70fa19ad-eb95-4d1c-b5fb-76b7f4214e6c'}]],
-                                        'metadata': {}}
-                """
                 for item in results["items"]:
                     # Adding custom 'appID' key/value pair
                     if not item.get("appID"):
                         item["appID"] = app["id"]
                     backups["items"].append(item)
-                if self.output == "table":
-                    tabHeader = ["backupName", "backupID", "backupState"]
-                    tabData = []
-                    for backup in results["items"]:
-                        tabData.append(
-                            [
-                                backup["name"],
-                                backup["id"],
-                                backup["state"],
-                            ]
-                        )
-                        globaltabData.append(
-                            [
-                                app["id"],
-                                backup["name"],
-                                backup["id"],
-                                backup["state"],
-                            ]
-                        )
                 if not self.quiet and self.verbose:
                     print(f"Backups for {app['id']}")
                     if self.output == "json":
@@ -415,7 +395,13 @@ class getBackups(SDKCommon):
                     elif self.output == "yaml":
                         print(yaml.dump(results))
                     elif self.output == "table":
-                        print(tabulate(tabData, tabHeader, tablefmt="grid"))
+                        print(
+                            self.basicTable(
+                                ["backupName", "backupID", "backupState"],
+                                ["name", "id", "state"],
+                                results,
+                            )
+                        )
                         print()
             else:
                 continue
@@ -424,7 +410,11 @@ class getBackups(SDKCommon):
         elif self.output == "yaml":
             dataReturn = yaml.dump(backups)
         elif self.output == "table":
-            dataReturn = tabulate(globaltabData, globaltabHeader, tablefmt="grid")
+            dataReturn = self.basicTable(
+                ["AppID", "backupName", "backupID", "backupState"],
+                ["appID", "name", "id", "state"],
+                backups,
+            )
 
         if not self.quiet:
             print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
@@ -458,7 +448,7 @@ class takeBackup(SDKCommon):
 
         if self.verbose:
             print(f"Taking backup for {appID}")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -504,7 +494,7 @@ class destroyBackup(SDKCommon):
 
         if self.verbose:
             print(f"Deleting backup {backupID} for {appID}")
-            printVerbose(url, "DELETE", self.headers, data, params)
+            self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -577,7 +567,7 @@ class cloneApp(SDKCommon):
 
         if self.verbose:
             print("Cloning app")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -644,7 +634,7 @@ class restoreApp(SDKCommon):
 
         if self.verbose:
             print("Restoring app")
-            printVerbose(url, "PUT", self.headers, data, params)
+            self.printVerbose(url, "PUT", self.headers, data, params)
 
         ret = super().apicall("put", url, data, self.headers, params, self.verifySSL)
 
@@ -694,7 +684,7 @@ class getClusters(SDKCommon):
 
             if self.verbose:
                 print(f"Getting clusters in cloud {cloud['id']} ({cloud['name']})...")
-                printVerbose(url, "GET", self.headers, data, params)
+                self.printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -718,18 +708,11 @@ class getClusters(SDKCommon):
         elif self.output == "yaml":
             dataReturn = yaml.dump(clusters)
         elif self.output == "table":
-            tabHeader = ["clusterName", "clusterID", "clusterType", "managedState"]
-            tabData = []
-            for cluster in clusters["items"]:
-                tabData.append(
-                    [
-                        cluster["name"],
-                        cluster["id"],
-                        cluster["clusterType"],
-                        cluster["managedState"],
-                    ]
-                )
-            dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+            dataReturn = self.basicTable(
+                ["clusterName", "clusterID", "clusterType", "managedState"],
+                ["name", "id", "clusterType", "managedState"],
+                clusters,
+            )
 
         if not self.quiet:
             print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
@@ -759,19 +742,6 @@ class getProtectionpolicies(SDKCommon):
 
         protections = {}
         protections["items"] = []
-        if self.output == "table":
-            globaltabHeader = [
-                "appID",
-                "protectionID",
-                "granularity",
-                "minute",
-                "hour",
-                "dayOfWeek",
-                "dayOfMonth",
-                "snapRetention",
-                "backupRetention",
-            ]
-            globaltabData = []
 
         for app in self.apps["items"]:
             if appFilter:
@@ -785,7 +755,7 @@ class getProtectionpolicies(SDKCommon):
 
             if self.verbose:
                 print(f"Getting protection policies for {app['id']} {app['name']}...")
-                printVerbose(url, "GET", self.headers, data, params)
+                self.printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -802,44 +772,6 @@ class getProtectionpolicies(SDKCommon):
                     if not item.get("appID"):
                         item["appID"] = app["id"]
                     protections["items"].append(item)
-                if self.output == "table":
-                    tabHeader = [
-                        "protectionID",
-                        "granularity",
-                        "minute",
-                        "hour",
-                        "dayOfWeek",
-                        "dayOfMonth",
-                        "snapRetention",
-                        "backupRetention",
-                    ]
-                    tabData = []
-                    for protect in results["items"]:
-                        tabData.append(
-                            [
-                                protect["id"],
-                                protect["granularity"],
-                                "N/A" if "minute" not in protect else protect["minute"],
-                                "N/A" if "hour" not in protect else protect["hour"],
-                                "N/A" if "dayOfWeek" not in protect else protect["dayOfWeek"],
-                                "N/A" if "dayOfMonth" not in protect else protect["dayOfMonth"],
-                                protect["snapshotRetention"],
-                                protect["backupRetention"],
-                            ]
-                        )
-                        globaltabData.append(
-                            [
-                                app["id"],
-                                protect["id"],
-                                protect["granularity"],
-                                "N/A" if "minute" not in protect else protect["minute"],
-                                "N/A" if "hour" not in protect else protect["hour"],
-                                "N/A" if "dayOfWeek" not in protect else protect["dayOfWeek"],
-                                "N/A" if "dayOfMonth" not in protect else protect["dayOfMonth"],
-                                protect["snapshotRetention"],
-                                protect["backupRetention"],
-                            ]
-                        )
                 if not self.quiet and self.verbose:
                     print(f"Protection policies for {app['id']}")
                     if self.output == "json":
@@ -847,7 +779,31 @@ class getProtectionpolicies(SDKCommon):
                     elif self.output == "yaml":
                         print(yaml.dump(results))
                     elif self.output == "table":
-                        print(tabulate(tabData, tabHeader, tablefmt="grid"))
+                        print(
+                            self.basicTable(
+                                [
+                                    "protectionID",
+                                    "granularity",
+                                    "minute",
+                                    "hour",
+                                    "dayOfWeek",
+                                    "dayOfMonth",
+                                    "snapRetention",
+                                    "backupRetention",
+                                ],
+                                [
+                                    "id",
+                                    "granularity",
+                                    "minute",
+                                    "hour",
+                                    "dayOfWeek",
+                                    "dayOfMonth",
+                                    "snapshotRetention",
+                                    "backupRetention",
+                                ],
+                                results,
+                            )
+                        )
                         print()
             else:
                 continue
@@ -856,7 +812,31 @@ class getProtectionpolicies(SDKCommon):
         elif self.output == "yaml":
             dataReturn = yaml.dump(protections)
         elif self.output == "table":
-            dataReturn = tabulate(globaltabData, globaltabHeader, tablefmt="grid")
+            dataReturn = self.basicTable(
+                [
+                    "appID",
+                    "protectionID",
+                    "granularity",
+                    "minute",
+                    "hour",
+                    "dayOfWeek",
+                    "dayOfMonth",
+                    "snapRetention",
+                    "backupRetention",
+                ],
+                [
+                    "appID",
+                    "id",
+                    "granularity",
+                    "minute",
+                    "hour",
+                    "dayOfWeek",
+                    "dayOfMonth",
+                    "snapshotRetention",
+                    "backupRetention",
+                ],
+                protections,
+            )
 
         if not self.quiet:
             print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
@@ -917,7 +897,7 @@ class createProtectionpolicy(SDKCommon):
 
         if self.verbose:
             print(f"Creating {granularity} protection policy for app: {appID}")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -959,7 +939,7 @@ class destroyProtectiontionpolicy(SDKCommon):
 
         if self.verbose:
             print(f"Deleting {protectionID} of app {appID}")
-            printVerbose(url, "DELETE", self.headers, data, params)
+            self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1006,7 +986,7 @@ class manageApp(SDKCommon):
 
         if self.verbose:
             print(f"Managing app: {appName}")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL, self.quiet)
 
@@ -1048,7 +1028,7 @@ class unmanageApp(SDKCommon):
 
         if self.verbose:
             print(f"Unmanaging app: {appID}")
-            printVerbose(url, "DELETE", self.headers, data, params)
+            self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1095,7 +1075,7 @@ class takeSnap(SDKCommon):
 
         if self.verbose:
             print(f"Taking snapshot for {appID}")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -1142,9 +1122,6 @@ class getSnaps(SDKCommon):
 
         snaps = {}
         snaps["items"] = []
-        if self.output == "table":
-            globaltabHeader = ["appID", "snapshotName", "snapshotID", "snapshotState"]
-            globaltabData = []
 
         for app in self.apps["items"]:
             if appFilter:
@@ -1158,7 +1135,7 @@ class getSnaps(SDKCommon):
 
             if self.verbose:
                 print(f"Listing Snapshots for {app['id']} {app['name']}")
-                printVerbose(url, "GET", self.headers, data, params)
+                self.printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1175,25 +1152,6 @@ class getSnaps(SDKCommon):
                     if not item.get("appID"):
                         item["appID"] = app["id"]
                     snaps["items"].append(item)
-                if self.output == "table":
-                    tabHeader = ["snapshotName", "snapshotID", "snapshotState"]
-                    tabData = []
-                    for snap in results["items"]:
-                        tabData.append(
-                            [
-                                snap["name"],
-                                snap["id"],
-                                snap["state"],
-                            ]
-                        )
-                        globaltabData.append(
-                            [
-                                app["id"],
-                                snap["name"],
-                                snap["id"],
-                                snap["state"],
-                            ]
-                        )
                 if not self.quiet and self.verbose:
                     print(f"Snapshots for {app['id']}")
                     if self.output == "json":
@@ -1201,7 +1159,13 @@ class getSnaps(SDKCommon):
                     elif self.output == "yaml":
                         print(yaml.dump(results))
                     elif self.output == "table":
-                        print(tabulate(tabData, tabHeader, tablefmt="grid"))
+                        print(
+                            self.basicTable(
+                                ["snapshotName", "snapshotID", "snapshotState"],
+                                ["name", "id", "state"],
+                                results,
+                            ),
+                        )
                         print()
             else:
                 continue
@@ -1210,7 +1174,11 @@ class getSnaps(SDKCommon):
         elif self.output == "yaml":
             dataReturn = yaml.dump(snaps)
         elif self.output == "table":
-            dataReturn = tabulate(globaltabData, globaltabHeader, tablefmt="grid")
+            dataReturn = self.basicTable(
+                ["appID", "snapshotName", "snapshotID", "snapshotState"],
+                ["appID", "name", "id", "state"],
+                snaps,
+            )
 
         if not self.quiet:
             print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
@@ -1242,7 +1210,7 @@ class destroySnapshot(SDKCommon):
 
         if self.verbose:
             print(f"Deleting snapshot {snapID} for {appID}")
-            printVerbose(url, "DELETE", self.headers, data, params)
+            self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1282,7 +1250,7 @@ class getClouds(SDKCommon):
 
         if self.verbose:
             print("Getting clouds...")
-            printVerbose(url, "GET", self.headers, data, params)
+            self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1297,17 +1265,9 @@ class getClouds(SDKCommon):
             elif self.output == "yaml":
                 dataReturn = yaml.dump(results)
             elif self.output == "table":
-                tabHeader = ["cloudName", "cloudID", "cloudType"]
-                tabData = []
-                for cloud in results["items"]:
-                    tabData.append(
-                        [
-                            cloud["name"],
-                            cloud["id"],
-                            cloud["cloudType"],
-                        ]
-                    )
-                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+                dataReturn = self.basicTable(
+                    ["cloudName", "cloudID", "cloudType"], ["name", "id", "cloudType"], results
+                )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
             return dataReturn
@@ -1367,7 +1327,7 @@ class getStorageClasses(SDKCommon):
                     print(
                         f"Listing StorageClasses for cluster: {cluster['id']} in cloud: {cloud['id']}"
                     )
-                    printVerbose(url, "GET", self.headers, data, params)
+                    self.printVerbose(url, "GET", self.headers, data, params)
 
                 ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1396,18 +1356,11 @@ class getStorageClasses(SDKCommon):
         elif self.output == "yaml":
             dataReturn = yaml.dump(storageClasses)
         elif self.output == "table":
-            tabData = []
-            tabHeader = ["cloud", "cluster", "storageclassID", "storageclassName"]
-            for storageClass in storageClasses["items"]:
-                tabData.append(
-                    [
-                        storageClass["cloudType"],
-                        storageClass["clusterName"],
-                        storageClass["id"],
-                        storageClass["name"],
-                    ]
-                )
-            dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+            dataReturn = self.basicTable(
+                ["cloud", "cluster", "storageclassID", "storageclassName"],
+                ["cloudType", "clusterName", "id", "name"],
+                storageClasses,
+            )
 
         if not self.quiet:
             print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
@@ -1440,7 +1393,7 @@ class manageCluster(SDKCommon):
 
         if self.verbose:
             print(f"Managing: {clusterID}")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -1483,7 +1436,7 @@ class deleteCluster(SDKCommon):
 
         if self.verbose:
             print(f"Deleting: {clusterID}")
-            printVerbose(url, "DELETE", self.headers, data, params)
+            self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1525,7 +1478,7 @@ class unmanageCluster(SDKCommon):
 
         if self.verbose:
             print(f"Unmanaging: {clusterID}")
-            printVerbose(url, "DELETE", self.headers, data, params)
+            self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1582,7 +1535,7 @@ class getNamespaces(SDKCommon):
 
         if self.verbose:
             print("Getting namespaces...")
-            printVerbose(url, "GET", self.headers, data, params)
+            self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1636,19 +1589,11 @@ class getNamespaces(SDKCommon):
             elif self.output == "yaml":
                 dataReturn = yaml.dump(namespacesCooked)
             elif self.output == "table":
-                tabHeader = ["name", "namespaceID", "namespaceState", "associatedApps", "clusterID"]
-                tabData = []
-                for namespace in namespacesCooked["items"]:
-                    tabData.append(
-                        [
-                            namespace["name"],
-                            namespace["id"],
-                            namespace["namespaceState"],
-                            ", ".join(namespace["associatedApps"]),
-                            namespace["clusterID"],
-                        ]
-                    )
-                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+                dataReturn = self.basicTable(
+                    ["name", "namespaceID", "namespaceState", "associatedApps", "clusterID"],
+                    ["name", "id", "namespaceState", "associatedApps", "clusterID"],
+                    namespacesCooked,
+                )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
             return dataReturn
@@ -1685,7 +1630,7 @@ class getScripts(SDKCommon):
 
         if self.verbose:
             print("Getting scripts...")
-            printVerbose(url, "GET", self.headers, data, params)
+            self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1706,17 +1651,11 @@ class getScripts(SDKCommon):
             elif self.output == "yaml":
                 dataReturn = yaml.dump(scriptsCooked)
             elif self.output == "table":
-                tabHeader = ["scriptName", "scriptID", "description"]
-                tabData = []
-                for script in scriptsCooked["items"]:
-                    tabData.append(
-                        [
-                            script["name"],
-                            script["id"],
-                            script.get("description"),
-                        ]
-                    )
-                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+                dataReturn = self.basicTable(
+                    ["scriptName", "scriptID", "description"],
+                    ["name", "id", "description"],
+                    scriptsCooked,
+                )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
             return dataReturn
@@ -1763,7 +1702,7 @@ class createScript(SDKCommon):
 
         if self.verbose:
             print(f"Creating script {name}")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -1809,7 +1748,7 @@ class destroyScript(SDKCommon):
 
         if self.verbose:
             print(f"Deleting scriptID {scriptID}")
-            printVerbose(url, "DELETE", self.headers, data, params)
+            self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -1849,7 +1788,7 @@ class getAppAssets(SDKCommon):
 
         if self.verbose:
             print("Getting app assets...")
-            printVerbose(url, "GET", self.headers, data, params)
+            self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1864,16 +1803,11 @@ class getAppAssets(SDKCommon):
             elif self.output == "yaml":
                 dataReturn = yaml.dump(assets)
             elif self.output == "table":
-                tabHeader = ["assetName", "assetType"]
-                tabData = []
-                for asset in assets["items"]:
-                    tabData.append(
-                        [
-                            asset.get("assetName"),
-                            asset.get("assetType"),
-                        ]
-                    )
-                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+                dataReturn = self.basicTable(
+                    ["assetName", "assetType"],
+                    ["assetName", "assetType"],
+                    assets,
+                )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
             return dataReturn
@@ -1908,9 +1842,6 @@ class getHooks(SDKCommon):
 
         hooks = {}
         hooks["items"] = []
-        if self.output == "table":
-            globaltabHeader = ["appID", "hookName", "hookID", "matchingImages"]
-            globaltabData = []
 
         for app in self.apps["items"]:
             if appFilter:
@@ -1924,7 +1855,7 @@ class getHooks(SDKCommon):
 
             if self.verbose:
                 print("Getting execution hooks...")
-                printVerbose(url, "GET", self.headers, data, params)
+                self.printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -1938,25 +1869,6 @@ class getHooks(SDKCommon):
                     continue
                 for item in results["items"]:
                     hooks["items"].append(item)
-                if self.output == "table":
-                    tabHeader = ["hookName", "hookID", "matchingImages"]
-                    tabData = []
-                    for hook in results["items"]:
-                        tabData.append(
-                            [
-                                hook["name"],
-                                hook["id"],
-                                ", ".join(hook["matchingImages"]),
-                            ]
-                        )
-                        globaltabData.append(
-                            [
-                                app["id"],
-                                hook["name"],
-                                hook["id"],
-                                ", ".join(hook["matchingImages"]),
-                            ]
-                        )
                 if not self.quiet and self.verbose:
                     print(f"Execution hooks for {app['id']}")
                     if self.output == "json":
@@ -1964,7 +1876,13 @@ class getHooks(SDKCommon):
                     elif self.output == "yaml":
                         print(yaml.dump(results))
                     elif self.output == "table":
-                        print(tabulate(tabData, tabHeader, tablefmt="grid"))
+                        print(
+                            self.basicTable(
+                                ["hookName", "hookID", "matchingImages"],
+                                ["name", "id", "matchingImages"],
+                                results,
+                            )
+                        )
                         print()
             else:
                 if not self.quiet:
@@ -1977,7 +1895,11 @@ class getHooks(SDKCommon):
         elif self.output == "yaml":
             dataReturn = yaml.dump(hooks)
         elif self.output == "table":
-            dataReturn = tabulate(globaltabData, globaltabHeader, tablefmt="grid")
+            dataReturn = self.basicTable(
+                ["appID", "hookName", "hookID", "matchingImages"],
+                ["appID", "name", "id", "matchingImages"],
+                hooks,
+            )
 
         if not self.quiet:
             print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
@@ -2031,7 +1953,7 @@ class createHook(SDKCommon):
 
         if self.verbose:
             print(f"Creating executionHook {name}")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -2079,7 +2001,7 @@ class destroyHook(SDKCommon):
 
         if self.verbose:
             print(f"Deleting hookID {hookID}")
-            printVerbose(url, "DELETE", self.headers, data, params)
+            self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -2119,7 +2041,7 @@ class getCredentials(SDKCommon):
 
         if self.verbose:
             print("Getting credentials...")
-            printVerbose(url, "GET", self.headers, data, params)
+            self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -2222,7 +2144,7 @@ class createCredential(SDKCommon):
 
         if self.verbose:
             print(f"Creating credential {credName}")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -2264,7 +2186,7 @@ class destroyCredential(SDKCommon):
 
         if self.verbose:
             print(f"Deleting: {credentialID}")
-            printVerbose(url, "DELETE", self.headers, data, params)
+            self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -2308,7 +2230,7 @@ class addCluster(SDKCommon):
 
         if self.verbose:
             print(f"Adding cluster from credential: {credentialID}")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -2357,7 +2279,7 @@ class getReplicationpolicies(SDKCommon):
 
         if self.verbose:
             print("Getting replication policies...")
-            printVerbose(url, "GET", self.headers, data, params)
+            self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -2478,7 +2400,7 @@ class createReplicationpolicy(SDKCommon):
 
         if self.verbose:
             print(f"Creating replication policy for app: {sourceAppID}")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -2520,7 +2442,7 @@ class destroyReplicationpolicy(SDKCommon):
 
         if self.verbose:
             print(f"Deleting: {replicationID}")
-            printVerbose(url, "DELETE", self.headers, data, params)
+            self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
@@ -2563,7 +2485,7 @@ class getEntitlements(SDKCommon):
 
         if self.verbose:
             print("Getting entitlements...")
-            printVerbose(url, "GET", self.headers, data, params)
+            self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -2578,25 +2500,17 @@ class getEntitlements(SDKCommon):
             elif self.output == "yaml":
                 dataReturn = yaml.dump(entitlements)
             elif self.output == "table":
-                tabHeader = [
-                    "entitlementID",
-                    "product",
-                    "entitlementType",
-                    "entitlementValue",
-                    "entitlementConsumption",
-                ]
-                tabData = []
-                for entitlement in entitlements["items"]:
-                    tabData.append(
-                        [
-                            entitlement["id"],
-                            entitlement["product"],
-                            entitlement["entitlementType"],
-                            entitlement["entitlementValue"],
-                            entitlement["entitlementConsumption"],
-                        ]
-                    )
-                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+                dataReturn = self.basicTable(
+                    ["entitlementID", "product", "type", "value", "consumption"],
+                    [
+                        "id",
+                        "product",
+                        "entitlementType",
+                        "entitlementValue",
+                        "entitlementConsumption",
+                    ],
+                    entitlements,
+                )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
             return dataReturn
@@ -2633,7 +2547,7 @@ class getUsers(SDKCommon):
 
         if self.verbose:
             print("Getting users...")
-            printVerbose(url, "GET", self.headers, data, params)
+            self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -2643,6 +2557,10 @@ class getUsers(SDKCommon):
 
         if ret.ok:
             users = super().jsonifyResults(ret)
+            # Add custom fullName entry
+            for user in users["items"]:
+                if not user.get("fullName"):
+                    user["fullName"] = user.get("firstName") + " " + user.get("lastName")
             usersCooked = copy.deepcopy(users)
             if nameFilter:
                 for counter, user in enumerate(users.get("items")):
@@ -2657,19 +2575,11 @@ class getUsers(SDKCommon):
             elif self.output == "yaml":
                 dataReturn = yaml.dump(usersCooked)
             elif self.output == "table":
-                tabHeader = ["userID", "name", "email", "authProvider", "state"]
-                tabData = []
-                for user in usersCooked["items"]:
-                    tabData.append(
-                        [
-                            user["id"],
-                            user.get("firstName") + " " + user.get("lastName"),
-                            user["email"],
-                            user.get("authProvider"),
-                            user.get("state"),
-                        ]
-                    )
-                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+                dataReturn = self.basicTable(
+                    ["userID", "name", "email", "authProvider", "state"],
+                    ["id", "fullName", "email", "authProvider", "state"],
+                    usersCooked,
+                )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
             return dataReturn
@@ -2706,7 +2616,7 @@ class getBuckets(SDKCommon):
 
         if self.verbose:
             print("Getting buckets...")
-            printVerbose(url, "GET", self.headers, data, params)
+            self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
 
@@ -2728,19 +2638,11 @@ class getBuckets(SDKCommon):
             elif self.output == "yaml":
                 dataReturn = yaml.dump(bucketsCooked)
             elif self.output == "table":
-                tabHeader = ["bucketID", "name", "credentialID", "provider", "state"]
-                tabData = []
-                for bucket in bucketsCooked["items"]:
-                    tabData.append(
-                        [
-                            bucket["id"],
-                            bucket["name"],
-                            bucket["credentialID"],
-                            bucket["provider"],
-                            bucket["state"],
-                        ]
-                    )
-                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+                dataReturn = self.basicTable(
+                    ["bucketID", "name", "credentialID", "provider", "state"],
+                    ["id", "name", "credentialID", "provider", "state"],
+                    bucketsCooked,
+                )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
             return dataReturn
@@ -2785,7 +2687,7 @@ class manageBucket(SDKCommon):
 
         if self.verbose:
             print(f"Creating bucket {name} based on credential {credentialID}")
-            printVerbose(url, "POST", self.headers, data, params)
+            self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -2827,7 +2729,7 @@ class unmanageBucket(SDKCommon):
 
         if self.verbose:
             print(f"Removing bucket {bucketID}")
-            printVerbose(url, "DELETE", self.headers, data, params)
+            self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
 
