@@ -2210,10 +2210,11 @@ def main():
                 sys.exit(1)
             dtstart = "DTSTART:20220101T" + hours + minutes + "00Z\n"
             # Create RRULE string
+            rrule = "RRULE:FREQ=MINUTELY;INTERVAL="
             if "m" in args.replicationFrequency:
-                rrule = "RRULE:FREQ=MINUTELY;INTERVAL=" + args.replicationFrequency.strip("m")
+                rrule += args.replicationFrequency.strip("m")
             else:
-                rrule = "RRULE:FREQ=HOURLY;INTERVAL=" + args.replicationFrequency.strip("h")
+                rrule += str(int(args.replicationFrequency.strip("h")) * 60)
             # Get Source ClusterID
             if plaidMode:
                 apps = astraSDK.getApps().main()

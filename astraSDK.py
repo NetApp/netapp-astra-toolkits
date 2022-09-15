@@ -2300,18 +2300,12 @@ class getReplicationpolicies(SDKCommon):
             replCooked = copy.deepcopy(replPolicies)
             if appFilter:
                 for counter, repl in enumerate(replPolicies.get("items")):
-                    delRepl = False
-                    for app in self.apps["items"]:
-                        if (
-                            app["name"] != appFilter
-                            and app["id"] != appFilter
-                            and (
-                                app["id"] == repl["sourceAppID"]
-                                or app["id"] == repl["destinationAppID"]
-                            )
-                        ):
-                            delRepl = True
-                    if delRepl:
+                    if (
+                        appFilter != repl.get("sourceAppName")
+                        and appFilter != repl.get("destinationAppName")
+                        and appFilter != repl.get("sourceAppID")
+                        and appFilter != repl.get("destinationAppID")
+                    ):
                         replCooked["items"].remove(replPolicies["items"][counter])
 
             if self.output == "json":
@@ -2396,7 +2390,7 @@ class createReplicationpolicy(SDKCommon):
             "stateDesired": "established",
         }
         if destinationStorageClass:
-            data["destinationStorageClass"] = destinationStorageClass
+            data["storageClasses"] = destinationStorageClass
 
         if self.verbose:
             print(f"Creating replication policy for app: {sourceAppID}")
