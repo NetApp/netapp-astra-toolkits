@@ -1240,7 +1240,7 @@ class getClouds(SDKCommon):
         self.output = output
         super().__init__()
 
-    def main(self):
+    def main(self, cloudType=None):
 
         endpoint = "topology/v1/clouds"
         url = self.base + endpoint
@@ -1259,14 +1259,18 @@ class getClouds(SDKCommon):
             print()
 
         if ret.ok:
-            results = super().jsonifyResults(ret)
+            clouds = super().jsonifyResults(ret)
+            cloudsCooked = copy.deepcopy(clouds)
+            for counter, cloud in enumerate(clouds.get("items")):
+                if cloudType and cloudType != cloud["cloudType"]:
+                    cloudsCooked["items"].remove(clouds["items"][counter])
             if self.output == "json":
-                dataReturn = results
+                dataReturn = cloudsCooked
             elif self.output == "yaml":
-                dataReturn = yaml.dump(results)
+                dataReturn = yaml.dump(cloudsCooked)
             elif self.output == "table":
                 dataReturn = self.basicTable(
-                    ["cloudName", "cloudID", "cloudType"], ["name", "id", "cloudType"], results
+                    ["cloudName", "cloudID", "cloudType"], ["name", "id", "cloudType"], cloudsCooked
                 )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)

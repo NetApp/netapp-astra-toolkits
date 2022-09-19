@@ -1069,7 +1069,13 @@ def main():
     #######
     # list clouds args and flags
     #######
-
+    subparserListClouds.add_argument(
+        "-t",
+        "--cloudType",
+        default=None,
+        choices=["GCP", "Azure", "AWS", "Private"],
+        help="Only show clouds of a single type",
+    )
     #######
     # end of list clouds args and flags
     #######
@@ -2019,7 +2025,7 @@ def main():
         elif args.objectType == "clouds":
             rc = astraSDK.getClouds(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main()
+            ).main(cloudType=args.cloudType)
             if rc is False:
                 print("astraSDK.getClouds() failed")
                 sys.exit(1)
