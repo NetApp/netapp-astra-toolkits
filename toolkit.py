@@ -572,12 +572,11 @@ class toolkit:
 
 
 def main():
-    # This is a pretty big hack.  The various functions to populate the lists
-    # used for choices() in the options are expensive.  argparse provides no
-    # way to know what subcommand was selected prior to parsing the options.
-    # By then it's too late to decide which functions to run to populate
-    # the various choices the differing options for each subcommand needs.
-    # So we just go around argparse's back and introspect sys.argv directly
+    # The various functions to populate the lists used for choices() in the options are
+    # expensive. argparse provides no way to know what subcommand was selected prior to
+    # parsing the options. By then it's too late to decide which functions to run to
+    # populate the various choices the differing options for each subcommand needs. So
+    # we just go around argparse's back and inspect sys.argv directly.
     appList = []
     backupList = []
     bucketList = []
@@ -1214,7 +1213,13 @@ def main():
     #######
     # list storageclasses args and flags
     #######
-
+    subparserListStorageClasses.add_argument(
+        "-t",
+        "--cloudType",
+        default=None,
+        choices=["GCP", "Azure", "AWS", "Private"],
+        help="Only show storageclasses of a single cloud type",
+    )
     #######
     # end of list storageclasses args and flags
     #######
@@ -2123,7 +2128,7 @@ def main():
         elif args.objectType == "storageclasses":
             rc = astraSDK.getStorageClasses(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main()
+            ).main(cloudType=args.cloudType)
             if rc is False:
                 print("astraSDK.getStorageClasses() failed")
                 sys.exit(1)

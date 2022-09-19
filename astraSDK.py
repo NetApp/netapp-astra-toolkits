@@ -1298,7 +1298,7 @@ class getStorageClasses(SDKCommon):
         self.clouds = getClouds().main()
         self.clusters = getClusters().main()
 
-    def main(self):
+    def main(self, cloudType=None):
         if self.clouds is False:
             print("getClouds().main() failed")
             return False
@@ -1317,7 +1317,11 @@ class getStorageClasses(SDKCommon):
         for cloud in self.clouds["items"]:
             for cluster in self.clusters["items"]:
                 # exclude invalid combinations of cloud/cluster
-                if cluster["cloudID"] != cloud["id"] or cluster["managedState"] == "ineligible":
+                if (
+                    cluster["cloudID"] != cloud["id"]
+                    or cluster["managedState"] == "ineligible"
+                    or (cloudType and cloud["cloudType"] != cloudType)
+                ):
                     continue
                 endpoint = (
                     f"topology/v1/clouds/{cloud['id']}/clusters/{cluster['id']}/storageClasses"
