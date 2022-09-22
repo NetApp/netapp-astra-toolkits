@@ -9,7 +9,7 @@ with open("requirements.txt", "r") as req:
 
 setuptools.setup(
     name="actoolkit",
-    version="2.3.0",
+    version="2.3.1",
     py_modules=["toolkit", "astraSDK"],
     author="Michael Haigh",
     author_email="Michael.Haigh@netapp.com",
