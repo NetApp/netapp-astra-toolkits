@@ -2324,9 +2324,8 @@ class getReplicationpolicies(SDKCommon):
                 tabHeader = [
                     "replicationID",
                     "sourceAppID",
-                    "sourceClusterID",
+                    "state",
                     "sourceNamespace",
-                    "destClusterID",
                     "destNamespace",
                 ]
                 tabData = []
@@ -2343,9 +2342,8 @@ class getReplicationpolicies(SDKCommon):
                         [
                             repl["id"],
                             repl["sourceAppID"],
-                            repl["sourceClusterID"],
+                            repl["state"],
                             sourceNS,
-                            repl["destinationClusterID"],
                             destNS,
                         ]
                     )
@@ -2386,7 +2384,7 @@ class createReplicationpolicy(SDKCommon):
         destinationStorageClass=None,
     ):
 
-        endpoint = f"k8s/v1/appMirrors"
+        endpoint = "k8s/v1/appMirrors"
         url = self.base + endpoint
         params = {}
         data = {
@@ -2405,6 +2403,72 @@ class createReplicationpolicy(SDKCommon):
             self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class updateReplicationpolicy(SDKCommon):
+    """Update a replication policy.  Intended to reverse, resync, or fail over
+    the replication.  This class does no validation of the arguments, leaving
+    that to the API call itself.  toolkit.py can be used as a guide as to
+    what the API requirements are in case the swagger isn't sufficient.
+    """
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        # self.headers["accept"] = "application/astra-appMirror+json"
+        self.headers["Content-Type"] = "application/astra-appMirror+json"
+
+    def main(
+        self,
+        replicationID,
+        stateDesired,
+        sourceAppID=None,
+        sourceClusterID=None,
+        destinationAppID=None,
+        destinationClusterID=None,
+    ):
+
+        endpoint = f"k8s/v1/appMirrors/{replicationID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-appMirror",
+            "version": "1.0",
+            "stateDesired": stateDesired,
+        }
+        if destinationAppID:
+            data["destinationAppID"] = destinationAppID
+        if destinationClusterID:
+            data["destinationClusterID"] = destinationClusterID
+        if sourceAppID:
+            data["sourceAppID"] = sourceAppID
+        if sourceClusterID:
+            data["sourceClusterID"] = sourceClusterID
+
+        if self.verbose:
+            print(f"Updating replication policy: {replicationID}")
+            self.printVerbose(url, "PUT", self.headers, data, params)
+
+        ret = super().apicall("put", url, data, self.headers, params, self.verifySSL)
 
         if self.verbose:
             print(f"API HTTP Status Code: {ret.status_code}")

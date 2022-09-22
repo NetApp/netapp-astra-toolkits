@@ -50,7 +50,7 @@ Again, no matter the method of installation, the `config.yaml` file should have 
 headers:
   Authorization: Bearer <Bearer-Token-From-API-Access-Page>
 uid: <Account-ID-From-API-Access-Page>
-astra_project: <Shortname-for-ACS-or-FQDN-for-ACC>
+astra_project: <Shortname-or-FQDN>
 verifySSL: <True-or-False>
 ```
 
@@ -58,8 +58,8 @@ Create (if using `actoolkit`) or edit (if using the git repo) the `config.yaml` 
 
 * `Authorization: Bearer`: Your API token
 * `uid`: Your Astra Control Account ID
-* `astra_project`: Your Astra Control instance (Shortnames get astra.netapp.io appended to them for ACS.  FQDNs are used unchanged for ACC instances)
-* `verifySSL`: True or False, useful for self-signed certs. (If this field isn't included it's treated as true)
+* `astra_project`: Your Astra Control instance (shortnames get astra.netapp.io appended to them, FQDNs [anything with a `.`] are used unchanged)
+* `verifySSL`: True or False, useful for self-signed certs (if this field isn't included it's treated as True)
 
 You can find this information in your NetApp Astra Control account profile. Click the user icon in the upper right-hand corner, then choose **API Access** from the drop-down menu which appears.
 

@@ -608,6 +608,7 @@ def main():
             "define": False,
             "destroy": False,
             "unmanage": False,
+            "update": False,
         }
 
         firstverbfoundPosition = None
@@ -827,6 +828,9 @@ def main():
                     and len(sys.argv) - verbPosition >= 3
                 ):
                     replicationDict = astraSDK.getReplicationpolicies().main()
+                    if not replicationDict:  # Gracefully handle ACS env
+                        print("Error: 'replication' commands are currently only supported in ACC.")
+                        sys.exit(1)
                     for replication in replicationDict["items"]:
                         replicationList.append(replication["id"])
                 elif sys.argv[verbPosition + 1] == "snapshot" and len(sys.argv) - verbPosition >= 3:
@@ -853,6 +857,15 @@ def main():
                     for cluster in clusterDict["items"]:
                         if cluster["managedState"] == "managed":
                             clusterList.append(cluster["id"])
+
+            elif (verbs["update"]) and len(sys.argv) - verbPosition >= 2:
+                if sys.argv[verbPosition + 1] == "replication":
+                    replicationDict = astraSDK.getReplicationpolicies().main()
+                    if not replicationDict:  # Gracefully handle ACS env
+                        print("Error: 'replication' commands are currently only supported in ACC.")
+                        sys.exit(1)
+                    for replication in replicationDict["items"]:
+                        replicationList.append(replication["id"])
 
     parser = argparse.ArgumentParser(allow_abbrev=True)
     parser.add_argument(
@@ -917,12 +930,17 @@ def main():
         "unmanage",
         help="Unmanage an object",
     )
+    parserUpdate = subparsers.add_parser(
+        "update",
+        help="Update an object",
+    )
     #######
     # End of top level subcommands
     #######
 
     #######
-    # subcommands "list", "create", "manage", "destroy", and "unmanage" have subcommands as well
+    # subcommands "list", "create", "manage", "destroy", "unmanage", and "update"
+    # have subcommands as well
     #######
     subparserList = parserList.add_subparsers(title="objectType", dest="objectType", required=True)
     subparserCreate = parserCreate.add_subparsers(
@@ -937,8 +955,12 @@ def main():
     subparserUnmanage = parserUnmanage.add_subparsers(
         title="objectType", dest="objectType", required=True
     )
+    subparserUpdate = parserUpdate.add_subparsers(
+        title="objectType", dest="objectType", required=True
+    )
     #######
-    # end of subcommand "list", "create", "manage", "destroy", and "unmanage" subcommands
+    # end of subcommand "list", "create", "manage", "destroy", "unmanage", and "update"
+    # subcommands
     #######
 
     #######
@@ -1946,6 +1968,40 @@ def main():
     # end of restore args and flags
     #######
 
+    #######
+    # update 'X'
+    #######
+    subparserUpdateReplication = subparserUpdate.add_parser(
+        "replication",
+        help="update replication",
+    )
+    #######
+    # end of update 'X'
+    #######
+
+    #######
+    # update replication args and flags
+    #######
+    subparserUpdateReplication.add_argument(
+        "replicationID",
+        choices=(None if plaidMode else replicationList),
+        help="replicationID to update",
+    )
+    subparserUpdateReplication.add_argument(
+        "operation",
+        choices=["failover", "reverse", "resync"],
+        help="whether to failover, reverse, or resync the replication policy",
+    )
+    subparserUpdateReplication.add_argument(
+        "--dataSource",
+        "-s",
+        default=None,
+        help="resync operation: the new source replication data (either appID or clusterID)",
+    )
+    #######
+    # end of update replication args and flags
+    #######
+
     args = parser.parse_args()
     # print(f"args: {args}")
     if hasattr(args, "granularity"):
@@ -2404,22 +2460,22 @@ def main():
             else:
                 print(f"Failed destroying protection policy: {args.protectionID}")
         elif args.objectType == "replication":
+            if plaidMode:
+                replicationDict = astraSDK.getReplicationpolicies().main()
             rc = astraSDK.destroyReplicationpolicy(quiet=args.quiet, verbose=args.verbose).main(
                 args.replicationID
             )
             if rc:
                 print(f"Replication policy {args.replicationID} destroyed")
-                # The corresponding replication schedule (protection policy) must also be deleted
-                if plaidMode:
-                    replicationDict = astraSDK.getReplicationpolicies().main()
+                # The underlying replication schedule(s) (protection policy) must also be deleted
                 protectionDict = astraSDK.getProtectionpolicies().main()
                 for replication in replicationDict["items"]:
                     if replication["id"] == args.replicationID:
                         for protection in protectionDict["items"]:
                             if (
                                 protection["appID"] == replication["sourceAppID"]
-                                and protection.get("replicate") == "true"
-                            ):
+                                or protection["appID"] == replication["destinationAppID"]
+                            ) and protection.get("replicate") == "true":
                                 if astraSDK.destroyProtectiontionpolicy(
                                     quiet=args.quiet, verbose=args.verbose
                                 ).main(protection["appID"], protection["id"]):
@@ -2582,6 +2638,96 @@ def main():
             background=args.background,
             verbose=args.verbose,
         )
+
+    elif args.subcommand == "update":
+        if args.objectType == "replication":
+            # Gather replication data
+            if plaidMode:
+                replicationDict = astraSDK.getReplicationpolicies().main()
+                if not replicationDict: # Gracefully handle ACS env
+                    print("Error: 'replication' commands are currently only supported in ACC.")
+                    sys.exit(1)
+            repl = None
+            for replication in replicationDict["items"]:
+                if args.replicationID == replication["id"]:
+                    repl = replication
+            if not repl:
+                print(f"Error: replicationID {args.replicationID} not found")
+                sys.exit(1)
+            # Make call based on operation type
+            if args.operation == "resync":
+                if not args.dataSource:
+                    print("Error: --dataSource must be provided for 'resync' operations")
+                    sys.exit(1)
+                if repl["state"] != "failedOver":
+                    print(
+                        "Error: to resync a replication, it must be in a `failedOver` state"
+                        + f", not a(n) `{repl['state']}` state"
+                    )
+                    sys.exit(1)
+                if args.dataSource in [repl["sourceAppID"], repl["sourceClusterID"]]:
+                    rc = astraSDK.updateReplicationpolicy(
+                        quiet=args.quiet, verbose=args.verbose
+                    ).main(
+                        args.replicationID,
+                        "established",
+                        sourceAppID=repl["sourceAppID"],
+                        sourceClusterID=repl["sourceClusterID"],
+                        destinationAppID=repl["destinationAppID"],
+                        destinationClusterID=repl["destinationClusterID"],
+                    )
+                elif args.dataSource in [repl["destinationAppID"], repl["destinationClusterID"]]:
+                    rc = astraSDK.updateReplicationpolicy(
+                        quiet=args.quiet, verbose=args.verbose
+                    ).main(
+                        args.replicationID,
+                        "established",
+                        sourceAppID=repl["destinationAppID"],
+                        sourceClusterID=repl["destinationClusterID"],
+                        destinationAppID=repl["sourceAppID"],
+                        destinationClusterID=repl["sourceClusterID"],
+                    )
+                else:
+                    print(
+                        f"Error: dataSource '{args.dataSource}' not one of:\n"
+                        + f"\t{repl['sourceAppID']}\t(original sourceAppID)\n"
+                        + f"\t{repl['sourceClusterID']}\t(original sourceClusterID)\n"
+                        + f"\t{repl['destinationAppID']}\t(original destinationAppID)\n"
+                        + f"\t{repl['destinationClusterID']}\t(original destinationClusterID)"
+                    )
+                    sys.exit(1)
+            elif args.operation == "reverse":
+                if repl["state"] != "established" and repl["state"] != "failedOver":
+                    print(
+                        "Error: to reverse a replication, it must be in an `established` or "
+                        + f"`failedOver` state, not a(n) `{repl['state']}` state"
+                    )
+                    sys.exit(1)
+                rc = astraSDK.updateReplicationpolicy(quiet=args.quiet, verbose=args.verbose).main(
+                    args.replicationID,
+                    "established",
+                    sourceAppID=repl["destinationAppID"],
+                    sourceClusterID=repl["destinationClusterID"],
+                    destinationAppID=repl["sourceAppID"],
+                    destinationClusterID=repl["sourceClusterID"],
+                )
+            else:  # failover
+                if repl["state"] != "established":
+                    print(
+                        "Error: to failover a replication, it must be in an `established` state"
+                        + f", not a(n) `{repl['state']}` state"
+                    )
+                    sys.exit(1)
+                rc = astraSDK.updateReplicationpolicy(quiet=args.quiet, verbose=args.verbose).main(
+                    args.replicationID, "failedOver"
+                )
+            # Exit based on response
+            if rc:
+                print(f"Replication {args.operation} initiated")
+                sys.exit(0)
+            else:
+                print("astraSDK.updateReplicationpolicy() failed")
+                sys.exit(1)
 
 
 if __name__ == "__main__":
