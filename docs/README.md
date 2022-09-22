@@ -14,10 +14,10 @@ toolkit.py utilizes `argparse` to provide an interactive CLI.  To view the possi
 
 ```text
 $ ./toolkit.py -h
-usage: toolkit.py [-h] [-v] [-o {json,yaml,table}] [-q] {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage} ...
+usage: toolkit.py [-h] [-v] [-o {json,yaml,table}] [-q] [-f] {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage,update} ...
 
 positional arguments:
-  {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage}
+  {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage,update}
                         subcommand help
     deploy              Deploy a helm chart
     clone               Clone an app
@@ -27,6 +27,7 @@ positional arguments:
     manage (define)     Manage an object
     destroy             Destroy an object
     unmanage            Unmanage an object
+    update              Update an object
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -34,6 +35,7 @@ optional arguments:
   -o {json,yaml,table}, --output {json,yaml,table}
                         command output format
   -q, --quiet           supress output
+  -f, --fast            prioritize speed over validation (using this will not validate arguments, which may have unintended consequences)
 ```
 
 For more information on the positional arguments, see the following pages:
@@ -46,6 +48,7 @@ For more information on the positional arguments, see the following pages:
 * [Manage](toolkit/manage/README.md)
 * [Destroy](toolkit/destroy/README.md)
 * [Unmanage](toolkit/unmanage/README.md)
+* [Update](toolkit/update/README.md)
 
 For more information on the optional arguments, please see the following page:
 

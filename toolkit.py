@@ -180,13 +180,13 @@ def run(command, captureOutput=False, ignoreErrors=False):
             return True
 
 
-def doProtectionTask(protectionType, appID, name, background, quiet, verbose):
+def doProtectionTask(protectionType, appID, name, background):
     """Take a snapshot/backup of appID giving it name <name>
     Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
     if protectionType == "backup":
-        protectionID = astraSDK.takeBackup(quiet=quiet, verbose=verbose).main(appID, name)
+        protectionID = astraSDK.takeBackup().main(appID, name)
     elif protectionType == "snapshot":
-        protectionID = astraSDK.takeSnap(quiet=quiet, verbose=verbose).main(appID, name)
+        protectionID = astraSDK.takeSnap().main(appID, name)
     if protectionID == False:
         sys.exit(1)
 
@@ -2203,7 +2203,7 @@ def main():
     elif args.subcommand == "create":
         if args.objectType == "backup":
             rc = doProtectionTask(
-                args.objectType, args.appID, args.name, args.background, args.quiet, args.verbose
+                args.objectType, args.appID, args.name, args.background
             )
             if rc is False:
                 print("doProtectionTask() failed")
@@ -2335,7 +2335,7 @@ def main():
                 sys.exit(0)
         elif args.objectType == "snapshot":
             rc = doProtectionTask(
-                args.objectType, args.appID, args.name, args.background, args.quiet, args.verbose
+                args.objectType, args.appID, args.name, args.background
             )
             if rc is False:
                 print("doProtectionTask() failed")

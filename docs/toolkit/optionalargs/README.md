@@ -17,10 +17,10 @@ The `--help` / `-h` argument can be utilized at any location within `./toolkit.p
 
 ```text
 $ ./toolkit.py --help
-usage: toolkit.py [-h] [-v] [-o {json,yaml,table}] [-q] {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage} ...
+usage: toolkit.py [-h] [-v] [-o {json,yaml,table}] [-q] [-f] {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage,update} ...
 
 positional arguments:
-  {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage}
+  {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage,update}
                         subcommand help
     deploy              Deploy a helm chart
     clone               Clone an app
@@ -30,6 +30,7 @@ positional arguments:
     manage (define)     Manage an object
     destroy             Destroy an object
     unmanage            Unmanage an object
+    update              Update an object
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -37,6 +38,7 @@ optional arguments:
   -o {json,yaml,table}, --output {json,yaml,table}
                         command output format
   -q, --quiet           supress output
+  -f, --fast            prioritize speed over validation (using this will not validate arguments, which may have unintended consequences)
 ```
 
 If utilized after positional arguments, then information about that specific command is shown.
