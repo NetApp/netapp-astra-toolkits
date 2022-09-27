@@ -1914,14 +1914,14 @@ def main():
         choices=(None if plaidMode else backupList),
         required=False,
         default=None,
-        help="Source backup to clone",
+        help="Source backup to clone from",
     )
     group.add_argument(
         "--snapshotID",
         choices=(None if plaidMode else snapshotList),
         required=False,
         default=None,
-        help="Source snapshot to restore from",
+        help="Source snapshot to clone from",
     )
     group.add_argument(
         "--sourceAppID",
@@ -2202,9 +2202,7 @@ def main():
 
     elif args.subcommand == "create":
         if args.objectType == "backup":
-            rc = doProtectionTask(
-                args.objectType, args.appID, args.name, args.background
-            )
+            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
@@ -2334,9 +2332,7 @@ def main():
             else:
                 sys.exit(0)
         elif args.objectType == "snapshot":
-            rc = doProtectionTask(
-                args.objectType, args.appID, args.name, args.background
-            )
+            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
@@ -2644,7 +2640,7 @@ def main():
             # Gather replication data
             if plaidMode:
                 replicationDict = astraSDK.getReplicationpolicies().main()
-                if not replicationDict: # Gracefully handle ACS env
+                if not replicationDict:  # Gracefully handle ACS env
                     print("Error: 'replication' commands are currently only supported in ACC.")
                     sys.exit(1)
             repl = None
