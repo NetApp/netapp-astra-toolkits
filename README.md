@@ -6,8 +6,7 @@ You can use the `astraSDK.py` library out of the box, and as a set of example re
 
 When using `toolkit.py`/`actoolkit` in automation, it is **highly** recommended to tie your workflows to a specific [tag](https://github.com/NetApp/netapp-astra-toolkits/tags) or [release](https://pypi.org/project/actoolkit/#history) (as functionality may change over time), and be sure to thoroughly test all workflows to ensure expected behavior.
 
-> **Note**: Support for all components of the Astra Control Python SDK is exclusively handled in a best effort fashion by the
-> **community** via [GitHub issues](https://github.com/NetApp/netapp-astra-toolkits/issues), and **is not** supported by NetApp Support. Use of this SDK is entirely at your own risk.
+> **Note**: Support for all components of the Astra Control Python SDK is exclusively handled in a best effort fashion by the **community** via [GitHub issues](https://github.com/NetApp/netapp-astra-toolkits/issues), and is **not** supported by NetApp Support. Use of this SDK is entirely at your own risk.
 
 ## Installation
 
