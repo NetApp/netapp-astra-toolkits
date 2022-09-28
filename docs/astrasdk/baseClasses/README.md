@@ -29,6 +29,10 @@ The SDKCommon class is the parent class for all other classes within `astraSDK.p
 
 `jsonifyResults` takes in an API response, and returns a JSON object (python dict), with error handling.
 
-### preflight
+### printVerbose
 
-`preflight` performs a `get` on `topology/v1/clouds` to validate that the access information in the `config.yaml` file is valid.
+`printVerbose` is used by child classes to print [colored](https://pypi.org/project/colored/) text when `verbose=True` (useful for debugging).
+
+### basicTable
+
+`basicTable` is used by some child classes to collate data for printing tables to the terminal.

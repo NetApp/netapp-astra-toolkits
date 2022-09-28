@@ -1008,7 +1008,7 @@ class manageApp(SDKCommon):
 
 
 class unmanageApp(SDKCommon):
-    """This class switches a managed app to a discovered app."""
+    """This class undefines a managed application."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)

@@ -4,7 +4,10 @@ The NetApp Astra Control Python SDK is designed to provide guidance for working 
 
 You can use the `astraSDK.py` library out of the box, and as a set of example recommended code and processes, "cookbook" style. The `toolkit.py` script provides a command line interface to interact with Astra Control with built-in guardrails, and since it utilizes astraSDK.py it can provide additional context around the requirements of the astraSDK.py classes.
 
-If using `toolkit.py`/`actoolkit` in production, it is **highly** recommended to tie your workflows to a specific [tag](https://github.com/NetApp/netapp-astra-toolkits/tags) or [release](https://pypi.org/project/actoolkit/#history) (as functionality may change over time), and be sure to thoroughly test all workflows in dev/test to ensure expected behavior prior to moving into production.
+When using `toolkit.py`/`actoolkit` in automation, it is **highly** recommended to tie your workflows to a specific [tag](https://github.com/NetApp/netapp-astra-toolkits/tags) or [release](https://pypi.org/project/actoolkit/#history) (as functionality may change over time), and be sure to thoroughly test all workflows to ensure expected behavior.
+
+> **Note**: Support for all components of the Astra Control Python SDK is exclusively handled in a best effort fashion by the
+> **community** via [GitHub issues](https://github.com/NetApp/netapp-astra-toolkits/issues), and **is not** supported by NetApp Support. Use of this SDK is entirely at your own risk.
 
 ## Installation
 
