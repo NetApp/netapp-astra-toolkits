@@ -11,16 +11,17 @@ The `destroy` argument allows you to destroy Astra resources.  Its opposite comm
 * [Replication](#replication)
 * [Script](#script)
 * [Snapshot](#snapshot)
+* [User](#user)
 
 ```text
 $ ./toolkit.py destroy -h
-usage: toolkit.py destroy [-h] {backup,credential,hook,protection,replication,script,snapshot} ...
+usage: toolkit.py destroy [-h] {backup,credential,hook,protection,replication,script,snapshot,user} ...
 
 optional arguments:
   -h, --help            show this help message and exit
 
 objectType:
-  {backup,credential,hook,protection,replication,script,snapshot}
+  {backup,credential,hook,protection,replication,script,snapshot,user}
     backup              destroy backup
     credential          destroy credential
     hook                destroy hook (executionHook)
@@ -28,6 +29,7 @@ objectType:
     replication         destroy replication policy
     script              destroy script (hookSource)
     snapshot            destroy snapshot
+    user                destroy user
 ```
 
 ## Backup
@@ -138,4 +140,19 @@ The command initiates the snapshot destruction, and then returns the command pro
 $ ./toolkit.py destroy snapshot a643b5dc-bfa0-4624-8bdd-5ad5325f20fd \
     3cb65a44-62a1-4157-a314-3840b761c6c8
 Snapshot 3cb65a44-62a1-4157-a314-3840b761c6c8 destroyed
+```
+
+## User
+
+The `destroy user` command allows you to destroy a specific user and its associated roleBinding.  The command usage is:
+
+```text
+./toolkit.py destroy user <userID>
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py destroy user 431aadcc-e568-4aef-bdd8-6df31eff1669
+User 431aadcc-e568-4aef-bdd8-6df31eff1669 / roleBinding d1501dc7-3eb0-4f78-82fa-ea0d27b77b91 destroyed
 ```

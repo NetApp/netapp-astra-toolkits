@@ -9,6 +9,7 @@ The `create` argument allows you to create Astra resources, including:
 * [Replications](#replication)
 * [Scripts](#script)
 * [Snapshots](#snapshot)
+* [Users](#user)
 
 Its opposite command is [destroy](../destroy/README.md), which allows you to destroy these same resources.  **Create** and **destroy** are similar to [manage](../manage/README.md) and [unmanage](../unmanage/README.md), however create/destroy objects live entirely within Astra Control, while manage/unmanage objects do not.  If you create and then destroy a [snapshot](../create/README.md#snapshot), it is gone forever.  However if you manage and then unmanage a cluster, the cluster still exists to re-manage again.
 
@@ -289,7 +290,7 @@ Waiting for snapshot to complete.....complete!
 When the optional `--background`/`-b` argument **is** specified, the command simply initiates the snapshot task, and leaves it to the user to validate the snapshot completion.
 
 ```text
-./toolkit.py create snapshot -b a643b5dc-bfa0-4624-8bdd-5ad5325f20fd 20220523-cli-snap2
+$ ./toolkit.py create snapshot -b a643b5dc-bfa0-4624-8bdd-5ad5325f20fd 20220523-cli-snap2
 Starting snapshot of a643b5dc-bfa0-4624-8bdd-5ad5325f20fd
 Background snapshot flag selected, run 'list snapshots' to get status
 $ ./toolkit.py list snapshots
@@ -303,4 +304,37 @@ $ ./toolkit.py list snapshots
 | a643b5dc-bfa0-4624-8bdd-5ad5325f20fd | 20220523-cli-snap2                | 3cb65a44-62a1-4157-a314-3840b761c6c8 | ready         |
 +--------------------------------------+-----------------------------------+--------------------------------------+---------------+
 
+```
+
+## User
+
+The `create user` command allows you to create either a **local** (for ACC environments) or **cloud-central** (for ACS environments) user (and associated roleBinding).  LDAP based users are currently not supported, but will be added at some point.  The command usage is:
+
+```text
+./toolkit.py create user <email> <role> <-p tempPassword> \
+    <-f optional firstName> <-l optional lastName>
+```
+
+The role argument must be one of the following four values:
+
+* viewer
+* member
+* admin
+* owner
+
+For **local** (ACC environments) users, the `-p`/`--tempPassword` argument is required.  This password must be changed after the user's first login.
+
+```text
+$ ./toolkit.py create user jdoe@example.com member -p ThisIsAStrongPass123$ -f John -l Doe
+{"metadata": {"creationTimestamp": "2022-09-30T20:46:16Z", "modificationTimestamp": "2022-09-30T20:46:16Z", "createdBy": "2b7a3f5e-c7da-4835-bfe2-6dd51c9b1444", "labels": []}, "type": "application/astra-user", "version": "1.2", "id": "6b1551db-b7fa-473d-a05c-43524badb11b", "authProvider": "local", "authID": "jdoe@example.com", "firstName": "John", "lastName": "Doe", "companyName": "", "email": "jdoe@example.com", "postalAddress": {"addressCountry": "", "addressLocality": "", "addressRegion": "", "streetAddress1": "", "streetAddress2": "", "postalCode": ""}, "state": "active", "sendWelcomeEmail": "false", "isEnabled": "true", "isInviteAccepted": "true", "enableTimestamp": "2022-09-30T20:46:16Z", "lastActTimestamp": ""}
+{"metadata": {"creationTimestamp": "2022-09-30T20:46:16Z", "modificationTimestamp": "2022-09-30T20:46:16Z", "createdBy": "2b7a3f5e-c7da-4835-bfe2-6dd51c9b1444", "labels": []}, "type": "application/astra-roleBinding", "principalType": "user", "version": "1.1", "id": "ef8e5a91-13aa-4fac-96f7-26c78d619414", "userID": "6b1551db-b7fa-473d-a05c-43524badb11b", "groupID": "00000000-0000-0000-0000-000000000000", "accountID": "61edc0b9-0695-47d2-bdeb-4ad5a4ed65e1", "role": "member", "roleConstraints": ["*"]}
+{"type": "application/astra-credential", "version": "1.1", "id": "6117fa73-de5b-4976-b178-8d5a1e2352dc", "name": "6b1551db-b7fa-473d-a05c-43524badb11b", "keyType": "passwordHash", "metadata": {"creationTimestamp": "2022-09-30T20:46:16Z", "modificationTimestamp": "2022-09-30T20:46:16Z", "createdBy": "2b7a3f5e-c7da-4835-bfe2-6dd51c9b1444", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "passwordHash"}]}}
+```
+
+For **cloud-central** (ACS environments) users, the `-p`/`--tempPassword` argument is not needed.  Instead, the user will be emailed an invitation to join the account.
+
+```text
+$ ./toolkit.py create user jdoe@example.com viewer -f John -l Doe
+{"metadata": {"creationTimestamp": "2022-09-30T21:01:37Z", "modificationTimestamp": "2022-09-30T21:01:37Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": []}, "type": "application/astra-user", "version": "1.2", "id": "b7d87db3-1896-4e03-b2ad-63b873244b53", "authProvider": "cloud-central", "authID": "", "firstName": "John", "lastName": "Doe", "companyName": "", "email": "jdoe@example.com", "postalAddress": {"addressCountry": "", "addressLocality": "", "addressRegion": "", "streetAddress1": "", "streetAddress2": "", "postalCode": ""}, "state": "pending", "sendWelcomeEmail": "true", "isEnabled": "true", "isInviteAccepted": "false", "enableTimestamp": "2022-09-30T21:01:37Z", "lastActTimestamp": ""}
+{"metadata": {"creationTimestamp": "2022-09-30T21:01:38Z", "modificationTimestamp": "2022-09-30T21:01:38Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": []}, "type": "application/astra-roleBinding", "principalType": "user", "version": "1.1", "id": "4d732ae4-d0cd-4c65-aee8-98efc6a88140", "userID": "b7d87db3-1896-4e03-b2ad-63b873244b53", "groupID": "00000000-0000-0000-0000-000000000000", "accountID": "fc018f3d-e807-4fa7-98d5-fbe43be9aaa0", "role": "viewer", "roleConstraints": ["*"]}
 ```

@@ -592,6 +592,7 @@ def main():
     scriptList = []
     snapshotList = []
     storageClassList = []
+    userList = []
 
     if len(sys.argv) > 1:
 
@@ -843,6 +844,10 @@ def main():
                 elif sys.argv[verbPosition + 1] == "script" and len(sys.argv) - verbPosition >= 3:
                     for script in astraSDK.getScripts().main()["items"]:
                         scriptList.append(script["id"])
+                elif sys.argv[verbPosition + 1] == "user" and len(sys.argv) - verbPosition >= 3:
+                    userDict = astraSDK.getUsers().main()
+                    for user in userDict["items"]:
+                        userList.append(user["id"])
 
             elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
                 if sys.argv[verbPosition + 1] == "app":
@@ -1006,6 +1011,10 @@ def main():
     subparserListReplications = subparserList.add_parser(
         "replications",
         help="list replication policies",
+    )
+    subparserListRolebindings = subparserList.add_parser(
+        "rolebindings",
+        help="list role bindings",
     )
     subparserListScripts = subparserList.add_parser(
         "scripts",
@@ -1210,6 +1219,15 @@ def main():
     #######
 
     #######
+    # list rolebindings args and flags
+    #######
+    subparserListRolebindings.add_argument(
+        "-i",
+        "--idFilter",
+        default=None,
+        help="Only show role bindings matching the provided user or group ID",
+    )
+    #######
     # list scripts args and flags
     #######
     subparserListScripts.add_argument(
@@ -1289,6 +1307,10 @@ def main():
     subparserCreateSnapshot = subparserCreate.add_parser(
         "snapshot",
         help="create snapshot",
+    )
+    subparserCreateUser = subparserCreate.add_parser(
+        "user",
+        help="create a user",
     )
     #######
     # end of create 'X'
@@ -1538,6 +1560,27 @@ def main():
     #######
 
     #######
+    # create user args and flags
+    #######
+    subparserCreateUser.add_argument("email", help="The email of the user to add")
+    subparserCreateUser.add_argument(
+        "role", choices=["viewer", "member", "admin", "owner"], help="The user's role"
+    )
+    subparserCreateUser.add_argument(
+        "-p", "--tempPassword", default=None, help="The temporary password for the user (ACC-only)"
+    )
+    subparserCreateUser.add_argument(
+        "-f",
+        "--firstName",
+        default=None,
+        help="The user's first name",
+    )
+    subparserCreateUser.add_argument("-l", "--lastName", default=None, help="The user's last name")
+    #######
+    # end of create user args and flags
+    #######
+
+    #######
     # manage 'X'
     #######
     subparserManageApp = subparserManage.add_parser(
@@ -1680,6 +1723,10 @@ def main():
         "snapshot",
         help="destroy snapshot",
     )
+    subparserDestroyUser = subparserDestroy.add_parser(
+        "user",
+        help="destroy user",
+    )
     #######
     # end of destroy 'X'
     #######
@@ -1788,6 +1835,18 @@ def main():
     )
     #######
     # end of destroy snapshot args and flags
+    #######
+
+    #######
+    # destroy user args and flags
+    #######
+    subparserDestroyUser.add_argument(
+        "userID",
+        choices=(None if plaidMode else userList),
+        help="userID to destroy",
+    )
+    #######
+    # end of destroy user args and flags
     #######
 
     #######
@@ -2155,6 +2214,15 @@ def main():
                 sys.exit(1)
             else:
                 sys.exit(0)
+        elif args.objectType == "rolebindings":
+            rc = astraSDK.getRolebindings(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(idFilter=args.idFilter)
+            if rc is False:
+                print("astraSDK.getRolebindings() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         elif args.objectType == "scripts":
             if args.getScriptSource:
                 args.quiet = True
@@ -2215,7 +2283,10 @@ def main():
                     "utf-8"
                 )
             rc = astraSDK.createCredential(quiet=args.quiet, verbose=args.verbose).main(
-                kubeconfigDict["clusters"][0]["name"], "kubeconfig", {"base64": encodedStr}
+                kubeconfigDict["clusters"][0]["name"],
+                "kubeconfig",
+                {"base64": encodedStr},
+                cloudName="private",
             )
             if rc:
                 rc = astraSDK.addCluster(quiet=args.quiet, verbose=args.verbose).main(
@@ -2338,7 +2409,47 @@ def main():
                 sys.exit(1)
             else:
                 sys.exit(0)
-
+        elif args.objectType == "user":
+            # First create the user
+            urc = astraSDK.createUser(quiet=args.quiet, verbose=args.verbose).main(
+                args.email, firstName=args.firstName, lastName=args.lastName
+            )
+            if urc:
+                # Next create the role binding
+                rrc = astraSDK.createRolebinding(quiet=args.quiet, verbose=args.verbose).main(
+                    args.role, urc["id"]
+                )
+                if rrc:
+                    # Delete+error "local" users where a tempPassword wasn't provided
+                    if urc["authProvider"] == "local" and not args.tempPassword:
+                        print("Error: --tempPassword is required for ACC+localAuth")
+                        drc = astraSDK.destroyRolebinding(quiet=True).main(rrc["id"])
+                        if not drc:
+                            print("astraSDK.destroyRolebinding() failed")
+                        sys.exit(1)
+                    # Finally, create the credential if local user
+                    if urc["authProvider"] == "local":
+                        crc = astraSDK.createCredential(
+                            quiet=args.quiet, verbose=args.verbose
+                        ).main(
+                            urc["id"],
+                            "passwordHash",
+                            {
+                                "cleartext": base64.b64encode(
+                                    args.tempPassword.encode("utf-8")
+                                ).decode("utf-8"),
+                                "change": base64.b64encode("true".encode("utf-8")).decode("utf-8"),
+                            },
+                        )
+                        if not crc:
+                            print("astraSDK.createCredential() failed")
+                            sys.exit(1)
+                else:
+                    print("astraSDK.createRolebinding() failed")
+                    sys.exit(1)
+            else:
+                print("astraSDK.createUser() failed")
+                sys.exit(1)
     elif args.subcommand == "manage" or args.subcommand == "define":
         if args.objectType == "app":
             rc = astraSDK.manageApp(quiet=args.quiet, verbose=args.verbose).main(
@@ -2502,6 +2613,22 @@ def main():
                 print(f"Snapshot {args.snapshotID} destroyed")
             else:
                 print(f"Failed destroying snapshot: {args.snapshotID}")
+        elif args.objectType == "user":
+            roleBindings = astraSDK.getRolebindings().main()
+            for rb in roleBindings["items"]:
+                if rb["userID"] == args.userID:
+                    rc = astraSDK.destroyRolebinding(quiet=args.quiet, verbose=args.verbose).main(
+                        rb["id"]
+                    )
+                    if rc:
+                        print(f"User {args.userID} / roleBinding {rb['id']} destroyed")
+                        sys.exit(0)
+                    else:
+                        print(f"Failed destroying user {args.userID} with roleBinding {rb['id']}")
+                        sys.exit(1)
+            # If we reached this point, it's due to plaidMode == True and bad userID
+            print(f"Error: userID {args.userID} not found")
+            sys.exit(1)
 
     elif args.subcommand == "unmanage":
         if args.objectType == "app":
