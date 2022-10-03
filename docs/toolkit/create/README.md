@@ -312,7 +312,8 @@ The `create user` command allows you to create either a **local** (for ACC envir
 
 ```text
 ./toolkit.py create user <email> <role> <-p tempPassword> \
-    <-f optional firstName> <-l optional lastName>
+    <-f optional firstName> <-l optional lastName> \
+    <-a optional labelConstraint> <-n optional namespaceConstraint>
 ```
 
 The role argument must be one of the following four values:
@@ -337,4 +338,15 @@ For **cloud-central** (ACS environments) users, the `-p`/`--tempPassword` argume
 $ ./toolkit.py create user jdoe@example.com viewer -f John -l Doe
 {"metadata": {"creationTimestamp": "2022-09-30T21:01:37Z", "modificationTimestamp": "2022-09-30T21:01:37Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": []}, "type": "application/astra-user", "version": "1.2", "id": "b7d87db3-1896-4e03-b2ad-63b873244b53", "authProvider": "cloud-central", "authID": "", "firstName": "John", "lastName": "Doe", "companyName": "", "email": "jdoe@example.com", "postalAddress": {"addressCountry": "", "addressLocality": "", "addressRegion": "", "streetAddress1": "", "streetAddress2": "", "postalCode": ""}, "state": "pending", "sendWelcomeEmail": "true", "isEnabled": "true", "isInviteAccepted": "false", "enableTimestamp": "2022-09-30T21:01:37Z", "lastActTimestamp": ""}
 {"metadata": {"creationTimestamp": "2022-09-30T21:01:38Z", "modificationTimestamp": "2022-09-30T21:01:38Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": []}, "type": "application/astra-roleBinding", "principalType": "user", "version": "1.1", "id": "4d732ae4-d0cd-4c65-aee8-98efc6a88140", "userID": "b7d87db3-1896-4e03-b2ad-63b873244b53", "groupID": "00000000-0000-0000-0000-000000000000", "accountID": "fc018f3d-e807-4fa7-98d5-fbe43be9aaa0", "role": "viewer", "roleConstraints": ["*"]}
+```
+
+Finally, any number of labelConstraints (`-a`/`--labelConstraint`) and/or namespaceConstraints (`-n`/`--namespaceConstraint`) can be provided (note that multiple values can be provided, either with space separated values, or specifying the argument again).
+
+```text
+$ ./toolkit.py create user jdoe@example.com member -p ThisIsAStrongPass123$ \
+    -a name=jenkins -a name=cicd-jenkins \
+    -n dc3e076d-e104-47cd-b986-523017e85f27 f73ccf3c-65bb-47e0-9f62-0477a4dd7e89
+{"metadata": {"creationTimestamp": "2022-10-03T14:57:41Z", "modificationTimestamp": "2022-10-03T14:57:41Z", "createdBy": "2b7a3f5e-c7da-4835-bfe2-6dd51c9b1444", "labels": []}, "type": "application/astra-user", "version": "1.2", "id": "52a0f1db-f1c9-469b-b173-3d4d5d85f61a", "authProvider": "local", "authID": "jdoe@example.com", "firstName": "", "lastName": "", "companyName": "", "email": "jdoe@example.com", "postalAddress": {"addressCountry": "", "addressLocality": "", "addressRegion": "", "streetAddress1": "", "streetAddress2": "", "postalCode": ""}, "state": "active", "sendWelcomeEmail": "false", "isEnabled": "true", "isInviteAccepted": "true", "enableTimestamp": "2022-10-03T14:57:41Z", "lastActTimestamp": ""}
+{"metadata": {"creationTimestamp": "2022-10-03T14:57:41Z", "modificationTimestamp": "2022-10-03T14:57:41Z", "createdBy": "2b7a3f5e-c7da-4835-bfe2-6dd51c9b1444", "labels": []}, "type": "application/astra-roleBinding", "principalType": "user", "version": "1.1", "id": "5e870f0d-e892-414f-942e-49001e97165e", "userID": "52a0f1db-f1c9-469b-b173-3d4d5d85f61a", "groupID": "00000000-0000-0000-0000-000000000000", "accountID": "61edc0b9-0695-47d2-bdeb-4ad5a4ed65e1", "role": "member", "roleConstraints": ["namespaces:id='dc3e076d-e104-47cd-b986-523017e85f27'.*", "namespaces:id='f73ccf3c-65bb-47e0-9f62-0477a4dd7e89'.*", "namespaces:kubernetesLabels='name=jenkins'.*", "namespaces:kubernetesLabels='name=cicd-jenkins'.*"]}
+{"type": "application/astra-credential", "version": "1.1", "id": "61da64d2-d39b-47cf-b8bc-d8a3443c2cba", "name": "52a0f1db-f1c9-469b-b173-3d4d5d85f61a", "keyType": "passwordHash", "metadata": {"creationTimestamp": "2022-10-03T14:57:41Z", "modificationTimestamp": "2022-10-03T14:57:41Z", "createdBy": "2b7a3f5e-c7da-4835-bfe2-6dd51c9b1444", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "passwordHash"}]}}
 ```

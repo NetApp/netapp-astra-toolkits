@@ -97,7 +97,7 @@ def createHelmStr(flagName, values):
 
 def createHookList(hookArguments):
     """Create a list of strings to be used for --hookArguments, as nargs="*" can provide
-    a variety of different types of lists of lists depending on how the user ueses it.
+    a variety of different types of lists of lists depending on how the user uses it.
     User Input                    argParse Value                      createHookList Return
     ----------                    --------------                      ---------------------
     -a arg1                       [['arg1']]                          ['arg1']
@@ -115,6 +115,27 @@ def createHookList(hookArguments):
             else:
                 returnList.append(arg)
     return returnList
+
+
+def createConstraintList(idList, labelList):
+    """Create a list of strings to be used for --labelConstraint and --namespaceConstraint args,
+    as nargs="*" can provide a varitey of different types of lists of lists depending on input."""
+    returnList = []
+    if idList:
+        for arg in idList:
+            if type(arg) == list:
+                for a in arg:
+                    returnList.append("namespaces:id='" + a + "'.*")
+            else:
+                returnList.append("namespaces:id='" + arg + "'.*")
+    if labelList:
+        for arg in labelList:
+            if type(arg) == list:
+                for a in arg:
+                    returnList.append("namespaces:kubernetesLabels='" + a + "'.*")
+            else:
+                returnList.append("namespaces:kubernetesLabels='" + arg + "'.*")
+    return returnList if returnList else ["*"]
 
 
 def updateHelm():
@@ -586,6 +607,7 @@ def main():
     credentialList = []
     destclusterList = []
     hookList = []
+    labelList = []
     namespaceList = []
     protectionList = []
     replicationList = []
@@ -735,7 +757,6 @@ def main():
                     for storageClass in storageClassDict["items"]:
                         storageClassList.append(storageClass["name"])
                     storageClassList = list(set(storageClassList))
-
             elif (
                 verbs["create"]
                 and len(sys.argv) - verbPosition >= 2
@@ -744,6 +765,21 @@ def main():
                 for cloud in astraSDK.getClouds().main()["items"]:
                     if cloud["cloudType"] not in ["GCP", "Azure", "AWS"]:
                         cloudList.append(cloud["id"])
+            elif (
+                verbs["create"]
+                and len(sys.argv) - verbPosition >= 2
+                and sys.argv[verbPosition + 1] == "user"
+            ):
+                namespaceDict = astraSDK.getNamespaces().main()
+                for namespace in namespaceDict["items"]:
+                    namespaceList.append(namespace["id"])
+                    if namespace.get("kubernetesLabels"):
+                        for label in namespace["kubernetesLabels"]:
+                            labelString = label["name"]
+                            if label.get("value"):
+                                labelString += "=" + label["value"]
+                            labelList.append(labelString)
+                labelList = list(set(labelList))
 
             elif (
                 verbs["list"]
@@ -1576,6 +1612,24 @@ def main():
         help="The user's first name",
     )
     subparserCreateUser.add_argument("-l", "--lastName", default=None, help="The user's last name")
+    subparserCreateUser.add_argument(
+        "-a",
+        "--labelConstraint",
+        default=None,
+        choices=(None if plaidMode else labelList),
+        nargs="*",
+        action="append",
+        help="Restrict user role to label constraints",
+    )
+    subparserCreateUser.add_argument(
+        "-n",
+        "--namespaceConstraint",
+        default=None,
+        choices=(None if plaidMode else namespaceList),
+        nargs="*",
+        action="append",
+        help="Restrict user role to namespace constraints",
+    )
     #######
     # end of create user args and flags
     #######
@@ -2417,7 +2471,11 @@ def main():
             if urc:
                 # Next create the role binding
                 rrc = astraSDK.createRolebinding(quiet=args.quiet, verbose=args.verbose).main(
-                    args.role, urc["id"]
+                    args.role,
+                    userID=urc["id"],
+                    roleConstraints=createConstraintList(
+                        args.namespaceConstraint, args.labelConstraint
+                    ),
                 )
                 if rrc:
                     # Delete+error "local" users where a tempPassword wasn't provided
