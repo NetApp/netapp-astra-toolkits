@@ -412,8 +412,7 @@ class toolkit:
         self,
         cloneAppName,
         clusterID,
-        sourceClusterID,
-        appIDstr,
+        oApp,
         cloneNamespace,
         backupID,
         snapshotID,
@@ -424,7 +423,7 @@ class toolkit:
         """Create a clone."""
         # Check to see if cluster-level resources are needed to be manually created
         needsIngressclass = False
-        appAssets = astraSDK.getAppAssets(verbose=verbose).main(appIDstr)
+        appAssets = astraSDK.getAppAssets(verbose=verbose).main(oApp["id"])
         for asset in appAssets["items"]:
             if (
                 "nginx-ingress-controller" in asset["assetName"]
@@ -433,7 +432,7 @@ class toolkit:
                 needsIngressclass = True
                 assetName = asset["assetName"]
         # Clone 'ingressclass' cluster object
-        if needsIngressclass and sourceClusterID != clusterID:
+        if needsIngressclass and oApp["clusterID"] != clusterID:
             if not cloneNamespace:
                 cloneNamespace = cloneAppName
             clusters = astraSDK.getClusters().main(hideUnmanaged=True)
@@ -448,7 +447,7 @@ class toolkit:
                                     context=context["name"]
                                 )
                             )
-                    elif cluster["id"] == sourceClusterID:
+                    elif cluster["id"] == oApp["clusterID"]:
                         if cluster["name"] in context["name"]:
                             sourceClient = kubernetes.client.NetworkingV1Api(
                                 api_client=kubernetes.config.new_client_from_config(
@@ -557,12 +556,19 @@ class toolkit:
                 body = json.loads(e.body)
                 if not (body.get("reason") == "AlreadyExists"):
                     raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
+        if cloneNamespace:
+            cloneNamespace = [
+                {
+                    "source": oApp["namespaceScopedResources"][0]["namespace"],
+                    "destination": cloneNamespace,
+                }
+            ]
 
         cloneRet = astraSDK.cloneApp(verbose=verbose).main(
             cloneAppName,
             clusterID,
-            sourceClusterID,
-            cloneNamespace=cloneNamespace,
+            oApp["clusterID"],
+            namespaceMapping=cloneNamespace,
             backupID=backupID,
             snapshotID=snapshotID,
             sourceAppID=sourceAppID,
@@ -2770,37 +2776,32 @@ def main():
             print("Select destination cluster for the clone")
             print("Index\tClusterID\t\t\t\tclusterName\tclusterPlatform")
             args.clusterID = userSelect(destCluster, ["id", "name", "clusterType"])
-        # Determine sourceClusterID and the appID (appID could be provided by args.sourceAppID,
-        # however if it's not that value will be 'None', and if so it needs to stay 'None' when
-        # a backup or snapshot ID is provided for the app to be cloned from the correctly).
-        sourceClusterID = ""
-        appIDstr = ""
+        # Get the original app dictionary based on args.sourceAppID/args.backupID/args.snapshotID,
+        # as the app dict contains sourceClusterID and namespaceScopedResources which we need
+        oApp = {}
         # Handle -f/--fast/plaidMode cases
         if plaidMode:
             apps = astraSDK.getApps().main()
         if args.sourceAppID:
             for app in apps["items"]:
                 if app["id"] == args.sourceAppID:
-                    sourceClusterID = app["clusterID"]
-                    appIDstr = app["id"]
+                    oApp = app
         elif args.backupID:
             if plaidMode:
                 backups = astraSDK.getBackups().main()
             for app in apps["items"]:
                 for backup in backups["items"]:
                     if app["id"] == backup["appID"] and backup["id"] == args.backupID:
-                        sourceClusterID = app["clusterID"]
-                        appIDstr = app["id"]
+                        oApp = app
         elif args.snapshotID:
             if plaidMode:
                 snapshots = astraSDK.getSnaps().main()
             for app in apps["items"]:
                 for snapshot in snapshots["items"]:
                     if app["id"] == snapshot["appID"] and snapshot["id"] == args.snapshotID:
-                        sourceClusterID = app["clusterID"]
-                        appIDstr = app["id"]
+                        oApp = app
         # Ensure appIDstr is not equal to "", if so bad values were passed in with plaidMode
-        if appIDstr == "":
+        if not oApp:
             print(
                 "Error: the corresponding appID was not found in the system, please check "
                 + "your inputs and try again."
@@ -2810,8 +2811,7 @@ def main():
         tk.clone(
             args.cloneAppName,
             args.clusterID,
-            sourceClusterID,
-            appIDstr,
+            oApp,
             args.cloneNamespace,
             backupID=args.backupID,
             snapshotID=args.snapshotID,

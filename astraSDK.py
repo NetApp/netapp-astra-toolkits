@@ -539,7 +539,7 @@ class cloneApp(SDKCommon):
         cloneName,
         clusterID,
         sourceClusterID,
-        cloneNamespace=None,
+        namespaceMapping=None,
         backupID=None,
         snapshotID=None,
         sourceAppID=None,
@@ -562,8 +562,8 @@ class cloneApp(SDKCommon):
             data["backupID"] = backupID
         if snapshotID:
             data["snapshotID"] = snapshotID
-        if cloneNamespace:
-            data["namespaceScopedResources"] = [{"namespace": cloneNamespace, "labelSelectors": []}]
+        if namespaceMapping:
+            data["namespaceMapping"] = namespaceMapping
 
         if self.verbose:
             print("Cloning app")
