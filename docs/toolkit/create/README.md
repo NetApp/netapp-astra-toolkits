@@ -67,7 +67,7 @@ $ ./toolkit.py list backups
 +--------------------------------------+----------------------+--------------------------------------+-------------+
 ```
 
-## Clusters
+## Cluster
 
 The `create cluster` command allows you to create non-public-cloud-managed Kubernetes clusters from a kubeconfig file.  After the cluster is "created" it **must** still be [managed](../manage/README.md#cluster) to be fully brought under Astra's control.  The command usage is:
 

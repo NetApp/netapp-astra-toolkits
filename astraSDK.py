@@ -1365,8 +1365,8 @@ class getStorageClasses(SDKCommon):
             dataReturn = yaml.dump(storageClasses)
         elif self.output == "table":
             dataReturn = self.basicTable(
-                ["cloud", "cluster", "storageclassID", "storageclassName"],
-                ["cloudType", "clusterName", "id", "name"],
+                ["storageclassName", "storageclassID", "clusterName", "clusterID", "cloudType"],
+                ["name", "id", "clusterName", "clusterID", "cloudType"],
                 storageClasses,
             )
 
