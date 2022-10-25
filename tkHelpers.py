@@ -106,6 +106,58 @@ def createHookList(hookArguments):
     return returnList
 
 
+def createNamespaceList(namespaceArguments):
+    """Create a list of dictionaries of namespace key/value and (optionally) labelSelectors
+    key/value(list) for managing an app, as nargs="*" can provide a variety of input."""
+    returnList = []
+    for mapping in namespaceArguments:
+        returnList.append({"namespace": mapping[0]})
+        if len(mapping) == 2:
+            returnList[-1]["labelSelectors"] = [mapping[1]]
+        elif len(mapping) > 2:
+            print(
+                "Error: --additionalNamespace should have at most two arguments per flag:\n"
+                + "  -a namespace1\n  -a namespace1 app=appname\n"
+                + "  -a namespace1 -a namespace2 app=app2name"
+            )
+            sys.exit(1)
+    return returnList
+
+
+def createCsrList(CSRs, apiResourcesDict):
+    """Create a list of dictionaries of clusterScopedResources and (optionally) labelSelectors
+    key/value(list) for managing an app, as nargs="*" can provide a variety of input."""
+    returnList = []
+    for csr in CSRs:
+        for resource in apiResourcesDict["items"]:
+            if csr[0] == resource["kind"]:
+                returnList.append(
+                    {
+                        "GVK": {
+                            "group": resource["apiVersion"].split("/")[0],
+                            "kind": resource["kind"],
+                            "version": resource["apiVersion"].split("/")[1],
+                        }
+                    }
+                )
+                if len(csr) == 2:
+                    returnList[-1]["labelSelectors"] = [csr[1]]
+                elif len(csr) > 2:
+                    print(
+                        "Error: --clusterScopedResource should have at most two arguments per "
+                        + "flag:\n  -a csr-kind1\n  -a csr-kind1 app=appname\n"
+                        + "  -a csr-kind1 -a csr-kind2 app=app2name"
+                    )
+                    sys.exit(1)
+    if len(returnList) == 0:
+        print(
+            "Error: matching clusterScopedResource kind not found, please ensure the kind "
+            + "is correct via 'list apiresources'"
+        )
+        sys.exit(1)
+    return returnList
+
+
 def createConstraintList(idList, labelList):
     """Create a list of strings to be used for --labelConstraint and --namespaceConstraint args,
     as nargs="*" can provide a varitey of different types of lists of lists depending on input."""

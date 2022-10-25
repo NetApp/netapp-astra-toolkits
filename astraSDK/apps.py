@@ -177,7 +177,21 @@ class getApps(SDKCommon):
 
 
 class manageApp(SDKCommon):
-    """This class switches an unmanaged (aka undefined) app to a managed (aka defined) app."""
+    """This class switches an unmanaged (aka undefined) app to a managed (aka defined) app.
+    By default, it handles the simplest case, managing a single, entire namespace.
+
+    Through the label argument (str), that single namespace can be filtered via a label selector.
+
+    Any number of additional namespaces (and optional label selectors) can be provided through
+    the addNamespaces argument, which must be a list of dictionaries:
+        [{"namespace": "ns1"}, {"namespace": "ns2", "labelSelectors": ["app=name"]}]
+
+    Any number of clusterScopedResources (and optional label selectors) can be provided through
+    the clusterScopedResources argument, which must be a list of dictionaries:
+        [{"GVK": {"group": "rbac.authorization.k8s.io", "kind": "ClusterRole", "version": "v1"},
+          "labelSelectors": ["app=name"]}]
+
+    There is no validation of this input, that instead is left to the calling method."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -188,7 +202,15 @@ class manageApp(SDKCommon):
         self.headers["accept"] = "application/astra-app+json"
         self.headers["Content-Type"] = "application/astra-app+json"
 
-    def main(self, appName, namespace, clusterID, label=None):
+    def main(
+        self,
+        appName,
+        namespace,
+        clusterID,
+        label=None,
+        addNamespaces=None,
+        clusterScopedResources=None,
+    ):
 
         endpoint = "k8s/v2/apps"
         url = self.base + endpoint
@@ -198,10 +220,14 @@ class manageApp(SDKCommon):
             "name": appName,
             "namespaceScopedResources": [{"namespace": namespace}],
             "type": "application/astra-app",
-            "version": "2.0",
+            "version": "2.1",
         }
         if label:
             data["namespaceScopedResources"][0]["labelSelectors"] = [label]
+        if addNamespaces:
+            data["namespaceScopedResources"] += addNamespaces
+        if clusterScopedResources:
+            data["clusterScopedResources"] = clusterScopedResources
 
         if self.verbose:
             print(f"Managing app: {appName}")

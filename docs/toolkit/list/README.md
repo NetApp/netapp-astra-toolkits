@@ -2,6 +2,7 @@
 
 The `list` command shows various resources known to Astra.
 
+* [Apiresources](#apiresources)
 * [Apps](#apps)
 * [Assets](#assets)
 * [Backups](#backups)
@@ -20,13 +21,15 @@ The `list` command shows various resources known to Astra.
 * [Users](#users)
 
 ```text
-usage: toolkit.py list [-h] {apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,protections,replications,scripts,snapshots,storageclasses,users} ...
+$ ./toolkit.py list -h
+usage: toolkit.py list [-h] {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,protections,replications,rolebindings,scripts,snapshots,storageclasses,users} ...
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
 
 objectType:
-  {apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,protections,replications,scripts,snapshots,storageclasses,users}
+  {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,protections,replications,rolebindings,scripts,snapshots,storageclasses,users}
+    apiresources        list api resources
     apps                list apps
     assets              list app assets
     backups             list backups
@@ -38,10 +41,76 @@ objectType:
     namespaces          list namespaces
     protections         list protection policies
     replications        list replication policies
+    rolebindings        list role bindings
     scripts             list scripts (hookSources)
     snapshots           list snapshots
     storageclasses      list storageclasses
     users               list users
+```
+
+## Apiresources
+
+`list apiresources` provides read access to Kubernetes API resources to be used for managing cluster scoped resources within an application.  API resources can also be filtered by a cluster name or ID (exact match).
+
+Command usage:
+
+```text
+./toolkit.py list apiresources <optional-arguments>
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py list apiresources
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| group                        | version   | kind                           | clusterID                            |
++==============================+===========+================================+======================================+
+| rbac.authorization.k8s.io    | v1        | ClusterRole                    | 690deba1-bc57-4771-ab72-88758cab2afd |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| admissionregistration.k8s.io | v1        | MutatingWebhookConfiguration   | 690deba1-bc57-4771-ab72-88758cab2afd |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| admissionregistration.k8s.io | v1        | ValidatingWebhookConfiguration | 690deba1-bc57-4771-ab72-88758cab2afd |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| apiextensions.k8s.io         | v1        | CustomResourceDefinition       | 690deba1-bc57-4771-ab72-88758cab2afd |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| rbac.authorization.k8s.io    | v1        | ClusterRoleBinding             | 690deba1-bc57-4771-ab72-88758cab2afd |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| rbac.authorization.k8s.io    | v1        | ClusterRole                    | c9456cae-b2d4-400b-ac53-60637d57da57 |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| apiextensions.k8s.io         | v1        | CustomResourceDefinition       | c9456cae-b2d4-400b-ac53-60637d57da57 |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| rbac.authorization.k8s.io    | v1        | ClusterRoleBinding             | c9456cae-b2d4-400b-ac53-60637d57da57 |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+```
+
+```text
+$ ./toolkit.py list apiresources -c prod-cluster
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| group                        | version   | kind                           | clusterID                            |
++==============================+===========+================================+======================================+
+| rbac.authorization.k8s.io    | v1        | ClusterRole                    | 690deba1-bc57-4771-ab72-88758cab2afd |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| admissionregistration.k8s.io | v1        | MutatingWebhookConfiguration   | 690deba1-bc57-4771-ab72-88758cab2afd |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| admissionregistration.k8s.io | v1        | ValidatingWebhookConfiguration | 690deba1-bc57-4771-ab72-88758cab2afd |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| apiextensions.k8s.io         | v1        | CustomResourceDefinition       | 690deba1-bc57-4771-ab72-88758cab2afd |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| rbac.authorization.k8s.io    | v1        | ClusterRoleBinding             | 690deba1-bc57-4771-ab72-88758cab2afd |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+```
+
+```text
+$ ./toolkit.py list apiresources --cluster c9456cae-b2d4-400b-ac53-60637d57da57
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| group                        | version   | kind                           | clusterID                            |
++==============================+===========+================================+======================================+
+| rbac.authorization.k8s.io    | v1        | ClusterRole                    | c9456cae-b2d4-400b-ac53-60637d57da57 |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| apiextensions.k8s.io         | v1        | CustomResourceDefinition       | c9456cae-b2d4-400b-ac53-60637d57da57 |
++------------------------------+-----------+--------------------------------+--------------------------------------+
+| rbac.authorization.k8s.io    | v1        | ClusterRoleBinding             | c9456cae-b2d4-400b-ac53-60637d57da57 |
++------------------------------+-----------+--------------------------------+--------------------------------------+
 ```
 
 ## Apps
