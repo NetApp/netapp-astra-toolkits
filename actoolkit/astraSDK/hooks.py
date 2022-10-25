@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
    Copyright 2022 NetApp, Inc
 
@@ -22,12 +22,8 @@ from .common import SDKCommon
 from .apps import getApps
 
 
-class getBackups(SDKCommon):
-    """Iterate over every managed app, and list all of it's backups.
-    Failure reporting is not implimented, failure to list backups for
-    one (or more) of N many apps just results in an empty list of backups
-    for that app.
-    """
+class getHooks(SDKCommon):
+    """Get all the execution hooks for every app"""
 
     def __init__(self, quiet=True, verbose=False, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -43,38 +39,24 @@ class getBackups(SDKCommon):
 
     def main(self, appFilter=None):
         if self.apps is False:
-            print("Call to getApps().main() failed")
+            print("Call to getApps() failed")
             return False
 
-        """self.apps = {"items":[{"appDefnSource":"namespace","appLabels":[],
-            "clusterID":"420a9ab0-1608-4e2e-a5ed-ca5b26a7fe69","clusterName":"useast1-cluster",
-            "clusterType":"gke","collectionState":"fullyCollected","collectionStateDetails":[],
-            "collectionStateTransitions":[{"from":"notCollected","to":["partiallyCollected",
-            "fullyCollected"]},{"from":"partiallyCollected","to":["fullyCollected"]},
-            {"from":"fullyCollected","to":[]}],"id":"d8cf2f17-d8d6-4b9f-aa42-f945d43b9a87",
-            "managedState":"managed","managedStateUnready":[],
-            "managedTimestamp":"2022-05-12T14:35:36Z","metadata":{"createdBy":"system",
-            "creationTimestamp":"2022-05-12T14:35:27Z","labels":[],
-            "modificationTimestamp":"2022-05-12T18:47:45Z"},"name":"wordpress-ns",
-            "namespace":"wordpress-ns","protectionState":"protected","protectionStateUnready":[],
-            "state":"running","stateUnready":[],"system":"false","type":"application/astra-app",
-            "version":"1.1"}],"metadata":{}}
-        """
-        backups = {}
-        backups["items"] = []
+        hooks = {}
+        hooks["items"] = []
 
         for app in self.apps["items"]:
             if appFilter:
                 if app["name"] != appFilter and app["id"] != appFilter:
                     continue
-            endpoint = f"k8s/v1/apps/{app['id']}/appBackups"
+            endpoint = f"k8s/v1/apps/{app['id']}/executionHooks"
             url = self.base + endpoint
 
             data = {}
             params = {}
 
             if self.verbose:
-                print(f"Listing Backups for {app['id']} {app['name']}")
+                print("Getting execution hooks...")
                 self.printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
@@ -87,14 +69,10 @@ class getBackups(SDKCommon):
                 results = super().jsonifyResults(ret)
                 if results is None:
                     continue
-                # Remember this is on a per AppID basis
                 for item in results["items"]:
-                    # Adding custom 'appID' key/value pair
-                    if not item.get("appID"):
-                        item["appID"] = app["id"]
-                    backups["items"].append(item)
+                    hooks["items"].append(item)
                 if not self.quiet and self.verbose:
-                    print(f"Backups for {app['id']}")
+                    print(f"Execution hooks for {app['id']}")
                     if self.output == "json":
                         print(json.dumps(results))
                     elif self.output == "yaml":
@@ -102,23 +80,27 @@ class getBackups(SDKCommon):
                     elif self.output == "table":
                         print(
                             self.basicTable(
-                                ["backupName", "backupID", "backupState"],
-                                ["name", "id", "state"],
+                                ["hookName", "hookID", "matchingImages"],
+                                ["name", "id", "matchingImages"],
                                 results,
                             )
                         )
                         print()
             else:
+                if not self.quiet:
+                    print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                    if ret.text.strip():
+                        print(f"Error text: {ret.text}")
                 continue
         if self.output == "json":
-            dataReturn = backups
+            dataReturn = hooks
         elif self.output == "yaml":
-            dataReturn = yaml.dump(backups)
+            dataReturn = yaml.dump(hooks)
         elif self.output == "table":
             dataReturn = self.basicTable(
-                ["AppID", "backupName", "backupID", "backupState"],
-                ["appID", "name", "id", "state"],
-                backups,
+                ["appID", "hookName", "hookID", "matchingImages"],
+                ["appID", "name", "id", "matchingImages"],
+                hooks,
             )
 
         if not self.quiet:
@@ -126,10 +108,8 @@ class getBackups(SDKCommon):
         return dataReturn
 
 
-class takeBackup(SDKCommon):
-    """Take a backup of an app.  An AppID and backupName is provided and
-    either the result JSON is returned or the backupID of the newly created
-    backup is returned."""
+class createHook(SDKCommon):
+    """Create an execution hook"""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -137,22 +117,44 @@ class takeBackup(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-appBackup+json"
-        self.headers["Content-Type"] = "application/astra-appBackup+json"
+        self.headers["accept"] = "application/astra-executionHook+json"
+        self.headers["Content-Type"] = "application/astra-executionHook+json"
 
-    def main(self, appID, backupName):
+    def main(
+        self,
+        appID,
+        name,
+        scriptID,
+        stage,
+        action,
+        arguments,
+        containerRegex=None,
+        description=None,
+    ):
 
-        endpoint = f"k8s/v1/apps/{appID}/appBackups"
+        # endpoint = f"k8s/v1/apps/{appID}/executionHooks"
+        endpoint = f"core/v1/executionHooks"
         url = self.base + endpoint
         params = {}
         data = {
-            "type": "application/astra-appBackup",
-            "version": "1.1",
-            "name": backupName,
+            "type": "application/astra-executionHook",
+            "version": "1.0",
+            "name": name,
+            "hookType": "custom",
+            "action": action,
+            "stage": stage,
+            "hookSourceID": scriptID,
+            "arguments": arguments,
+            "appID": appID,
+            "enabled": "true",
         }
+        if description:
+            data["description"] = description
+        if containerRegex:
+            data["matchingCriteria"] = [{"type": "containerImage", "value": containerRegex}]
 
         if self.verbose:
-            print(f"Taking backup for {appID}")
+            print(f"Creating executionHook {name}")
             self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
@@ -165,18 +167,18 @@ class takeBackup(SDKCommon):
             results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(json.dumps(results))
-            else:
-                return results.get("id") or True
+            return results
         else:
-            print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-            if ret.text.strip():
-                print(f"Error text: {ret.text}")
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
             return False
 
 
-class destroyBackup(SDKCommon):
-    """Given an appID and backupID destroy the backup.  Note that this doesn't
-    unmanage a backup, it actively destroys it. There is no coming back from this."""
+class destroyHook(SDKCommon):
+    """Given an appID and hookID destroy the hook.  Note that this doesn't unmanage
+    a hook, it actively destroys it. There is no coming back from this."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -184,21 +186,23 @@ class destroyBackup(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-appBackup+json"
-        self.headers["Content-Type"] = "application/astra-appBackup+json"
+        self.headers["accept"] = "application/astra-executionHook+json"
+        self.headers["Content-Type"] = "application/astra-executionHook+json"
 
-    def main(self, appID, backupID):
+    def main(self, appID, hookID):
 
-        endpoint = f"k8s/v1/apps/{appID}/appBackups/{backupID}"
+        # endpoint = f"k8s/v1/apps/{appID}/executionHooks/{hookID}"
+        endpoint = f"core/v1/executionHooks/{hookID}"
         url = self.base + endpoint
         params = {}
         data = {
-            "type": "application/astra-appBackup",
-            "version": "1.1",
+            "type": "application/astra-hookSource",
+            "version": "1.0",
+            "appID": appID,  # Not strictly required at this time
         }
 
         if self.verbose:
-            print(f"Deleting backup {backupID} for {appID}")
+            print(f"Deleting hookID {hookID}")
             self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
    Copyright 2022 NetApp, Inc
 
@@ -22,9 +22,12 @@ from .common import SDKCommon
 from .apps import getApps
 
 
-class getProtectionpolicies(SDKCommon):
-    """Get all the Protection policies (aka backup / snapshot schedules) for each app, unless an
-    optional appFilter is passed (can be either app name or app ID, but must be an exact match."""
+class getBackups(SDKCommon):
+    """Iterate over every managed app, and list all of it's backups.
+    Failure reporting is not implimented, failure to list backups for
+    one (or more) of N many apps just results in an empty list of backups
+    for that app.
+    """
 
     def __init__(self, quiet=True, verbose=False, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -40,24 +43,38 @@ class getProtectionpolicies(SDKCommon):
 
     def main(self, appFilter=None):
         if self.apps is False:
-            print("Call to getApps() failed")
+            print("Call to getApps().main() failed")
             return False
 
-        protections = {}
-        protections["items"] = []
+        """self.apps = {"items":[{"appDefnSource":"namespace","appLabels":[],
+            "clusterID":"420a9ab0-1608-4e2e-a5ed-ca5b26a7fe69","clusterName":"useast1-cluster",
+            "clusterType":"gke","collectionState":"fullyCollected","collectionStateDetails":[],
+            "collectionStateTransitions":[{"from":"notCollected","to":["partiallyCollected",
+            "fullyCollected"]},{"from":"partiallyCollected","to":["fullyCollected"]},
+            {"from":"fullyCollected","to":[]}],"id":"d8cf2f17-d8d6-4b9f-aa42-f945d43b9a87",
+            "managedState":"managed","managedStateUnready":[],
+            "managedTimestamp":"2022-05-12T14:35:36Z","metadata":{"createdBy":"system",
+            "creationTimestamp":"2022-05-12T14:35:27Z","labels":[],
+            "modificationTimestamp":"2022-05-12T18:47:45Z"},"name":"wordpress-ns",
+            "namespace":"wordpress-ns","protectionState":"protected","protectionStateUnready":[],
+            "state":"running","stateUnready":[],"system":"false","type":"application/astra-app",
+            "version":"1.1"}],"metadata":{}}
+        """
+        backups = {}
+        backups["items"] = []
 
         for app in self.apps["items"]:
             if appFilter:
                 if app["name"] != appFilter and app["id"] != appFilter:
                     continue
-            endpoint = f"k8s/v1/apps/{app['id']}/schedules"
+            endpoint = f"k8s/v1/apps/{app['id']}/appBackups"
             url = self.base + endpoint
 
             data = {}
             params = {}
 
             if self.verbose:
-                print(f"Getting protection policies for {app['id']} {app['name']}...")
+                print(f"Listing Backups for {app['id']} {app['name']}")
                 self.printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
@@ -70,13 +87,14 @@ class getProtectionpolicies(SDKCommon):
                 results = super().jsonifyResults(ret)
                 if results is None:
                     continue
+                # Remember this is on a per AppID basis
                 for item in results["items"]:
                     # Adding custom 'appID' key/value pair
                     if not item.get("appID"):
                         item["appID"] = app["id"]
-                    protections["items"].append(item)
+                    backups["items"].append(item)
                 if not self.quiet and self.verbose:
-                    print(f"Protection policies for {app['id']}")
+                    print(f"Backups for {app['id']}")
                     if self.output == "json":
                         print(json.dumps(results))
                     elif self.output == "yaml":
@@ -84,26 +102,8 @@ class getProtectionpolicies(SDKCommon):
                     elif self.output == "table":
                         print(
                             self.basicTable(
-                                [
-                                    "protectionID",
-                                    "granularity",
-                                    "minute",
-                                    "hour",
-                                    "dayOfWeek",
-                                    "dayOfMonth",
-                                    "snapRetention",
-                                    "backupRetention",
-                                ],
-                                [
-                                    "id",
-                                    "granularity",
-                                    "minute",
-                                    "hour",
-                                    "dayOfWeek",
-                                    "dayOfMonth",
-                                    "snapshotRetention",
-                                    "backupRetention",
-                                ],
+                                ["backupName", "backupID", "backupState"],
+                                ["name", "id", "state"],
                                 results,
                             )
                         )
@@ -111,34 +111,14 @@ class getProtectionpolicies(SDKCommon):
             else:
                 continue
         if self.output == "json":
-            dataReturn = protections
+            dataReturn = backups
         elif self.output == "yaml":
-            dataReturn = yaml.dump(protections)
+            dataReturn = yaml.dump(backups)
         elif self.output == "table":
             dataReturn = self.basicTable(
-                [
-                    "appID",
-                    "protectionID",
-                    "granularity",
-                    "minute",
-                    "hour",
-                    "dayOfWeek",
-                    "dayOfMonth",
-                    "snapRetention",
-                    "backupRetention",
-                ],
-                [
-                    "appID",
-                    "id",
-                    "granularity",
-                    "minute",
-                    "hour",
-                    "dayOfWeek",
-                    "dayOfMonth",
-                    "snapshotRetention",
-                    "backupRetention",
-                ],
-                protections,
+                ["AppID", "backupName", "backupID", "backupState"],
+                ["appID", "name", "id", "state"],
+                backups,
             )
 
         if not self.quiet:
@@ -146,15 +126,10 @@ class getProtectionpolicies(SDKCommon):
         return dataReturn
 
 
-class createProtectionpolicy(SDKCommon):
-    """Create a backup or snapshot policy on an appID.
-    The rules of how dayOfWeek, dayOfMonth, hour, and minute
-    need to be set vary based on whether granularity is set to
-    hourly, daily, weekly, or monthly
-    This class does no validation of the arguments, leaving that
-    to the API call itself.  toolkit.py can be used as a guide as to
-    what the API requirements are in case the swagger isn't sufficient.
-    """
+class takeBackup(SDKCommon):
+    """Take a backup of an app.  An AppID and backupName is provided and
+    either the result JSON is returned or the backupID of the newly created
+    backup is returned."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -162,44 +137,22 @@ class createProtectionpolicy(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-schedule+json"
-        self.headers["Content-Type"] = "application/astra-schedule+json"
+        self.headers["accept"] = "application/astra-appBackup+json"
+        self.headers["Content-Type"] = "application/astra-appBackup+json"
 
-    def main(
-        self,
-        granularity,
-        backupRetention,
-        snapshotRetention,
-        dayOfWeek,
-        dayOfMonth,
-        hour,
-        minute,
-        appID,
-        recurrenceRule=None,
-    ):
+    def main(self, appID, backupName):
 
-        endpoint = f"k8s/v1/apps/{appID}/schedules"
+        endpoint = f"k8s/v1/apps/{appID}/appBackups"
         url = self.base + endpoint
         params = {}
         data = {
-            "type": "application/astra-schedule",
-            "version": "1.2",
-            "backupRetention": backupRetention,
-            "dayOfMonth": dayOfMonth,
-            "dayOfWeek": dayOfWeek,
-            "enabled": "true",
-            "granularity": granularity,
-            "hour": hour,
-            "minute": minute,
-            "name": f"{granularity} schedule",
-            "snapshotRetention": snapshotRetention,
+            "type": "application/astra-appBackup",
+            "version": "1.1",
+            "name": backupName,
         }
-        if recurrenceRule:
-            data["recurrenceRule"] = recurrenceRule
-            data["replicate"] = "true"
 
         if self.verbose:
-            print(f"Creating {granularity} protection policy for app: {appID}")
+            print(f"Taking backup for {appID}")
             self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
@@ -212,17 +165,18 @@ class createProtectionpolicy(SDKCommon):
             results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(json.dumps(results))
-            return results
+            else:
+                return results.get("id") or True
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
+            print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+            if ret.text.strip():
+                print(f"Error text: {ret.text}")
             return False
 
 
-class destroyProtectiontionpolicy(SDKCommon):
-    """This class destroys a protection policy"""
+class destroyBackup(SDKCommon):
+    """Given an appID and backupID destroy the backup.  Note that this doesn't
+    unmanage a backup, it actively destroys it. There is no coming back from this."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -230,18 +184,21 @@ class destroyProtectiontionpolicy(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-schedule+json"
-        self.headers["Content-Type"] = "application/astra-schedule+json"
+        self.headers["accept"] = "application/astra-appBackup+json"
+        self.headers["Content-Type"] = "application/astra-appBackup+json"
 
-    def main(self, appID, protectionID):
+    def main(self, appID, backupID):
 
-        endpoint = f"k8s/v1/apps/{appID}/schedules/{protectionID}"
+        endpoint = f"k8s/v1/apps/{appID}/appBackups/{backupID}"
         url = self.base + endpoint
         params = {}
-        data = {}
+        data = {
+            "type": "application/astra-appBackup",
+            "version": "1.1",
+        }
 
         if self.verbose:
-            print(f"Deleting {protectionID} of app {appID}")
+            print(f"Deleting backup {backupID} for {appID}")
             self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)

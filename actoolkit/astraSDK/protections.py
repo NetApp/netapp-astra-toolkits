@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
    Copyright 2022 NetApp, Inc
 
@@ -22,8 +22,9 @@ from .common import SDKCommon
 from .apps import getApps
 
 
-class getHooks(SDKCommon):
-    """Get all the execution hooks for every app"""
+class getProtectionpolicies(SDKCommon):
+    """Get all the Protection policies (aka backup / snapshot schedules) for each app, unless an
+    optional appFilter is passed (can be either app name or app ID, but must be an exact match."""
 
     def __init__(self, quiet=True, verbose=False, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -42,21 +43,21 @@ class getHooks(SDKCommon):
             print("Call to getApps() failed")
             return False
 
-        hooks = {}
-        hooks["items"] = []
+        protections = {}
+        protections["items"] = []
 
         for app in self.apps["items"]:
             if appFilter:
                 if app["name"] != appFilter and app["id"] != appFilter:
                     continue
-            endpoint = f"k8s/v1/apps/{app['id']}/executionHooks"
+            endpoint = f"k8s/v1/apps/{app['id']}/schedules"
             url = self.base + endpoint
 
             data = {}
             params = {}
 
             if self.verbose:
-                print("Getting execution hooks...")
+                print(f"Getting protection policies for {app['id']} {app['name']}...")
                 self.printVerbose(url, "GET", self.headers, data, params)
 
             ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
@@ -70,9 +71,12 @@ class getHooks(SDKCommon):
                 if results is None:
                     continue
                 for item in results["items"]:
-                    hooks["items"].append(item)
+                    # Adding custom 'appID' key/value pair
+                    if not item.get("appID"):
+                        item["appID"] = app["id"]
+                    protections["items"].append(item)
                 if not self.quiet and self.verbose:
-                    print(f"Execution hooks for {app['id']}")
+                    print(f"Protection policies for {app['id']}")
                     if self.output == "json":
                         print(json.dumps(results))
                     elif self.output == "yaml":
@@ -80,27 +84,61 @@ class getHooks(SDKCommon):
                     elif self.output == "table":
                         print(
                             self.basicTable(
-                                ["hookName", "hookID", "matchingImages"],
-                                ["name", "id", "matchingImages"],
+                                [
+                                    "protectionID",
+                                    "granularity",
+                                    "minute",
+                                    "hour",
+                                    "dayOfWeek",
+                                    "dayOfMonth",
+                                    "snapRetention",
+                                    "backupRetention",
+                                ],
+                                [
+                                    "id",
+                                    "granularity",
+                                    "minute",
+                                    "hour",
+                                    "dayOfWeek",
+                                    "dayOfMonth",
+                                    "snapshotRetention",
+                                    "backupRetention",
+                                ],
                                 results,
                             )
                         )
                         print()
             else:
-                if not self.quiet:
-                    print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                    if ret.text.strip():
-                        print(f"Error text: {ret.text}")
                 continue
         if self.output == "json":
-            dataReturn = hooks
+            dataReturn = protections
         elif self.output == "yaml":
-            dataReturn = yaml.dump(hooks)
+            dataReturn = yaml.dump(protections)
         elif self.output == "table":
             dataReturn = self.basicTable(
-                ["appID", "hookName", "hookID", "matchingImages"],
-                ["appID", "name", "id", "matchingImages"],
-                hooks,
+                [
+                    "appID",
+                    "protectionID",
+                    "granularity",
+                    "minute",
+                    "hour",
+                    "dayOfWeek",
+                    "dayOfMonth",
+                    "snapRetention",
+                    "backupRetention",
+                ],
+                [
+                    "appID",
+                    "id",
+                    "granularity",
+                    "minute",
+                    "hour",
+                    "dayOfWeek",
+                    "dayOfMonth",
+                    "snapshotRetention",
+                    "backupRetention",
+                ],
+                protections,
             )
 
         if not self.quiet:
@@ -108,8 +146,15 @@ class getHooks(SDKCommon):
         return dataReturn
 
 
-class createHook(SDKCommon):
-    """Create an execution hook"""
+class createProtectionpolicy(SDKCommon):
+    """Create a backup or snapshot policy on an appID.
+    The rules of how dayOfWeek, dayOfMonth, hour, and minute
+    need to be set vary based on whether granularity is set to
+    hourly, daily, weekly, or monthly
+    This class does no validation of the arguments, leaving that
+    to the API call itself.  toolkit.py can be used as a guide as to
+    what the API requirements are in case the swagger isn't sufficient.
+    """
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -117,44 +162,44 @@ class createHook(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-executionHook+json"
-        self.headers["Content-Type"] = "application/astra-executionHook+json"
+        self.headers["accept"] = "application/astra-schedule+json"
+        self.headers["Content-Type"] = "application/astra-schedule+json"
 
     def main(
         self,
+        granularity,
+        backupRetention,
+        snapshotRetention,
+        dayOfWeek,
+        dayOfMonth,
+        hour,
+        minute,
         appID,
-        name,
-        scriptID,
-        stage,
-        action,
-        arguments,
-        containerRegex=None,
-        description=None,
+        recurrenceRule=None,
     ):
 
-        # endpoint = f"k8s/v1/apps/{appID}/executionHooks"
-        endpoint = f"core/v1/executionHooks"
+        endpoint = f"k8s/v1/apps/{appID}/schedules"
         url = self.base + endpoint
         params = {}
         data = {
-            "type": "application/astra-executionHook",
-            "version": "1.0",
-            "name": name,
-            "hookType": "custom",
-            "action": action,
-            "stage": stage,
-            "hookSourceID": scriptID,
-            "arguments": arguments,
-            "appID": appID,
+            "type": "application/astra-schedule",
+            "version": "1.2",
+            "backupRetention": backupRetention,
+            "dayOfMonth": dayOfMonth,
+            "dayOfWeek": dayOfWeek,
             "enabled": "true",
+            "granularity": granularity,
+            "hour": hour,
+            "minute": minute,
+            "name": f"{granularity} schedule",
+            "snapshotRetention": snapshotRetention,
         }
-        if description:
-            data["description"] = description
-        if containerRegex:
-            data["matchingCriteria"] = [{"type": "containerImage", "value": containerRegex}]
+        if recurrenceRule:
+            data["recurrenceRule"] = recurrenceRule
+            data["replicate"] = "true"
 
         if self.verbose:
-            print(f"Creating executionHook {name}")
+            print(f"Creating {granularity} protection policy for app: {appID}")
             self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
@@ -176,9 +221,8 @@ class createHook(SDKCommon):
             return False
 
 
-class destroyHook(SDKCommon):
-    """Given an appID and hookID destroy the hook.  Note that this doesn't unmanage
-    a hook, it actively destroys it. There is no coming back from this."""
+class destroyProtectiontionpolicy(SDKCommon):
+    """This class destroys a protection policy"""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -186,23 +230,18 @@ class destroyHook(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-executionHook+json"
-        self.headers["Content-Type"] = "application/astra-executionHook+json"
+        self.headers["accept"] = "application/astra-schedule+json"
+        self.headers["Content-Type"] = "application/astra-schedule+json"
 
-    def main(self, appID, hookID):
+    def main(self, appID, protectionID):
 
-        # endpoint = f"k8s/v1/apps/{appID}/executionHooks/{hookID}"
-        endpoint = f"core/v1/executionHooks/{hookID}"
+        endpoint = f"k8s/v1/apps/{appID}/schedules/{protectionID}"
         url = self.base + endpoint
         params = {}
-        data = {
-            "type": "application/astra-hookSource",
-            "version": "1.0",
-            "appID": appID,  # Not strictly required at this time
-        }
+        data = {}
 
         if self.verbose:
-            print(f"Deleting hookID {hookID}")
+            print(f"Deleting {protectionID} of app {appID}")
             self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)

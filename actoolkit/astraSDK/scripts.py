@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
    Copyright 2022 NetApp, Inc
 
@@ -18,12 +18,13 @@
 import yaml
 import json
 import copy
-from tabulate import tabulate
 
 from .common import SDKCommon
 
 
-class getCredentials(SDKCommon):
+class getScripts(SDKCommon):
+    """Get all the scripts (aka hook sources) for the Astra Control account"""
+
     def __init__(self, quiet=True, verbose=False, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
@@ -35,16 +36,16 @@ class getCredentials(SDKCommon):
         self.output = output
         super().__init__()
 
-    def main(self, kubeconfigOnly=False):
+    def main(self, scriptSourceName=None):
 
-        endpoint = "core/v1/credentials"
+        endpoint = "core/v1/hookSources"
         url = self.base + endpoint
 
         data = {}
         params = {}
 
         if self.verbose:
-            print("Getting credentials...")
+            print("Getting scripts...")
             self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
@@ -54,47 +55,23 @@ class getCredentials(SDKCommon):
             print()
 
         if ret.ok:
-            creds = super().jsonifyResults(ret)
-            credsCooked = copy.deepcopy(creds)
-            if kubeconfigOnly:
-                for counter, cred in enumerate(creds.get("items")):
-                    delCred = True
-                    if cred["metadata"].get("labels"):
-                        for label in cred["metadata"]["labels"]:
-                            if label["name"] == "astra.netapp.io/labels/read-only/credType":
-                                if label["value"] == "kubeconfig":
-                                    delCred = False
-                    if delCred:
-                        credsCooked["items"].remove(creds["items"][counter])
+            scripts = super().jsonifyResults(ret)
+            scriptsCooked = copy.deepcopy(scripts)
+            if scriptSourceName:
+                for counter, script in enumerate(scripts.get("items")):
+                    if script.get("name") != scriptSourceName:
+                        scriptsCooked["items"].remove(scripts["items"][counter])
+
             if self.output == "json":
-                dataReturn = credsCooked
+                dataReturn = scriptsCooked
             elif self.output == "yaml":
-                dataReturn = yaml.dump(credsCooked)
+                dataReturn = yaml.dump(scriptsCooked)
             elif self.output == "table":
-                tabHeader = ["credName", "credID", "credType", "cloudName", "clusterName"]
-                tabData = []
-                for cred in credsCooked["items"]:
-                    credType = None
-                    cloudName = "N/A"
-                    clusterName = "N/A"
-                    if cred["metadata"].get("labels"):
-                        for label in cred["metadata"]["labels"]:
-                            if label["name"] == "astra.netapp.io/labels/read-only/credType":
-                                credType = label["value"]
-                            elif label["name"] == "astra.netapp.io/labels/read-only/cloudName":
-                                cloudName = label["value"]
-                            elif label["name"] == "astra.netapp.io/labels/read-only/clusterName":
-                                clusterName = label["value"]
-                    tabData.append(
-                        [
-                            cred["name"],
-                            cred["id"],
-                            (cred["keyType"] if not credType else credType),
-                            cloudName,
-                            clusterName,
-                        ]
-                    )
-                dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+                dataReturn = self.basicTable(
+                    ["scriptName", "scriptID", "description"],
+                    ["name", "id", "description"],
+                    scriptsCooked,
+                )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
             return dataReturn
@@ -107,10 +84,8 @@ class getCredentials(SDKCommon):
             return False
 
 
-class createCredential(SDKCommon):
-    """Create a kubeconfig or S3 credential.  This class does not perform any validation
-    of the inputs.  Please see toolkit.py for further examples if the swagger definition
-    does not provide all the information you require."""
+class createScript(SDKCommon):
+    """Create a script (aka hook source)"""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -118,39 +93,31 @@ class createCredential(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-credential+json"
-        self.headers["Content-Type"] = "application/astra-credential+json"
+        self.headers["accept"] = "application/astra-hookSource+json"
+        self.headers["Content-Type"] = "application/astra-hookSource+json"
 
     def main(
         self,
-        credName,
-        keyType,
-        keyStore,
-        cloudName=None,
+        name,
+        source,
+        description=None,
     ):
 
-        endpoint = "core/v1/credentials"
+        endpoint = f"core/v1/hookSources"
         url = self.base + endpoint
         params = {}
         data = {
-            "type": "application/astra-credential",
-            "version": "1.1",
-            "keyStore": keyStore,
-            "keyType": keyType,
-            "name": credName,
-            "metadata": {
-                "labels": [
-                    {"name": "astra.netapp.io/labels/read-only/credType", "value": keyType},
-                ],
-            },
+            "type": "application/astra-hookSource",
+            "version": "1.0",
+            "name": name,
+            "source": source,
+            "sourceType": "script",
         }
-        if cloudName:
-            data["metadata"]["labels"].append(
-                {"name": "astra.netapp.io/labels/read-only/cloudName", "value": cloudName}
-            )
+        if description:
+            data["description"] = description
 
         if self.verbose:
-            print(f"Creating credential {credName}")
+            print(f"Creating script {name}")
             self.printVerbose(url, "POST", self.headers, data, params)
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
@@ -172,8 +139,9 @@ class createCredential(SDKCommon):
             return False
 
 
-class destroyCredential(SDKCommon):
-    """This class destroys a credential. Use with caution, as there's no going back."""
+class destroyScript(SDKCommon):
+    """Given a scriptID destroy the script.  Note that this doesn't unmanage
+    a script, it actively destroys it. There is no coming back from this."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -181,18 +149,21 @@ class destroyCredential(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-credential+json"
-        self.headers["Content-Type"] = "application/astra-credential+json"
+        self.headers["accept"] = "application/astra-hookSource+json"
+        self.headers["Content-Type"] = "application/astra-hookSource+json"
 
-    def main(self, credentialID):
+    def main(self, scriptID):
 
-        endpoint = f"core/v1/credentials/{credentialID}"
+        endpoint = f"core/v1/hookSources/{scriptID}"
         url = self.base + endpoint
         params = {}
-        data = {}
+        data = {
+            "type": "application/astra-hookSource",
+            "version": "1.0",
+        }
 
         if self.verbose:
-            print(f"Deleting: {credentialID}")
+            print(f"Deleting scriptID {scriptID}")
             self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)

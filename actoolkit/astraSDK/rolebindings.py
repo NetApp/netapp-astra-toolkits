@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
    Copyright 2022 NetApp, Inc
 
@@ -18,12 +18,13 @@
 import yaml
 import json
 import copy
+from termcolor import colored
 
 from .common import SDKCommon
 
 
-class getBuckets(SDKCommon):
-    """Get all of the buckets in Astra Control"""
+class getRolebindings(SDKCommon):
+    """Get all the role bindings in Astra Control"""
 
     def __init__(self, quiet=True, verbose=False, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -36,16 +37,16 @@ class getBuckets(SDKCommon):
         self.output = output
         super().__init__()
 
-    def main(self, nameFilter=None, provider=None):
+    def main(self, idFilter=None):
 
-        endpoint = "topology/v1/buckets"
+        endpoint = "core/v1/roleBindings"
         url = self.base + endpoint
 
         data = {}
         params = {}
 
         if self.verbose:
-            print("Getting buckets...")
+            print("Getting roleBindings...")
             self.printVerbose(url, "GET", self.headers, data, params)
 
         ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
@@ -55,23 +56,21 @@ class getBuckets(SDKCommon):
             print()
 
         if ret.ok:
-            buckets = super().jsonifyResults(ret)
-            bucketsCooked = copy.deepcopy(buckets)
-            for counter, bucket in enumerate(buckets.get("items")):
-                if nameFilter and nameFilter.lower() not in bucket.get("name").lower():
-                    bucketsCooked["items"].remove(buckets["items"][counter])
-                elif provider and provider != bucket.get("provider"):
-                    bucketsCooked["items"].remove(buckets["items"][counter])
+            rbindings = super().jsonifyResults(ret)
+            rbindingsCooked = copy.deepcopy(rbindings)
+            for counter, binding in enumerate(rbindings.get("items")):
+                if idFilter and idFilter != binding["userID"] and idFilter != binding["groupID"]:
+                    rbindingsCooked["items"].remove(rbindings["items"][counter])
 
             if self.output == "json":
-                dataReturn = bucketsCooked
+                dataReturn = rbindingsCooked
             elif self.output == "yaml":
-                dataReturn = yaml.dump(bucketsCooked)
+                dataReturn = yaml.dump(rbindingsCooked)
             elif self.output == "table":
                 dataReturn = self.basicTable(
-                    ["bucketID", "name", "credentialID", "provider", "state"],
-                    ["id", "name", "credentialID", "provider", "state"],
-                    bucketsCooked,
+                    ["roleBindingID", "principalType", "userID", "role", "roleConstraints"],
+                    ["id", "principalType", "userID", "role", "roleConstraints"],
+                    rbindingsCooked,
                 )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
@@ -85,12 +84,8 @@ class getBuckets(SDKCommon):
             return False
 
 
-class manageBucket(SDKCommon):
-    """Manage an object storage resource for storing backups.
-    This class does no validation of the arguments, leaving that
-    to the API call itself.  toolkit.py can be used as a guide as to
-    what the API requirements are in case the swagger isn't sufficient.
-    """
+class createRolebinding(SDKCommon):
+    """Create a role binding within the Astra Control account."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -98,26 +93,40 @@ class manageBucket(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-bucket+json"
-        self.headers["Content-Type"] = "application/astra-bucket+json"
+        self.headers["accept"] = "application/astra-roleBinding+json"
+        self.headers["Content-Type"] = "application/astra-roleBinding+json"
 
-    def main(self, name, credentialID, provider, bucketParameters):
+    def main(
+        self,
+        role,
+        userID=None,
+        groupID=None,
+        roleConstraints=None,
+    ):
 
-        endpoint = "topology/v1/buckets"
+        endpoint = f"core/v1/roleBindings"
         url = self.base + endpoint
         params = {}
         data = {
-            "type": "application/astra-bucket",
+            "type": "application/astra-roleBinding",
             "version": "1.1",
-            "name": name,
-            "credentialID": credentialID,
-            "provider": provider,
-            "bucketParameters": bucketParameters,
+            "accountID": self.base.split("/")[4],
+            "role": role,
         }
+        if userID:
+            data["userID"] = userID
+        elif groupID:  # 'elif' as only userID OR groupID can be used
+            data["groupID"] = groupID
+        if roleConstraints:
+            data["roleConstraints"] = roleConstraints
 
         if self.verbose:
-            print(f"Creating bucket {name} based on credential {credentialID}")
-            self.printVerbose(url, "POST", self.headers, data, params)
+            print(f"Creating roleBinding...")
+            print(colored(f"API URL: {url}", "green"))
+            print(colored("API Method: POST", "green"))
+            print(colored(f"API Headers: {self.headers}", "green"))
+            print(colored(f"API data: {data}", "green"))
+            print(colored(f"API params: {params}", "green"))
 
         ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
 
@@ -138,8 +147,11 @@ class manageBucket(SDKCommon):
             return False
 
 
-class unmanageBucket(SDKCommon):
-    """This class unmanages / removes a bucket"""
+class destroyRolebinding(SDKCommon):
+    """This class destroys a roleBinding.  Use with caution, there's no going back.
+
+    Deleting the last role-binding associated with a user with authProvider as 'local',
+    or 'cloud-central' triggers the deletion of the user."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -147,18 +159,18 @@ class unmanageBucket(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-bucket+json"
-        self.headers["Content-Type"] = "application/astra-bucket+json"
+        self.headers["accept"] = "application/astra-roleBinding+json"
+        self.headers["Content-Type"] = "application/astra-roleBinding+json"
 
-    def main(self, bucketID):
+    def main(self, roleBindingID):
 
-        endpoint = f"topology/v1/buckets/{bucketID}"
+        endpoint = f"core/v1/roleBindings/{roleBindingID}"
         url = self.base + endpoint
         params = {}
         data = {}
 
         if self.verbose:
-            print(f"Removing bucket {bucketID}")
+            print(f"Deleting: {roleBindingID}")
             self.printVerbose(url, "DELETE", self.headers, data, params)
 
         ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
@@ -168,8 +180,6 @@ class unmanageBucket(SDKCommon):
             print()
 
         if ret.ok:
-            if not self.quiet:
-                print("Bucket unmanaged")
             return True
         else:
             if not self.quiet:

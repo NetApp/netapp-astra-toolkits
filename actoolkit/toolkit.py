@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
    Copyright 2022 NetApp, Inc
 
@@ -15,286 +15,38 @@
    limitations under the License.
 """
 
-import argparse
+import base64
 import json
-import os
-import subprocess
+import kubernetes
 import sys
-import tempfile
 import time
 import yaml
-import kubernetes
-import base64
 from datetime import datetime, timedelta
 
 import astraSDK
+import helpers
+import parser
 
 
-def subKeys(subObject, key):
-    """Short recursion function for when the userSelect dict object has another
-    dict as one of its key's values"""
-    subKey = key.split("/", maxsplit=1)
-    if len(subKey) == 1:
-        return subObject[subKey[0]]
-    else:
-        return subKeys(subObject[subKey[0]], subKey[1])
+class ToolKit:
+    def __init__(self):
+        self.conf = astraSDK.common.getConfig().main()
 
-
-def userSelect(pickList, keys):
-    """pickList is a dictionary with an 'items' array of dicts.  Print the values
-    that match the 'keys' array, have the user pick one and then return the value
-    of index 0 of the keys array"""
-    # pickList = {"items": [{"id": "123", "name": "webapp",  "state": "running"},
-    #                       {"id": "345", "name": "mongodb", "state": "stopped"}]}
-    # keys = ["id", "name"]
-    # Output:
-    # 1:    123         webapp
-    # 2:    345         mongodb
-    # User enters 2, "id" (index 0) is returned, so "345"
-
-    if not isinstance(pickList, dict) or not isinstance(keys, list):
-        return False
-
-    for counter, item in enumerate(pickList["items"], start=1):
-        outputStr = str(counter) + ":\t"
-        for key in keys:
-            if item.get(key):
-                outputStr += str(item[key]) + "\t"
-            elif "/" in key:
-                outputStr += subKeys(item, key) + "\t"
-        print(outputStr)
-
-    while True:
-        ret = input(f"Select a line (1-{counter}): ")
-        try:
-            # try/except catches errors thrown from non-valid input
-            objectValue = pickList["items"][int(ret) - 1][keys[0]]
-            if int(ret) > 0 and int(ret) <= counter and objectValue:
-                return objectValue
-            else:
-                continue
-        except (IndexError, TypeError, ValueError):
-            continue
-
-
-def createHelmStr(flagName, values):
-    """Create a string to be appended to a helm command which contains a list
-    of --set {value} and/or --values {file} arguments"""
-    returnStr = ""
-    if values:
-        for value in values:
-            if type(value) == list:
-                for v in value:
-                    returnStr += f" --{flagName} {v}"
-            else:
-                returnStr += f" --{flagName} {value}"
-    return returnStr
-
-
-def createHookList(hookArguments):
-    """Create a list of strings to be used for --hookArguments, as nargs="*" can provide
-    a variety of different types of lists of lists depending on how the user uses it.
-    User Input                    argParse Value                      createHookList Return
-    ----------                    --------------                      ---------------------
-    -a arg1                       [['arg1']]                          ['arg1']
-    -a arg1 arg2                  [['arg1', 'arg2']]                  ['arg1', 'arg2']
-    -a arg1 -a arg2               [['arg1'], ['arg2']]                ['arg1', 'arg2']
-    -a "arg1 s_arg" arg2          [['arg1 s_arg', 'arg2']]            ['arg1 s_arg', 'arg2']
-    -a "arg1 s_arg" arg2 -a arg3  [['arg1 s_arg', 'arg2'], ['arg3']]  ['arg1 s_arg', 'arg2', 'arg3']
-    """
-    returnList = []
-    if hookArguments:
-        for arg in hookArguments:
-            if type(arg) == list:
-                for a in arg:
-                    returnList.append(a)
-            else:
-                returnList.append(arg)
-    return returnList
-
-
-def createConstraintList(idList, labelList):
-    """Create a list of strings to be used for --labelConstraint and --namespaceConstraint args,
-    as nargs="*" can provide a varitey of different types of lists of lists depending on input."""
-    returnList = []
-    if idList:
-        for arg in idList:
-            if type(arg) == list:
-                for a in arg:
-                    returnList.append("namespaces:id='" + a + "'.*")
-            else:
-                returnList.append("namespaces:id='" + arg + "'.*")
-    if labelList:
-        for arg in labelList:
-            if type(arg) == list:
-                for a in arg:
-                    returnList.append("namespaces:kubernetesLabels='" + a + "'.*")
-            else:
-                returnList.append("namespaces:kubernetesLabels='" + arg + "'.*")
-    return returnList if returnList else ["*"]
-
-
-def updateHelm():
-    """Check to see if the bitnami helm repo is installed
-    If it is, get the name of the repo
-    otherwise install it
-    ignore_errors=True here because helm repo list returns 1 if there are no
-    repos configured"""
-    ret = run("helm repo list -o yaml", captureOutput=True, ignoreErrors=True)
-    repos = {
-        "https://charts.gitlab.io": None,
-        "https://charts.bitnami.com/bitnami": None,
-        "https://charts.cloudbees.com/public/cloudbees": None,
-    }
-    if ret != 1:
-        retYaml = yaml.load(ret, Loader=yaml.SafeLoader)
-        # Adding support for user-defined repos
-        for item in retYaml:
-            if item.get("url") not in repos:
-                repos[item.get("url")] = None
-        for repoUrlToMatch in repos:
-            for item in retYaml:
-                if item.get("url") == repoUrlToMatch:
-                    repos[repoUrlToMatch] = item.get("name")
-    for k, v in repos.items():
-        if not v:
-            repoName = k.split(".")[1]
-            run(f"helm repo add {repoName} {k}")
-            repos[k] = repoName
-
-    run("helm repo update")
-    chartsDict = {}
-    chartsDict["items"] = []
-    for val in repos.values():
-        charts = run(f"helm -o json search repo {val}", captureOutput=True)
-        for chart in json.loads(charts.decode("utf-8")):
-            chartsDict["items"].append(chart)
-    return chartsDict
-
-
-def run(command, captureOutput=False, ignoreErrors=False):
-    """Run an arbitrary shell command.  Our API is terrible.  If ignore_errors=False
-    raise the SystemExit exception if the commands returns != 0 (e.g.: failure)
-    If ignore_errors=True, return the shell return code if it is != 0
-    If the shell return code is 0 (success) either return True or the contents of stdout, depending
-    on whether capture_output is set to True or False"""
-    command = command.split(" ")
-    try:
-        ret = subprocess.run(command, capture_output=captureOutput)
-    except OSError as e:
-        raise SystemExit(f"{command} OSError: {e}")
-    # Shell returns 0 for success, a positive int for an error
-    # inverted from python True/False
-    if ret.returncode:
-        if ignoreErrors:
-            return ret.returncode
-        else:
-            raise SystemExit(f"{command} returned failure: {ret.returncode}")
-    else:
-        if captureOutput:
-            return ret.stdout
-        else:
-            return True
-
-
-def doProtectionTask(protectionType, appID, name, background):
-    """Take a snapshot/backup of appID giving it name <name>
-    Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
-    if protectionType == "backup":
-        protectionID = astraSDK.backups.takeBackup().main(appID, name)
-    elif protectionType == "snapshot":
-        protectionID = astraSDK.snapshots.takeSnap().main(appID, name)
-    if protectionID == False:
-        sys.exit(1)
-
-    print(f"Starting {protectionType} of {appID}")
-    if background:
-        print(
-            f"Background {protectionType} flag selected, run 'list {protectionType}s' to get status"
-        )
-        return True
-
-    print(f"Waiting for {protectionType} to complete.", end="")
-    sys.stdout.flush()
-    while True:
-        if protectionType == "backup":
-            objects = astraSDK.backups.getBackups().main()
-        elif protectionType == "snapshot":
-            objects = astraSDK.snapshots.getSnaps().main()
-        if not objects:
-            # This isn't technically true.  Trying to list the backups/snapshots after taking the
-            # protection job failed.  The protection job itself may eventually succeed.
-            print(f"Taking {protectionType} failed")
-            return False
-        for obj in objects["items"]:
-            # There's no API for monitoring long running tasks.  Just because
-            # the API call to create a backup/snapshot succeeded, that doesn't mean the
-            # actual backup will succeed as well.  So we spin on checking the backups/snapshots
-            # waiting for our backupsnapshot to either show completed or failed.
-            if obj["id"] == protectionID:
-                if obj["state"] == "completed":
-                    print("complete!")
-                    sys.stdout.flush()
-                    return protectionID
-                elif obj["state"] == "failed":
-                    print(f"{protectionType} job failed")
-                    return False
-        time.sleep(5)
-        print(".", end="")
-        sys.stdout.flush()
-
-
-def stsPatch(patch, stsName):
-    """Patch and restart a statefulset"""
-    patchYaml = yaml.dump(patch)
-    tmp = tempfile.NamedTemporaryFile()
-    tmp.write(bytes(patchYaml, "utf-8"))
-    tmp.seek(0)
-    # Use os.system a few times because the home rolled run() simply isn't up to the task
-    try:
-        # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
-        # were used
-        ret = os.system(f'kubectl patch statefulset.apps/{stsName} -p "$(cat {tmp.name})"')
-    except OSError as e:
-        print(f"Exception: {e}")
-        sys.exit(11)
-    if ret:
-        print(f"os.system exited with RC: {ret}")
-        sys.exit(12)
-    tmp.close()
-    try:
-        os.system(
-            f"kubectl scale sts {stsName} --replicas=0 && "
-            f"sleep 10 && kubectl scale sts {stsName} --replicas=1"
-        )
-    except OSError as e:
-        print(f"Exception: {e}")
-        sys.exit(13)
-    if ret:
-        print(f"os.system exited with RC: {ret}")
-        sys.exit(14)
-
-
-class toolkit:
-    # def __init__(self):
-    # self.conf = astraSDK.common.getConfig.main()
-    # self.conf = astraSDK.getConfig.main()
-
-    def deploy(self, chart, appName, namespace, setValues, fileValues, verbose, quiet):
+    def doDeploy(self, chart, appName, namespace, setValues, fileValues, verbose, quiet):
         """Deploy a helm chart <chart>, naming the app <appName> into <namespace>"""
 
-        setStr = createHelmStr("set", setValues)
-        valueStr = createHelmStr("values", fileValues)
+        setStr = helpers.createHelmStr("set", setValues)
+        valueStr = helpers.createHelmStr("values", fileValues)
 
         nsObj = astraSDK.namespaces.getNamespaces(verbose=verbose)
-        retval = run("kubectl get ns -o json", captureOutput=True)
+        retval = helpers.run("kubectl get ns -o json", captureOutput=True)
         retvalJSON = json.loads(retval)
         for item in retvalJSON["items"]:
             if item["metadata"]["name"] == namespace:
                 print(f"Namespace {namespace} already exists!")
                 sys.exit(24)
-        run(f"kubectl create namespace {namespace}")
-        run(f"kubectl config set-context --current --namespace={namespace}")
+        helpers.run(f"kubectl create namespace {namespace}")
+        helpers.run(f"kubectl config set-context --current --namespace={namespace}")
 
         # If we're deploying gitlab, we need to ensure at least a premium storageclass
         # for postgresql and gitaly
@@ -324,7 +76,7 @@ class toolkit:
                 setStr += f" --set postgresql.global.storageClass={pgStorageClass}"
                 setStr += f" --set gitlab.gitaly.persistence.storageClass={pgStorageClass}"
 
-        run(f"helm install {appName} {chart}{setStr}{valueStr}")
+        helpers.run(f"helm install {appName} {chart}{setStr}{valueStr}")
         print("Waiting for Astra to discover the namespace.", end="")
         sys.stdout.flush()
 
@@ -405,7 +157,7 @@ class toolkit:
             if cppRet is False:
                 raise SystemExit(f"cpp.main({period}...) returned False")
 
-    def clone(
+    def doClone(
         self,
         cloneAppName,
         clusterID,
@@ -594,6 +346,52 @@ class toolkit:
         else:
             print("Submitting clone failed.")
 
+    def doProtectionTask(self, protectionType, appID, name, background):
+        """Take a snapshot/backup of appID giving it name <name>
+        Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
+        if protectionType == "backup":
+            protectionID = astraSDK.backups.takeBackup().main(appID, name)
+        elif protectionType == "snapshot":
+            protectionID = astraSDK.snapshots.takeSnap().main(appID, name)
+        if protectionID == False:
+            sys.exit(1)
+
+        print(f"Starting {protectionType} of {appID}")
+        if background:
+            print(
+                f"Background {protectionType} flag selected, run 'list {protectionType}s' to get status"
+            )
+            return True
+
+        print(f"Waiting for {protectionType} to complete.", end="")
+        sys.stdout.flush()
+        while True:
+            if protectionType == "backup":
+                objects = astraSDK.backups.getBackups().main()
+            elif protectionType == "snapshot":
+                objects = astraSDK.snapshots.getSnaps().main()
+            if not objects:
+                # This isn't technically true.  Trying to list the backups/snapshots after taking the
+                # protection job failed.  The protection job itself may eventually succeed.
+                print(f"Taking {protectionType} failed")
+                return False
+            for obj in objects["items"]:
+                # There's no API for monitoring long running tasks.  Just because
+                # the API call to create a backup/snapshot succeeded, that doesn't mean the
+                # actual backup will succeed as well.  So we spin on checking the backups/snapshots
+                # waiting for our backupsnapshot to either show completed or failed.
+                if obj["id"] == protectionID:
+                    if obj["state"] == "completed":
+                        print("complete!")
+                        sys.stdout.flush()
+                        return protectionID
+                    elif obj["state"] == "failed":
+                        print(f"{protectionType} job failed")
+                        return False
+            time.sleep(5)
+            print(".", end="")
+            sys.stdout.flush()
+
 
 def main():
     # The various functions to populate the lists used for choices() in the options are
@@ -618,11 +416,11 @@ def main():
     snapshotList = []
     storageClassList = []
     userList = []
+    plaidMode = False
 
     if len(sys.argv) > 1:
 
-        # verbs must manually be kept in sync with the top level subcommands in the argparse
-        # section of this code.
+        # verbs must manually be kept in sync with top_level_commands() in parser.py
         verbs = {
             "deploy": False,
             "clone": False,
@@ -682,7 +480,6 @@ def main():
                             verbPosition = None
 
         # Turn off verification to speed things up if true
-        plaidMode = False
         for counter, item in enumerate(sys.argv):
             if verbPosition and counter < verbPosition and (item == "-f" or item == "--fast"):
                 plaidMode = True
@@ -690,7 +487,7 @@ def main():
         if not plaidMode:
             # It isn't intuitive, however only one key in verbs can be True
             if verbs["deploy"]:
-                chartsDict = updateHelm()
+                chartsDict = helpers.updateHelm()
                 for chart in chartsDict["items"]:
                     chartsList.append(chart["name"])
 
@@ -911,1247 +708,30 @@ def main():
                     for replication in replicationDict["items"]:
                         replicationList.append(replication["id"])
 
-    parser = argparse.ArgumentParser(allow_abbrev=True)
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        default=False,
-        action="store_true",
-        help="print verbose/verbose output",
+    tkParser = parser.toolkit_parser(plaidMode=plaidMode).main(
+        appList,
+        backupList,
+        bucketList,
+        chartsList,
+        cloudList,
+        clusterList,
+        credentialList,
+        destclusterList,
+        hookList,
+        labelList,
+        namespaceList,
+        protectionList,
+        replicationList,
+        scriptList,
+        snapshotList,
+        storageClassList,
+        userList,
     )
-    parser.add_argument(
-        "-o",
-        "--output",
-        default="table",
-        choices=["json", "yaml", "table"],
-        help="command output format",
-    )
-    parser.add_argument("-q", "--quiet", default=False, action="store_true", help="supress output")
-    parser.add_argument(
-        "-f",
-        "--fast",
-        default=False,
-        action="store_true",
-        help="prioritize speed over validation (using this will not validate arguments, which "
-        + "may have unintended consequences)",
-    )
-    subparsers = parser.add_subparsers(dest="subcommand", required=True, help="subcommand help")
-    #######
-    # Top level subcommands
-    # # Be sure to keep these in sync with verbs{}
-    #######
-    parserDeploy = subparsers.add_parser(
-        "deploy",
-        help="Deploy a helm chart",
-    )
-    parserClone = subparsers.add_parser(
-        "clone",
-        help="Clone an app",
-    )
-    parserRestore = subparsers.add_parser(
-        "restore",
-        help="Restore an app from a backup or snapshot",
-    )
-    parserList = subparsers.add_parser(
-        "list",
-        aliases=["get"],
-        help="List all items in a class",
-    )
-    parserCreate = subparsers.add_parser(
-        "create",
-        help="Create an object",
-    )
-    parserManage = subparsers.add_parser(
-        "manage",
-        aliases=["define"],
-        help="Manage an object",
-    )
-    parserDestroy = subparsers.add_parser(
-        "destroy",
-        help="Destroy an object",
-    )
-    parserUnmanage = subparsers.add_parser(
-        "unmanage",
-        help="Unmanage an object",
-    )
-    parserUpdate = subparsers.add_parser(
-        "update",
-        help="Update an object",
-    )
-    #######
-    # End of top level subcommands
-    #######
+    args = tkParser.parse_args()
+    tk = ToolKit()
 
-    #######
-    # subcommands "list", "create", "manage", "destroy", "unmanage", and "update"
-    # have subcommands as well
-    #######
-    subparserList = parserList.add_subparsers(title="objectType", dest="objectType", required=True)
-    subparserCreate = parserCreate.add_subparsers(
-        title="objectType", dest="objectType", required=True
-    )
-    subparserManage = parserManage.add_subparsers(
-        title="objectType", dest="objectType", required=True
-    )
-    subparserDestroy = parserDestroy.add_subparsers(
-        title="objectType", dest="objectType", required=True
-    )
-    subparserUnmanage = parserUnmanage.add_subparsers(
-        title="objectType", dest="objectType", required=True
-    )
-    subparserUpdate = parserUpdate.add_subparsers(
-        title="objectType", dest="objectType", required=True
-    )
-    #######
-    # end of subcommand "list", "create", "manage", "destroy", "unmanage", and "update"
-    # subcommands
-    #######
-
-    #######
-    # list 'X'
-    #######
-    subparserListApps = subparserList.add_parser(
-        "apps",
-        help="list apps",
-    )
-    subparserListAssets = subparserList.add_parser(
-        "assets",
-        help="list app assets",
-    )
-    subparserListBackups = subparserList.add_parser(
-        "backups",
-        help="list backups",
-    )
-    subparserListBuckets = subparserList.add_parser(
-        "buckets",
-        help="list buckets",
-    )
-    subparserListClouds = subparserList.add_parser(
-        "clouds",
-        help="list clouds",
-    )
-    subparserListClusters = subparserList.add_parser(
-        "clusters",
-        help="list clusters",
-    )
-    subparserListCredentials = subparserList.add_parser(
-        "credentials",
-        help="list credentials",
-    )
-    subparserListHooks = subparserList.add_parser("hooks", help="list hooks (executionHooks)")
-    subparserListNamespaces = subparserList.add_parser(
-        "namespaces",
-        help="list namespaces",
-    )
-    subparserListProtections = subparserList.add_parser(
-        "protections",
-        help="list protection policies",
-    )
-    subparserListReplications = subparserList.add_parser(
-        "replications",
-        help="list replication policies",
-    )
-    subparserListRolebindings = subparserList.add_parser(
-        "rolebindings",
-        help="list role bindings",
-    )
-    subparserListScripts = subparserList.add_parser(
-        "scripts",
-        help="list scripts (hookSources)",
-    )
-    subparserListSnapshots = subparserList.add_parser(
-        "snapshots",
-        help="list snapshots",
-    )
-    subparserListStorageClasses = subparserList.add_parser(
-        "storageclasses",
-        help="list storageclasses",
-    )
-    subparserListUsers = subparserList.add_parser(
-        "users",
-        help="list users",
-    )
-    #######
-    # end of list 'X'
-    #######
-
-    #######
-    # list apps args and flags
-    #######
-    subparserListApps.add_argument(
-        "-n", "--namespace", default=None, help="Only show apps from this namespace"
-    )
-    subparserListApps.add_argument(
-        "-f",
-        "--nameFilter",
-        default=None,
-        help="Filter app names by this value to minimize output (partial match)",
-    )
-    subparserListApps.add_argument(
-        "-c", "--cluster", default=None, help="Only show apps from this cluster"
-    )
-    #######
-    # end of list apps args and flags
-    #######
-
-    #######
-    # list assets args and flags
-    #######
-    subparserListAssets.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="The appID from which to display the assets",
-    )
-    #######
-    # end of list assets args and flags
-    #######
-
-    #######
-    # list backups args and flags
-    #######
-    subparserListBackups.add_argument(
-        "-a", "--app", default=None, help="Only show backups from this app"
-    )
-    #######
-    # end of list backups args and flags
-    #######
-
-    #######
-    # list buckets args and flags
-    #######
-    subparserListBuckets.add_argument(
-        "-f",
-        "--nameFilter",
-        default=None,
-        help="Filter app names by this value to minimize output (partial match)",
-    )
-    subparserListBuckets.add_argument(
-        "-p",
-        "--provider",
-        default=None,
-        help="Only show buckets of a single provider",
-    )
-    #######
-    # end of list buckets args and flags
-    #######
-
-    #######
-    # list clouds args and flags
-    #######
-    subparserListClouds.add_argument(
-        "-t",
-        "--cloudType",
-        default=None,
-        choices=["GCP", "Azure", "AWS", "Private"],
-        help="Only show clouds of a single type",
-    )
-    #######
-    # end of list clouds args and flags
-    #######
-
-    #######
-    # list clusters args and flags
-    #######
-    subparserListClusters.add_argument(
-        "-m",
-        "--hideManaged",
-        default=False,
-        action="store_true",
-        help="Hide managed clusters",
-    )
-    subparserListClusters.add_argument(
-        "-u",
-        "--hideUnmanaged",
-        default=False,
-        action="store_true",
-        help="Hide unmanaged clusters",
-    )
-    subparserListClusters.add_argument(
-        "-f",
-        "--nameFilter",
-        default=None,
-        help="Filter cluster names by this value to minimize output (partial match)",
-    )
-    #######
-    # end of list clusters args and flags
-    #######
-
-    #######
-    # list credentials args and flags
-    #######
-    subparserListCredentials.add_argument(
-        "-k",
-        "--kubeconfigOnly",
-        default=False,
-        action="store_true",
-        help="Only show kubeconfig credentials",
-    )
-    #######
-    # end of list credentials args and flags
-    #######
-
-    #######
-    # list hooks args and flags
-    #######
-    subparserListHooks.add_argument(
-        "-a", "--app", default=None, help="Only show execution hooks from this app"
-    )
-    #######
-    # end of list hooks args and flags
-    #######
-
-    #######
-    # list namespaces args and flags
-    #######
-    subparserListNamespaces.add_argument(
-        "-c", "--clusterID", default=None, help="Only show namespaces from this clusterID"
-    )
-    subparserListNamespaces.add_argument(
-        "-f",
-        "--nameFilter",
-        default=None,
-        help="Filter namespaces by this value to minimize output (partial match)",
-    )
-    subparserListNamespaces.add_argument(
-        "-r",
-        "--showRemoved",
-        default=False,
-        action="store_true",
-        help="Show namespaces in a 'removed' state",
-    )
-    subparserListNamespaces.add_argument(
-        "-u",
-        "--unassociated",
-        default=False,
-        action="store_true",
-        help="Only show namespaces which do not have any associatedApps",
-    )
-    subparserListNamespaces.add_argument(
-        "-m",
-        "--minutes",
-        default=False,
-        type=int,
-        help="Only show namespaces created within the last X minutes",
-    )
-    #######
-    # end of list namespaces args and flags
-    #######
-
-    #######
-    # list protection policies args and flags
-    #######
-    subparserListProtections.add_argument(
-        "-a", "--app", default=None, help="Only show protection policies from this app"
-    )
-    #######
-    # end of list protection policies args and flags
-    #######
-
-    #######
-    # list replication policies args and flags
-    #######
-    subparserListReplications.add_argument(
-        "-a", "--app", default=None, help="Only show replication policies from this app"
-    )
-    #######
-    # end of list replication policies args and flags
-    #######
-
-    #######
-    # list rolebindings args and flags
-    #######
-    subparserListRolebindings.add_argument(
-        "-i",
-        "--idFilter",
-        default=None,
-        help="Only show role bindings matching the provided user or group ID",
-    )
-    #######
-    # list scripts args and flags
-    #######
-    subparserListScripts.add_argument(
-        "-s",
-        "--getScriptSource",
-        default=None,
-        help="Provide a script name to view the script source code",
-    )
-    #######
-    # end of list scripts args and flags
-    #######
-
-    #######
-    # list snapshots args and flags
-    #######
-    subparserListSnapshots.add_argument(
-        "-a", "--app", default=None, help="Only show snapshots from this app"
-    )
-    #######
-    # end of list snapshots args and flags
-    #######
-
-    #######
-    # list storageclasses args and flags
-    #######
-    subparserListStorageClasses.add_argument(
-        "-t",
-        "--cloudType",
-        default=None,
-        choices=["GCP", "Azure", "AWS", "Private"],
-        help="Only show storageclasses of a single cloud type",
-    )
-    #######
-    # end of list storageclasses args and flags
-    #######
-
-    #######
-    # list users args and flags
-    #######
-    subparserListUsers.add_argument(
-        "-f",
-        "--nameFilter",
-        default=None,
-        help="Filter users by this value to minimize output (partial match)",
-    )
-    #######
-    # end of list users args and flags
-    #######
-
-    #######
-    # create 'X'
-    #######
-    subparserCreateBackup = subparserCreate.add_parser(
-        "backup",
-        help="create backup",
-    )
-    subparserCreateCluster = subparserCreate.add_parser(
-        "cluster", help="create cluster (upload a K8s cluster kubeconfig to then manage)"
-    )
-    subparserCreateHook = subparserCreate.add_parser(
-        "hook",
-        help="create hook (executionHook)",
-    )
-    subparserCreateProtection = subparserCreate.add_parser(
-        "protection",
-        aliases=["protectionpolicy"],
-        help="create protection policy",
-    )
-    subparserCreateReplication = subparserCreate.add_parser(
-        "replication",
-        help="create replication policy",
-    )
-    subparserCreateScript = subparserCreate.add_parser(
-        "script",
-        help="create script (hookSource)",
-    )
-    subparserCreateSnapshot = subparserCreate.add_parser(
-        "snapshot",
-        help="create snapshot",
-    )
-    subparserCreateUser = subparserCreate.add_parser(
-        "user",
-        help="create a user",
-    )
-    #######
-    # end of create 'X'
-    #######
-
-    #######
-    # create backups args and flags
-    #######
-    subparserCreateBackup.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID to backup",
-    )
-    subparserCreateBackup.add_argument(
-        "name",
-        help="Name of backup to be taken",
-    )
-    subparserCreateBackup.add_argument(
-        "-b",
-        "--background",
-        default=False,
-        action="store_true",
-        help="Run backup operation in the background",
-    )
-    #######
-    # end of create backups args and flags
-    #######
-
-    #######
-    # create cluster args and flags
-    #######
-    subparserCreateCluster.add_argument(
-        "filePath",
-        help="the local filesystem path to the cluster kubeconfig",
-    )
-    subparserCreateCluster.add_argument(
-        "-c",
-        "--cloudID",
-        choices=(None if plaidMode else cloudList),
-        default=(cloudList[0] if len(cloudList) == 1 else None),
-        required=(False if len(cloudList) == 1 else True),
-        help="The cloudID to add the cluster to (only required if # of clouds > 1)",
-    )
-    #######
-    # end of create cluster args and flags
-    #######
-
-    #######
-    # create hooks args and flags
-    #######
-    subparserCreateHook.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID to create an execution hook for",
-    )
-    subparserCreateHook.add_argument(
-        "name",
-        help="Name of the execution hook to be created",
-    )
-    subparserCreateHook.add_argument(
-        "scriptID",
-        choices=(None if plaidMode else scriptList),
-        help="scriptID to use for the execution hook",
-    )
-    subparserCreateHook.add_argument(
-        "-o",
-        "--operation",
-        choices=["pre-snapshot", "post-snapshot", "pre-backup", "post-backup", "post-restore"],
-        required=True,
-        type=str.lower,
-        help="The operation type for the execution hook",
-    )
-    subparserCreateHook.add_argument(
-        "-a",
-        "--hookArguments",
-        required=False,
-        default=None,
-        action="append",
-        nargs="*",
-        help="The (optional) arguments for the execution hook script",
-    )
-    subparserCreateHook.add_argument(
-        "-r",
-        "--containerRegex",
-        default=None,
-        # type=ascii,
-        help="The (optional) container image name regex to match "
-        + "(do not specify to match on all images)",
-    )
-    #######
-    # end of create hooks args and flags
-    #######
-
-    #######
-    # create protectionpolicy args and flags
-    #######
-    subparserCreateProtection.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of the application to create protection schedule for",
-    )
-    granArg = subparserCreateProtection.add_argument(
-        "-g",
-        "--granularity",
-        required=True,
-        choices=["hourly", "daily", "weekly", "monthly"],
-        help="Must choose one of the four options for the schedule",
-    )
-    subparserCreateProtection.add_argument(
-        "-b",
-        "--backupRetention",
-        type=int,
-        required=True,
-        choices=range(60),
-        help="Number of backups to retain",
-    )
-    subparserCreateProtection.add_argument(
-        "-s",
-        "--snapshotRetention",
-        type=int,
-        required=True,
-        choices=range(60),
-        help="Number of snapshots to retain",
-    )
-    subparserCreateProtection.add_argument(
-        "-M", "--dayOfMonth", type=int, choices=range(1, 32), help="Day of the month"
-    )
-    subparserCreateProtection.add_argument(
-        "-W",
-        "--dayOfWeek",
-        type=int,
-        choices=range(7),
-        help="0 = Sunday ... 6 = Saturday",
-    )
-    subparserCreateProtection.add_argument(
-        "-H", "--hour", type=int, choices=range(24), help="Hour in military time"
-    )
-    subparserCreateProtection.add_argument(
-        "-m", "--minute", default=0, type=int, choices=range(60), help="Minute"
-    )
-    #######
-    # end of create protectionpolicy args and flags
-    #######
-
-    #######
-    # create replication policy args and flags
-    #######
-    subparserCreateReplication.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of the application to create the replication policy for",
-    )
-    subparserCreateReplication.add_argument(
-        "-c",
-        "--destClusterID",
-        choices=(None if plaidMode else destclusterList),
-        help="the destination cluster ID to replicate to",
-        required=True,
-    )
-    subparserCreateReplication.add_argument(
-        "-n",
-        "--destNamespace",
-        help="the namespace to create resources on the destination cluster",
-        required=True,
-    )
-    subparserCreateReplication.add_argument(
-        "-s",
-        "--destStorageClass",
-        choices=(None if plaidMode else storageClassList),
-        default=None,
-        help="the destination storage class to use for volume creation",
-    )
-    subparserCreateReplication.add_argument(
-        "-f",
-        "--replicationFrequency",
-        choices=[
-            "5m",
-            "10m",
-            "15m",
-            "20m",
-            "30m",
-            "1h",
-            "2h",
-            "3h",
-            "4h",
-            "6h",
-            "8h",
-            "12h",
-            "24h",
-        ],
-        help="the frequency that a snapshot is taken and replicated",
-        required=True,
-    )
-    subparserCreateReplication.add_argument(
-        "-o",
-        "--offset",
-        default="00:00",
-        help="the amount of time to offset the replication snapshot as to not interfere with "
-        + "other operations, in 'hh:mm' or 'mm' format",
-    )
-    #######
-    # end of create replication policy args and flags
-    #######
-
-    #######
-    # create script args and flags
-    #######
-    subparserCreateScript.add_argument(
-        "name",
-        help="Name of the script",
-    )
-    subparserCreateScript.add_argument(
-        "filePath",
-        help="the local filesystem path to the script",
-    )
-    subparserCreateScript.add_argument(
-        "-d",
-        "--description",
-        default=None,
-        help="The optional description of the script",
-    )
-    #######
-    # end of create script args and flags
-    #######
-
-    #######
-    # create snapshot args and flags
-    #######
-    subparserCreateSnapshot.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID to snapshot",
-    )
-    subparserCreateSnapshot.add_argument(
-        "name",
-        help="Name of snapshot to be taken",
-    )
-    subparserCreateSnapshot.add_argument(
-        "-b",
-        "--background",
-        default=False,
-        action="store_true",
-        help="Run snapshot operation in the background",
-    )
-    #######
-    # end of create snapshot args and flags
-    #######
-
-    #######
-    # create user args and flags
-    #######
-    subparserCreateUser.add_argument("email", help="The email of the user to add")
-    subparserCreateUser.add_argument(
-        "role", choices=["viewer", "member", "admin", "owner"], help="The user's role"
-    )
-    subparserCreateUser.add_argument(
-        "-p", "--tempPassword", default=None, help="The temporary password for the user (ACC-only)"
-    )
-    subparserCreateUser.add_argument(
-        "-f",
-        "--firstName",
-        default=None,
-        help="The user's first name",
-    )
-    subparserCreateUser.add_argument("-l", "--lastName", default=None, help="The user's last name")
-    subparserCreateUser.add_argument(
-        "-a",
-        "--labelConstraint",
-        default=None,
-        choices=(None if plaidMode else labelList),
-        nargs="*",
-        action="append",
-        help="Restrict user role to label constraints",
-    )
-    subparserCreateUser.add_argument(
-        "-n",
-        "--namespaceConstraint",
-        default=None,
-        choices=(None if plaidMode else namespaceList),
-        nargs="*",
-        action="append",
-        help="Restrict user role to namespace constraints",
-    )
-    #######
-    # end of create user args and flags
-    #######
-
-    #######
-    # manage 'X'
-    #######
-    subparserManageApp = subparserManage.add_parser(
-        "app",
-        help="manage app",
-    )
-    subparserManageBucket = subparserManage.add_parser(
-        "bucket",
-        help="manage bucket",
-    )
-    subparserManageCluster = subparserManage.add_parser(
-        "cluster",
-        help="manage cluster",
-    )
-    #######
-    # end of manage 'X'
-    #######
-
-    #######
-    # manage app args and flags
-    #######
-    subparserManageApp.add_argument("appName", help="The logical name of the newly defined app")
-    subparserManageApp.add_argument(
-        "namespace",
-        choices=(None if plaidMode else namespaceList),
-        help="The namespace to move from undefined (aka unmanaged) to defined (aka managed)",
-    )
-    subparserManageApp.add_argument(
-        "-l",
-        "--labelSelectors",
-        required=False,
-        default=None,
-        help="Optional label selectors to filter resources to be included or excluded from "
-        + "the application definition",
-    )
-    subparserManageApp.add_argument(
-        "clusterID",
-        choices=(None if plaidMode else clusterList),
-        help="The clusterID hosting the newly defined app",
-    )
-    #######
-    # end of manage app args and flags
-    #######
-
-    #######
-    # manage bucket args and flags
-    #######
-    subparserManageBucket.add_argument(
-        "provider",
-        choices=["aws", "azure", "gcp", "generic-s3", "ontap-s3", "storagegrid-s3"],
-        help="The infrastructure provider of the storage bucket",
-    )
-    subparserManageBucket.add_argument(
-        "bucketName",
-        help="The existing bucket name",
-    )
-    credGroup = subparserManageBucket.add_argument_group(
-        "credentialGroup",
-        "Either an (existing credentialID) OR (accessKey AND accessSecret)",
-    )
-    credGroup.add_argument(
-        "-c",
-        "--credentialID",
-        choices=(None if plaidMode else credentialList),
-        help="The ID of the credentials used to access the bucket",
-        default=None,
-    )
-    credGroup.add_argument(
-        "--accessKey",
-        help="The access key of the bucket",
-        default=None,
-    )
-    credGroup.add_argument(
-        "--accessSecret",
-        help="The access secret of the bucket",
-        default=None,
-    )
-    subparserManageBucket.add_argument(
-        "-u",
-        "--serverURL",
-        help="The URL to the base path of the bucket "
-        + "(only needed for 'aws', 'generic-s3', 'ontap-s3' 'storagegrid-s3')",
-        default=None,
-    )
-    subparserManageBucket.add_argument(
-        "-a",
-        "--storageAccount",
-        help="The  Azure storage account name (only needed for 'Azure')",
-        default=None,
-    )
-    #######
-    # end of manage bucket args and flags
-    #######
-
-    #######
-    # manage cluster args and flags
-    #######
-    subparserManageCluster.add_argument(
-        "clusterID",
-        choices=(None if plaidMode else clusterList),
-        help="clusterID of the cluster to manage",
-    )
-    subparserManageCluster.add_argument(
-        "storageClassID",
-        choices=(None if plaidMode else storageClassList),
-        help="Default storage class ID",
-    )
-    #######
-    # end of manage cluster args and flags
-    #######
-
-    #######
-    # destroy 'X'
-    #######
-    subparserDestroyBackup = subparserDestroy.add_parser(
-        "backup",
-        help="destroy backup",
-    )
-    subparserDestroyCredential = subparserDestroy.add_parser(
-        "credential",
-        help="destroy credential",
-    )
-    subparserDestroyHook = subparserDestroy.add_parser(
-        "hook",
-        help="destroy hook (executionHook)",
-    )
-    subparserDestroyProtection = subparserDestroy.add_parser(
-        "protection",
-        help="destroy protection policy",
-    )
-    subparserDestroyReplication = subparserDestroy.add_parser(
-        "replication",
-        help="destroy replication policy",
-    )
-    subparserDestroyScript = subparserDestroy.add_parser(
-        "script",
-        help="destroy script (hookSource)",
-    )
-    subparserDestroySnapshot = subparserDestroy.add_parser(
-        "snapshot",
-        help="destroy snapshot",
-    )
-    subparserDestroyUser = subparserDestroy.add_parser(
-        "user",
-        help="destroy user",
-    )
-    #######
-    # end of destroy 'X'
-    #######
-
-    #######
-
-    #######
-    # destroy backup args and flags
-    #######
-    subparserDestroyBackup.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of app to destroy backups from",
-    )
-    subparserDestroyBackup.add_argument(
-        "backupID",
-        choices=(None if plaidMode else backupList),
-        help="backupID to destroy",
-    )
-    #######
-    # end of destroy backup args and flags
-    #######
-
-    #######
-    # destroy credential args and flags
-    #######
-    subparserDestroyCredential.add_argument(
-        "credentialID",
-        choices=(None if plaidMode else credentialList),
-        help="credentialID to destroy",
-    )
-    #######
-    # end of destroy credential args and flags
-    #######
-
-    #######
-    # destroy hook args and flags
-    #######
-    subparserDestroyHook.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of app to destroy hooks from",
-    )
-    subparserDestroyHook.add_argument(
-        "hookID",
-        choices=(None if plaidMode else hookList),
-        help="hookID to destroy",
-    )
-    #######
-    # end of destroy hook args and flags
-    #######
-
-    #######
-    # destroy protection args and flags
-    #######
-    subparserDestroyProtection.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of app to destroy protection policy from",
-    )
-    subparserDestroyProtection.add_argument(
-        "protectionID",
-        choices=(None if plaidMode else protectionList),
-        help="protectionID to destroy",
-    )
-    #######
-    # end of destroy protection args and flags
-    #######
-
-    #######
-    # destroy replication args and flags
-    #######
-    subparserDestroyReplication.add_argument(
-        "replicationID",
-        choices=(None if plaidMode else replicationList),
-        help="replicationID to destroy",
-    )
-    #######
-    # end of destroy replication args and flags
-    #######
-
-    #######
-    # destroy script args and flags
-    #######
-    subparserDestroyScript.add_argument(
-        "scriptID",
-        choices=(None if plaidMode else scriptList),
-        help="scriptID of script to destroy",
-    )
-    #######
-    # end of destroy script args and flags
-    #######
-
-    #######
-    # destroy snapshot args and flags
-    #######
-    subparserDestroySnapshot.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of app to destroy snapshot from",
-    )
-    subparserDestroySnapshot.add_argument(
-        "snapshotID",
-        choices=(None if plaidMode else snapshotList),
-        help="snapshotID to destroy",
-    )
-    #######
-    # end of destroy snapshot args and flags
-    #######
-
-    #######
-    # destroy user args and flags
-    #######
-    subparserDestroyUser.add_argument(
-        "userID",
-        choices=(None if plaidMode else userList),
-        help="userID to destroy",
-    )
-    #######
-    # end of destroy user args and flags
-    #######
-
-    #######
-    # unmanage 'X'
-    #######
-    subparserUnmanageApp = subparserUnmanage.add_parser(
-        "app",
-        help="unmanage app",
-    )
-    subparserUnmanageBucket = subparserUnmanage.add_parser(
-        "bucket",
-        help="unmanage bucket",
-    )
-    subparserUnmanageCluster = subparserUnmanage.add_parser(
-        "cluster",
-        help="unmanage cluster",
-    )
-    #######
-    # end of unmanage 'X'
-    #######
-
-    #######
-    # unmanage app args and flags
-    #######
-    subparserUnmanageApp.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of app to move from managed to unmanaged",
-    )
-    #######
-    # end of unmanage app args and flags
-    #######
-
-    #######
-    # unmanage bucket args and flags
-    #######
-    subparserUnmanageBucket.add_argument(
-        "bucketID",
-        choices=(None if plaidMode else bucketList),
-        help="bucketID of bucket to unmanage",
-    )
-    #######
-    # end of unmanage app args and flags
-    #######
-
-    #######
-    # unmanage cluster args and flags
-    #######
-    subparserUnmanageCluster.add_argument(
-        "clusterID",
-        choices=(None if plaidMode else clusterList),
-        help="clusterID of the cluster to unmanage",
-    )
-    #######
-    # end of unmanage cluster args and flags
-    #######
-
-    #######
-    # deploy args and flags
-    #######
-    parserDeploy.add_argument(
-        "app",
-        help="name of app",
-    )
-    parserDeploy.add_argument(
-        "chart",
-        choices=(None if plaidMode else chartsList),
-        help="chart to deploy",
-    )
-    parserDeploy.add_argument(
-        "-n", "--namespace", required=True, help="Namespace to deploy into (must not already exist)"
-    )
-    parserDeploy.add_argument(
-        "-f",
-        "--values",
-        required=False,
-        action="append",
-        nargs="*",
-        help="Specify Helm values in a YAML file",
-    )
-    parserDeploy.add_argument(
-        "--set",
-        required=False,
-        action="append",
-        nargs="*",
-        help="Individual helm chart parameters",
-    )
-    #######
-    # end of deploy args and flags
-    #######
-
-    #######
-    # clone args and flags
-    #######
-    parserClone.add_argument(
-        "-b",
-        "--background",
-        default=False,
-        action="store_true",
-        help="Run clone operation in the background",
-    )
-    parserClone.add_argument(
-        "--cloneAppName",
-        required=False,
-        default=None,
-        help="Clone app name",
-    )
-    parserClone.add_argument(
-        "--cloneNamespace",
-        required=False,
-        default=None,
-        help="Clone namespace name (optional, if not specified cloneAppName is used)",
-    )
-    parserClone.add_argument(
-        "--clusterID",
-        choices=(None if plaidMode else destclusterList),
-        required=False,
-        default=None,
-        help="Cluster to clone into (can be same as source)",
-    )
-    group = parserClone.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "--backupID",
-        choices=(None if plaidMode else backupList),
-        required=False,
-        default=None,
-        help="Source backup to clone from",
-    )
-    group.add_argument(
-        "--snapshotID",
-        choices=(None if plaidMode else snapshotList),
-        required=False,
-        default=None,
-        help="Source snapshot to clone from",
-    )
-    group.add_argument(
-        "--sourceAppID",
-        choices=(None if plaidMode else appList),
-        required=False,
-        default=None,
-        help="Source app to clone",
-    )
-    #######
-    # end of clone args and flags
-    #######
-
-    #######
-    # restore args and flags
-    #######
-    parserRestore.add_argument(
-        "-b",
-        "--background",
-        default=False,
-        action="store_true",
-        help="Run restore operation in the background",
-    )
-    parserRestore.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID to restore",
-    )
-    group = parserRestore.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "--backupID",
-        choices=(None if plaidMode else backupList),
-        required=False,
-        default=None,
-        help="Source backup to restore from",
-    )
-    group.add_argument(
-        "--snapshotID",
-        choices=(None if plaidMode else snapshotList),
-        required=False,
-        default=None,
-        help="Source snapshot to restore from",
-    )
-    #######
-    # end of restore args and flags
-    #######
-
-    #######
-    # update 'X'
-    #######
-    subparserUpdateReplication = subparserUpdate.add_parser(
-        "replication",
-        help="update replication",
-    )
-    #######
-    # end of update 'X'
-    #######
-
-    #######
-    # update replication args and flags
-    #######
-    subparserUpdateReplication.add_argument(
-        "replicationID",
-        choices=(None if plaidMode else replicationList),
-        help="replicationID to update",
-    )
-    subparserUpdateReplication.add_argument(
-        "operation",
-        choices=["failover", "reverse", "resync"],
-        help="whether to failover, reverse, or resync the replication policy",
-    )
-    subparserUpdateReplication.add_argument(
-        "--dataSource",
-        "-s",
-        default=None,
-        help="resync operation: the new source replication data (either appID or clusterID)",
-    )
-    #######
-    # end of update replication args and flags
-    #######
-
-    args = parser.parse_args()
-    # print(f"args: {args}")
-    if hasattr(args, "granularity"):
-        if args.granularity == "hourly":
-            if args.hour:
-                raise argparse.ArgumentError(granArg, " hourly must not specify -H / --hour")
-            if not hasattr(args, "minute"):
-                raise argparse.ArgumentError(granArg, " hourly requires -m / --minute")
-            args.hour = "*"
-            args.dayOfWeek = "*"
-            args.dayOfMonth = "*"
-        elif args.granularity == "daily":
-            if type(args.hour) != int and not args.hour:
-                raise argparse.ArgumentError(granArg, " daily requires -H / --hour")
-            args.dayOfWeek = "*"
-            args.dayOfMonth = "*"
-        elif args.granularity == "weekly":
-            if type(args.hour) != int and not args.hour:
-                raise argparse.ArgumentError(granArg, " weekly requires -H / --hour")
-            if type(args.dayOfWeek) != int and not args.dayOfWeek:
-                raise argparse.ArgumentError(granArg, " weekly requires -W / --dayOfWeek")
-            args.dayOfMonth = "*"
-        elif args.granularity == "monthly":
-            if type(args.hour) != int and not args.hour:
-                raise argparse.ArgumentError(granArg, " monthly requires -H / --hour")
-            if args.dayOfWeek:
-                raise argparse.ArgumentError(granArg, " monthly must not specify -W / --dayOfWeek")
-            if not args.dayOfMonth:
-                raise argparse.ArgumentError(granArg, " monthly requires -M / --dayOfMonth")
-            args.dayOfWeek = "*"
-
-    tk = toolkit()
     if args.subcommand == "deploy":
-        tk.deploy(
+        tk.doDeploy(
             args.chart,
             args.app,
             args.namespace,
@@ -2329,7 +909,7 @@ def main():
 
     elif args.subcommand == "create":
         if args.objectType == "backup":
-            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
+            rc = tk.doProtectionTask(args.objectType, args.appID, args.name, args.background)
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
@@ -2366,7 +946,7 @@ def main():
                 args.scriptID,
                 args.operation.split("-")[0],
                 args.operation.split("-")[1],
-                createHookList(args.hookArguments),
+                helpers.createHookList(args.hookArguments),
                 args.containerRegex,
             )
             if rc is False:
@@ -2374,6 +954,41 @@ def main():
             else:
                 sys.exit(0)
         elif args.objectType == "protection" or args.objectType == "protectionpolicy":
+            if args.granularity == "hourly":
+                if args.hour:
+                    print("Error: 'hourly' granularity must not specify -H / --hour")
+                    sys.exit(1)
+                if not hasattr(args, "minute"):
+                    print("Error: 'hourly' granularity requires -m / --minute")
+                    sys.exit(1)
+                args.hour = "*"
+                args.dayOfWeek = "*"
+                args.dayOfMonth = "*"
+            elif args.granularity == "daily":
+                if type(args.hour) != int and not args.hour:
+                    print("Error: 'daily' granularity requires -H / --hour")
+                    sys.exit(1)
+                args.dayOfWeek = "*"
+                args.dayOfMonth = "*"
+            elif args.granularity == "weekly":
+                if type(args.hour) != int and not args.hour:
+                    print("Error: 'weekly' granularity requires -H / --hour")
+                    sys.exit(1)
+                if type(args.dayOfWeek) != int and not args.dayOfWeek:
+                    print("Error: 'weekly' granularity requires -W / --dayOfWeek")
+                    sys.exit(1)
+                args.dayOfMonth = "*"
+            elif args.granularity == "monthly":
+                if type(args.hour) != int and not args.hour:
+                    print("Error: 'monthly' granularity requires -H / --hour")
+                    sys.exit(1)
+                if args.dayOfWeek:
+                    print("Error: 'monthly' granularity must not specify -W / --dayOfWeek")
+                    sys.exit(1)
+                if not args.dayOfMonth:
+                    print("Error: 'monthly' granularity requires -M / --dayOfMonth")
+                    sys.exit(1)
+                args.dayOfWeek = "*"
             rc = astraSDK.protections.createProtectionpolicy(
                 quiet=args.quiet, verbose=args.verbose
             ).main(
@@ -2468,7 +1083,7 @@ def main():
             else:
                 sys.exit(0)
         elif args.objectType == "snapshot":
-            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
+            rc = tk.doProtectionTask(args.objectType, args.appID, args.name, args.background)
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
@@ -2486,7 +1101,7 @@ def main():
                 ).main(
                     args.role,
                     userID=urc["id"],
-                    roleConstraints=createConstraintList(
+                    roleConstraints=helpers.createConstraintList(
                         args.namespaceConstraint, args.labelConstraint
                     ),
                 )
@@ -2788,7 +1403,7 @@ def main():
         if not args.clusterID:
             print("Select destination cluster for the clone")
             print("Index\tClusterID\t\t\t\tclusterName\tclusterPlatform")
-            args.clusterID = userSelect(destCluster, ["id", "name", "clusterType"])
+            args.clusterID = helpers.userSelect(destCluster, ["id", "name", "clusterType"])
         # Get the original app dictionary based on args.sourceAppID/args.backupID/args.snapshotID,
         # as the app dict contains sourceClusterID and namespaceScopedResources which we need
         oApp = {}
@@ -2821,7 +1436,7 @@ def main():
             )
             sys.exit(1)
 
-        tk.clone(
+        tk.doClone(
             args.cloneAppName,
             args.clusterID,
             oApp,
