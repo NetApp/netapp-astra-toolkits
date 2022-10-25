@@ -120,6 +120,10 @@ class toolkit_parser:
 
     def sub_list_commands(self):
         """list 'X'"""
+        self.subparserListApiResources = self.subparserList.add_parser(
+            "apiresources",
+            help="list api resources",
+        )
         self.subparserListApps = self.subparserList.add_parser(
             "apps",
             help="list apps",
@@ -403,6 +407,12 @@ class toolkit_parser:
             required=False,
             default=None,
             help="Source snapshot to restore from",
+        )
+
+    def list_apiresources_args(self):
+        """list api resources args and flags"""
+        self.subparserListApiResources.add_argument(
+            "-c", "--cluster", default=None, help="Only show api resources from this cluster"
         )
 
     def list_apps_args(self):
@@ -851,17 +861,37 @@ class toolkit_parser:
             help="The namespace to move from undefined (aka unmanaged) to defined (aka managed)",
         )
         self.subparserManageApp.add_argument(
+            "clusterID",
+            choices=(None if self.plaidMode else clusterList),
+            help="The clusterID hosting the newly defined app",
+        )
+        self.subparserManageApp.add_argument(
             "-l",
             "--labelSelectors",
             required=False,
             default=None,
             help="Optional label selectors to filter resources to be included or excluded from "
-            + "the application definition",
+            + "the application definition (within the primary 'namespace' argument)",
         )
         self.subparserManageApp.add_argument(
-            "clusterID",
-            choices=(None if self.plaidMode else clusterList),
-            help="The clusterID hosting the newly defined app",
+            "-a",
+            "--additionalNamespace",
+            required=False,
+            default=None,
+            nargs="*",
+            action="append",
+            help="Any number of additional namespaces (and optional labelSelectors), one set per"
+            + " argument (-a namespace2 -a namespace3 app=appname)",
+        )
+        self.subparserManageApp.add_argument(
+            "-c",
+            "--clusterScopedResource",
+            required=False,
+            default=None,
+            nargs="*",
+            action="append",
+            help="Any number of clusterScopedResources (and optional labelSelectors), one set per"
+            + " argument (-a csr-kind1 -a csr-kind2 app=appname)",
         )
 
     def manage_bucket_args(self, credentialList):
@@ -1090,6 +1120,7 @@ class toolkit_parser:
         self.clone_args(appList, backupList, destclusterList, snapshotList)
         self.restore_args(appList, backupList, snapshotList)
 
+        self.list_apiresources_args()
         self.list_apps_args()
         self.list_assets_args(appList)
         self.list_backups_args()

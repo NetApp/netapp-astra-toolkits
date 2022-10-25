@@ -1,3 +1,4 @@
+from . import apiresources
 from . import apps
 from . import backups
 from . import buckets

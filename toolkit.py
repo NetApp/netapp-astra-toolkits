@@ -399,6 +399,7 @@ def main():
     # parsing the options. By then it's too late to decide which functions to run to
     # populate the various choices the differing options for each subcommand needs. So
     # we just go around argparse's back and inspect sys.argv directly.
+    apiResourcesList = []
     appList = []
     backupList = []
     bucketList = []
@@ -742,7 +743,16 @@ def main():
         )
 
     elif args.subcommand == "list" or args.subcommand == "get":
-        if args.objectType == "apps":
+        if args.objectType == "apiresources":
+            rc = astraSDK.apiresources.getApiResources(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(cluster=args.cluster)
+            if rc is False:
+                print("astraSDK.apiresources.getApiResources() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
+        elif args.objectType == "apps":
             rc = astraSDK.apps.getApps(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(
@@ -1138,8 +1148,31 @@ def main():
                 sys.exit(1)
     elif args.subcommand == "manage" or args.subcommand == "define":
         if args.objectType == "app":
+            if args.additionalNamespace:
+                args.additionalNamespace = tkHelpers.createNamespaceList(args.additionalNamespace)
+            if args.clusterScopedResource:
+                apiResourcesDict = astraSDK.apiresources.getApiResources().main()
+                for resource in apiResourcesDict["items"]:
+                    apiResourcesList.append(resource["kind"])
+                # Validate input as argparse+choices is unable to only validate the first input
+                for csr in args.clusterScopedResource:
+                    if csr[0] not in apiResourcesList:
+                        print(
+                            f"{sys.argv[0]} {sys.argv[1]} {sys.argv[2]}: error: argument "
+                            + f"-c/--clusterScopedResource: invalid choice: '{csr[0]}' (choose "
+                            + f"from {', '.join(apiResourcesList)})"
+                        )
+                        sys.exit(1)
+                args.clusterScopedResource = tkHelpers.createCsrList(
+                    args.clusterScopedResource, apiResourcesDict
+                )
             rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
-                args.appName, args.namespace, args.clusterID, args.labelSelectors
+                args.appName,
+                args.namespace,
+                args.clusterID,
+                args.labelSelectors,
+                addNamespaces=args.additionalNamespace,
+                clusterScopedResources=args.clusterScopedResource,
             )
             if rc is False:
                 print("astraSDK.apps.manageApp() failed")
@@ -1342,25 +1375,29 @@ def main():
                 args.clusterID
             )
             if rc:
-                # ACC clusters+credentials also should be deleted
+                # "Private" cloud clusters+credentials also should be deleted
                 if plaidMode:
                     clusterDict = astraSDK.clusters.getClusters(quiet=True).main()
-                acsList = ["gke", "aks", "eks"]
                 for cluster in clusterDict["items"]:
-                    if cluster["id"] == args.clusterID and cluster["clusterType"] not in acsList:
-                        if astraSDK.clusters.deleteCluster(
-                            quiet=args.quiet, verbose=args.verbose
-                        ).main(args.clusterID, cluster["cloudID"]):
-                            if astraSDK.credentials.destroyCredential(
+                    for label in cluster["metadata"]["labels"]:
+                        if (
+                            cluster["id"] == args.clusterID
+                            and label["name"] == "astra.netapp.io/labels/read-only/cloudName"
+                            and label["value"] == "private"
+                        ):
+                            if astraSDK.clusters.deleteCluster(
                                 quiet=args.quiet, verbose=args.verbose
-                            ).main(cluster.get("credentialID")):
-                                print(f"Credential deleted")
+                            ).main(args.clusterID, cluster["cloudID"]):
+                                if astraSDK.credentials.destroyCredential(
+                                    quiet=args.quiet, verbose=args.verbose
+                                ).main(cluster.get("credentialID")):
+                                    print(f"Credential deleted")
+                                else:
+                                    print("astraSDK.credentials.destroyCredential() failed")
+                                    sys.exit(1)
                             else:
-                                print("astraSDK.credentials.destroyCredential() failed")
+                                print("astraSDK.clusters.deleteCluster() failed")
                                 sys.exit(1)
-                        else:
-                            print("astraSDK.clusters.deleteCluster() failed")
-                            sys.exit(1)
                 sys.exit(0)
             else:
                 print("astraSDK.clusters.unmanageCluster() failed")

@@ -31,7 +31,10 @@ To define (or manage) an app, you must first gather the [namespace name](../list
 Command usage:
 
 ```text
-./toolkit.py manage app <appLogicalName> <namespaceName> <clusterID> <--labelSelectors optionalLabelSelectors>
+./toolkit.py manage app <appLogicalName> <namespaceName> <clusterID> \
+    <--labelSelectors optionalLabelSelectors> \
+    <--additionalNamespace optionalAdditionalNamespace optionalLabelSelectors> \
+    <--clusterScopedResource optionalClusterScoped Resource optionalLabelSelectors>
 ```
 
 Sample output:
@@ -51,7 +54,9 @@ $ ./toolkit.py manage app wordpress default -l app.kubernetes.io/instance=wordpr
 Multiple labels utilize comma separation:
 
 ```text
-$ ./toolkit.py manage app wordpress default -l app.kubernetes.io/name=wordpress,app.kubernetes.io/managed-by=Helm b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d
+$ ./toolkit.py manage app wordpress default \
+    -l app.kubernetes.io/name=wordpress,app.kubernetes.io/managed-by=Helm \
+    b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d
 {'clusterID': 'b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d', 'name': 'wordpress', 'namespaceScopedResources': [{'namespace': 'default', 'labelSelectors': ['app.kubernetes.io/name=wordpress,app.kubernetes.io/managed-by=Helm']}], 'type': 'application/astra-app', 'version': '2.0'}
 {"type": "application/astra-app", "version": "2.0", "id": "0d2fa973-4c9f-4e7b-9de3-2ac74c204a5c", "name": "wordpress", "namespaceScopedResources": [{"namespace": "default", "labelSelectors": ["app.kubernetes.io/name=wordpress,app.kubernetes.io/managed-by=Helm"]}], "state": "discovering", "lastResourceCollectionTimestamp": "2022-07-27T17:33:02Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaces": [], "clusterName": "uscentral1-cluster", "clusterID": "b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-07-27T17:33:02Z", "modificationTimestamp": "2022-07-27T17:33:02Z", "createdBy": "12a5d9dd-851e-4235-af27-86c0b63bf3a9"}}
 ```
@@ -59,13 +64,55 @@ $ ./toolkit.py manage app wordpress default -l app.kubernetes.io/name=wordpress,
 Any label selectors which require spaces or characters that interfere with bash/zsh (for instance `!`) should be encased in quotes:
 
 ```text
-$ ./toolkit.py manage app cassandra default -l 'tier notin (frontend)' b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d
+$ ./toolkit.py manage app cassandra default -l 'tier notin (frontend)' \
+    b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d
 {"type": "application/astra-app", "version": "2.0", "id": "736d1231-807b-4ee2-ba51-e8a35a2829d3", "name": "cassandra", "namespaceScopedResources": [{"namespace": "default", "labelSelectors": ["tier notin (frontend)"]}], "state": "discovering", "lastResourceCollectionTimestamp": "2022-07-27T17:48:47Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaces": [], "clusterName": "uscentral1-cluster", "clusterID": "b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-07-27T17:48:47Z", "modificationTimestamp": "2022-07-27T17:48:47Z", "createdBy": "12a5d9dd-851e-4235-af27-86c0b63bf3a9"}}
 ```
 
 ```text
-$ ./toolkit.py manage app cassandra default -l '!app' b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d
+$ ./toolkit.py manage app cassandra default -l '!app' \
+    b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d
 {"type": "application/astra-app", "version": "2.0", "id": "8484c2b6-8496-41fb-b2d1-8bbb549609de", "name": "cassandra", "namespaceScopedResources": [{"namespace": "default", "labelSelectors": ["!app"]}], "state": "discovering", "lastResourceCollectionTimestamp": "2022-07-27T17:58:25Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaces": [], "clusterName": "uscentral1-cluster", "clusterID": "b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-07-27T17:58:25Z", "modificationTimestamp": "2022-07-27T17:58:25Z", "createdBy": "12a5d9dd-851e-4235-af27-86c0b63bf3a9"}}
+```
+
+Additional namespaces (and their optional labels) can be provided by any number of the `--additionalNamespace`/`-a` argument:
+
+```text
+$ ./toolkit.py manage app wordpress wordpress \
+    690deba1-bc57-4771-ab72-88758cab2afd -a default
+{"type": "application/astra-app", "version": "2.1", "id": "863bd74f-030c-4d51-a56f-3d69a02c58cf", "name": "wordpress", "namespaceScopedResources": [{"namespace": "wordpress"}, {"namespace": "default"}], "clusterScopedResources": [], "state": "discovering", "lastResourceCollectionTimestamp": "2022-10-19T17:34:22Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaceMapping": [], "clusterName": "prod-cluster", "clusterID": "690deba1-bc57-4771-ab72-88758cab2afd", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-10-19T17:34:22Z", "modificationTimestamp": "2022-10-19T17:34:22Z", "createdBy": "022c5578-44b6-4f2a-8f25-862c7352205a"}}
+```
+
+```text
+$ ./toolkit.py manage app wordpress wordpress -l app.kubernetes.io/managed-by=Helm \
+    690deba1-bc57-4771-ab72-88758cab2afd \
+    -a default app.kubernetes.io/instance=wordpress
+{"type": "application/astra-app", "version": "2.1", "id": "60ebee33-fea3-4664-80d7-df492dca62ee", "name": "wordpress", "namespaceScopedResources": [{"namespace": "wordpress", "labelSelectors": ["app.kubernetes.io/managed-by=Helm"]}, {"namespace": "default", "labelSelectors": ["app.kubernetes.io/instance=wordpress"]}], "clusterScopedResources": [], "state": "discovering", "lastResourceCollectionTimestamp": "2022-10-19T17:36:11Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaceMapping": [], "clusterName": "prod-cluster", "clusterID": "690deba1-bc57-4771-ab72-88758cab2afd", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-10-19T17:36:11Z", "modificationTimestamp": "2022-10-19T17:36:11Z", "createdBy": "022c5578-44b6-4f2a-8f25-862c7352205a"}}
+```
+
+```text
+$ ./toolkit.py manage app wordpress wordpress \
+    690deba1-bc57-4771-ab72-88758cab2afd \
+    -a default app.kubernetes.io/instance=wordpress,app.kubernetes.io/managed-by=Helm
+{"type": "application/astra-app", "version": "2.1", "id": "84b18a22-c2fa-49d4-a6b7-82b687112bf4", "name": "wordpress", "namespaceScopedResources": [{"namespace": "wordpress"}, {"namespace": "default", "labelSelectors": ["app.kubernetes.io/instance=wordpress,app.kubernetes.io/managed-by=Helm"]}], "clusterScopedResources": [], "state": "discovering", "lastResourceCollectionTimestamp": "2022-10-19T17:37:43Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaceMapping": [], "clusterName": "prod-cluster", "clusterID": "690deba1-bc57-4771-ab72-88758cab2afd", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-10-19T17:37:43Z", "modificationTimestamp": "2022-10-19T17:37:43Z", "createdBy": "022c5578-44b6-4f2a-8f25-862c7352205a"}}
+```
+
+```text
+$ ./toolkit.py manage app wordpress wordpress \
+    690deba1-bc57-4771-ab72-88758cab2afd \
+    -a default app.kubernetes.io/instance=wordpress,app.kubernetes.io/managed-by=Helm \
+    -a wordpress-frontend
+{"type": "application/astra-app", "version": "2.1", "id": "6a8f7c47-4caa-4ace-acce-eac1c4fdd23c", "name": "wordpress", "namespaceScopedResources": [{"namespace": "wordpress"}, {"namespace": "default", "labelSelectors": ["app.kubernetes.io/instance=wordpress,app.kubernetes.io/managed-by=Helm"]}, {"namespace": "kube-system"}], "clusterScopedResources": [], "state": "discovering", "lastResourceCollectionTimestamp": "2022-10-19T17:40:42Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaceMapping": [], "clusterName": "prod-cluster", "clusterID": "690deba1-bc57-4771-ab72-88758cab2afd", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-10-19T17:40:42Z", "modificationTimestamp": "2022-10-19T17:40:42Z", "createdBy": "022c5578-44b6-4f2a-8f25-862c7352205a"}}
+```
+
+Cluster scoped resources can be provided via the `--clusterScopedResource`/`-c` argument, which must match one of the available [API resource kinds](../list/README.md#apiresources) for the given cluster.  A single cluster scoped resource should be provided per `--clusterScopedResource`/`-c` flag, with an optional additional label selector.
+
+```text
+$ ./toolkit.py manage app cloudbees-core cloudbees-core 690deba1-bc57-4771-ab72-88758cab2afd \
+    -c ValidatingWebhookConfiguration \
+    -c ClusterRole app.kubernetes.io/instance=cloudbees-core \
+    -c ClusterRoleBinding app.kubernetes.io/instance=cloudbees-core
+{"type": "application/astra-app", "version": "2.1", "id": "53575377-7086-4922-9fb9-790a09e31479", "name": "application-4903123e-3", "namespaceScopedResources": [{"namespace": "cloudbees-core"}], "clusterScopedResources": [{"GVK": {"group": "rbac.authorization.k8s.io", "kind": "ClusterRole", "version": "v1"}, "labelSelectors": ["app.kubernetes.io/instance=cloudbees-core"]}, {"GVK": {"group": "rbac.authorization.k8s.io", "kind": "ClusterRoleBinding", "version": "v1"}, "labelSelectors": ["app.kubernetes.io/instance=cloudbees-core"]}, {"GVK": {"group": "admissionregistration.k8s.io", "kind": "ValidatingWebhookConfiguration", "version": "v1"}}], "state": "discovering", "lastResourceCollectionTimestamp": "2022-10-20T14:51:13Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaceMapping": [], "clusterName": "prod-cluster", "clusterID": "690deba1-bc57-4771-ab72-88758cab2afd", "clusterType": "gke", "metadata": {"labels": [], "creationTimestamp": "2022-10-20T14:51:13Z", "modificationTimestamp": "2022-10-20T14:51:13Z", "createdBy": "022c5578-44b6-4f2a-8f25-862c7352205a"}}
 ```
 
 ## Bucket
