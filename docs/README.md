@@ -6,13 +6,24 @@ See [the main README](../README.md) for information on how to install the NetApp
 
 ## Astra SDK Classes
 
-High level overview of the astraSDK.py classes can be found in the following pages:
+High level overview of the `astraSDK/` classes can be found in the following pages:
 
-* [Account level classes](astrasdk/accountClasses/README.md)
-* [App classes](astrasdk/appClasses/README.md)
-* [Base classes](astrasdk/baseClasses/README.md)
-* [Cloud and Cluster classes](astrasdk/cloudClusterClasses/README.md)
-* [Data protection classes](astrasdk/dataProtectionClasses/README.md)
+* [Common](astrasdk/common/README.md)
+* [Apps](astrasdk/apps/README.md)
+* [Backups](astrasdk/backups/README.md)
+* [Buckets](astrasdk/buckets/README.md)
+* [Clouds](astrasdk/clouds/README.md)
+* [Clusters](astrasdk/clusters/README.md)
+* [Credentials](astrasdk/credentials/README.md)
+* [Entitlements](astrasdk/entitlements/README.md)
+* [Hooks](astrasdk/hooks/README.md)
+* [Namespaces](astrasdk/namespaces/README.md)
+* [Protections](astrasdk/protections/README.md)
+* [Replications](astrasdk/replications/README.md)
+* [Scripts](astrasdk/scripts/README.md)
+* [Snapshots](astrasdk/snapshots/README.md)
+* [Storageclasses](astrasdk/storageclasses/README.md)
+* [Users](astrasdk/users/README.md)
 
 ## Toolkit Functions
 

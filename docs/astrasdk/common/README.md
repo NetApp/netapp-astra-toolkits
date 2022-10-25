@@ -1,4 +1,4 @@
-# Base Classes
+# Common
 
 In all likelyhood these classes will not need to be invoked on their own, rather their child classes should be called.  However, it may be necessary to change the default code behavior for [reading in the credentials configuration file](#getConfig) or the [base SDK / API class](#SDKCommon).
 

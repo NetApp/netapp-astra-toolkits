@@ -2,7 +2,7 @@
 
 The NetApp Astra Control Python SDK is designed to provide guidance for working with the NetApp Astra Control API.
 
-You can use the `astraSDK.py` library out of the box, and as a set of example recommended code and processes, "cookbook" style. The `toolkit.py` script provides a command line interface to interact with Astra Control with built-in guardrails, and since it utilizes astraSDK.py it can provide additional context around the requirements of the astraSDK.py classes.
+You can use the `astraSDK/` library out of the box, and as a set of example recommended code and processes, "cookbook" style. The `toolkit.py` script provides a command line interface to interact with Astra Control with built-in guardrails, and since it utilizes `astraSDK/` it can provide additional context around the requirements of the astraSDK classes.
 
 When using `toolkit.py`/`actoolkit` in automation, it is **highly** recommended to tie your workflows to a specific [tag](https://github.com/NetApp/netapp-astra-toolkits/tags) or [release](https://pypi.org/project/actoolkit/#history) (as functionality may change over time), and be sure to thoroughly test all workflows to ensure expected behavior.
 
@@ -41,7 +41,7 @@ For the **developer** use case or to [manually install](#3-manual-installation) 
 
 No matter the method of installation, the SDK authenticates by reading in the `config.yaml` file from the following locations (in order):
 
-1. The directory that `astraSDK.py` is located in
+1. The directory that the executed function is located in
 1. `~/.config/astra-toolkits/`
 1. `/etc/astra-toolkits/`
 1. The directory pointed to by the shell env var `ASTRATOOLKITS_CONF`
@@ -119,6 +119,20 @@ You can now use `actoolkit` to invoke the NetApp Astra Control SDK. For example,
 
 ```text
 actoolkit list clusters
+```
+
+Additionally, the `astraSDK/` library is available for import for use when creating custom scripts:
+
+```text
+>>> import astraSDK
+>>> print(astraSDK.clusters.getClusters(output="table").main())
++----------------------+--------------------------------------+---------------+----------------+
+| clusterName          | clusterID                            | clusterType   | managedState   |
++======================+======================================+===============+================+
+| uscentral1-cluster   | 0412fd41-51b8-478a-b055-0bd50e34b1fe | gke           | managed        |
++----------------------+--------------------------------------+---------------+----------------+
+| prod-cluster         | c69d8281-d4ea-4902-b03e-0c39c7da4543 | gke           | managed        |
++----------------------+--------------------------------------+---------------+----------------+
 ```
 
 ### 3. Manual Installation

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
    Copyright 2022 NetApp, Inc
 
@@ -15,289 +15,38 @@
    limitations under the License.
 """
 
-try:
-    from . import astraSDK
-except ImportError:
-    import astraSDK
-
-
-import argparse
+import base64
 import json
-import os
-import subprocess
+import kubernetes
 import sys
-import tempfile
 import time
 import yaml
-import kubernetes
-import base64
 from datetime import datetime, timedelta
 
-
-def subKeys(subObject, key):
-    """Short recursion function for when the userSelect dict object has another
-    dict as one of its key's values"""
-    subKey = key.split("/", maxsplit=1)
-    if len(subKey) == 1:
-        return subObject[subKey[0]]
-    else:
-        return subKeys(subObject[subKey[0]], subKey[1])
+import astraSDK
+import tkHelpers
+import tkParser
 
 
-def userSelect(pickList, keys):
-    """pickList is a dictionary with an 'items' array of dicts.  Print the values
-    that match the 'keys' array, have the user pick one and then return the value
-    of index 0 of the keys array"""
-    # pickList = {"items": [{"id": "123", "name": "webapp",  "state": "running"},
-    #                       {"id": "345", "name": "mongodb", "state": "stopped"}]}
-    # keys = ["id", "name"]
-    # Output:
-    # 1:    123         webapp
-    # 2:    345         mongodb
-    # User enters 2, "id" (index 0) is returned, so "345"
-
-    if not isinstance(pickList, dict) or not isinstance(keys, list):
-        return False
-
-    for counter, item in enumerate(pickList["items"], start=1):
-        outputStr = str(counter) + ":\t"
-        for key in keys:
-            if item.get(key):
-                outputStr += str(item[key]) + "\t"
-            elif "/" in key:
-                outputStr += subKeys(item, key) + "\t"
-        print(outputStr)
-
-    while True:
-        ret = input(f"Select a line (1-{counter}): ")
-        try:
-            # try/except catches errors thrown from non-valid input
-            objectValue = pickList["items"][int(ret) - 1][keys[0]]
-            if int(ret) > 0 and int(ret) <= counter and objectValue:
-                return objectValue
-            else:
-                continue
-        except (IndexError, TypeError, ValueError):
-            continue
-
-
-def createHelmStr(flagName, values):
-    """Create a string to be appended to a helm command which contains a list
-    of --set {value} and/or --values {file} arguments"""
-    returnStr = ""
-    if values:
-        for value in values:
-            if type(value) == list:
-                for v in value:
-                    returnStr += f" --{flagName} {v}"
-            else:
-                returnStr += f" --{flagName} {value}"
-    return returnStr
-
-
-def createHookList(hookArguments):
-    """Create a list of strings to be used for --hookArguments, as nargs="*" can provide
-    a variety of different types of lists of lists depending on how the user uses it.
-    User Input                    argParse Value                      createHookList Return
-    ----------                    --------------                      ---------------------
-    -a arg1                       [['arg1']]                          ['arg1']
-    -a arg1 arg2                  [['arg1', 'arg2']]                  ['arg1', 'arg2']
-    -a arg1 -a arg2               [['arg1'], ['arg2']]                ['arg1', 'arg2']
-    -a "arg1 s_arg" arg2          [['arg1 s_arg', 'arg2']]            ['arg1 s_arg', 'arg2']
-    -a "arg1 s_arg" arg2 -a arg3  [['arg1 s_arg', 'arg2'], ['arg3']]  ['arg1 s_arg', 'arg2', 'arg3']
-    """
-    returnList = []
-    if hookArguments:
-        for arg in hookArguments:
-            if type(arg) == list:
-                for a in arg:
-                    returnList.append(a)
-            else:
-                returnList.append(arg)
-    return returnList
-
-
-def createConstraintList(idList, labelList):
-    """Create a list of strings to be used for --labelConstraint and --namespaceConstraint args,
-    as nargs="*" can provide a varitey of different types of lists of lists depending on input."""
-    returnList = []
-    if idList:
-        for arg in idList:
-            if type(arg) == list:
-                for a in arg:
-                    returnList.append("namespaces:id='" + a + "'.*")
-            else:
-                returnList.append("namespaces:id='" + arg + "'.*")
-    if labelList:
-        for arg in labelList:
-            if type(arg) == list:
-                for a in arg:
-                    returnList.append("namespaces:kubernetesLabels='" + a + "'.*")
-            else:
-                returnList.append("namespaces:kubernetesLabels='" + arg + "'.*")
-    return returnList if returnList else ["*"]
-
-
-def updateHelm():
-    """Check to see if the bitnami helm repo is installed
-    If it is, get the name of the repo
-    otherwise install it
-    ignore_errors=True here because helm repo list returns 1 if there are no
-    repos configured"""
-    ret = run("helm repo list -o yaml", captureOutput=True, ignoreErrors=True)
-    repos = {
-        "https://charts.gitlab.io": None,
-        "https://charts.bitnami.com/bitnami": None,
-        "https://charts.cloudbees.com/public/cloudbees": None,
-    }
-    if ret != 1:
-        retYaml = yaml.load(ret, Loader=yaml.SafeLoader)
-        # Adding support for user-defined repos
-        for item in retYaml:
-            if item.get("url") not in repos:
-                repos[item.get("url")] = None
-        for repoUrlToMatch in repos:
-            for item in retYaml:
-                if item.get("url") == repoUrlToMatch:
-                    repos[repoUrlToMatch] = item.get("name")
-    for k, v in repos.items():
-        if not v:
-            repoName = k.split(".")[1]
-            run(f"helm repo add {repoName} {k}")
-            repos[k] = repoName
-
-    run("helm repo update")
-    chartsDict = {}
-    chartsDict["items"] = []
-    for val in repos.values():
-        charts = run(f"helm -o json search repo {val}", captureOutput=True)
-        for chart in json.loads(charts.decode("utf-8")):
-            chartsDict["items"].append(chart)
-    return chartsDict
-
-
-def run(command, captureOutput=False, ignoreErrors=False):
-    """Run an arbitrary shell command.  Our API is terrible.  If ignore_errors=False
-    raise the SystemExit exception if the commands returns != 0 (e.g.: failure)
-    If ignore_errors=True, return the shell return code if it is != 0
-    If the shell return code is 0 (success) either return True or the contents of stdout, depending
-    on whether capture_output is set to True or False"""
-    command = command.split(" ")
-    try:
-        ret = subprocess.run(command, capture_output=captureOutput)
-    except OSError as e:
-        raise SystemExit(f"{command} OSError: {e}")
-    # Shell returns 0 for success, a positive int for an error
-    # inverted from python True/False
-    if ret.returncode:
-        if ignoreErrors:
-            return ret.returncode
-        else:
-            raise SystemExit(f"{command} returned failure: {ret.returncode}")
-    else:
-        if captureOutput:
-            return ret.stdout
-        else:
-            return True
-
-
-def doProtectionTask(protectionType, appID, name, background):
-    """Take a snapshot/backup of appID giving it name <name>
-    Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
-    if protectionType == "backup":
-        protectionID = astraSDK.takeBackup().main(appID, name)
-    elif protectionType == "snapshot":
-        protectionID = astraSDK.takeSnap().main(appID, name)
-    if protectionID == False:
-        sys.exit(1)
-
-    print(f"Starting {protectionType} of {appID}")
-    if background:
-        print(
-            f"Background {protectionType} flag selected, run 'list {protectionType}s' to get status"
-        )
-        return True
-
-    print(f"Waiting for {protectionType} to complete.", end="")
-    sys.stdout.flush()
-    while True:
-        if protectionType == "backup":
-            objects = astraSDK.getBackups().main()
-        elif protectionType == "snapshot":
-            objects = astraSDK.getSnaps().main()
-        if not objects:
-            # This isn't technically true.  Trying to list the backups/snapshots after taking the
-            # protection job failed.  The protection job itself may eventually succeed.
-            print(f"Taking {protectionType} failed")
-            return False
-        for obj in objects["items"]:
-            # There's no API for monitoring long running tasks.  Just because
-            # the API call to create a backup/snapshot succeeded, that doesn't mean the
-            # actual backup will succeed as well.  So we spin on checking the backups/snapshots
-            # waiting for our backupsnapshot to either show completed or failed.
-            if obj["id"] == protectionID:
-                if obj["state"] == "completed":
-                    print("complete!")
-                    sys.stdout.flush()
-                    return protectionID
-                elif obj["state"] == "failed":
-                    print(f"{protectionType} job failed")
-                    return False
-        time.sleep(5)
-        print(".", end="")
-        sys.stdout.flush()
-
-
-def stsPatch(patch, stsName):
-    """Patch and restart a statefulset"""
-    patchYaml = yaml.dump(patch)
-    tmp = tempfile.NamedTemporaryFile()
-    tmp.write(bytes(patchYaml, "utf-8"))
-    tmp.seek(0)
-    # Use os.system a few times because the home rolled run() simply isn't up to the task
-    try:
-        # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
-        # were used
-        ret = os.system(f'kubectl patch statefulset.apps/{stsName} -p "$(cat {tmp.name})"')
-    except OSError as e:
-        print(f"Exception: {e}")
-        sys.exit(11)
-    if ret:
-        print(f"os.system exited with RC: {ret}")
-        sys.exit(12)
-    tmp.close()
-    try:
-        os.system(
-            f"kubectl scale sts {stsName} --replicas=0 && "
-            f"sleep 10 && kubectl scale sts {stsName} --replicas=1"
-        )
-    except OSError as e:
-        print(f"Exception: {e}")
-        sys.exit(13)
-    if ret:
-        print(f"os.system exited with RC: {ret}")
-        sys.exit(14)
-
-
-class toolkit:
+class ToolKit:
     def __init__(self):
-        self.conf = astraSDK.getConfig().main()
+        self.conf = astraSDK.common.getConfig().main()
 
-    def deploy(self, chart, appName, namespace, setValues, fileValues, verbose, quiet):
+    def doDeploy(self, chart, appName, namespace, setValues, fileValues, verbose, quiet):
         """Deploy a helm chart <chart>, naming the app <appName> into <namespace>"""
 
-        setStr = createHelmStr("set", setValues)
-        valueStr = createHelmStr("values", fileValues)
+        setStr = tkHelpers.createHelmStr("set", setValues)
+        valueStr = tkHelpers.createHelmStr("values", fileValues)
 
-        nsObj = astraSDK.getNamespaces(verbose=verbose)
-        retval = run("kubectl get ns -o json", captureOutput=True)
+        nsObj = astraSDK.namespaces.getNamespaces(verbose=verbose)
+        retval = tkHelpers.run("kubectl get ns -o json", captureOutput=True)
         retvalJSON = json.loads(retval)
         for item in retvalJSON["items"]:
             if item["metadata"]["name"] == namespace:
                 print(f"Namespace {namespace} already exists!")
                 sys.exit(24)
-        run(f"kubectl create namespace {namespace}")
-        run(f"kubectl config set-context --current --namespace={namespace}")
+        tkHelpers.run(f"kubectl create namespace {namespace}")
+        tkHelpers.run(f"kubectl config set-context --current --namespace={namespace}")
 
         # If we're deploying gitlab, we need to ensure at least a premium storageclass
         # for postgresql and gitaly
@@ -327,7 +76,7 @@ class toolkit:
                 setStr += f" --set postgresql.global.storageClass={pgStorageClass}"
                 setStr += f" --set gitlab.gitaly.persistence.storageClass={pgStorageClass}"
 
-        run(f"helm install {appName} {chart}{setStr}{valueStr}")
+        tkHelpers.run(f"helm install {appName} {chart}{setStr}{valueStr}")
         print("Waiting for Astra to discover the namespace.", end="")
         sys.stdout.flush()
 
@@ -358,7 +107,7 @@ class toolkit:
                     time.sleep(3)
                     print(f"Managing app: {ns['name']}.", end="")
                     sys.stdout.flush()
-                    rc = astraSDK.manageApp(verbose=verbose).main(
+                    rc = astraSDK.apps.manageApp(verbose=verbose).main(
                         ns["name"], ns["name"], ns["clusterID"]
                     )
                     if rc:
@@ -369,7 +118,7 @@ class toolkit:
                     else:
                         sys.stdout.flush()
                         print("\nERROR managing app, trying one more time:")
-                        rc = astraSDK.manageApp(quiet=quiet, verbose=verbose).main(
+                        rc = astraSDK.apps.manageApp(quiet=quiet, verbose=verbose).main(
                             ns["name"], ns["name"], ns["clusterID"]
                         )
                         if rc:
@@ -383,7 +132,7 @@ class toolkit:
         backupRetention = "1"
         snapshotRetention = "1"
         minute = "0"
-        cpp = astraSDK.createProtectionpolicy(quiet=True)
+        cpp = astraSDK.protections.createProtectionpolicy(quiet=True)
         cppData = {
             "hourly": {"dayOfWeek": "*", "dayOfMonth": "*", "hour": "*"},
             "daily": {"dayOfWeek": "*", "dayOfMonth": "*", "hour": "2"},
@@ -408,7 +157,7 @@ class toolkit:
             if cppRet is False:
                 raise SystemExit(f"cpp.main({period}...) returned False")
 
-    def clone(
+    def doClone(
         self,
         cloneAppName,
         clusterID,
@@ -423,7 +172,7 @@ class toolkit:
         """Create a clone."""
         # Check to see if cluster-level resources are needed to be manually created
         needsIngressclass = False
-        appAssets = astraSDK.getAppAssets(verbose=verbose).main(oApp["id"])
+        appAssets = astraSDK.apps.getAppAssets(verbose=verbose).main(oApp["id"])
         for asset in appAssets["items"]:
             if (
                 "nginx-ingress-controller" in asset["assetName"]
@@ -435,7 +184,7 @@ class toolkit:
         if needsIngressclass and oApp["clusterID"] != clusterID:
             if not cloneNamespace:
                 cloneNamespace = cloneAppName
-            clusters = astraSDK.getClusters().main(hideUnmanaged=True)
+            clusters = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
             contexts, _ = kubernetes.config.list_kube_config_contexts()
             # Loop through clusters and contexts, find matches and open api_client
             for cluster in clusters["items"]:
@@ -564,7 +313,7 @@ class toolkit:
                 }
             ]
 
-        cloneRet = astraSDK.cloneApp(verbose=verbose).main(
+        cloneRet = astraSDK.apps.cloneApp(verbose=verbose).main(
             cloneAppName,
             clusterID,
             oApp["clusterID"],
@@ -583,7 +332,7 @@ class toolkit:
             appID = cloneRet.get("id")
             state = cloneRet.get("state")
             while state != "ready":
-                apps = astraSDK.getApps().main()
+                apps = astraSDK.apps.getApps().main()
                 for app in apps["items"]:
                     if app["id"] == appID:
                         if app["state"] == "ready":
@@ -596,6 +345,52 @@ class toolkit:
                             time.sleep(3)
         else:
             print("Submitting clone failed.")
+
+    def doProtectionTask(self, protectionType, appID, name, background):
+        """Take a snapshot/backup of appID giving it name <name>
+        Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
+        if protectionType == "backup":
+            protectionID = astraSDK.backups.takeBackup().main(appID, name)
+        elif protectionType == "snapshot":
+            protectionID = astraSDK.snapshots.takeSnap().main(appID, name)
+        if protectionID == False:
+            sys.exit(1)
+
+        print(f"Starting {protectionType} of {appID}")
+        if background:
+            print(
+                f"Background {protectionType} flag selected, run 'list {protectionType}s' to get status"
+            )
+            return True
+
+        print(f"Waiting for {protectionType} to complete.", end="")
+        sys.stdout.flush()
+        while True:
+            if protectionType == "backup":
+                objects = astraSDK.backups.getBackups().main()
+            elif protectionType == "snapshot":
+                objects = astraSDK.snapshots.getSnaps().main()
+            if not objects:
+                # This isn't technically true.  Trying to list the backups/snapshots after taking the
+                # protection job failed.  The protection job itself may eventually succeed.
+                print(f"Taking {protectionType} failed")
+                return False
+            for obj in objects["items"]:
+                # There's no API for monitoring long running tasks.  Just because
+                # the API call to create a backup/snapshot succeeded, that doesn't mean the
+                # actual backup will succeed as well.  So we spin on checking the backups/snapshots
+                # waiting for our backupsnapshot to either show completed or failed.
+                if obj["id"] == protectionID:
+                    if obj["state"] == "completed":
+                        print("complete!")
+                        sys.stdout.flush()
+                        return protectionID
+                    elif obj["state"] == "failed":
+                        print(f"{protectionType} job failed")
+                        return False
+            time.sleep(5)
+            print(".", end="")
+            sys.stdout.flush()
 
 
 def main():
@@ -621,11 +416,11 @@ def main():
     snapshotList = []
     storageClassList = []
     userList = []
+    plaidMode = False
 
     if len(sys.argv) > 1:
 
-        # verbs must manually be kept in sync with the top level subcommands in the argparse
-        # section of this code.
+        # verbs must manually be kept in sync with top_level_commands() in tkParser.py
         verbs = {
             "deploy": False,
             "clone": False,
@@ -685,7 +480,6 @@ def main():
                             verbPosition = None
 
         # Turn off verification to speed things up if true
-        plaidMode = False
         for counter, item in enumerate(sys.argv):
             if verbPosition and counter < verbPosition and (item == "-f" or item == "--fast"):
                 plaidMode = True
@@ -693,40 +487,40 @@ def main():
         if not plaidMode:
             # It isn't intuitive, however only one key in verbs can be True
             if verbs["deploy"]:
-                chartsDict = updateHelm()
+                chartsDict = tkHelpers.updateHelm()
                 for chart in chartsDict["items"]:
                     chartsList.append(chart["name"])
 
             elif verbs["clone"]:
-                apps = astraSDK.getApps().main()
+                apps = astraSDK.apps.getApps().main()
                 for app in apps["items"]:
                     appList.append(app["id"])
-                destCluster = astraSDK.getClusters().main(hideUnmanaged=True)
+                destCluster = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
                 for cluster in destCluster["items"]:
                     destclusterList.append(cluster["id"])
-                backups = astraSDK.getBackups().main()
+                backups = astraSDK.backups.getBackups().main()
                 for backup in backups["items"]:
                     backupList.append(backup["id"])
-                snapshots = astraSDK.getSnaps().main()
+                snapshots = astraSDK.snapshots.getSnaps().main()
                 for snap in snapshots["items"]:
                     snapshotList.append(snap["id"])
 
             elif verbs["restore"]:
-                for app in astraSDK.getApps().main()["items"]:
+                for app in astraSDK.apps.getApps().main()["items"]:
                     appList.append(app["id"])
 
                 # This expression translates to "Is there an arg after the verb we found?"
                 if len(sys.argv) - verbPosition >= 2:
                     # If that arg after the verb "restore" matches an appID then
                     # populate the lists of backups and snapshots for that appID
-                    backups = astraSDK.getBackups().main()
+                    backups = astraSDK.backups.getBackups().main()
                     for backup in backups["items"]:
                         if backup["appID"] == sys.argv[verbPosition + 1] or (
                             len(sys.argv) > verbPosition + 2
                             and backup["appID"] == sys.argv[verbPosition + 2]
                         ):
                             backupList.append(backup["id"])
-                    snapshots = astraSDK.getSnaps().main()
+                    snapshots = astraSDK.snapshots.getSnaps().main()
                     for snapshot in snapshots["items"]:
                         if snapshot["appID"] == sys.argv[verbPosition + 1] or (
                             len(sys.argv) > verbPosition + 2
@@ -745,19 +539,19 @@ def main():
                     or sys.argv[verbPosition + 1] == "snapshot"
                 )
             ):
-                apps = astraSDK.getApps().main()
+                apps = astraSDK.apps.getApps().main()
                 for app in apps["items"]:
                     appList.append(app["id"])
                 if sys.argv[verbPosition + 1] == "hook":
-                    for script in astraSDK.getScripts().main()["items"]:
+                    for script in astraSDK.scripts.getScripts().main()["items"]:
                         scriptList.append(script["id"])
                 if sys.argv[verbPosition + 1] == "replication":
-                    destCluster = astraSDK.getClusters().main(hideUnmanaged=True)
+                    destCluster = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
                     for cluster in destCluster["items"]:
                         destclusterList.append(cluster["id"])
-                    storageClassDict = astraSDK.getStorageClasses(quiet=True).main()
+                    storageClassDict = astraSDK.storageclasses.getStorageClasses(quiet=True).main()
                     if isinstance(storageClassDict, bool):
-                        # astraSDK.getStorageClasses(quiet=True).main() returns either True
+                        # getStorageClasses(quiet=True).main() returns either True
                         # or False if it doesn't work, or if there are no clouds or clusters
                         sys.exit(1)
                     for storageClass in storageClassDict["items"]:
@@ -768,7 +562,7 @@ def main():
                 and len(sys.argv) - verbPosition >= 2
                 and sys.argv[verbPosition + 1] == "cluster"
             ):
-                for cloud in astraSDK.getClouds().main()["items"]:
+                for cloud in astraSDK.clouds.getClouds().main()["items"]:
                     if cloud["cloudType"] not in ["GCP", "Azure", "AWS"]:
                         cloudList.append(cloud["id"])
             elif (
@@ -776,7 +570,7 @@ def main():
                 and len(sys.argv) - verbPosition >= 2
                 and sys.argv[verbPosition + 1] == "user"
             ):
-                namespaceDict = astraSDK.getNamespaces().main()
+                namespaceDict = astraSDK.namespaces.getNamespaces().main()
                 for namespace in namespaceDict["items"]:
                     namespaceList.append(namespace["id"])
                     if namespace.get("kubernetesLabels"):
@@ -792,18 +586,18 @@ def main():
                 and len(sys.argv) - verbPosition >= 2
                 and sys.argv[verbPosition + 1] == "assets"
             ):
-                for app in astraSDK.getApps().main()["items"]:
+                for app in astraSDK.apps.getApps().main()["items"]:
                     appList.append(app["id"])
 
             elif (verbs["manage"] or verbs["define"]) and len(sys.argv) - verbPosition >= 2:
                 if sys.argv[verbPosition + 1] == "app":
-                    namespaceDict = astraSDK.getNamespaces().main()
+                    namespaceDict = astraSDK.namespaces.getNamespaces().main()
                     for namespace in namespaceDict["items"]:
                         namespaceList.append(namespace["name"])
                         clusterList.append(namespace["clusterID"])
                     clusterList = list(set(clusterList))
                 elif sys.argv[verbPosition + 1] == "bucket":
-                    credentialDict = astraSDK.getCredentials().main()
+                    credentialDict = astraSDK.credentials.getCredentials().main()
                     for credential in credentialDict["items"]:
                         # if credential["keyType"] == "s3" or (
                         if credential["metadata"].get("labels"):
@@ -818,13 +612,13 @@ def main():
                             if credID:
                                 credentialList.append(credential["id"])
                 elif sys.argv[verbPosition + 1] == "cluster":
-                    clusterDict = astraSDK.getClusters(quiet=True).main()
+                    clusterDict = astraSDK.clusters.getClusters(quiet=True).main()
                     for cluster in clusterDict["items"]:
                         if cluster["managedState"] == "unmanaged":
                             clusterList.append(cluster["id"])
-                    storageClassDict = astraSDK.getStorageClasses(quiet=True).main()
+                    storageClassDict = astraSDK.storageclasses.getStorageClasses(quiet=True).main()
                     if isinstance(storageClassDict, bool):
-                        # astraSDK.getStorageClasses(quiet=True).main() returns either True
+                        # getStorageClasses(quiet=True).main() returns either True
                         # or False if it doesn't work, or if there are no clouds or clusters
                         sys.exit(1)
                     for storageClass in storageClassDict["items"]:
@@ -838,31 +632,31 @@ def main():
 
             elif verbs["destroy"] and len(sys.argv) - verbPosition >= 2:
                 if sys.argv[verbPosition + 1] == "backup" and len(sys.argv) - verbPosition >= 3:
-                    for app in astraSDK.getApps().main()["items"]:
+                    for app in astraSDK.apps.getApps().main()["items"]:
                         appList.append(app["id"])
-                    backups = astraSDK.getBackups().main()
+                    backups = astraSDK.backups.getBackups().main()
                     for backup in backups["items"]:
                         if backup["appID"] == sys.argv[verbPosition + 2]:
                             backupList.append(backup["id"])
                 elif (
                     sys.argv[verbPosition + 1] == "credential" and len(sys.argv) - verbPosition >= 3
                 ):
-                    credentialDict = astraSDK.getCredentials().main()
+                    credentialDict = astraSDK.credentials.getCredentials().main()
                     for credential in credentialDict["items"]:
                         credentialList.append(credential["id"])
                 elif sys.argv[verbPosition + 1] == "hook" and len(sys.argv) - verbPosition >= 3:
-                    for app in astraSDK.getApps().main()["items"]:
+                    for app in astraSDK.apps.getApps().main()["items"]:
                         appList.append(app["id"])
-                    hooks = astraSDK.getHooks().main()
+                    hooks = astraSDK.hooks.getHooks().main()
                     for hook in hooks["items"]:
                         if hook["appID"] == sys.argv[verbPosition + 2]:
                             hookList.append(hook["id"])
                 elif (
                     sys.argv[verbPosition + 1] == "protection" and len(sys.argv) - verbPosition >= 3
                 ):
-                    for app in astraSDK.getApps().main()["items"]:
+                    for app in astraSDK.apps.getApps().main()["items"]:
                         appList.append(app["id"])
-                    protections = astraSDK.getProtectionpolicies().main()
+                    protections = astraSDK.protections.getProtectionpolicies().main()
                     for protection in protections["items"]:
                         if protection["appID"] == sys.argv[verbPosition + 2]:
                             protectionList.append(protection["id"])
@@ -870,1291 +664,74 @@ def main():
                     sys.argv[verbPosition + 1] == "replication"
                     and len(sys.argv) - verbPosition >= 3
                 ):
-                    replicationDict = astraSDK.getReplicationpolicies().main()
+                    replicationDict = astraSDK.replications.getReplicationpolicies().main()
                     if not replicationDict:  # Gracefully handle ACS env
                         print("Error: 'replication' commands are currently only supported in ACC.")
                         sys.exit(1)
                     for replication in replicationDict["items"]:
                         replicationList.append(replication["id"])
                 elif sys.argv[verbPosition + 1] == "snapshot" and len(sys.argv) - verbPosition >= 3:
-                    for app in astraSDK.getApps().main()["items"]:
+                    for app in astraSDK.apps.getApps().main()["items"]:
                         appList.append(app["id"])
-                    snapshots = astraSDK.getSnaps().main()
+                    snapshots = astraSDK.snapshots.getSnaps().main()
                     for snapshot in snapshots["items"]:
                         if snapshot["appID"] == sys.argv[verbPosition + 2]:
                             snapshotList.append(snapshot["id"])
                 elif sys.argv[verbPosition + 1] == "script" and len(sys.argv) - verbPosition >= 3:
-                    for script in astraSDK.getScripts().main()["items"]:
+                    for script in astraSDK.scripts.getScripts().main()["items"]:
                         scriptList.append(script["id"])
                 elif sys.argv[verbPosition + 1] == "user" and len(sys.argv) - verbPosition >= 3:
-                    userDict = astraSDK.getUsers().main()
+                    userDict = astraSDK.users.getUsers().main()
                     for user in userDict["items"]:
                         userList.append(user["id"])
 
             elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
                 if sys.argv[verbPosition + 1] == "app":
-                    for app in astraSDK.getApps().main()["items"]:
+                    for app in astraSDK.apps.getApps().main()["items"]:
                         appList.append(app["id"])
                 elif sys.argv[verbPosition + 1] == "bucket":
-                    bucketDict = astraSDK.getBuckets(quiet=True).main()
+                    bucketDict = astraSDK.buckets.getBuckets(quiet=True).main()
                     for bucket in bucketDict["items"]:
                         bucketList.append(bucket["id"])
                 elif sys.argv[verbPosition + 1] == "cluster":
-                    clusterDict = astraSDK.getClusters(quiet=True).main()
+                    clusterDict = astraSDK.clusters.getClusters(quiet=True).main()
                     for cluster in clusterDict["items"]:
                         if cluster["managedState"] == "managed":
                             clusterList.append(cluster["id"])
 
             elif (verbs["update"]) and len(sys.argv) - verbPosition >= 2:
                 if sys.argv[verbPosition + 1] == "replication":
-                    replicationDict = astraSDK.getReplicationpolicies().main()
+                    replicationDict = astraSDK.replications.getReplicationpolicies().main()
                     if not replicationDict:  # Gracefully handle ACS env
                         print("Error: 'replication' commands are currently only supported in ACC.")
                         sys.exit(1)
                     for replication in replicationDict["items"]:
                         replicationList.append(replication["id"])
 
-    parser = argparse.ArgumentParser(allow_abbrev=True)
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        default=False,
-        action="store_true",
-        help="print verbose/verbose output",
+    parser = tkParser.toolkit_parser(plaidMode=plaidMode).main(
+        appList,
+        backupList,
+        bucketList,
+        chartsList,
+        cloudList,
+        clusterList,
+        credentialList,
+        destclusterList,
+        hookList,
+        labelList,
+        namespaceList,
+        protectionList,
+        replicationList,
+        scriptList,
+        snapshotList,
+        storageClassList,
+        userList,
     )
-    parser.add_argument(
-        "-o",
-        "--output",
-        default="table",
-        choices=["json", "yaml", "table"],
-        help="command output format",
-    )
-    parser.add_argument("-q", "--quiet", default=False, action="store_true", help="supress output")
-    parser.add_argument(
-        "-f",
-        "--fast",
-        default=False,
-        action="store_true",
-        help="prioritize speed over validation (using this will not validate arguments, which "
-        + "may have unintended consequences)",
-    )
-    subparsers = parser.add_subparsers(dest="subcommand", required=True, help="subcommand help")
-    #######
-    # Top level subcommands
-    # # Be sure to keep these in sync with verbs{}
-    #######
-    parserDeploy = subparsers.add_parser(
-        "deploy",
-        help="Deploy a helm chart",
-    )
-    parserClone = subparsers.add_parser(
-        "clone",
-        help="Clone an app",
-    )
-    parserRestore = subparsers.add_parser(
-        "restore",
-        help="Restore an app from a backup or snapshot",
-    )
-    parserList = subparsers.add_parser(
-        "list",
-        aliases=["get"],
-        help="List all items in a class",
-    )
-    parserCreate = subparsers.add_parser(
-        "create",
-        help="Create an object",
-    )
-    parserManage = subparsers.add_parser(
-        "manage",
-        aliases=["define"],
-        help="Manage an object",
-    )
-    parserDestroy = subparsers.add_parser(
-        "destroy",
-        help="Destroy an object",
-    )
-    parserUnmanage = subparsers.add_parser(
-        "unmanage",
-        help="Unmanage an object",
-    )
-    parserUpdate = subparsers.add_parser(
-        "update",
-        help="Update an object",
-    )
-    #######
-    # End of top level subcommands
-    #######
-
-    #######
-    # subcommands "list", "create", "manage", "destroy", "unmanage", and "update"
-    # have subcommands as well
-    #######
-    subparserList = parserList.add_subparsers(title="objectType", dest="objectType", required=True)
-    subparserCreate = parserCreate.add_subparsers(
-        title="objectType", dest="objectType", required=True
-    )
-    subparserManage = parserManage.add_subparsers(
-        title="objectType", dest="objectType", required=True
-    )
-    subparserDestroy = parserDestroy.add_subparsers(
-        title="objectType", dest="objectType", required=True
-    )
-    subparserUnmanage = parserUnmanage.add_subparsers(
-        title="objectType", dest="objectType", required=True
-    )
-    subparserUpdate = parserUpdate.add_subparsers(
-        title="objectType", dest="objectType", required=True
-    )
-    #######
-    # end of subcommand "list", "create", "manage", "destroy", "unmanage", and "update"
-    # subcommands
-    #######
-
-    #######
-    # list 'X'
-    #######
-    subparserListApps = subparserList.add_parser(
-        "apps",
-        help="list apps",
-    )
-    subparserListAssets = subparserList.add_parser(
-        "assets",
-        help="list app assets",
-    )
-    subparserListBackups = subparserList.add_parser(
-        "backups",
-        help="list backups",
-    )
-    subparserListBuckets = subparserList.add_parser(
-        "buckets",
-        help="list buckets",
-    )
-    subparserListClouds = subparserList.add_parser(
-        "clouds",
-        help="list clouds",
-    )
-    subparserListClusters = subparserList.add_parser(
-        "clusters",
-        help="list clusters",
-    )
-    subparserListCredentials = subparserList.add_parser(
-        "credentials",
-        help="list credentials",
-    )
-    subparserListHooks = subparserList.add_parser("hooks", help="list hooks (executionHooks)")
-    subparserListNamespaces = subparserList.add_parser(
-        "namespaces",
-        help="list namespaces",
-    )
-    subparserListProtections = subparserList.add_parser(
-        "protections",
-        help="list protection policies",
-    )
-    subparserListReplications = subparserList.add_parser(
-        "replications",
-        help="list replication policies",
-    )
-    subparserListRolebindings = subparserList.add_parser(
-        "rolebindings",
-        help="list role bindings",
-    )
-    subparserListScripts = subparserList.add_parser(
-        "scripts",
-        help="list scripts (hookSources)",
-    )
-    subparserListSnapshots = subparserList.add_parser(
-        "snapshots",
-        help="list snapshots",
-    )
-    subparserListStorageClasses = subparserList.add_parser(
-        "storageclasses",
-        help="list storageclasses",
-    )
-    subparserListUsers = subparserList.add_parser(
-        "users",
-        help="list users",
-    )
-    #######
-    # end of list 'X'
-    #######
-
-    #######
-    # list apps args and flags
-    #######
-    subparserListApps.add_argument(
-        "-n", "--namespace", default=None, help="Only show apps from this namespace"
-    )
-    subparserListApps.add_argument(
-        "-f",
-        "--nameFilter",
-        default=None,
-        help="Filter app names by this value to minimize output (partial match)",
-    )
-    subparserListApps.add_argument(
-        "-c", "--cluster", default=None, help="Only show apps from this cluster"
-    )
-    #######
-    # end of list apps args and flags
-    #######
-
-    #######
-    # list assets args and flags
-    #######
-    subparserListAssets.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="The appID from which to display the assets",
-    )
-    #######
-    # end of list assets args and flags
-    #######
-
-    #######
-    # list backups args and flags
-    #######
-    subparserListBackups.add_argument(
-        "-a", "--app", default=None, help="Only show backups from this app"
-    )
-    #######
-    # end of list backups args and flags
-    #######
-
-    #######
-    # list buckets args and flags
-    #######
-    subparserListBuckets.add_argument(
-        "-f",
-        "--nameFilter",
-        default=None,
-        help="Filter app names by this value to minimize output (partial match)",
-    )
-    subparserListBuckets.add_argument(
-        "-p",
-        "--provider",
-        default=None,
-        help="Only show buckets of a single provider",
-    )
-    #######
-    # end of list buckets args and flags
-    #######
-
-    #######
-    # list clouds args and flags
-    #######
-    subparserListClouds.add_argument(
-        "-t",
-        "--cloudType",
-        default=None,
-        choices=["GCP", "Azure", "AWS", "Private"],
-        help="Only show clouds of a single type",
-    )
-    #######
-    # end of list clouds args and flags
-    #######
-
-    #######
-    # list clusters args and flags
-    #######
-    subparserListClusters.add_argument(
-        "-m",
-        "--hideManaged",
-        default=False,
-        action="store_true",
-        help="Hide managed clusters",
-    )
-    subparserListClusters.add_argument(
-        "-u",
-        "--hideUnmanaged",
-        default=False,
-        action="store_true",
-        help="Hide unmanaged clusters",
-    )
-    subparserListClusters.add_argument(
-        "-f",
-        "--nameFilter",
-        default=None,
-        help="Filter cluster names by this value to minimize output (partial match)",
-    )
-    #######
-    # end of list clusters args and flags
-    #######
-
-    #######
-    # list credentials args and flags
-    #######
-    subparserListCredentials.add_argument(
-        "-k",
-        "--kubeconfigOnly",
-        default=False,
-        action="store_true",
-        help="Only show kubeconfig credentials",
-    )
-    #######
-    # end of list credentials args and flags
-    #######
-
-    #######
-    # list hooks args and flags
-    #######
-    subparserListHooks.add_argument(
-        "-a", "--app", default=None, help="Only show execution hooks from this app"
-    )
-    #######
-    # end of list hooks args and flags
-    #######
-
-    #######
-    # list namespaces args and flags
-    #######
-    subparserListNamespaces.add_argument(
-        "-c", "--clusterID", default=None, help="Only show namespaces from this clusterID"
-    )
-    subparserListNamespaces.add_argument(
-        "-f",
-        "--nameFilter",
-        default=None,
-        help="Filter namespaces by this value to minimize output (partial match)",
-    )
-    subparserListNamespaces.add_argument(
-        "-r",
-        "--showRemoved",
-        default=False,
-        action="store_true",
-        help="Show namespaces in a 'removed' state",
-    )
-    subparserListNamespaces.add_argument(
-        "-u",
-        "--unassociated",
-        default=False,
-        action="store_true",
-        help="Only show namespaces which do not have any associatedApps",
-    )
-    subparserListNamespaces.add_argument(
-        "-m",
-        "--minutes",
-        default=False,
-        type=int,
-        help="Only show namespaces created within the last X minutes",
-    )
-    #######
-    # end of list namespaces args and flags
-    #######
-
-    #######
-    # list protection policies args and flags
-    #######
-    subparserListProtections.add_argument(
-        "-a", "--app", default=None, help="Only show protection policies from this app"
-    )
-    #######
-    # end of list protection policies args and flags
-    #######
-
-    #######
-    # list replication policies args and flags
-    #######
-    subparserListReplications.add_argument(
-        "-a", "--app", default=None, help="Only show replication policies from this app"
-    )
-    #######
-    # end of list replication policies args and flags
-    #######
-
-    #######
-    # list rolebindings args and flags
-    #######
-    subparserListRolebindings.add_argument(
-        "-i",
-        "--idFilter",
-        default=None,
-        help="Only show role bindings matching the provided user or group ID",
-    )
-    #######
-    # list scripts args and flags
-    #######
-    subparserListScripts.add_argument(
-        "-s",
-        "--getScriptSource",
-        default=None,
-        help="Provide a script name to view the script source code",
-    )
-    #######
-    # end of list scripts args and flags
-    #######
-
-    #######
-    # list snapshots args and flags
-    #######
-    subparserListSnapshots.add_argument(
-        "-a", "--app", default=None, help="Only show snapshots from this app"
-    )
-    #######
-    # end of list snapshots args and flags
-    #######
-
-    #######
-    # list storageclasses args and flags
-    #######
-    subparserListStorageClasses.add_argument(
-        "-t",
-        "--cloudType",
-        default=None,
-        choices=["GCP", "Azure", "AWS", "Private"],
-        help="Only show storageclasses of a single cloud type",
-    )
-    #######
-    # end of list storageclasses args and flags
-    #######
-
-    #######
-    # list users args and flags
-    #######
-    subparserListUsers.add_argument(
-        "-f",
-        "--nameFilter",
-        default=None,
-        help="Filter users by this value to minimize output (partial match)",
-    )
-    #######
-    # end of list users args and flags
-    #######
-
-    #######
-    # create 'X'
-    #######
-    subparserCreateBackup = subparserCreate.add_parser(
-        "backup",
-        help="create backup",
-    )
-    subparserCreateCluster = subparserCreate.add_parser(
-        "cluster", help="create cluster (upload a K8s cluster kubeconfig to then manage)"
-    )
-    subparserCreateHook = subparserCreate.add_parser(
-        "hook",
-        help="create hook (executionHook)",
-    )
-    subparserCreateProtection = subparserCreate.add_parser(
-        "protection",
-        aliases=["protectionpolicy"],
-        help="create protection policy",
-    )
-    subparserCreateReplication = subparserCreate.add_parser(
-        "replication",
-        help="create replication policy",
-    )
-    subparserCreateScript = subparserCreate.add_parser(
-        "script",
-        help="create script (hookSource)",
-    )
-    subparserCreateSnapshot = subparserCreate.add_parser(
-        "snapshot",
-        help="create snapshot",
-    )
-    subparserCreateUser = subparserCreate.add_parser(
-        "user",
-        help="create a user",
-    )
-    #######
-    # end of create 'X'
-    #######
-
-    #######
-    # create backups args and flags
-    #######
-    subparserCreateBackup.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID to backup",
-    )
-    subparserCreateBackup.add_argument(
-        "name",
-        help="Name of backup to be taken",
-    )
-    subparserCreateBackup.add_argument(
-        "-b",
-        "--background",
-        default=False,
-        action="store_true",
-        help="Run backup operation in the background",
-    )
-    #######
-    # end of create backups args and flags
-    #######
-
-    #######
-    # create cluster args and flags
-    #######
-    subparserCreateCluster.add_argument(
-        "filePath",
-        help="the local filesystem path to the cluster kubeconfig",
-    )
-    subparserCreateCluster.add_argument(
-        "-c",
-        "--cloudID",
-        choices=(None if plaidMode else cloudList),
-        default=(cloudList[0] if len(cloudList) == 1 else None),
-        required=(False if len(cloudList) == 1 else True),
-        help="The cloudID to add the cluster to (only required if # of clouds > 1)",
-    )
-    #######
-    # end of create cluster args and flags
-    #######
-
-    #######
-    # create hooks args and flags
-    #######
-    subparserCreateHook.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID to create an execution hook for",
-    )
-    subparserCreateHook.add_argument(
-        "name",
-        help="Name of the execution hook to be created",
-    )
-    subparserCreateHook.add_argument(
-        "scriptID",
-        choices=(None if plaidMode else scriptList),
-        help="scriptID to use for the execution hook",
-    )
-    subparserCreateHook.add_argument(
-        "-o",
-        "--operation",
-        choices=["pre-snapshot", "post-snapshot", "pre-backup", "post-backup", "post-restore"],
-        required=True,
-        type=str.lower,
-        help="The operation type for the execution hook",
-    )
-    subparserCreateHook.add_argument(
-        "-a",
-        "--hookArguments",
-        required=False,
-        default=None,
-        action="append",
-        nargs="*",
-        help="The (optional) arguments for the execution hook script",
-    )
-    subparserCreateHook.add_argument(
-        "-r",
-        "--containerRegex",
-        default=None,
-        # type=ascii,
-        help="The (optional) container image name regex to match "
-        + "(do not specify to match on all images)",
-    )
-    #######
-    # end of create hooks args and flags
-    #######
-
-    #######
-    # create protectionpolicy args and flags
-    #######
-    subparserCreateProtection.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of the application to create protection schedule for",
-    )
-    granArg = subparserCreateProtection.add_argument(
-        "-g",
-        "--granularity",
-        required=True,
-        choices=["hourly", "daily", "weekly", "monthly"],
-        help="Must choose one of the four options for the schedule",
-    )
-    subparserCreateProtection.add_argument(
-        "-b",
-        "--backupRetention",
-        type=int,
-        required=True,
-        choices=range(60),
-        help="Number of backups to retain",
-    )
-    subparserCreateProtection.add_argument(
-        "-s",
-        "--snapshotRetention",
-        type=int,
-        required=True,
-        choices=range(60),
-        help="Number of snapshots to retain",
-    )
-    subparserCreateProtection.add_argument(
-        "-M", "--dayOfMonth", type=int, choices=range(1, 32), help="Day of the month"
-    )
-    subparserCreateProtection.add_argument(
-        "-W",
-        "--dayOfWeek",
-        type=int,
-        choices=range(7),
-        help="0 = Sunday ... 6 = Saturday",
-    )
-    subparserCreateProtection.add_argument(
-        "-H", "--hour", type=int, choices=range(24), help="Hour in military time"
-    )
-    subparserCreateProtection.add_argument(
-        "-m", "--minute", default=0, type=int, choices=range(60), help="Minute"
-    )
-    #######
-    # end of create protectionpolicy args and flags
-    #######
-
-    #######
-    # create replication policy args and flags
-    #######
-    subparserCreateReplication.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of the application to create the replication policy for",
-    )
-    subparserCreateReplication.add_argument(
-        "-c",
-        "--destClusterID",
-        choices=(None if plaidMode else destclusterList),
-        help="the destination cluster ID to replicate to",
-        required=True,
-    )
-    subparserCreateReplication.add_argument(
-        "-n",
-        "--destNamespace",
-        help="the namespace to create resources on the destination cluster",
-        required=True,
-    )
-    subparserCreateReplication.add_argument(
-        "-s",
-        "--destStorageClass",
-        choices=(None if plaidMode else storageClassList),
-        default=None,
-        help="the destination storage class to use for volume creation",
-    )
-    subparserCreateReplication.add_argument(
-        "-f",
-        "--replicationFrequency",
-        choices=[
-            "5m",
-            "10m",
-            "15m",
-            "20m",
-            "30m",
-            "1h",
-            "2h",
-            "3h",
-            "4h",
-            "6h",
-            "8h",
-            "12h",
-            "24h",
-        ],
-        help="the frequency that a snapshot is taken and replicated",
-        required=True,
-    )
-    subparserCreateReplication.add_argument(
-        "-o",
-        "--offset",
-        default="00:00",
-        help="the amount of time to offset the replication snapshot as to not interfere with "
-        + "other operations, in 'hh:mm' or 'mm' format",
-    )
-    #######
-    # end of create replication policy args and flags
-    #######
-
-    #######
-    # create script args and flags
-    #######
-    subparserCreateScript.add_argument(
-        "name",
-        help="Name of the script",
-    )
-    subparserCreateScript.add_argument(
-        "filePath",
-        help="the local filesystem path to the script",
-    )
-    subparserCreateScript.add_argument(
-        "-d",
-        "--description",
-        default=None,
-        help="The optional description of the script",
-    )
-    #######
-    # end of create script args and flags
-    #######
-
-    #######
-    # create snapshot args and flags
-    #######
-    subparserCreateSnapshot.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID to snapshot",
-    )
-    subparserCreateSnapshot.add_argument(
-        "name",
-        help="Name of snapshot to be taken",
-    )
-    subparserCreateSnapshot.add_argument(
-        "-b",
-        "--background",
-        default=False,
-        action="store_true",
-        help="Run snapshot operation in the background",
-    )
-    #######
-    # end of create snapshot args and flags
-    #######
-
-    #######
-    # create user args and flags
-    #######
-    subparserCreateUser.add_argument("email", help="The email of the user to add")
-    subparserCreateUser.add_argument(
-        "role", choices=["viewer", "member", "admin", "owner"], help="The user's role"
-    )
-    subparserCreateUser.add_argument(
-        "-p", "--tempPassword", default=None, help="The temporary password for the user (ACC-only)"
-    )
-    subparserCreateUser.add_argument(
-        "-f",
-        "--firstName",
-        default=None,
-        help="The user's first name",
-    )
-    subparserCreateUser.add_argument("-l", "--lastName", default=None, help="The user's last name")
-    subparserCreateUser.add_argument(
-        "-a",
-        "--labelConstraint",
-        default=None,
-        choices=(None if plaidMode else labelList),
-        nargs="*",
-        action="append",
-        help="Restrict user role to label constraints",
-    )
-    subparserCreateUser.add_argument(
-        "-n",
-        "--namespaceConstraint",
-        default=None,
-        choices=(None if plaidMode else namespaceList),
-        nargs="*",
-        action="append",
-        help="Restrict user role to namespace constraints",
-    )
-    #######
-    # end of create user args and flags
-    #######
-
-    #######
-    # manage 'X'
-    #######
-    subparserManageApp = subparserManage.add_parser(
-        "app",
-        help="manage app",
-    )
-    subparserManageBucket = subparserManage.add_parser(
-        "bucket",
-        help="manage bucket",
-    )
-    subparserManageCluster = subparserManage.add_parser(
-        "cluster",
-        help="manage cluster",
-    )
-    #######
-    # end of manage 'X'
-    #######
-
-    #######
-    # manage app args and flags
-    #######
-    subparserManageApp.add_argument("appName", help="The logical name of the newly defined app")
-    subparserManageApp.add_argument(
-        "namespace",
-        choices=(None if plaidMode else namespaceList),
-        help="The namespace to move from undefined (aka unmanaged) to defined (aka managed)",
-    )
-    subparserManageApp.add_argument(
-        "-l",
-        "--labelSelectors",
-        required=False,
-        default=None,
-        help="Optional label selectors to filter resources to be included or excluded from "
-        + "the application definition",
-    )
-    subparserManageApp.add_argument(
-        "clusterID",
-        choices=(None if plaidMode else clusterList),
-        help="The clusterID hosting the newly defined app",
-    )
-    #######
-    # end of manage app args and flags
-    #######
-
-    #######
-    # manage bucket args and flags
-    #######
-    subparserManageBucket.add_argument(
-        "provider",
-        choices=["aws", "azure", "gcp", "generic-s3", "ontap-s3", "storagegrid-s3"],
-        help="The infrastructure provider of the storage bucket",
-    )
-    subparserManageBucket.add_argument(
-        "bucketName",
-        help="The existing bucket name",
-    )
-    credGroup = subparserManageBucket.add_argument_group(
-        "credentialGroup",
-        "Either an (existing credentialID) OR (accessKey AND accessSecret)",
-    )
-    credGroup.add_argument(
-        "-c",
-        "--credentialID",
-        choices=(None if plaidMode else credentialList),
-        help="The ID of the credentials used to access the bucket",
-        default=None,
-    )
-    credGroup.add_argument(
-        "--accessKey",
-        help="The access key of the bucket",
-        default=None,
-    )
-    credGroup.add_argument(
-        "--accessSecret",
-        help="The access secret of the bucket",
-        default=None,
-    )
-    subparserManageBucket.add_argument(
-        "-u",
-        "--serverURL",
-        help="The URL to the base path of the bucket "
-        + "(only needed for 'aws', 'generic-s3', 'ontap-s3' 'storagegrid-s3')",
-        default=None,
-    )
-    subparserManageBucket.add_argument(
-        "-a",
-        "--storageAccount",
-        help="The  Azure storage account name (only needed for 'Azure')",
-        default=None,
-    )
-    #######
-    # end of manage bucket args and flags
-    #######
-
-    #######
-    # manage cluster args and flags
-    #######
-    subparserManageCluster.add_argument(
-        "clusterID",
-        choices=(None if plaidMode else clusterList),
-        help="clusterID of the cluster to manage",
-    )
-    subparserManageCluster.add_argument(
-        "storageClassID",
-        choices=(None if plaidMode else storageClassList),
-        help="Default storage class ID",
-    )
-    #######
-    # end of manage cluster args and flags
-    #######
-
-    #######
-    # destroy 'X'
-    #######
-    subparserDestroyBackup = subparserDestroy.add_parser(
-        "backup",
-        help="destroy backup",
-    )
-    subparserDestroyCredential = subparserDestroy.add_parser(
-        "credential",
-        help="destroy credential",
-    )
-    subparserDestroyHook = subparserDestroy.add_parser(
-        "hook",
-        help="destroy hook (executionHook)",
-    )
-    subparserDestroyProtection = subparserDestroy.add_parser(
-        "protection",
-        help="destroy protection policy",
-    )
-    subparserDestroyReplication = subparserDestroy.add_parser(
-        "replication",
-        help="destroy replication policy",
-    )
-    subparserDestroyScript = subparserDestroy.add_parser(
-        "script",
-        help="destroy script (hookSource)",
-    )
-    subparserDestroySnapshot = subparserDestroy.add_parser(
-        "snapshot",
-        help="destroy snapshot",
-    )
-    subparserDestroyUser = subparserDestroy.add_parser(
-        "user",
-        help="destroy user",
-    )
-    #######
-    # end of destroy 'X'
-    #######
-
-    #######
-
-    #######
-    # destroy backup args and flags
-    #######
-    subparserDestroyBackup.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of app to destroy backups from",
-    )
-    subparserDestroyBackup.add_argument(
-        "backupID",
-        choices=(None if plaidMode else backupList),
-        help="backupID to destroy",
-    )
-    #######
-    # end of destroy backup args and flags
-    #######
-
-    #######
-    # destroy credential args and flags
-    #######
-    subparserDestroyCredential.add_argument(
-        "credentialID",
-        choices=(None if plaidMode else credentialList),
-        help="credentialID to destroy",
-    )
-    #######
-    # end of destroy credential args and flags
-    #######
-
-    #######
-    # destroy hook args and flags
-    #######
-    subparserDestroyHook.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of app to destroy hooks from",
-    )
-    subparserDestroyHook.add_argument(
-        "hookID",
-        choices=(None if plaidMode else hookList),
-        help="hookID to destroy",
-    )
-    #######
-    # end of destroy hook args and flags
-    #######
-
-    #######
-    # destroy protection args and flags
-    #######
-    subparserDestroyProtection.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of app to destroy protection policy from",
-    )
-    subparserDestroyProtection.add_argument(
-        "protectionID",
-        choices=(None if plaidMode else protectionList),
-        help="protectionID to destroy",
-    )
-    #######
-    # end of destroy protection args and flags
-    #######
-
-    #######
-    # destroy replication args and flags
-    #######
-    subparserDestroyReplication.add_argument(
-        "replicationID",
-        choices=(None if plaidMode else replicationList),
-        help="replicationID to destroy",
-    )
-    #######
-    # end of destroy replication args and flags
-    #######
-
-    #######
-    # destroy script args and flags
-    #######
-    subparserDestroyScript.add_argument(
-        "scriptID",
-        choices=(None if plaidMode else scriptList),
-        help="scriptID of script to destroy",
-    )
-    #######
-    # end of destroy script args and flags
-    #######
-
-    #######
-    # destroy snapshot args and flags
-    #######
-    subparserDestroySnapshot.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of app to destroy snapshot from",
-    )
-    subparserDestroySnapshot.add_argument(
-        "snapshotID",
-        choices=(None if plaidMode else snapshotList),
-        help="snapshotID to destroy",
-    )
-    #######
-    # end of destroy snapshot args and flags
-    #######
-
-    #######
-    # destroy user args and flags
-    #######
-    subparserDestroyUser.add_argument(
-        "userID",
-        choices=(None if plaidMode else userList),
-        help="userID to destroy",
-    )
-    #######
-    # end of destroy user args and flags
-    #######
-
-    #######
-    # unmanage 'X'
-    #######
-    subparserUnmanageApp = subparserUnmanage.add_parser(
-        "app",
-        help="unmanage app",
-    )
-    subparserUnmanageBucket = subparserUnmanage.add_parser(
-        "bucket",
-        help="unmanage bucket",
-    )
-    subparserUnmanageCluster = subparserUnmanage.add_parser(
-        "cluster",
-        help="unmanage cluster",
-    )
-    #######
-    # end of unmanage 'X'
-    #######
-
-    #######
-    # unmanage app args and flags
-    #######
-    subparserUnmanageApp.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID of app to move from managed to unmanaged",
-    )
-    #######
-    # end of unmanage app args and flags
-    #######
-
-    #######
-    # unmanage bucket args and flags
-    #######
-    subparserUnmanageBucket.add_argument(
-        "bucketID",
-        choices=(None if plaidMode else bucketList),
-        help="bucketID of bucket to unmanage",
-    )
-    #######
-    # end of unmanage app args and flags
-    #######
-
-    #######
-    # unmanage cluster args and flags
-    #######
-    subparserUnmanageCluster.add_argument(
-        "clusterID",
-        choices=(None if plaidMode else clusterList),
-        help="clusterID of the cluster to unmanage",
-    )
-    #######
-    # end of unmanage cluster args and flags
-    #######
-
-    #######
-    # deploy args and flags
-    #######
-    parserDeploy.add_argument(
-        "app",
-        help="name of app",
-    )
-    parserDeploy.add_argument(
-        "chart",
-        choices=(None if plaidMode else chartsList),
-        help="chart to deploy",
-    )
-    parserDeploy.add_argument(
-        "-n", "--namespace", required=True, help="Namespace to deploy into (must not already exist)"
-    )
-    parserDeploy.add_argument(
-        "-f",
-        "--values",
-        required=False,
-        action="append",
-        nargs="*",
-        help="Specify Helm values in a YAML file",
-    )
-    parserDeploy.add_argument(
-        "--set",
-        required=False,
-        action="append",
-        nargs="*",
-        help="Individual helm chart parameters",
-    )
-    #######
-    # end of deploy args and flags
-    #######
-
-    #######
-    # clone args and flags
-    #######
-    parserClone.add_argument(
-        "-b",
-        "--background",
-        default=False,
-        action="store_true",
-        help="Run clone operation in the background",
-    )
-    parserClone.add_argument(
-        "--cloneAppName",
-        required=False,
-        default=None,
-        help="Clone app name",
-    )
-    parserClone.add_argument(
-        "--cloneNamespace",
-        required=False,
-        default=None,
-        help="Clone namespace name (optional, if not specified cloneAppName is used)",
-    )
-    parserClone.add_argument(
-        "--clusterID",
-        choices=(None if plaidMode else destclusterList),
-        required=False,
-        default=None,
-        help="Cluster to clone into (can be same as source)",
-    )
-    group = parserClone.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "--backupID",
-        choices=(None if plaidMode else backupList),
-        required=False,
-        default=None,
-        help="Source backup to clone from",
-    )
-    group.add_argument(
-        "--snapshotID",
-        choices=(None if plaidMode else snapshotList),
-        required=False,
-        default=None,
-        help="Source snapshot to clone from",
-    )
-    group.add_argument(
-        "--sourceAppID",
-        choices=(None if plaidMode else appList),
-        required=False,
-        default=None,
-        help="Source app to clone",
-    )
-    #######
-    # end of clone args and flags
-    #######
-
-    #######
-    # restore args and flags
-    #######
-    parserRestore.add_argument(
-        "-b",
-        "--background",
-        default=False,
-        action="store_true",
-        help="Run restore operation in the background",
-    )
-    parserRestore.add_argument(
-        "appID",
-        choices=(None if plaidMode else appList),
-        help="appID to restore",
-    )
-    group = parserRestore.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "--backupID",
-        choices=(None if plaidMode else backupList),
-        required=False,
-        default=None,
-        help="Source backup to restore from",
-    )
-    group.add_argument(
-        "--snapshotID",
-        choices=(None if plaidMode else snapshotList),
-        required=False,
-        default=None,
-        help="Source snapshot to restore from",
-    )
-    #######
-    # end of restore args and flags
-    #######
-
-    #######
-    # update 'X'
-    #######
-    subparserUpdateReplication = subparserUpdate.add_parser(
-        "replication",
-        help="update replication",
-    )
-    #######
-    # end of update 'X'
-    #######
-
-    #######
-    # update replication args and flags
-    #######
-    subparserUpdateReplication.add_argument(
-        "replicationID",
-        choices=(None if plaidMode else replicationList),
-        help="replicationID to update",
-    )
-    subparserUpdateReplication.add_argument(
-        "operation",
-        choices=["failover", "reverse", "resync"],
-        help="whether to failover, reverse, or resync the replication policy",
-    )
-    subparserUpdateReplication.add_argument(
-        "--dataSource",
-        "-s",
-        default=None,
-        help="resync operation: the new source replication data (either appID or clusterID)",
-    )
-    #######
-    # end of update replication args and flags
-    #######
-
     args = parser.parse_args()
-    # print(f"args: {args}")
-    if hasattr(args, "granularity"):
-        if args.granularity == "hourly":
-            if args.hour:
-                raise argparse.ArgumentError(granArg, " hourly must not specify -H / --hour")
-            if not hasattr(args, "minute"):
-                raise argparse.ArgumentError(granArg, " hourly requires -m / --minute")
-            args.hour = "*"
-            args.dayOfWeek = "*"
-            args.dayOfMonth = "*"
-        elif args.granularity == "daily":
-            if type(args.hour) != int and not args.hour:
-                raise argparse.ArgumentError(granArg, " daily requires -H / --hour")
-            args.dayOfWeek = "*"
-            args.dayOfMonth = "*"
-        elif args.granularity == "weekly":
-            if type(args.hour) != int and not args.hour:
-                raise argparse.ArgumentError(granArg, " weekly requires -H / --hour")
-            if type(args.dayOfWeek) != int and not args.dayOfWeek:
-                raise argparse.ArgumentError(granArg, " weekly requires -W / --dayOfWeek")
-            args.dayOfMonth = "*"
-        elif args.granularity == "monthly":
-            if type(args.hour) != int and not args.hour:
-                raise argparse.ArgumentError(granArg, " monthly requires -H / --hour")
-            if args.dayOfWeek:
-                raise argparse.ArgumentError(granArg, " monthly must not specify -W / --dayOfWeek")
-            if not args.dayOfMonth:
-                raise argparse.ArgumentError(granArg, " monthly requires -M / --dayOfMonth")
-            args.dayOfWeek = "*"
+    tk = ToolKit()
 
-    tk = toolkit()
     if args.subcommand == "deploy":
-        tk.deploy(
+        tk.doDeploy(
             args.chart,
             args.app,
             args.namespace,
@@ -2166,53 +743,55 @@ def main():
 
     elif args.subcommand == "list" or args.subcommand == "get":
         if args.objectType == "apps":
-            rc = astraSDK.getApps(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
+            rc = astraSDK.apps.getApps(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(
                 namespace=args.namespace,
                 nameFilter=args.nameFilter,
                 cluster=args.cluster,
             )
             if rc is False:
-                print("astraSDK.getApps() failed")
+                print("astraSDK.apps.getApps() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "assets":
-            rc = astraSDK.getAppAssets(
+            rc = astraSDK.apps.getAppAssets(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(args.appID)
             if rc is False:
-                print("astraSDK.getAppAssets() failed")
+                print("astraSDK.apps.getAppAssets() failed")
             else:
                 sys.exit(0)
         elif args.objectType == "backups":
-            rc = astraSDK.getBackups(
+            rc = astraSDK.backups.getBackups(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(appFilter=args.app)
             if rc is False:
-                print("astraSDK.getBackups() failed")
+                print("astraSDK.backups.getBackups() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "buckets":
-            rc = astraSDK.getBuckets(
+            rc = astraSDK.buckets.getBuckets(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(nameFilter=args.nameFilter, provider=args.provider)
             if rc is False:
-                print("astraSDK.getBuckets() failed")
+                print("astraSDK.buckets.getBuckets() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "clouds":
-            rc = astraSDK.getClouds(
+            rc = astraSDK.clouds.getClouds(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(cloudType=args.cloudType)
             if rc is False:
-                print("astraSDK.getClouds() failed")
+                print("astraSDK.clouds.getClouds() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "clusters":
-            rc = astraSDK.getClusters(
+            rc = astraSDK.clusters.getClusters(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(
                 hideManaged=args.hideManaged,
@@ -2220,47 +799,47 @@ def main():
                 nameFilter=args.nameFilter,
             )
             if rc is False:
-                print("astraSDK.getClusters() failed")
+                print("astraSDK.clusters.getClusters() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "credentials":
-            rc = astraSDK.getCredentials(
+            rc = astraSDK.credentials.getCredentials(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(kubeconfigOnly=args.kubeconfigOnly)
             if rc is False:
-                print("astraSDK.getCredentials() failed")
+                print("astraSDK.credentials.getCredentials() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "hooks":
-            rc = astraSDK.getHooks(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
-                appFilter=args.app
-            )
+            rc = astraSDK.hooks.getHooks(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(appFilter=args.app)
             if rc is False:
-                print("astraSDK.getHooks() failed")
+                print("astraSDK.hooks.getHooks() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "protections":
-            rc = astraSDK.getProtectionpolicies(
+            rc = astraSDK.protections.getProtectionpolicies(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(appFilter=args.app)
             if rc is False:
-                print("astraSDK.getProtectionpolicies() failed")
+                print("astraSDK.protections.getProtectionpolicies() failed")
             else:
                 sys.exit(0)
         elif args.objectType == "replications":
-            rc = astraSDK.getReplicationpolicies(
+            rc = astraSDK.replications.getReplicationpolicies(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(appFilter=args.app)
             if rc is False:
-                print("astraSDK.getReplicationpolicies() failed")
+                print("astraSDK.replications.getReplicationpolicies() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "namespaces":
-            rc = astraSDK.getNamespaces(
+            rc = astraSDK.namespaces.getNamespaces(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(
                 clusterID=args.clusterID,
@@ -2270,16 +849,16 @@ def main():
                 minuteFilter=args.minutes,
             )
             if rc is False:
-                print("astraSDK.getNamespaces() failed")
+                print("astraSDK.namespaces.getNamespaces() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "rolebindings":
-            rc = astraSDK.getRolebindings(
+            rc = astraSDK.rolebindings.getRolebindings(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(idFilter=args.idFilter)
             if rc is False:
-                print("astraSDK.getRolebindings() failed")
+                print("astraSDK.rolebindings.getRolebindings() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -2287,11 +866,11 @@ def main():
             if args.getScriptSource:
                 args.quiet = True
                 args.output = "json"
-            rc = astraSDK.getScripts(
+            rc = astraSDK.scripts.getScripts(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(scriptSourceName=args.getScriptSource)
             if rc is False:
-                print("astraSDK.getScripts() failed")
+                print("astraSDK.scripts.getScripts() failed")
                 sys.exit(1)
             else:
                 if args.getScriptSource:
@@ -2301,36 +880,36 @@ def main():
                         print(base64.b64decode(script["source"]).decode("utf-8"))
                 sys.exit(0)
         elif args.objectType == "snapshots":
-            rc = astraSDK.getSnaps(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
-                appFilter=args.app
-            )
+            rc = astraSDK.snapshots.getSnaps(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(appFilter=args.app)
             if rc is False:
-                print("astraSDK.getSnaps() failed")
+                print("astraSDK.snapshots.getSnaps() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "storageclasses":
-            rc = astraSDK.getStorageClasses(
+            rc = astraSDK.storageclasses.getStorageClasses(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
             ).main(cloudType=args.cloudType)
             if rc is False:
-                print("astraSDK.getStorageClasses() failed")
+                print("astraSDK.storageclasses.getStorageClasses() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "users":
-            rc = astraSDK.getUsers(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
-                nameFilter=args.nameFilter
-            )
+            rc = astraSDK.users.getUsers(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(nameFilter=args.nameFilter)
             if rc is False:
-                print("astraSDK.getUsers() failed")
+                print("astraSDK.users.getUsers() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
 
     elif args.subcommand == "create":
         if args.objectType == "backup":
-            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
+            rc = tk.doProtectionTask(args.objectType, args.appID, args.name, args.background)
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
@@ -2342,40 +921,77 @@ def main():
                 encodedStr = base64.b64encode(json.dumps(kubeconfigDict).encode("utf-8")).decode(
                     "utf-8"
                 )
-            rc = astraSDK.createCredential(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.credentials.createCredential(quiet=args.quiet, verbose=args.verbose).main(
                 kubeconfigDict["clusters"][0]["name"],
                 "kubeconfig",
                 {"base64": encodedStr},
                 cloudName="private",
             )
             if rc:
-                rc = astraSDK.addCluster(quiet=args.quiet, verbose=args.verbose).main(
+                rc = astraSDK.clusters.addCluster(quiet=args.quiet, verbose=args.verbose).main(
                     args.cloudID,
                     rc["id"],
                 )
                 if rc is False:
-                    print("astraSDK.createCloud() failed")
+                    print("astraSDK.clusters.createCluster() failed")
                 else:
                     sys.exit(0)
             else:
-                print("astraSDK.createCredential() failed")
+                print("astraSDK.credentials.createCredential() failed")
                 sys.exit(1)
         elif args.objectType == "hook":
-            rc = astraSDK.createHook(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.hooks.createHook(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID,
                 args.name,
                 args.scriptID,
                 args.operation.split("-")[0],
                 args.operation.split("-")[1],
-                createHookList(args.hookArguments),
+                tkHelpers.createHookList(args.hookArguments),
                 args.containerRegex,
             )
             if rc is False:
-                print("astraSDK.createHook() failed")
+                print("astraSDK.hooks.createHook() failed")
             else:
                 sys.exit(0)
         elif args.objectType == "protection" or args.objectType == "protectionpolicy":
-            rc = astraSDK.createProtectionpolicy(quiet=args.quiet, verbose=args.verbose).main(
+            if args.granularity == "hourly":
+                if args.hour:
+                    print("Error: 'hourly' granularity must not specify -H / --hour")
+                    sys.exit(1)
+                if not hasattr(args, "minute"):
+                    print("Error: 'hourly' granularity requires -m / --minute")
+                    sys.exit(1)
+                args.hour = "*"
+                args.dayOfWeek = "*"
+                args.dayOfMonth = "*"
+            elif args.granularity == "daily":
+                if type(args.hour) != int and not args.hour:
+                    print("Error: 'daily' granularity requires -H / --hour")
+                    sys.exit(1)
+                args.dayOfWeek = "*"
+                args.dayOfMonth = "*"
+            elif args.granularity == "weekly":
+                if type(args.hour) != int and not args.hour:
+                    print("Error: 'weekly' granularity requires -H / --hour")
+                    sys.exit(1)
+                if type(args.dayOfWeek) != int and not args.dayOfWeek:
+                    print("Error: 'weekly' granularity requires -W / --dayOfWeek")
+                    sys.exit(1)
+                args.dayOfMonth = "*"
+            elif args.granularity == "monthly":
+                if type(args.hour) != int and not args.hour:
+                    print("Error: 'monthly' granularity requires -H / --hour")
+                    sys.exit(1)
+                if args.dayOfWeek:
+                    print("Error: 'monthly' granularity must not specify -W / --dayOfWeek")
+                    sys.exit(1)
+                if not args.dayOfMonth:
+                    print("Error: 'monthly' granularity requires -M / --dayOfMonth")
+                    sys.exit(1)
+                args.dayOfWeek = "*"
+            rc = astraSDK.protections.createProtectionpolicy(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(
                 args.granularity,
                 str(args.backupRetention),
                 str(args.snapshotRetention),
@@ -2386,7 +1002,7 @@ def main():
                 args.appID,
             )
             if rc is False:
-                print("astraSDK.createProtectionpolicy() failed")
+                print("astraSDK.protections.createProtectionpolicy() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -2413,7 +1029,7 @@ def main():
                 rrule += str(int(args.replicationFrequency.strip("h")) * 60)
             # Get Source ClusterID
             if plaidMode:
-                apps = astraSDK.getApps().main()
+                apps = astraSDK.apps.getApps().main()
             for app in apps["items"]:
                 if app["id"] == args.appID:
                     sourceClusterID = app["clusterID"]
@@ -2426,14 +1042,18 @@ def main():
                 args.destStorageClass = [
                     {"storageClassName": args.destStorageClass, "clusterID": args.destClusterID}
                 ]
-            rc = astraSDK.createReplicationpolicy(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.replications.createReplicationpolicy(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(
                 args.appID,
                 args.destClusterID,
                 nsMapping,
                 destinationStorageClass=args.destStorageClass,
             )
             if rc:
-                prc = astraSDK.createProtectionpolicy(quiet=args.quiet, verbose=args.verbose).main(
+                prc = astraSDK.protections.createProtectionpolicy(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(
                     "custom",
                     "0",
                     "0",
@@ -2447,23 +1067,23 @@ def main():
                 if prc:
                     sys.exit(0)
                 else:
-                    print("astraSDK.createProtectionpolicy() failed")
+                    print("astraSDK.protections.createProtectionpolicy() failed")
                     sys.exit(1)
             else:
-                print("astraSDK.createReplicationpolicy() failed")
+                print("astraSDK.replications.createReplicationpolicy() failed")
                 sys.exit(1)
         elif args.objectType == "script":
             with open(args.filePath, encoding="utf8") as f:
                 encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
-            rc = astraSDK.createScript(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.scripts.createScript(quiet=args.quiet, verbose=args.verbose).main(
                 name=args.name, source=encodedStr, description=args.description
             )
             if rc is False:
-                print("astraSDK.createScript() failed")
+                print("astraSDK.scripts.createScript() failed")
             else:
                 sys.exit(0)
         elif args.objectType == "snapshot":
-            rc = doProtectionTask(args.objectType, args.appID, args.name, args.background)
+            rc = tk.doProtectionTask(args.objectType, args.appID, args.name, args.background)
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
@@ -2471,15 +1091,17 @@ def main():
                 sys.exit(0)
         elif args.objectType == "user":
             # First create the user
-            urc = astraSDK.createUser(quiet=args.quiet, verbose=args.verbose).main(
+            urc = astraSDK.users.createUser(quiet=args.quiet, verbose=args.verbose).main(
                 args.email, firstName=args.firstName, lastName=args.lastName
             )
             if urc:
                 # Next create the role binding
-                rrc = astraSDK.createRolebinding(quiet=args.quiet, verbose=args.verbose).main(
+                rrc = astraSDK.rolebindings.createRolebinding(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(
                     args.role,
                     userID=urc["id"],
-                    roleConstraints=createConstraintList(
+                    roleConstraints=tkHelpers.createConstraintList(
                         args.namespaceConstraint, args.labelConstraint
                     ),
                 )
@@ -2487,13 +1109,13 @@ def main():
                     # Delete+error "local" users where a tempPassword wasn't provided
                     if urc["authProvider"] == "local" and not args.tempPassword:
                         print("Error: --tempPassword is required for ACC+localAuth")
-                        drc = astraSDK.destroyRolebinding(quiet=True).main(rrc["id"])
+                        drc = astraSDK.rolebindings.destroyRolebinding(quiet=True).main(rrc["id"])
                         if not drc:
-                            print("astraSDK.destroyRolebinding() failed")
+                            print("astraSDK.rolebindings.destroyRolebinding() failed")
                         sys.exit(1)
                     # Finally, create the credential if local user
                     if urc["authProvider"] == "local":
-                        crc = astraSDK.createCredential(
+                        crc = astraSDK.credentials.createCredential(
                             quiet=args.quiet, verbose=args.verbose
                         ).main(
                             urc["id"],
@@ -2506,21 +1128,21 @@ def main():
                             },
                         )
                         if not crc:
-                            print("astraSDK.createCredential() failed")
+                            print("astraSDK.credentials.createCredential() failed")
                             sys.exit(1)
                 else:
-                    print("astraSDK.createRolebinding() failed")
+                    print("astraSDK.rolebindings.createRolebinding() failed")
                     sys.exit(1)
             else:
-                print("astraSDK.createUser() failed")
+                print("astraSDK.users.createUser() failed")
                 sys.exit(1)
     elif args.subcommand == "manage" or args.subcommand == "define":
         if args.objectType == "app":
-            rc = astraSDK.manageApp(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
                 args.appName, args.namespace, args.clusterID, args.labelSelectors
             )
             if rc is False:
-                print("astraSDK.manageApp() failed")
+                print("astraSDK.apps.manageApp() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
@@ -2544,7 +1166,9 @@ def main():
                     sys.exit(1)
                 encodedKey = base64.b64encode(args.accessKey.encode("utf-8")).decode("utf-8")
                 encodedSecret = base64.b64encode(args.accessSecret.encode("utf-8")).decode("utf-8")
-                crc = astraSDK.createCredential(quiet=args.quiet, verbose=args.verbose).main(
+                crc = astraSDK.credentials.createCredential(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(
                     args.bucketName,
                     "s3",
                     {"accessKey": encodedKey, "accessSecret": encodedSecret},
@@ -2553,7 +1177,7 @@ def main():
                 if crc:
                     args.credentialID = crc["id"]
                 else:
-                    print("astraSDK.createCredential() failed")
+                    print("astraSDK.credentials.createCredential() failed")
                     sys.exit(1)
             # Validate serverURL and storageAccount args depending upon provider type
             if args.serverURL is None and args.provider in [
@@ -2579,27 +1203,27 @@ def main():
                     "s3": {"bucketName": args.bucketName, "serverURL": args.serverURL}
                 }
             # Call manageBucket class
-            rc = astraSDK.manageBucket(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.buckets.manageBucket(quiet=args.quiet, verbose=args.verbose).main(
                 args.bucketName, args.credentialID, args.provider, bucketParameters
             )
             if rc is False:
-                print("astraSDK.manageBucket() failed")
+                print("astraSDK.buckets.manageBucket() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "cluster":
-            rc = astraSDK.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.clusters.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.clusterID, args.storageClassID
             )
             if rc is False:
-                print("astraSDK.manageCluster() failed")
+                print("astraSDK.clusters.manageCluster() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
 
     elif args.subcommand == "destroy":
         if args.objectType == "backup":
-            rc = astraSDK.destroyBackup(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.backups.destroyBackup(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID, args.backupID
             )
             if rc:
@@ -2607,15 +1231,15 @@ def main():
             else:
                 print(f"Failed destroying backup: {args.backupID}")
         elif args.objectType == "credential":
-            rc = astraSDK.destroyCredential(quiet=args.quiet, verbose=args.verbose).main(
-                args.credentialID
-            )
+            rc = astraSDK.credentials.destroyCredential(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(args.credentialID)
             if rc:
                 print(f"Credential {args.credentialID} destroyed")
             else:
                 print(f"Failed destroying credential: {args.credentialID}")
         elif args.objectType == "hook":
-            rc = astraSDK.destroyHook(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.hooks.destroyHook(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID, args.hookID
             )
             if rc:
@@ -2623,23 +1247,23 @@ def main():
             else:
                 print(f"Failed destroying hook: {args.hookID}")
         elif args.objectType == "protection":
-            rc = astraSDK.destroyProtectiontionpolicy(quiet=args.quiet, verbose=args.verbose).main(
-                args.appID, args.protectionID
-            )
+            rc = astraSDK.protections.destroyProtectiontionpolicy(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(args.appID, args.protectionID)
             if rc:
                 print(f"Protection policy {args.protectionID} destroyed")
             else:
                 print(f"Failed destroying protection policy: {args.protectionID}")
         elif args.objectType == "replication":
             if plaidMode:
-                replicationDict = astraSDK.getReplicationpolicies().main()
-            rc = astraSDK.destroyReplicationpolicy(quiet=args.quiet, verbose=args.verbose).main(
-                args.replicationID
-            )
+                replicationDict = astraSDK.replications.getReplicationpolicies().main()
+            rc = astraSDK.replications.destroyReplicationpolicy(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(args.replicationID)
             if rc:
                 print(f"Replication policy {args.replicationID} destroyed")
                 # The underlying replication schedule(s) (protection policy) must also be deleted
-                protectionDict = astraSDK.getProtectionpolicies().main()
+                protectionDict = astraSDK.protections.getProtectionpolicies().main()
                 for replication in replicationDict["items"]:
                     if replication["id"] == args.replicationID:
                         for protection in protectionDict["items"]:
@@ -2647,7 +1271,7 @@ def main():
                                 protection["appID"] == replication["sourceAppID"]
                                 or protection["appID"] == replication["destinationAppID"]
                             ) and protection.get("replicate") == "true":
-                                if astraSDK.destroyProtectiontionpolicy(
+                                if astraSDK.protections.destroyProtectiontionpolicy(
                                     quiet=args.quiet, verbose=args.verbose
                                 ).main(protection["appID"], protection["id"]):
                                     print(
@@ -2664,13 +1288,15 @@ def main():
                 print(f"Failed destroying replication policy: {args.replicationID}")
                 sys.exit(1)
         elif args.objectType == "script":
-            rc = astraSDK.destroyScript(quiet=args.quiet, verbose=args.verbose).main(args.scriptID)
+            rc = astraSDK.scripts.destroyScript(quiet=args.quiet, verbose=args.verbose).main(
+                args.scriptID
+            )
             if rc:
                 print(f"Script {args.scriptID} destroyed")
             else:
                 print(f"Failed destroying script: {args.scriptID}")
         elif args.objectType == "snapshot":
-            rc = astraSDK.destroySnapshot(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.snapshots.destroySnapshot(quiet=args.quiet, verbose=args.verbose).main(
                 args.appID, args.snapshotID
             )
             if rc:
@@ -2678,12 +1304,12 @@ def main():
             else:
                 print(f"Failed destroying snapshot: {args.snapshotID}")
         elif args.objectType == "user":
-            roleBindings = astraSDK.getRolebindings().main()
+            roleBindings = astraSDK.rolebindings.getRolebindings().main()
             for rb in roleBindings["items"]:
                 if rb["userID"] == args.userID:
-                    rc = astraSDK.destroyRolebinding(quiet=args.quiet, verbose=args.verbose).main(
-                        rb["id"]
-                    )
+                    rc = astraSDK.rolebindings.destroyRolebinding(
+                        quiet=args.quiet, verbose=args.verbose
+                    ).main(rb["id"])
                     if rc:
                         print(f"User {args.userID} / roleBinding {rb['id']} destroyed")
                         sys.exit(0)
@@ -2696,50 +1322,52 @@ def main():
 
     elif args.subcommand == "unmanage":
         if args.objectType == "app":
-            rc = astraSDK.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(args.appID)
+            rc = astraSDK.apps.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(args.appID)
             if rc is False:
-                print("astraSDK.unmanageApp() failed")
+                print("astraSDK.apps.unmanageApp() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "bucket":
-            rc = astraSDK.unmanageBucket(quiet=args.quiet, verbose=args.verbose).main(args.bucketID)
+            rc = astraSDK.buckets.unmanageBucket(quiet=args.quiet, verbose=args.verbose).main(
+                args.bucketID
+            )
             if rc is False:
-                print("astraSDK.unmanageBucket() failed")
+                print("astraSDK.buckets.unmanageBucket() failed")
                 sys.exit(1)
             else:
                 sys.exit(0)
         elif args.objectType == "cluster":
-            rc = astraSDK.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.clusters.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.clusterID
             )
             if rc:
                 # ACC clusters+credentials also should be deleted
                 if plaidMode:
-                    clusterDict = astraSDK.getClusters(quiet=True).main()
+                    clusterDict = astraSDK.clusters.getClusters(quiet=True).main()
                 acsList = ["gke", "aks", "eks"]
                 for cluster in clusterDict["items"]:
                     if cluster["id"] == args.clusterID and cluster["clusterType"] not in acsList:
-                        if astraSDK.deleteCluster(quiet=args.quiet, verbose=args.verbose).main(
-                            args.clusterID, cluster["cloudID"]
-                        ):
-                            if astraSDK.destroyCredential(
+                        if astraSDK.clusters.deleteCluster(
+                            quiet=args.quiet, verbose=args.verbose
+                        ).main(args.clusterID, cluster["cloudID"]):
+                            if astraSDK.credentials.destroyCredential(
                                 quiet=args.quiet, verbose=args.verbose
                             ).main(cluster.get("credentialID")):
                                 print(f"Credential deleted")
                             else:
-                                print("astraSDK.destroyCredential() failed")
+                                print("astraSDK.credentials.destroyCredential() failed")
                                 sys.exit(1)
                         else:
-                            print("astraSDK.deleteCluster() failed")
+                            print("astraSDK.clusters.deleteCluster() failed")
                             sys.exit(1)
                 sys.exit(0)
             else:
-                print("astraSDK.unmanageCluster() failed")
+                print("astraSDK.clusters.unmanageCluster() failed")
                 sys.exit(1)
 
     elif args.subcommand == "restore":
-        rc = astraSDK.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
+        rc = astraSDK.apps.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
             args.appID, backupID=args.backupID, snapshotID=args.snapshotID
         )
         if rc:
@@ -2750,7 +1378,7 @@ def main():
             print("Restore job in progress...", end="")
             sys.stdout.flush()
             while True:
-                restoreApps = astraSDK.getApps().main()
+                restoreApps = astraSDK.apps.getApps().main()
                 state = None
                 for restoreApp in restoreApps["items"]:
                     if restoreApp["id"] == args.appID:
@@ -2775,27 +1403,27 @@ def main():
         if not args.clusterID:
             print("Select destination cluster for the clone")
             print("Index\tClusterID\t\t\t\tclusterName\tclusterPlatform")
-            args.clusterID = userSelect(destCluster, ["id", "name", "clusterType"])
+            args.clusterID = tkHelpers.userSelect(destCluster, ["id", "name", "clusterType"])
         # Get the original app dictionary based on args.sourceAppID/args.backupID/args.snapshotID,
         # as the app dict contains sourceClusterID and namespaceScopedResources which we need
         oApp = {}
         # Handle -f/--fast/plaidMode cases
         if plaidMode:
-            apps = astraSDK.getApps().main()
+            apps = astraSDK.apps.getApps().main()
         if args.sourceAppID:
             for app in apps["items"]:
                 if app["id"] == args.sourceAppID:
                     oApp = app
         elif args.backupID:
             if plaidMode:
-                backups = astraSDK.getBackups().main()
+                backups = astraSDK.backups.getBackups().main()
             for app in apps["items"]:
                 for backup in backups["items"]:
                     if app["id"] == backup["appID"] and backup["id"] == args.backupID:
                         oApp = app
         elif args.snapshotID:
             if plaidMode:
-                snapshots = astraSDK.getSnaps().main()
+                snapshots = astraSDK.snapshots.getSnaps().main()
             for app in apps["items"]:
                 for snapshot in snapshots["items"]:
                     if app["id"] == snapshot["appID"] and snapshot["id"] == args.snapshotID:
@@ -2808,7 +1436,7 @@ def main():
             )
             sys.exit(1)
 
-        tk.clone(
+        tk.doClone(
             args.cloneAppName,
             args.clusterID,
             oApp,
@@ -2824,7 +1452,7 @@ def main():
         if args.objectType == "replication":
             # Gather replication data
             if plaidMode:
-                replicationDict = astraSDK.getReplicationpolicies().main()
+                replicationDict = astraSDK.replications.getReplicationpolicies().main()
                 if not replicationDict:  # Gracefully handle ACS env
                     print("Error: 'replication' commands are currently only supported in ACC.")
                     sys.exit(1)
@@ -2847,7 +1475,7 @@ def main():
                     )
                     sys.exit(1)
                 if args.dataSource in [repl["sourceAppID"], repl["sourceClusterID"]]:
-                    rc = astraSDK.updateReplicationpolicy(
+                    rc = astraSDK.replications.updateReplicationpolicy(
                         quiet=args.quiet, verbose=args.verbose
                     ).main(
                         args.replicationID,
@@ -2858,7 +1486,7 @@ def main():
                         destinationClusterID=repl["destinationClusterID"],
                     )
                 elif args.dataSource in [repl["destinationAppID"], repl["destinationClusterID"]]:
-                    rc = astraSDK.updateReplicationpolicy(
+                    rc = astraSDK.replications.updateReplicationpolicy(
                         quiet=args.quiet, verbose=args.verbose
                     ).main(
                         args.replicationID,
@@ -2884,7 +1512,9 @@ def main():
                         + f"`failedOver` state, not a(n) `{repl['state']}` state"
                     )
                     sys.exit(1)
-                rc = astraSDK.updateReplicationpolicy(quiet=args.quiet, verbose=args.verbose).main(
+                rc = astraSDK.replications.updateReplicationpolicy(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(
                     args.replicationID,
                     "established",
                     sourceAppID=repl["destinationAppID"],
@@ -2899,15 +1529,15 @@ def main():
                         + f", not a(n) `{repl['state']}` state"
                     )
                     sys.exit(1)
-                rc = astraSDK.updateReplicationpolicy(quiet=args.quiet, verbose=args.verbose).main(
-                    args.replicationID, "failedOver"
-                )
+                rc = astraSDK.replications.updateReplicationpolicy(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(args.replicationID, "failedOver")
             # Exit based on response
             if rc:
                 print(f"Replication {args.operation} initiated")
                 sys.exit(0)
             else:
-                print("astraSDK.updateReplicationpolicy() failed")
+                print("astraSDK.replications.updateReplicationpolicy() failed")
                 sys.exit(1)
 
 
