@@ -24,8 +24,8 @@ import yaml
 from datetime import datetime, timedelta
 
 import astraSDK
-import helpers
-import parser
+import tkHelpers
+import tkParser
 
 
 class ToolKit:
@@ -35,18 +35,18 @@ class ToolKit:
     def doDeploy(self, chart, appName, namespace, setValues, fileValues, verbose, quiet):
         """Deploy a helm chart <chart>, naming the app <appName> into <namespace>"""
 
-        setStr = helpers.createHelmStr("set", setValues)
-        valueStr = helpers.createHelmStr("values", fileValues)
+        setStr = tkHelpers.createHelmStr("set", setValues)
+        valueStr = tkHelpers.createHelmStr("values", fileValues)
 
         nsObj = astraSDK.namespaces.getNamespaces(verbose=verbose)
-        retval = helpers.run("kubectl get ns -o json", captureOutput=True)
+        retval = tkHelpers.run("kubectl get ns -o json", captureOutput=True)
         retvalJSON = json.loads(retval)
         for item in retvalJSON["items"]:
             if item["metadata"]["name"] == namespace:
                 print(f"Namespace {namespace} already exists!")
                 sys.exit(24)
-        helpers.run(f"kubectl create namespace {namespace}")
-        helpers.run(f"kubectl config set-context --current --namespace={namespace}")
+        tkHelpers.run(f"kubectl create namespace {namespace}")
+        tkHelpers.run(f"kubectl config set-context --current --namespace={namespace}")
 
         # If we're deploying gitlab, we need to ensure at least a premium storageclass
         # for postgresql and gitaly
@@ -76,7 +76,7 @@ class ToolKit:
                 setStr += f" --set postgresql.global.storageClass={pgStorageClass}"
                 setStr += f" --set gitlab.gitaly.persistence.storageClass={pgStorageClass}"
 
-        helpers.run(f"helm install {appName} {chart}{setStr}{valueStr}")
+        tkHelpers.run(f"helm install {appName} {chart}{setStr}{valueStr}")
         print("Waiting for Astra to discover the namespace.", end="")
         sys.stdout.flush()
 
@@ -420,7 +420,7 @@ def main():
 
     if len(sys.argv) > 1:
 
-        # verbs must manually be kept in sync with top_level_commands() in parser.py
+        # verbs must manually be kept in sync with top_level_commands() in tkParser.py
         verbs = {
             "deploy": False,
             "clone": False,
@@ -487,7 +487,7 @@ def main():
         if not plaidMode:
             # It isn't intuitive, however only one key in verbs can be True
             if verbs["deploy"]:
-                chartsDict = helpers.updateHelm()
+                chartsDict = tkHelpers.updateHelm()
                 for chart in chartsDict["items"]:
                     chartsList.append(chart["name"])
 
@@ -708,7 +708,7 @@ def main():
                     for replication in replicationDict["items"]:
                         replicationList.append(replication["id"])
 
-    tkParser = parser.toolkit_parser(plaidMode=plaidMode).main(
+    parser = tkParser.toolkit_parser(plaidMode=plaidMode).main(
         appList,
         backupList,
         bucketList,
@@ -727,7 +727,7 @@ def main():
         storageClassList,
         userList,
     )
-    args = tkParser.parse_args()
+    args = parser.parse_args()
     tk = ToolKit()
 
     if args.subcommand == "deploy":
@@ -946,7 +946,7 @@ def main():
                 args.scriptID,
                 args.operation.split("-")[0],
                 args.operation.split("-")[1],
-                helpers.createHookList(args.hookArguments),
+                tkHelpers.createHookList(args.hookArguments),
                 args.containerRegex,
             )
             if rc is False:
@@ -1101,7 +1101,7 @@ def main():
                 ).main(
                     args.role,
                     userID=urc["id"],
-                    roleConstraints=helpers.createConstraintList(
+                    roleConstraints=tkHelpers.createConstraintList(
                         args.namespaceConstraint, args.labelConstraint
                     ),
                 )
@@ -1403,7 +1403,7 @@ def main():
         if not args.clusterID:
             print("Select destination cluster for the clone")
             print("Index\tClusterID\t\t\t\tclusterName\tclusterPlatform")
-            args.clusterID = helpers.userSelect(destCluster, ["id", "name", "clusterType"])
+            args.clusterID = tkHelpers.userSelect(destCluster, ["id", "name", "clusterType"])
         # Get the original app dictionary based on args.sourceAppID/args.backupID/args.snapshotID,
         # as the app dict contains sourceClusterID and namespaceScopedResources which we need
         oApp = {}
