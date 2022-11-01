@@ -79,7 +79,7 @@ When you are done, the `config.yaml` looks like:
 headers:
   Authorization: Bearer thisIsJustAnExample_token-replaceWithYours==
 uid: 12345678-abcd-4efg-1234-567890abcdef
-astra_project: preview
+astra_project: astra.netapp.io
 verifySSL: True
 ```
 
