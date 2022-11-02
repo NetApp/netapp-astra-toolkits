@@ -153,16 +153,21 @@ $ ./toolkit.py manage bucket generic-s3 astra-generic-examplebucket -u s3.astrad
 
 ## Cluster
 
-To manage a cluster, you must gather the [cluster ID](../list/README.md#clusters), and a corresponding [storageclass ID](../list/README.md#storageclasses).  Command usage:
+To manage a cluster, you must gather the [cluster ID](../list/README.md#clusters), and if changing the default storage class, the corresponding [storageclass ID](../list/README.md#storageclasses).  Command usage:
 
 ```text
-./toolkit.py manage cluster <clusterID> <storageclassID>
+./toolkit.py manage cluster <clusterID> <--defaultStorageClassID optionalDefaultStorageClassID>
 ```
 
 Sample output:
 
 ```text
+$ ./toolkit.py manage cluster 062728da-ef0c-4dc2-83f9-bedb07c30511
+{"type": "application/astra-managedCluster", "version": "1.1", "id": "062728da-ef0c-4dc2-83f9-bedb07c30511", "name": "prod-cluster", "state": "pending", "stateUnready": [], "managedState": "managed", "protectionState": "full", "restoreTargetSupported": "true", "snapshotSupported": "true", "managedStateUnready": [], "managedTimestamp": "2022-11-02T14:41:14Z", "inUse": "false", "clusterType": "gke", "clusterVersion": "1.22", "clusterVersionString": "v1.22.12-gke.2300", "clusterCreationTimestamp": "2022-11-01T14:08:28Z", "namespaces": [], "cloudID": "ec0c2760-5bd7-45a6-9c15-44287299cd7a", "credentialID": "073c587a-55a4-418a-9c4f-f9aef1d56a2f", "location": "us-east4-a", "isMultizonal": "true", "tridentManagedStateAllowed": ["unmanaged"], "tridentVersion": "22.7.0", "apiServiceID": "20e7a050-ef7d-428c-af47-16207ea7b2f3", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/gcp/HostVpcProjectID", "value": "xxxxxxx01169"}, {"name": "astra.netapp.io/labels/read-only/gcp/projectNumber", "value": "239048101169"}, {"name": "astra.netapp.io/labels/read-only/hasNonTridentCSIDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/hasTridentDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "GCP"}], "creationTimestamp": "2022-11-02T14:41:14Z", "modificationTimestamp": "2022-11-02T14:41:15Z", "createdBy": "0fa0c5e9-5a2a-48e2-adb5-d0f12bd14115"}}
+```
+
+```text
 $ ./toolkit.py manage cluster 80d6bef8-300c-44bd-9e36-04ef874bdc29 \
-    ba6d5a64-a321-4fd7-9842-9adce829229a
+    -s ba6d5a64-a321-4fd7-9842-9adce829229a
 {"type": "application/astra-managedCluster", "version": "1.1", "id": "80d6bef8-300c-44bd-9e36-04ef874bdc29", "name": "aks-eastus-cluster", "state": "pending", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T20:33:59Z", "inUse": "false", "clusterType": "aks", "clusterVersion": "1.22", "clusterVersionString": "v1.22.6", "clusterCreationTimestamp": "0001-01-01T00:00:00Z", "namespaces": [], "defaultStorageClass": "ba6d5a64-a321-4fd7-9842-9adce829229a", "cloudID": "7b8d4252-293c-4c70-b101-7fd6b7d08e15", "credentialID": "04c067b2-df55-4d9c-8a3a-c869a779c276", "location": "eastus", "isMultizonal": "false", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/hasNonTridentCSIDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/hasTridentDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/azure/subscriptionID", "value": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxa2935"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "Azure"}], "creationTimestamp": "2022-05-19T20:33:59Z", "modificationTimestamp": "2022-05-19T20:34:03Z", "createdBy": "system"`
 ```

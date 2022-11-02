@@ -1246,7 +1246,7 @@ def main():
                 sys.exit(0)
         elif args.objectType == "cluster":
             rc = astraSDK.clusters.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
-                args.clusterID, args.storageClassID
+                args.clusterID, args.defaultStorageClassID
             )
             if rc is False:
                 print("astraSDK.clusters.manageCluster() failed")
