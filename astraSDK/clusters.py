@@ -79,8 +79,22 @@ class getClusters(SDKCommon):
             dataReturn = yaml.dump(clusters)
         elif self.output == "table":
             dataReturn = self.basicTable(
-                ["clusterName", "clusterID", "clusterType", "managedState"],
-                ["name", "id", "clusterType", "managedState"],
+                [
+                    "clusterName",
+                    "clusterID",
+                    "clusterType",
+                    "managedState",
+                    "tridentState",
+                    "tridentVersion",
+                ],
+                [
+                    "name",
+                    "id",
+                    "clusterType",
+                    "managedState",
+                    "tridentManagedStateAllowed",
+                    "tridentVersion",
+                ],
                 clusters,
             )
 
