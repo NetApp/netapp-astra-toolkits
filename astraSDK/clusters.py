@@ -101,17 +101,18 @@ class manageCluster(SDKCommon):
         self.headers["accept"] = "application/astra-managedCluster+json"
         self.headers["Content-Type"] = "application/managedCluster+json"
 
-    def main(self, clusterID, storageClassID):
+    def main(self, clusterID, storageClassID=None):
 
         endpoint = "topology/v1/managedClusters"
         url = self.base + endpoint
         params = {}
         data = {
-            "defaultStorageClass": storageClassID,
             "id": clusterID,
             "type": "application/astra-managedCluster",
-            "version": "1.0",
+            "version": "1.2",
         }
+        if storageClassID:
+            data["defaultStorageClass"] = storageClassID
 
         if self.verbose:
             print(f"Managing: {clusterID}")

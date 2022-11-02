@@ -948,9 +948,11 @@ class toolkit_parser:
             help="clusterID of the cluster to manage",
         )
         self.subparserManageCluster.add_argument(
-            "storageClassID",
+            "-s",
+            "--defaultStorageClassID",
             choices=(None if self.plaidMode else storageClassList),
-            help="Default storage class ID",
+            default=None,
+            help="Optionally modify the default storage class",
         )
 
     def destroy_backup_args(self, appList, backupList):
