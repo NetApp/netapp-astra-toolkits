@@ -171,7 +171,7 @@ class ToolKit:
     ):
         """Create a clone."""
         # Check to see if cluster-level resources are needed to be manually created
-        needsIngressclass = False
+        """needsIngressclass = False
         appAssets = astraSDK.apps.getAppAssets(verbose=verbose).main(oApp["id"])
         for asset in appAssets["items"]:
             if (
@@ -304,7 +304,7 @@ class ToolKit:
                 # otherwise it's more serious and we must raise an exception
                 body = json.loads(e.body)
                 if not (body.get("reason") == "AlreadyExists"):
-                    raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
+                    raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")"""
         if cloneNamespace:
             cloneNamespace = [
                 {
@@ -1151,7 +1151,9 @@ def main():
             if args.additionalNamespace:
                 args.additionalNamespace = tkHelpers.createNamespaceList(args.additionalNamespace)
             if args.clusterScopedResource:
-                apiResourcesDict = astraSDK.apiresources.getApiResources().main()
+                apiResourcesDict = astraSDK.apiresources.getApiResources().main(
+                    cluster=args.clusterID
+                )
                 for resource in apiResourcesDict["items"]:
                     apiResourcesList.append(resource["kind"])
                 # Validate input as argparse+choices is unable to only validate the first input
