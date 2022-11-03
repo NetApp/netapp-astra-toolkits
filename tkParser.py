@@ -344,34 +344,44 @@ class toolkit_parser:
             help="Clone app name",
         )
         self.parserClone.add_argument(
-            "--cloneNamespace",
-            required=False,
-            default=None,
-            help="Clone namespace name (optional, if not specified cloneAppName is used)",
-        )
-        self.parserClone.add_argument(
             "--clusterID",
             choices=(None if self.plaidMode else destclusterList),
             required=False,
             default=None,
             help="Cluster to clone into (can be same as source)",
         )
-        group = self.parserClone.add_mutually_exclusive_group(required=True)
-        group.add_argument(
+        nsGroup = self.parserClone.add_mutually_exclusive_group()
+        nsGroup.add_argument(
+            "--cloneNamespace",
+            required=False,
+            default=None,
+            help="For single-namespace apps, specify the clone namespace name (if not"
+            + " specified cloneAppName is used)",
+        )
+        nsGroup.add_argument(
+            "--multiNsMapping",
+            required=False,
+            default=None,
+            action="append",
+            nargs="*",
+            help="For multi-namespace apps, specify matching number of sourcens1=destns1 mappings",
+        )
+        sourceGroup = self.parserClone.add_mutually_exclusive_group(required=True)
+        sourceGroup.add_argument(
             "--backupID",
             choices=(None if self.plaidMode else backupList),
             required=False,
             default=None,
             help="Source backup to clone from",
         )
-        group.add_argument(
+        sourceGroup.add_argument(
             "--snapshotID",
             choices=(None if self.plaidMode else snapshotList),
             required=False,
             default=None,
             help="Source snapshot to clone from",
         )
-        group.add_argument(
+        sourceGroup.add_argument(
             "--sourceAppID",
             choices=(None if self.plaidMode else appList),
             required=False,

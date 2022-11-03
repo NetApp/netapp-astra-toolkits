@@ -162,7 +162,7 @@ class ToolKit:
         cloneAppName,
         clusterID,
         oApp,
-        cloneNamespace,
+        namespaceMapping,
         backupID,
         snapshotID,
         sourceAppID,
@@ -171,7 +171,7 @@ class ToolKit:
     ):
         """Create a clone."""
         # Check to see if cluster-level resources are needed to be manually created
-        """needsIngressclass = False
+        needsIngressclass = False
         appAssets = astraSDK.apps.getAppAssets(verbose=verbose).main(oApp["id"])
         for asset in appAssets["items"]:
             if (
@@ -180,10 +180,14 @@ class ToolKit:
             ) and asset["assetType"] == "Pod":
                 needsIngressclass = True
                 assetName = asset["assetName"]
+                if namespaceMapping is None:
+                    cloneNamespace = asset["namespace"]
+                else:
+                    for nsm in namespaceMapping:
+                        if nsm["source"] == asset["namespace"]:
+                            cloneNamespace = nsm["destination"]
         # Clone 'ingressclass' cluster object
         if needsIngressclass and oApp["clusterID"] != clusterID:
-            if not cloneNamespace:
-                cloneNamespace = cloneAppName
             clusters = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
             contexts, _ = kubernetes.config.list_kube_config_contexts()
             # Loop through clusters and contexts, find matches and open api_client
@@ -304,20 +308,13 @@ class ToolKit:
                 # otherwise it's more serious and we must raise an exception
                 body = json.loads(e.body)
                 if not (body.get("reason") == "AlreadyExists"):
-                    raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")"""
-        if cloneNamespace:
-            cloneNamespace = [
-                {
-                    "source": oApp["namespaceScopedResources"][0]["namespace"],
-                    "destination": cloneNamespace,
-                }
-            ]
+                    raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
 
         cloneRet = astraSDK.apps.cloneApp(verbose=verbose).main(
             cloneAppName,
             clusterID,
             oApp["clusterID"],
-            namespaceMapping=cloneNamespace,
+            namespaceMapping=namespaceMapping,
             backupID=backupID,
             snapshotID=snapshotID,
             sourceAppID=sourceAppID,
@@ -1479,7 +1476,7 @@ def main():
             args.cloneAppName,
             args.clusterID,
             oApp,
-            args.cloneNamespace,
+            tkHelpers.createNamespaceMapping(oApp, args.cloneNamespace, args.multiNsMapping),
             backupID=args.backupID,
             snapshotID=args.snapshotID,
             sourceAppID=args.sourceAppID,

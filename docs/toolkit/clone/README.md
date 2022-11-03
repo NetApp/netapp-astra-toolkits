@@ -13,8 +13,10 @@ The overall command usage is:
 ```
 
 * `--cloneAppName`: the name of the new application
-* `--cloneNamespace`: the name of the new namespace (**optional**, if not specified, the namespace is the same value as `cloneAppName`)
 * `--clusterID`: the destination clusterID (it can be any cluster manged by Astra Control)
+* **Only one or zero** of the following arguments can be specified (if neither are specified, the single namespace is the same value as `cloneAppName`):
+  * `--cloneNamespace`: for single-namespace apps, the name of the new namespace
+  * `--multiNsMapping`: for multi-namespace apps, specify matching number of sourcens1=destns1 mappings (the number and name of namespace mappings must match the source app)
 * **Only one** of the following arguments must also be specified:
   * `--backupID`: the backupID to create the clone from
   * `--snapshotID`: the snapshotID to create the clone from
@@ -71,4 +73,67 @@ $ ./toolkit.py list apps
 +--------------+--------------------------------------+--------------------+-----------+--------------+
 | prompt-clone | 1f000f0a-ca24-4b27-ad48-c64ddc67836b | aks-eastus-cluster |           | provisioning |
 +--------------+--------------------------------------+--------------------+-----------+--------------+
+```
+
+## Namespace Mappings
+
+### Single-Namespace Apps
+
+Per the examples above, omitting `--cloneNamespace` results in the clone being created in a namespace that matches the `--cloneAppName` value.  If a different namespace is desired, specify that value with `--cloneNamespace`:
+
+```text
+$ ./toolkit.py clone -b --cloneAppName wordpress-clone --cloneNamespace wordpress-dr \
+    --clusterID 47dfb3d2-1b53-45e7-b26d-c0e51af5de5a \
+    --sourceAppID 090019ce-6e54-4635-85d6-4727ee1fe125
+Submitting clone succeeded.
+Background clone flag selected, run 'list apps' to get status.
+$ ./toolkit.py list apps
++-----------------+--------------------------------------+---------------+----------------------+---------+
+| appName         | appID                                | clusterName   | namespace            | state   |
++=================+======================================+===============+======================+=========+
+| wordpress       | 090019ce-6e54-4635-85d6-4727ee1fe125 | prod-cluster  | wordpress            | ready   |
++-----------------+--------------------------------------+---------------+----------------------+---------+
+| wordpress-clone | b76ee991-dc9c-4d0c-aca2-3f12013bbbc8 | dr-cluster    | wordpress-dr         | ready   |
++-----------------+--------------------------------------+---------------+----------------------+---------+
+```
+
+### Multi-Namespace Apps
+
+For multi-namespace apps, the `--multiNsMapping` argument **must** be provided.  The number of namespace mappings must match the number of namespaces on the source app, they must be of the `sourcenamespace=destnamespace` format, and `sourcenamespace` must be present within the source app definition.
+
+Either separating the arguments with a space, or specifying multiple flags are both supported:
+
+```text
+$ ./toolkit.py clone -b --cloneAppName example-clone \
+    --clusterID 47dfb3d2-1b53-45e7-b26d-c0e51af5de5a \
+    --sourceAppID b94f474d-da0e-4f7e-b52b-9271fae78e0c \
+    --multiNsMapping sourcens1=destns1 sourcens2=destns2
+Submitting clone succeeded.
+Background clone flag selected, run 'list apps' to get status.
+$ ./toolkit.py list apps
++-----------------+--------------------------------------+---------------+----------------------+---------+
+| appName         | appID                                | clusterName   | namespace            | state   |
++=================+======================================+===============+======================+=========+
+| example-app     | b94f474d-da0e-4f7e-b52b-9271fae78e0c | prod-cluster  | sourcens1, sourcens2 | ready   |
++-----------------+--------------------------------------+---------------+----------------------+---------+
+| example-clone   | 3d998134-7a4b-42f0-9065-98650e7a2799 | dr-cluster    | destns1, destns2     | ready   |
++-----------------+--------------------------------------+---------------+----------------------+---------+
+```
+
+```text
+./toolkit.py clone -b --cloneAppName example-clone \
+    --clusterID 47dfb3d2-1b53-45e7-b26d-c0e51af5de5a \
+    --sourceAppID b94f474d-da0e-4f7e-b52b-9271fae78e0c \
+    --multiNsMapping sourcens1=destns1 --multiNsMapping sourcens2=destns2
+Submitting clone succeeded.
+Background clone flag selected, run 'list apps' to get status.
+$ ./toolkit.py list apps
+./toolkit.py list apps
++-----------------+--------------------------------------+---------------+----------------------+---------+
+| appName         | appID                                | clusterName   | namespace            | state   |
++=================+======================================+===============+======================+=========+
+| example-app     | b94f474d-da0e-4f7e-b52b-9271fae78e0c | prod-cluster  | sourcens1, sourcens2 | ready   |
++-----------------+--------------------------------------+---------------+----------------------+---------+
+| example-clone   | 9b081642-a695-4cec-b17c-2193b0aea55d | dr-cluster    | destns1, destns2     | ready   |
++-----------------+--------------------------------------+---------------+----------------------+---------+
 ```
