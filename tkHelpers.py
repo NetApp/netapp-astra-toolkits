@@ -106,6 +106,63 @@ def createHookList(hookArguments):
     return returnList
 
 
+def createNamespaceMapping(app, singleNs, multiNsMapping):
+    """Create a list of dictionaries of source and destination namespaces for cloning an
+    application, as the user can provide a variety of input.  Return object format:
+    [ { "source": "sourcens1", "destination": "destns1" },
+      { "source": "sourcens2", "destination": "destns2" } ]"""
+    # Ensure that multiNsMapping was used for multi-namespace apps
+    if multiNsMapping is None and len(app["namespaceScopedResources"]) > 1:
+        print("Error: for multi-namespace apps, --multiNsMapping must be used.")
+        sys.exit(1)
+    # For single-namespace apps, the namespace mapping is **not** a required field
+    elif singleNs is None and multiNsMapping is None:
+        return None
+    # Handle --cloneNamespace argument
+    elif singleNs:
+        return [
+            {
+                "source": app["namespaceScopedResources"][0]["namespace"],
+                "destination": singleNs,
+            }
+        ]
+    # Handle multiNsMapping cases
+    elif multiNsMapping:
+        # Create a single list of mappings (nargs can produce a variety of lists of lists)
+        mappingList = []
+        for NsMapping in multiNsMapping:
+            if type(NsMapping) == list:
+                for mapping in NsMapping:
+                    mappingList.append(mapping)
+            else:
+                mappingList.append(NsMapping)
+        # Ensure the mappings are of 'sourcens=destns' format
+        for mapping in mappingList:
+            if len(mapping.split("=")) != 2:
+                print(f"Error: '{mapping}' does not conform to 'sourcens=destns' format")
+                sys.exit(1)
+        # Ensure that the user-provided source mapping equals the app namespaces
+        sortedMappingSourceNs = sorted([i.split("=")[0] for i in mappingList])
+        sortedAppSourceNs = sorted([i["namespace"] for i in app["namespaceScopedResources"]])
+        if sortedMappingSourceNs != sortedAppSourceNs:
+            print(
+                "Error: the source namespaces provided by --multiNsMapping do not match the "
+                + f"namespaces in the source app:\nsourceApp:\t{sortedAppSourceNs}"
+                + f"\nmultiNsMapping:\t{sortedMappingSourceNs}"
+            )
+            sys.exit(1)
+        # Generate the return mapping list and return it
+        returnList = []
+        for mapping in mappingList:
+            returnList.append(
+                {"source": mapping.split("=")[0], "destination": mapping.split("=")[1]}
+            )
+        return returnList
+    else:
+        print("Unknown Error")
+        sys.exit(1)
+
+
 def createNamespaceList(namespaceArguments):
     """Create a list of dictionaries of namespace key/value and (optionally) labelSelectors
     key/value(list) for managing an app, as nargs="*" can provide a variety of input."""
