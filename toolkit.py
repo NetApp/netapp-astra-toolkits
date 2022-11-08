@@ -731,7 +731,7 @@ def main():
     if args.subcommand == "deploy":
         tk.doDeploy(
             args.chart,
-            args.app,
+            tkHelpers.isRFC1123(args.app),
             args.namespace,
             args.set,
             args.values,
@@ -916,7 +916,9 @@ def main():
 
     elif args.subcommand == "create":
         if args.objectType == "backup":
-            rc = tk.doProtectionTask(args.objectType, args.appID, args.name, args.background)
+            rc = tk.doProtectionTask(
+                args.objectType, args.appID, tkHelpers.isRFC1123(args.name), args.background
+            )
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
@@ -1090,7 +1092,9 @@ def main():
             else:
                 sys.exit(0)
         elif args.objectType == "snapshot":
-            rc = tk.doProtectionTask(args.objectType, args.appID, args.name, args.background)
+            rc = tk.doProtectionTask(
+                args.objectType, args.appID, tkHelpers.isRFC1123(args.name), args.background
+            )
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
@@ -1166,7 +1170,7 @@ def main():
                     args.clusterScopedResource, apiResourcesDict
                 )
             rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
-                args.appName,
+                tkHelpers.isRFC1123(args.appName),
                 args.namespace,
                 args.clusterID,
                 args.labelSelectors,
@@ -1473,7 +1477,7 @@ def main():
             sys.exit(1)
 
         tk.doClone(
-            args.cloneAppName,
+            tkHelpers.isRFC1123(args.cloneAppName),
             args.clusterID,
             oApp,
             tkHelpers.createNamespaceMapping(oApp, args.cloneNamespace, args.multiNsMapping),
