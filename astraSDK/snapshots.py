@@ -87,8 +87,13 @@ class getSnaps(SDKCommon):
                     elif self.output == "table":
                         print(
                             self.basicTable(
-                                ["snapshotName", "snapshotID", "snapshotState"],
-                                ["name", "id", "state"],
+                                [
+                                    "snapshotName",
+                                    "snapshotID",
+                                    "snapshotState",
+                                    "creationTimestamp",
+                                ],
+                                ["name", "id", "state", "metadata.creationTimestamp"],
                                 results,
                             ),
                         )
@@ -101,8 +106,8 @@ class getSnaps(SDKCommon):
             dataReturn = yaml.dump(snaps)
         elif self.output == "table":
             dataReturn = self.basicTable(
-                ["appID", "snapshotName", "snapshotID", "snapshotState"],
-                ["appID", "name", "id", "state"],
+                ["appID", "snapshotName", "snapshotID", "snapshotState", "creationTimestamp"],
+                ["appID", "name", "id", "state", "metadata.creationTimestamp"],
                 snaps,
             )
 
