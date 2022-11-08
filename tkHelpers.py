@@ -17,6 +17,7 @@
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -123,7 +124,7 @@ def createNamespaceMapping(app, singleNs, multiNsMapping):
         return [
             {
                 "source": app["namespaceScopedResources"][0]["namespace"],
-                "destination": singleNs,
+                "destination": isRFC1123(singleNs),
             }
         ]
     # Handle multiNsMapping cases
@@ -155,7 +156,7 @@ def createNamespaceMapping(app, singleNs, multiNsMapping):
         returnList = []
         for mapping in mappingList:
             returnList.append(
-                {"source": mapping.split("=")[0], "destination": mapping.split("=")[1]}
+                {"source": mapping.split("=")[0], "destination": isRFC1123(mapping.split("=")[1])}
             )
         return returnList
     else:
@@ -325,3 +326,18 @@ def stsPatch(patch, stsName):
     if ret:
         print(f"os.system exited with RC: {ret}")
         sys.exit(14)
+
+
+def isRFC1123(string):
+    """isRFC1123 returns the input 'string' if it conforms to RFC 1123 spec,
+    otherwise it throws an error and exits with code 15"""
+    regex = re.compile("[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
+    if regex.match(string) is not None and len(string) < 64:
+        return string
+    else:
+        print(
+            f"Error: '{string}' must consist of lower case alphanumeric characters or '-', must "
+            + "start and end with an alphanumeric character, and must be at most 63 characters "
+            + "(for example 'my-name' or '123-abc')."
+        )
+        sys.exit(15)
