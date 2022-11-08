@@ -102,8 +102,8 @@ class getBackups(SDKCommon):
                     elif self.output == "table":
                         print(
                             self.basicTable(
-                                ["backupName", "backupID", "backupState"],
-                                ["name", "id", "state"],
+                                ["backupName", "backupID", "backupState", "creationTimestamp"],
+                                ["name", "id", "state", "metadata.creationTimestamp"],
                                 results,
                             )
                         )
@@ -116,8 +116,8 @@ class getBackups(SDKCommon):
             dataReturn = yaml.dump(backups)
         elif self.output == "table":
             dataReturn = self.basicTable(
-                ["AppID", "backupName", "backupID", "backupState"],
-                ["appID", "name", "id", "state"],
+                ["AppID", "backupName", "backupID", "backupState", "creationTimestamp"],
+                ["appID", "name", "id", "state", "metadata.creationTimestamp"],
                 backups,
             )
 

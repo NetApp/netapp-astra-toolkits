@@ -148,12 +148,21 @@ class SDKCommon:
         print(colored(f"API data: {data}", "green"))
         print(colored(f"API params: {params}", "green"))
 
+    def recursiveGet(self, k, item):
+        """Recursion function which is just a wrapper around dict.get(key), to handle cases
+        where there's a dict within a dict. A '.' in the key name ('metadata.creationTimestamp)
+        is used for identification purposes."""
+        if len(k.split(".")) > 1:
+            return self.recursiveGet(k.split(".", 1)[1], item[k.split(".")[0]])
+        else:
+            return item.get(k)
+
     def basicTable(self, tabHeader, tabKeys, dataDict):
         """Function to create a basic tabulate table for terminal printing"""
         tabData = []
         for item in dataDict["items"]:
             # Generate a table row based on the keys list
-            row = [item.get(i) for i in tabKeys]
+            row = [self.recursiveGet(k, item) for k in tabKeys]
             # Handle cases where table row has a nested list
             for c, r in enumerate(row):
                 if type(r) is list:
