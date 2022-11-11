@@ -38,7 +38,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Set tag output
       id: vars
-      run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+      run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
     - name: wait for actoolkit
       run: sleep 300
     - name: Build the Docker image
