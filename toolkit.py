@@ -563,6 +563,11 @@ def main():
                 for cloud in astraSDK.clouds.getClouds().main()["items"]:
                     if cloud["cloudType"] not in ["GCP", "Azure", "AWS"]:
                         cloudList.append(cloud["id"])
+                # Add a private cloud if it doesn't already exist
+                if len(cloudList) == 0:
+                    rc = astraSDK.clouds.manageCloud(quiet=True).main("private", "private")
+                    if rc:
+                        cloudList.append(rc["id"])
             elif (
                 verbs["create"]
                 and len(sys.argv) - verbPosition >= 2
@@ -627,6 +632,10 @@ def main():
                         ):
                             continue
                         storageClassList.append(storageClass["id"])
+                elif sys.argv[verbPosition + 1] == "cloud":
+                    bucketDict = astraSDK.buckets.getBuckets(quiet=True).main()
+                    for bucket in bucketDict["items"]:
+                        bucketList.append(bucket["id"])
 
             elif verbs["destroy"] and len(sys.argv) - verbPosition >= 2:
                 if sys.argv[verbPosition + 1] == "backup" and len(sys.argv) - verbPosition >= 3:
@@ -696,6 +705,10 @@ def main():
                     for cluster in clusterDict["items"]:
                         if cluster["managedState"] == "managed":
                             clusterList.append(cluster["id"])
+                elif sys.argv[verbPosition + 1] == "cloud":
+                    cloudDict = astraSDK.clouds.getClouds().main()
+                    for cloud in cloudDict["items"]:
+                        cloudList.append(cloud["id"])
 
             elif (verbs["update"]) and len(sys.argv) - verbPosition >= 2:
                 if sys.argv[verbPosition + 1] == "replication":
@@ -1256,6 +1269,44 @@ def main():
                 sys.exit(1)
             else:
                 sys.exit(0)
+        elif args.objectType == "cloud":
+            credentialID = None
+            # First create the credential
+            if args.cloudType != "private":
+                if args.credentialPath is None:
+                    print(f"Error: --credentialPath is required for cloudType of {args.cloudType}")
+                    sys.exit(1)
+                with open(args.credentialPath, encoding="utf8") as f:
+                    try:
+                        credDict = json.loads(f.read().rstrip())
+                    except json.decoder.JSONDecodeError:
+                        print(f"Error: {args.credentialPath} does not seem to be valid JSON")
+                        sys.exit(1)
+                encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
+                rc = astraSDK.credentials.createCredential(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(
+                    "astra-sa@" + args.cloudName,
+                    "service-account",
+                    {"base64": encodedStr},
+                    args.cloudType,
+                )
+                if rc:
+                    credentialID = rc["id"]
+                else:
+                    print("astraSDK.credentials.createCredential() failed")
+                    sys.exit(1)
+            # Next manage the cloud
+            rc = astraSDK.clouds.manageCloud(quiet=args.quiet, verbose=args.verbose).main(
+                args.cloudName,
+                args.cloudType,
+                credentialID=credentialID,
+                defaultBucketID=args.defaultBucketID,
+            )
+            if rc:
+                sys.exit(0)
+            else:
+                print("astraSDK.clouds.manageCloud() failed")
 
     elif args.subcommand == "destroy":
         if args.objectType == "backup":
@@ -1404,6 +1455,28 @@ def main():
                 sys.exit(0)
             else:
                 print("astraSDK.clusters.unmanageCluster() failed")
+                sys.exit(1)
+        elif args.objectType == "cloud":
+            if plaidMode:
+                cloudDict = astraSDK.clouds.getClouds(quiet=True).main()
+            rc = astraSDK.clouds.unmanageCloud(quiet=args.quiet, verbose=args.verbose).main(
+                args.cloudID
+            )
+            if rc:
+                # Cloud credentials also should be deleted
+                for cloud in cloudDict["items"]:
+                    if cloud["id"] == args.cloudID:
+                        if cloud.get("credentialID"):
+                            if astraSDK.credentials.destroyCredential(
+                                quiet=args.quiet, verbose=args.verbose
+                            ).main(cloud.get("credentialID")):
+                                print(f"Credential deleted")
+                            else:
+                                print("astraSDK.credentials.destroyCredential() failed")
+                                sys.exit(1)
+                sys.exit(0)
+            else:
+                print("astraSDK.clusters.unmanageCloud() failed")
                 sys.exit(1)
 
     elif args.subcommand == "restore":

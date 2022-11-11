@@ -5,21 +5,23 @@ The `manage` argument allows you to manage resources that live outside of Astra 
 * [App](#app)
 * [Bucket](#bucket)
 * [Cluster](#cluster)
+* [Cloud](#cloud)
 
 It's opposite command is [unmanage](../unmanage/README.md).  **Manage** and **unmanage** are similar to [create](../create/README.md) and [destroy](../destroy/README.md), however create/destroy objects live entirely within Astra Control, while manage/unmanage objects do not.  If you create and then destroy a [snapshot](../create/README.md#snapshot), it is gone forever.  However if you manage and then unmanage a cluster, the cluster still exists to re-manage again.
 
 ```text
 $ ./toolkit.py manage -h                
-usage: toolkit.py manage [-h] {app,bucket,cluster} ...
+usage: toolkit.py manage [-h] {app,bucket,cluster,cloud} ...
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
 
 objectType:
-  {app,bucket,cluster}
+  {app,bucket,cluster,cloud}
     app                 manage app
     bucket              manage bucket
     cluster             manage cluster
+    cloud               manage cloud
 ```
 
 ## App
@@ -170,4 +172,42 @@ $ ./toolkit.py manage cluster 062728da-ef0c-4dc2-83f9-bedb07c30511
 $ ./toolkit.py manage cluster 80d6bef8-300c-44bd-9e36-04ef874bdc29 \
     -s ba6d5a64-a321-4fd7-9842-9adce829229a
 {"type": "application/astra-managedCluster", "version": "1.1", "id": "80d6bef8-300c-44bd-9e36-04ef874bdc29", "name": "aks-eastus-cluster", "state": "pending", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T20:33:59Z", "inUse": "false", "clusterType": "aks", "clusterVersion": "1.22", "clusterVersionString": "v1.22.6", "clusterCreationTimestamp": "0001-01-01T00:00:00Z", "namespaces": [], "defaultStorageClass": "ba6d5a64-a321-4fd7-9842-9adce829229a", "cloudID": "7b8d4252-293c-4c70-b101-7fd6b7d08e15", "credentialID": "04c067b2-df55-4d9c-8a3a-c869a779c276", "location": "eastus", "isMultizonal": "false", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/hasNonTridentCSIDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/hasTridentDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/azure/subscriptionID", "value": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxa2935"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "Azure"}], "creationTimestamp": "2022-05-19T20:33:59Z", "modificationTimestamp": "2022-05-19T20:34:03Z", "createdBy": "system"`
+```
+
+## Cloud
+
+Managing a public cloud allows Astra Control to automatically discover deployed managed Kubernetes clusters.  Alternatively, managing a private cloud is a pre-requisite for cluster kubeconfig ingest.  Command usage:
+
+```text
+./toolkit.py manage cloud <cloudType> <cloudName> <--credentialPath credentialPath> \
+    <--defaultBucketID optionalDefaultBucketID>
+```
+
+The arguments have the following requirements:
+
+* `cloudType`: must be one of `AWS`, `Azure`, `GCP`, or `private`
+* `cloudName`: a friendly, descriptive name of the cloud
+* `credentialPath`: the local filesystem path of the credential JSON (required for all non-`private` cloudTypes)
+* `defaultBucketID`: an optional [bucketID](../list/README.md#buckets) for app backup storage
+
+Sample output:
+
+```text
+$ ./toolkit.py manage cloud Azure azure-tme -c ~/.azure/azure-sp-tme-demo2-astra.json \
+    -b e626e015-bc0b-4cac-9ccf-c55ed5eeb18a
+{"type": "application/astra-credential", "version": "1.1", "id": "09f8b4ca-975f-4084-b123-53423af6924b", "name": "astra-sa@azure-tme", "keyType": "generic", "valid": "true", "metadata": {"creationTimestamp": "2022-11-11T14:17:38Z", "modificationTimestamp": "2022-11-11T14:17:38Z", "createdBy": "23ecfb3a-c581-473b-9f44-9495c280fb8b", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "service-account"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "Azure"}]}}
+{"type": "application/astra-cloud", "version": "1.0", "id": "f7d8204a-1ff8-4ae7-983f-2c4352b01dc8", "name": "azure-tme", "state": "pending", "stateUnready": [], "cloudType": "Azure", "credentialID": "09f8b4ca-975f-4084-b123-53423af6924b", "defaultBucketID": "e626e015-bc0b-4cac-9ccf-c55ed5eeb18a", "metadata": {"labels": [], "creationTimestamp": "2022-11-11T14:17:40Z", "modificationTimestamp": "2022-11-11T14:17:40Z", "createdBy": "23ecfb3a-c581-473b-9f44-9495c280fb8b"}}
+```
+
+```text
+$ ./toolkit.py manage cloud AWS aws-tme-demo -c ~/.aws/aws-astra-control.json 
+{"type": "application/astra-credential", "version": "1.1", "id": "8bc83523-8406-4d21-ae03-3b931ad79a67", "name": "astra-sa@aws-tme-demo", "keyType": "generic", "valid": "true", "metadata": {"creationTimestamp": "2022-11-11T14:44:23Z", "modificationTimestamp": "2022-11-11T14:44:23Z", "createdBy": "23ecfb3a-c581-473b-9f44-9495c280fb8b", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "service-account"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "AWS"}]}}
+{"type": "application/astra-cloud", "version": "1.0", "id": "bd63bd2e-c6d5-4435-a5b2-71163d5c5dc1", "name": "aws-tme-demo", "state": "pending", "stateUnready": [], "cloudType": "AWS", "credentialID": "8bc83523-8406-4d21-ae03-3b931ad79a67", "metadata": {"labels": [], "creationTimestamp": "2022-11-11T14:44:23Z", "modificationTimestamp": "2022-11-11T14:44:23Z", "createdBy": "23ecfb3a-c581-473b-9f44-9495c280fb8b"}}
+```
+
+For `private` clouds, the `credentialPath` field is not necessary:
+
+```text
+$ ./toolkit.py manage cloud private private 
+{"type": "application/astra-cloud", "version": "1.0", "id": "7c760fec-47dc-4a2b-a625-de5abab6487e", "name": "private", "state": "running", "stateUnready": [], "cloudType": "private", "metadata": {"labels": [], "creationTimestamp": "2022-11-11T14:43:22Z", "modificationTimestamp": "2022-11-11T14:43:22Z", "createdBy": "23ecfb3a-c581-473b-9f44-9495c280fb8b"}}
 ```

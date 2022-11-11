@@ -108,9 +108,13 @@ class getCredentials(SDKCommon):
 
 
 class createCredential(SDKCommon):
-    """Create a kubeconfig or S3 credential.  This class does not perform any validation
-    of the inputs.  Please see toolkit.py for further examples if the swagger definition
-    does not provide all the information you require."""
+    """Create a kubeconfig, S3, or cloud credential.  This class does not perform any validation
+    of the inputs.  Please see toolkit.py for further examples if the swagger definition does
+    not provide all the information you require.
+
+    Cloud credentials must have a 'keyType' of 'generic' while also having the 'credType' label
+    be 'service-account', so this class handles the discrepancy by accepting a 'keyType' of
+    'service-account' as an input and modifying it to be 'generic' in the payload."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -136,7 +140,7 @@ class createCredential(SDKCommon):
             "type": "application/astra-credential",
             "version": "1.1",
             "keyStore": keyStore,
-            "keyType": keyType,
+            "keyType": ("generic" if keyType == "service-account" else keyType),
             "name": credName,
             "metadata": {
                 "labels": [

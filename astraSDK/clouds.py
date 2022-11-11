@@ -76,3 +76,97 @@ class getClouds(SDKCommon):
                 if ret.text.strip():
                     print(f"Error text: {ret.text}")
             return False
+
+
+class manageCloud(SDKCommon):
+    """This class manages a cloud"""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-cloud+json"
+        self.headers["Content-Type"] = "application/astra-cloud+json"
+
+    def main(self, cloudName, cloudType, credentialID=None, description=None, defaultBucketID=None):
+
+        endpoint = "topology/v1/clouds"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "name": cloudName,
+            "cloudType": cloudType,
+            "type": "application/astra-cloud",
+            "version": "1.0",
+        }
+        if credentialID:
+            data["credentialID"] = credentialID
+        if description:
+            data["description"] = description
+        if defaultBucketID:
+            data["defaultBucketID"] = defaultBucketID
+
+        if self.verbose:
+            print(f"Managing: {cloudName}")
+            self.printVerbose(url, "POST", self.headers, data, params)
+
+        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False
+
+
+class unmanageCloud(SDKCommon):
+    """This class unmanages a cloud"""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-cloud+json"
+        self.headers["Content-Type"] = "application/astra-cloud+json"
+
+    def main(self, cloudID):
+
+        endpoint = f"topology/v1/clouds/{cloudID}"
+        url = self.base + endpoint
+        params = {}
+        data = {}
+
+        if self.verbose:
+            print(f"Deleting: {cloudID}")
+            self.printVerbose(url, "DELETE", self.headers, data, params)
+
+        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
+
+        if self.verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
+            print()
+
+        if ret.ok:
+            if not self.quiet:
+                print("Cloud unmanaged")
+            return True
+        else:
+            if not self.quiet:
+                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
+                if ret.text.strip():
+                    print(f"Error text: {ret.text}")
+            return False

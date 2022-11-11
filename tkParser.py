@@ -237,6 +237,10 @@ class toolkit_parser:
             "cluster",
             help="manage cluster",
         )
+        self.subparserManageCloud = self.subparserManage.add_parser(
+            "cloud",
+            help="manage cloud",
+        )
 
     def sub_destroy_commands(self):
         """destroy 'X'"""
@@ -286,6 +290,10 @@ class toolkit_parser:
         self.subparserUnmanageCluster = self.subparserUnmanage.add_parser(
             "cluster",
             help="unmanage cluster",
+        )
+        self.subparserUnmanageCloud = self.subparserUnmanage.add_parser(
+            "cloud",
+            help="unmanage cloud",
         )
 
     def sub_update_commands(self):
@@ -965,6 +973,32 @@ class toolkit_parser:
             help="Optionally modify the default storage class",
         )
 
+    def manage_cloud_args(self, bucketList):
+        """manage cloud args and flags"""
+        self.subparserManageCloud.add_argument(
+            "cloudType",
+            choices=["AWS", "Azure", "GCP", "private"],
+            help="the type of cloud to add",
+        )
+        self.subparserManageCloud.add_argument(
+            "cloudName",
+            help="a friendly name for the cloud",
+        )
+        self.subparserManageCloud.add_argument(
+            "-c",
+            "--credentialPath",
+            default=None,
+            help="the local filesystem path to the cloud credential (required for all but "
+            + "'private' clouds)",
+        )
+        self.subparserManageCloud.add_argument(
+            "-b",
+            "--defaultBucketID",
+            choices=(None if self.plaidMode else bucketList),
+            default=None,
+            help="optionally specify the default bucketID for backups",
+        )
+
     def destroy_backup_args(self, appList, backupList):
         """destroy backup args and flags"""
         self.subparserDestroyBackup.add_argument(
@@ -1073,6 +1107,14 @@ class toolkit_parser:
             help="clusterID of the cluster to unmanage",
         )
 
+    def unmanage_cloud_args(self, cloudList):
+        """unmanage cloud args and flags"""
+        self.subparserUnmanageCloud.add_argument(
+            "cloudID",
+            choices=(None if self.plaidMode else cloudList),
+            help="cloudID of the cloud to unmanage",
+        )
+
     def update_replication_args(self, replicationList):
         """update replication args and flags"""
         self.subparserUpdateReplication.add_argument(
@@ -1162,6 +1204,7 @@ class toolkit_parser:
         self.manage_app_args(clusterList, namespaceList)
         self.manage_bucket_args(credentialList)
         self.manage_cluster_args(clusterList, storageClassList)
+        self.manage_cloud_args(bucketList)
 
         self.destroy_backup_args(appList, backupList)
         self.destroy_credential_args(credentialList)
@@ -1175,6 +1218,7 @@ class toolkit_parser:
         self.unmanage_app_args(appList)
         self.unmanage_bucket_args(bucketList)
         self.unmanage_cluster_args(clusterList)
+        self.unmanage_cloud_args(cloudList)
 
         self.update_replication_args(replicationList)
 
