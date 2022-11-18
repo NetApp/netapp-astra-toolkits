@@ -184,7 +184,7 @@ class manageApp(SDKCommon):
 
     Any number of additional namespaces (and optional label selectors) can be provided through
     the addNamespaces argument, which must be a list of dictionaries:
-        [{"namespace": "ns1"}, {"namespace": "ns2", "labelSelectors": ["app=name"]}]
+        [{"namespace": "ns2"}, {"namespace": "ns3", "labelSelectors": ["app=name"]}]
 
     Any number of clusterScopedResources (and optional label selectors) can be provided through
     the clusterScopedResources argument, which must be a list of dictionaries:
