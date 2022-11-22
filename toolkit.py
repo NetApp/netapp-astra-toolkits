@@ -888,15 +888,18 @@ def main():
                 args.output = "json"
             rc = astraSDK.scripts.getScripts(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(scriptSourceName=args.getScriptSource)
+            ).main(nameFilter=args.nameFilter)
             if rc is False:
                 print("astraSDK.scripts.getScripts() failed")
                 sys.exit(1)
             else:
                 if args.getScriptSource:
                     if len(rc["items"]) == 0:
-                        print(f"Script of name '{args.getScriptSource}' not found.")
+                        print(f"Script of name '{args.nameFilter}' not found.")
                     for script in rc["items"]:
+                        print("#"*len(f"### {script['name']} ###"))
+                        print(f"### {script['name']} ###")
+                        print("#"*len(f"### {script['name']} ###"))
                         print(base64.b64decode(script["source"]).decode("utf-8"))
                 sys.exit(0)
         elif args.objectType == "snapshots":

@@ -36,7 +36,7 @@ class getScripts(SDKCommon):
         self.output = output
         super().__init__()
 
-    def main(self, scriptSourceName=None):
+    def main(self, nameFilter=None):
 
         endpoint = "core/v1/hookSources"
         url = self.base + endpoint
@@ -57,10 +57,9 @@ class getScripts(SDKCommon):
         if ret.ok:
             scripts = super().jsonifyResults(ret)
             scriptsCooked = copy.deepcopy(scripts)
-            if scriptSourceName:
-                for counter, script in enumerate(scripts.get("items")):
-                    if script.get("name") != scriptSourceName:
-                        scriptsCooked["items"].remove(scripts["items"][counter])
+            for counter, script in enumerate(scripts.get("items")):
+                if nameFilter and nameFilter not in script.get("name"):
+                    scriptsCooked["items"].remove(scripts["items"][counter])
 
             if self.output == "json":
                 dataReturn = scriptsCooked

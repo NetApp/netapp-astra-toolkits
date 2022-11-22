@@ -685,7 +685,7 @@ $ ./toolkit.py list rolebindings -i bb06c170-8dbd-40be-99aa-3b3114434705
 
 ## Scripts
 
-`list scripts` shows all of the account's scripts, which are used with [execution hooks](../create/README.md#execution-hook).  With the `-s`/`--getScriptSource` argument, providing a matching script name will output the body of the script.
+`list scripts` shows all of the account's scripts, which are used with [execution hooks](../create/README.md#execution-hook).  With the `-s`/`--getScriptSource` argument, the body of the script(s) will be outputted (scripts can be optionally filtered with the `-f`/`--nameFilter` argument).
 
 Command usage:
 
@@ -711,7 +711,10 @@ $ ./toolkit.py list scripts
 ```
 
 ```text
-$ ./toolkit.py list scripts -s exampleScript
+$ ./toolkit.py list scripts -s -f exampleScript
+#####################
+### exampleScript ###
+#####################
 #!/bin/bash
 echo "this is just an example"
 ```

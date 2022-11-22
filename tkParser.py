@@ -583,10 +583,17 @@ class toolkit_parser:
     def list_scripts_args(self):
         """list scripts args and flags"""
         self.subparserListScripts.add_argument(
+            "-f",
+            "--nameFilter",
+            default=None,
+            help="Filter scripts by this value to minimize output (partial match)",
+        )
+        self.subparserListScripts.add_argument(
             "-s",
             "--getScriptSource",
-            default=None,
-            help="Provide a script name to view the script source code",
+            default=False,
+            action="store_true",
+            help="View the script source code",
         )
 
     def list_snapshots_args(self):
