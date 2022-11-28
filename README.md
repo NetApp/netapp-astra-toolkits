@@ -6,23 +6,25 @@ You can use the `astraSDK/` library out of the box, and as a set of example reco
 
 When using `toolkit.py`/`actoolkit` in automation, it is **highly** recommended to tie your workflows to a specific [tag](https://github.com/NetApp/netapp-astra-toolkits/tags) or [release](https://pypi.org/project/actoolkit/#history) (as functionality may change over time), and be sure to thoroughly test all workflows to ensure expected behavior.
 
+![Astra SDK Component and Installation Diagram](/docs/install/img/components-install.png)
+
 > **Note**: Support for all components of the Astra Control Python SDK is exclusively handled in a best effort fashion by the **community** via [GitHub issues](https://github.com/NetApp/netapp-astra-toolkits/issues), and is **not** supported by NetApp Support. Use of this SDK is entirely at your own risk.
 
 ## Installation
 
 The NetApp Astra Control SDK can be utilized three different ways, depending upon your use case:
 
-1. **Consumer**: if you plan to consume the toolkit as-is, it is recommended to utilize the [prepared Docker image](#1-docker-installation), as it has all of the required dependencies and binaries configured and ready to go (including `actoolkit`).
-1. **Pipeline**: if utilizing the toolkit in a software pipeline, the [python package](#2-python-package-installation) ([actoolkit](https://pypi.org/project/actoolkit/)) is *typically* the most straightforward method of consumption. A simple `pip install` command results in the toolkit.py file being available in the user's PATH and all python-related dependencies installed.
+1. **Administrator**: if you want to use the toolkit as quickly as possible without modifications, it is recommended to utilize the [prepared Docker image](#1-docker-installation), as it has all of the required dependencies and binaries configured and ready to go (including `actoolkit`).
+1. **DevOps / GitOps**: if utilizing the toolkit in a software pipeline, the [python package](#2-python-package-installation) ([actoolkit](https://pypi.org/project/actoolkit/)) is *typically* the most straightforward method of consumption. A simple `pip install` command results in the toolkit.py file being available in the user's PATH and all python-related dependencies installed.
 1. **Developer**: if you plan to modify the SDK for internal consumption, [manual installation](#3-manual-installation) is recommended by cloning (or forking) this repository and working in your local development environment. Ensure that all dependencies mentioned below are met.
 
 ### Prerequisites
 
-For the **consumer** use case with the [prepared Docker image](#1-docker-installation):
+For the **administrator** use case with the [prepared Docker image](#1-docker-installation):
 
 * Docker 20.10.7+
 
-For the software **pipeline** use case with the [python package](#2-python-package-installation) ([actoolkit](https://pypi.org/project/actoolkit/)):
+For the **DevOps / GitOps** use case with the [python package](#2-python-package-installation) ([actoolkit](https://pypi.org/project/actoolkit/)):
 
 * Python 3.8+
 * Pip 21.1.2+
