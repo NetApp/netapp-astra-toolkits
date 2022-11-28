@@ -15,7 +15,7 @@ When using `toolkit.py`/`actoolkit` in automation, it is **highly** recommended 
 The NetApp Astra Control SDK can be utilized three different ways, depending upon your use case:
 
 1. **Administrator**: if you want to use the toolkit as quickly as possible without modifications, it is recommended to utilize the [prepared Docker image](#1-docker-installation), as it has all of the required dependencies and binaries configured and ready to go (including `actoolkit`).
-1. **DevOps / GitOps**: if utilizing the toolkit in a software pipeline, the [python package](#2-python-package-installation) ([actoolkit](https://pypi.org/project/actoolkit/)) is *typically* the most straightforward method of consumption. A simple `pip install` command results in the toolkit.py file being available in the user's PATH and all python-related dependencies installed.
+1. **DevOps / GitOps**: if utilizing the toolkit in a software pipeline, the [python package](#2-python-package-installation) ([actoolkit](https://pypi.org/project/actoolkit/)) is *typically* the most straightforward method of consumption. A simple `pip install` command results in toolkit.py (as `actoolkit`) being available in the user's PATH and all python-related dependencies installed.  It also installs the `astraSDK/` library for use in custom scripts.
 1. **Developer**: if you plan to modify the SDK for internal consumption, [manual installation](#3-manual-installation) is recommended by cloning (or forking) this repository and working in your local development environment. Ensure that all dependencies mentioned below are met.
 
 ### Prerequisites
