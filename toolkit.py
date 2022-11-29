@@ -167,6 +167,7 @@ class ToolKit:
         snapshotID,
         sourceAppID,
         background,
+        pollTimer,
         verbose,
     ):
         """Create a clone."""
@@ -339,11 +340,11 @@ class ToolKit:
                         else:
                             print(".", end="")
                             sys.stdout.flush()
-                            time.sleep(3)
+                            time.sleep(pollTimer)
         else:
             print("Submitting clone failed.")
 
-    def doProtectionTask(self, protectionType, appID, name, background):
+    def doProtectionTask(self, protectionType, appID, name, background, pollTimer):
         """Take a snapshot/backup of appID giving it name <name>
         Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
         if protectionType == "backup":
@@ -385,7 +386,7 @@ class ToolKit:
                     elif obj["state"] == "failed":
                         print(f"{protectionType} job failed")
                         return False
-            time.sleep(5)
+            time.sleep(pollTimer)
             print(".", end="")
             sys.stdout.flush()
 
@@ -897,9 +898,9 @@ def main():
                     if len(rc["items"]) == 0:
                         print(f"Script of name '{args.nameFilter}' not found.")
                     for script in rc["items"]:
-                        print("#"*len(f"### {script['name']} ###"))
+                        print("#" * len(f"### {script['name']} ###"))
                         print(f"### {script['name']} ###")
-                        print("#"*len(f"### {script['name']} ###"))
+                        print("#" * len(f"### {script['name']} ###"))
                         print(base64.b64decode(script["source"]).decode("utf-8"))
                 sys.exit(0)
         elif args.objectType == "snapshots":
@@ -933,7 +934,11 @@ def main():
     elif args.subcommand == "create":
         if args.objectType == "backup":
             rc = tk.doProtectionTask(
-                args.objectType, args.appID, tkHelpers.isRFC1123(args.name), args.background
+                args.objectType,
+                args.appID,
+                tkHelpers.isRFC1123(args.name),
+                args.background,
+                args.pollTimer,
             )
             if rc is False:
                 print("doProtectionTask() failed")
@@ -1109,7 +1114,11 @@ def main():
                 sys.exit(0)
         elif args.objectType == "snapshot":
             rc = tk.doProtectionTask(
-                args.objectType, args.appID, tkHelpers.isRFC1123(args.name), args.background
+                args.objectType,
+                args.appID,
+                tkHelpers.isRFC1123(args.name),
+                args.background,
+                args.pollTimer,
             )
             if rc is False:
                 print("doProtectionTask() failed")
@@ -1508,7 +1517,7 @@ def main():
                 elif state == "failed":
                     print("Failed!")
                     sys.exit(2)
-                time.sleep(5)
+                time.sleep(args.pollTimer)
         else:
             print("Submitting restore job failed.")
             sys.exit(3)
@@ -1561,6 +1570,7 @@ def main():
             snapshotID=args.snapshotID,
             sourceAppID=args.sourceAppID,
             background=args.background,
+            pollTimer=args.pollTimer,
             verbose=args.verbose,
         )
 

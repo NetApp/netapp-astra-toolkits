@@ -7,8 +7,8 @@ The `restore` argument allows you to restore a [managed application](../manage/R
 The overall command usage is:
 
 ```text
-./toolkit.py restore <optionalBackgroundArg> <appID> <snapshotOrBackgroundArgument> \
-    <snapshotOrBackgroundID>
+./toolkit.py restore <optionalBackgroundArg> <optinalPollTimerArg> <appID> \
+    <snapshotOrBackgroundArgument> <snapshotOrBackgroundID>
 ```
 
 The [appID](../list/README.md#apps) can be gathered from the [list](../list/README.md) command.
@@ -34,7 +34,7 @@ optional arguments:
                         Source snapshot to restore from
 ```
 
-When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the restore operation every 5 seconds, and reports back once complete.
+When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the restore operation every 5 seconds (which can be overridden by the `--pollTimer`/`-t` argument), and reports back once complete.
 
 ```text
 ./toolkit.py restore a643b5dc-bfa0-4624-8bdd-5ad5325f20fd --snapshotID \

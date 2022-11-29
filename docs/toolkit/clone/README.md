@@ -22,7 +22,7 @@ The overall command usage is:
   * `--snapshotID`: the snapshotID to create the clone from
   * `--sourceAppID`: a [managed application ID](../manage/README.md#app) (the clone will be created from the running application)
 
-When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the clone operation every 3 seconds, and reports back once complete.
+When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the clone operation every 5 seconds (which can be overridden by the `--pollTimer`/`-t` argument), and reports back once complete.
 
 ```text
 $ ./toolkit.py clone --cloneAppName myclonedapp --clusterID af0aecb9-9b18-473f-b417-54fb38e1e28d \

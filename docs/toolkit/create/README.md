@@ -37,10 +37,10 @@ objectType:
 The `create backup` command allows you to take an ad-hoc backup.  The command usage is:
 
 ```text
-./toolkit.py create backup <optionalBackgroundArg> <appID> <backupName>
+./toolkit.py create backup <optionalBackgroundArg> <optionalPollTimer> <appID> <backupName>
 ```
 
-When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the backup operation every 5 seconds, and reports back once complete.
+When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the backup operation every 5 seconds (which can be overridden by the `--pollTimer`/`-t` argument), and reports back once complete.
 
 ```text
 $ ./toolkit.py create backup a643b5dc-bfa0-4624-8bdd-5ad5325f20fd 20220523-cli-backup1
@@ -279,7 +279,7 @@ The `create snapshot` command allows you to take an ad-hoc snapshot.  The comman
 ./toolkit.py create snapshot <optionalBackgroundArg> <appID> <snapshotName>
 ```
 
-When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the snapshot operation every 5 seconds, and reports back once complete.
+When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the snapshot operation every 5 seconds (which can be overridden by the `--pollTimer`/`-t` argument), and reports back once complete.
 
 ```text
 $ ./toolkit.py create snapshot a643b5dc-bfa0-4624-8bdd-5ad5325f20fd 20220523-cli-snap1

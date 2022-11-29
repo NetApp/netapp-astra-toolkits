@@ -396,6 +396,13 @@ class toolkit_parser:
             default=None,
             help="Source app to clone",
         )
+        self.parserClone.add_argument(
+            "-t",
+            "--pollTimer",
+            type=int,
+            default=5,
+            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+        )
 
     def restore_args(self, appList, backupList, snapshotList):
         """restore args and flags"""
@@ -425,6 +432,13 @@ class toolkit_parser:
             required=False,
             default=None,
             help="Source snapshot to restore from",
+        )
+        self.parserRestore.add_argument(
+            "-t",
+            "--pollTimer",
+            type=int,
+            default=5,
+            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
         )
 
     def list_apiresources_args(self):
@@ -639,6 +653,13 @@ class toolkit_parser:
             action="store_true",
             help="Run backup operation in the background",
         )
+        self.subparserCreateBackup.add_argument(
+            "-t",
+            "--pollTimer",
+            type=int,
+            default=5,
+            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+        )
 
     def create_cluster_args(self, cloudList):
         """create cluster args and flags"""
@@ -833,6 +854,13 @@ class toolkit_parser:
             default=False,
             action="store_true",
             help="Run snapshot operation in the background",
+        )
+        self.subparserCreateSnapshot.add_argument(
+            "-t",
+            "--pollTimer",
+            type=int,
+            default=5,
+            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
         )
 
     def create_user_args(self, labelList, namespaceList):
