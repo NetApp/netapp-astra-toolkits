@@ -159,6 +159,10 @@ class toolkit_parser:
             "namespaces",
             help="list namespaces",
         )
+        self.subparserListNotifications = self.subparserList.add_parser(
+            "notifications",
+            help="list notifications",
+        )
         self.subparserListProtections = self.subparserList.add_parser(
             "protections",
             help="list protection policies",
@@ -571,6 +575,38 @@ class toolkit_parser:
             default=False,
             type=int,
             help="Only show namespaces created within the last X minutes",
+        )
+
+    def list_notifications_args(self):
+        """list notifications args and flags"""
+        self.subparserListNotifications.add_argument(
+            "-l",
+            "--limit",
+            default=None,
+            type=int,
+            help="The number of notifications to display",
+        )
+        self.subparserListNotifications.add_argument(
+            "-o",
+            "--offset",
+            default=None,
+            type=int,
+            help="The number of notifications to skip (used in conjunction with limit)",
+        )
+        self.subparserListNotifications.add_argument(
+            "-m",
+            "--minutes",
+            default=False,
+            type=int,
+            help="Only show notifications created within the last X minutes",
+        )
+        self.subparserListNotifications.add_argument(
+            "-s",
+            "--severity",
+            default=None,
+            type=str.lower,
+            choices=["informational", "warning", "critical"],
+            help="Filter by the severity type",
         )
 
     def list_protections_args(self):
@@ -1219,6 +1255,7 @@ class toolkit_parser:
         self.list_credentials_args()
         self.list_hooks_args()
         self.list_namespaces_args()
+        self.list_notifications_args()
         self.list_protections_args()
         self.list_replications_args()
         self.list_rolebindings_args()

@@ -12,6 +12,7 @@ The `list` command shows various resources known to Astra.
 * [Credentials](#credentials)
 * [Hooks](#hooks)
 * [Namespaces](#namespaces)
+* [Notifications](#notifications)
 * [Protections](#protections)
 * [Replications](#replications)
 * [Rolebindings](#rolebindings)
@@ -22,13 +23,13 @@ The `list` command shows various resources known to Astra.
 
 ```text
 $ ./toolkit.py list -h
-usage: toolkit.py list [-h] {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,protections,replications,rolebindings,scripts,snapshots,storageclasses,users} ...
+usage: toolkit.py list [-h] {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,notifications,protections,replications,rolebindings,scripts,snapshots,storageclasses,users} ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,protections,replications,rolebindings,scripts,snapshots,storageclasses,users}
+  {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,notifications,protections,replications,rolebindings,scripts,snapshots,storageclasses,users}
     apiresources        list api resources
     apps                list apps
     assets              list app assets
@@ -39,6 +40,7 @@ objectType:
     credentials         list credentials
     hooks               list hooks (executionHooks)
     namespaces          list namespaces
+    notifications       list notifications
     protections         list protection policies
     replications        list replication policies
     rolebindings        list role bindings
@@ -539,6 +541,124 @@ $ ./toolkit.py list namespaces --minutes 60
 +===========+======================================+================+================+======================================+
 | cassandra | 0c81f720-ab01-42a5-bb48-8bb3abab8817 | discovered     | cassandra      | b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d |
 +-----------+--------------------------------------+----------------+----------------+--------------------------------------+
+```
+
+## Notifications
+
+`list notifications` shows all of the notifications of an Astra Control environment.  Due to the likelyhood of a large number of results, it is recommended to make use of filters:
+
+* `--limit`/`-l`: limit the output to only show the last X number of notifications (implemented server-side)
+* `--offset`/`-o`: typically used in conjunction with `--limit`, this "skips" the first X number of notifications (implemented server-side)
+* `--minutes`/`-m`: show notifications only created within the last X minutes (this is implemented client-side, so if used without `--limit` and `--offset`, this can be an expensive operation)
+* `--severity`/`-s`: only show notifications with a matching severity of either `informational`, `warning`, or `critical` ((this is implemented client-side, so if used without `--limit` and `--offset`, this can be an expensive operation))
+
+Command usage:
+
+```text
+./toolkit.py list notifications <optional-arguments>
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py list notifications
++--------------------------------------+--------------------------------------------------------------------+---------------+----------------------+
+| notificationID                       | summary                                                            | severity      | eventTime            |
++======================================+====================================================================+===============+======================+
+| 706f1a18-c18d-4e52-87dc-00b62e413e67 | Application removed                                                | informational | 2022-11-29T15:50:33Z |
++--------------------------------------+--------------------------------------------------------------------+---------------+----------------------+
+| a86aa237-394c-48e8-95aa-940d63742daf | Application removed                                                | informational | 2022-11-29T15:50:33Z |
++--------------------------------------+--------------------------------------------------------------------+---------------+----------------------+
+| 9fa774dc-8ba7-4fff-a46b-18ed3cae17c4 | Application removed                                                | informational | 2022-11-29T15:50:33Z |
++--------------------------------------+--------------------------------------------------------------------+---------------+----------------------+
+| 75651887-99c6-4d7e-89dc-2d0af1006c3e | Application removed                                                | informational | 2022-11-29T15:28:48Z |
++--------------------------------------+--------------------------------------------------------------------+---------------+----------------------+
+... output omitted ...
++--------------------------------------+--------------------------------------------------------------------+---------------+----------------------+
+| 3e149c65-88e4-4ad6-a6b0-ca5a50d6516d | Failure in discovering cluster                                     | informational | 2022-04-28T20:39:01Z |
++--------------------------------------+--------------------------------------------------------------------+---------------+----------------------+
+| fff6d2bd-3f24-47a2-a2f1-8a13d7862ee5 | Application backup failed                                          | warning       | 2022-04-28T20:04:09Z |
++--------------------------------------+--------------------------------------------------------------------+---------------+----------------------+
+| 8d1d98f5-17df-47e8-baf1-7370b8ae2cfa | Pre-snapshot execution hook 'NetApp-MariaDB-pre-snapshot' failed   | warning       | 2022-04-28T20:01:47Z |
++--------------------------------------+--------------------------------------------------------------------+---------------+----------------------+
+pre-filtered count: 648
+```
+
+```text
+$ ./toolkit.py list notifications -l 5
++--------------------------------------+---------------------------------+---------------+----------------------+
+| notificationID                       | summary                         | severity      | eventTime            |
++======================================+=================================+===============+======================+
+| 706f1a18-c18d-4e52-87dc-00b62e413e67 | Application removed             | informational | 2022-11-29T15:50:33Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| a86aa237-394c-48e8-95aa-940d63742daf | Application removed             | informational | 2022-11-29T15:50:33Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| 9fa774dc-8ba7-4fff-a46b-18ed3cae17c4 | Application removed             | informational | 2022-11-29T15:50:33Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| 75651887-99c6-4d7e-89dc-2d0af1006c3e | Application removed             | informational | 2022-11-29T15:28:48Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| 28251b11-503d-4070-a754-6fd7f606df81 | Application not cloned/restored | warning       | 2022-11-29T15:05:33Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+pre-filtered count: 648
+```
+
+```text
+$ ./toolkit.py list notifications -l 5 -o 5
++--------------------------------------+---------------------------------+---------------+----------------------+
+| notificationID                       | summary                         | severity      | eventTime            |
++======================================+=================================+===============+======================+
+| bf633249-f3de-4bfa-a98f-f42c2f0c45b5 | Clone wordpress-backup failed   | warning       | 2022-11-29T15:05:33Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| 580243fa-e3fe-41be-b69e-836f8ed15b46 | Application removed             | informational | 2022-11-29T14:50:03Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| 0715a53d-5a56-41cf-8f7b-5bfb60910ebb | Application not cloned/restored | warning       | 2022-11-29T03:55:05Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| 76d74de3-4a7d-4197-bbdd-687378b32455 | Clone wordpress-clone failed    | warning       | 2022-11-29T03:55:05Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| 3a96e0d5-bda9-41de-bd6f-0f48fc762441 | Schedule created                | informational | 2022-11-29T01:57:59Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+pre-filtered count: 648
+```
+
+```text
+$ ./toolkit.py list notifications -m 300
++--------------------------------------+---------------------------------+---------------+----------------------+
+| notificationID                       | summary                         | severity      | eventTime            |
++======================================+=================================+===============+======================+
+| 706f1a18-c18d-4e52-87dc-00b62e413e67 | Application removed             | informational | 2022-11-29T15:50:33Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| a86aa237-394c-48e8-95aa-940d63742daf | Application removed             | informational | 2022-11-29T15:50:33Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| 9fa774dc-8ba7-4fff-a46b-18ed3cae17c4 | Application removed             | informational | 2022-11-29T15:50:33Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| 75651887-99c6-4d7e-89dc-2d0af1006c3e | Application removed             | informational | 2022-11-29T15:28:48Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| 28251b11-503d-4070-a754-6fd7f606df81 | Application not cloned/restored | warning       | 2022-11-29T15:05:33Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| bf633249-f3de-4bfa-a98f-f42c2f0c45b5 | Clone wordpress-backup failed   | warning       | 2022-11-29T15:05:33Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+| 580243fa-e3fe-41be-b69e-836f8ed15b46 | Application removed             | informational | 2022-11-29T14:50:03Z |
++--------------------------------------+---------------------------------+---------------+----------------------+
+pre-filtered count: 648
+```
+
+```text
+$ ./toolkit.py list notifications -s critical
++--------------------------------------+--------------------+------------+----------------------+
+| notificationID                       | summary            | severity   | eventTime            |
++======================================+====================+============+======================+
+| 07a9c65d-ae1c-42fb-ac19-78dc3598b2e1 | Cluster removed    | critical   | 2022-11-10T09:38:11Z |
++--------------------------------------+--------------------+------------+----------------------+
+| aa72bd6f-f676-4319-81a0-624fd57e4d8c | Cluster removed    | critical   | 2022-11-06T21:12:10Z |
++--------------------------------------+--------------------+------------+----------------------+
+| bb51eed0-c33a-45f6-b01a-249d4fbda733 | Cluster removed    | critical   | 2022-11-02T17:10:00Z |
++--------------------------------------+--------------------+------------+----------------------+
+| cda82c7e-e210-4495-8d34-729906dce0f6 | Cluster removed    | critical   | 2022-10-10T16:27:32Z |
++--------------------------------------+--------------------+------------+----------------------+
+| a09ed194-5fc7-404a-9321-c412ff24e66d | Cluster removed    | critical   | 2022-09-22T18:47:50Z |
++--------------------------------------+--------------------+------------+----------------------+
+| b610187f-11ab-4307-a401-0e6593b5340c | Cluster removed    | critical   | 2022-06-22T14:37:01Z |
++--------------------------------------+--------------------+------------+----------------------+
 ```
 
 ## Protections

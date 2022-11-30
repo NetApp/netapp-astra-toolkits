@@ -874,6 +874,20 @@ def main():
                 sys.exit(1)
             else:
                 sys.exit(0)
+        elif args.objectType == "notifications":
+            rc = astraSDK.notifications.getNotifications(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(
+                limit=args.limit,
+                skip=args.offset,
+                minuteFilter=args.minutes,
+                severityFilter=args.severity,
+            )
+            if rc is False:
+                print("astraSDK.namespaces.getNotifications() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
         elif args.objectType == "rolebindings":
             rc = astraSDK.rolebindings.getRolebindings(
                 quiet=args.quiet, verbose=args.verbose, output=args.output

@@ -9,6 +9,7 @@ from . import common
 from . import entitlements
 from . import hooks
 from . import namespaces
+from . import notifications
 from . import protections
 from . import replications
 from . import rolebindings
