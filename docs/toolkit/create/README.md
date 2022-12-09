@@ -37,10 +37,18 @@ objectType:
 The `create backup` command allows you to take an ad-hoc backup.  The command usage is:
 
 ```text
-./toolkit.py create backup <optionalBackgroundArg> <optionalPollTimer> <appID> <backupName>
+./toolkit.py create backup <optionalBackgroundArg> <optionalPollTimer> <appID> <backupName> \
+    <optionalBucketID> <optionalSnapshotID>
 ```
 
-When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the backup operation every 5 seconds (which can be overridden by the `--pollTimer`/`-t` argument), and reports back once complete.
+Additional information on each argument is as follows:
+
+* `-b`/`--background: when specified, the terminal prompt is returned after initiating the backup.  If **not** specified (default behavior), the command polls for the status of the backup operation
+* `-t`/`--pollTimer`: the frequency to check the status of the backup operation (default is 5 seconds)
+* `-u`/`--bucketID`: the [bucketID](../list/README.md#buckets) to store the backup, if not specified, the default bucket for the cloud is used
+* `-s`/`--snapshotID`: the [snapshotID](../list/README.md#snapshots) to create the backup from, if not specified, a new snapshot is created
+
+To create a foreground backup based on a new snapshot and store it in the default bucket:
 
 ```text
 $ ./toolkit.py create backup a643b5dc-bfa0-4624-8bdd-5ad5325f20fd 20220523-cli-backup1
@@ -49,7 +57,7 @@ Waiting for backup to complete..................................................
 ..................................................................complete!
 ```
 
-When the optional `--background`/`-b` argument **is** specified, the command simply initiates the backup task, and leaves it to the user to validate the backup completion.
+To create a background backup based on a new snapshot and store it in the default bucket:
 
 ```text
 $ ./toolkit.py create backup -b a643b5dc-bfa0-4624-8bdd-5ad5325f20fd 20220523-cli-backup2
@@ -65,6 +73,25 @@ $ ./toolkit.py list backups
 +--------------------------------------+----------------------+--------------------------------------+-------------+
 | a643b5dc-bfa0-4624-8bdd-5ad5325f20fd | 20220523-cli-backup2 | c06ec1e4-ae3d-4a32-bea0-771505f88203 | ready       |
 +--------------------------------------+----------------------+--------------------------------------+-------------+
+```
+
+To create a foreground backup from an existing snapshot while polling on the status ever 60 seconds:
+
+```text
+$ ./toolkit.py create backup 92020880-a2e1-4ae2-aed0-40bd74c3d0bf from-snap \
+    -s 0a71b847-5677-4d66-ae7d-5e34117910b5 \
+    -t 60
+Starting backup of 92020880-a2e1-4ae2-aed0-40bd74c3d0bf
+Waiting for backup to complete...complete!
+```
+
+To create a background backup based on a new snapshot and store it in a non-default bucket:
+
+```text
+$ ./toolkit.py create backup -b 92020880-a2e1-4ae2-aed0-40bd74c3d0bf new-bucket-backup \
+    --bucketID 30132ef3-d1a1-4385-8e10-43b5b7740299
+Starting backup of 92020880-a2e1-4ae2-aed0-40bd74c3d0bf
+Background backup flag selected, run 'list backups' to get status
 ```
 
 ## Cluster

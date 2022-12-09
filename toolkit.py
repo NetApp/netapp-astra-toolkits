@@ -541,6 +541,17 @@ def main():
                 apps = astraSDK.apps.getApps().main()
                 for app in apps["items"]:
                     appList.append(app["id"])
+                if sys.argv[verbPosition + 1] == "backup":
+                    bucketDict = astraSDK.buckets.getBuckets(quiet=True).main()
+                    for bucket in bucketDict["items"]:
+                        bucketList.append(bucket["id"])
+                    # Generate snapshotList if an appID was provided
+                    if sys.argv[verbPosition + 2] in appList:
+                        snapshotDict = astraSDK.snapshots.getSnaps(quiet=True).main(
+                            appFilter=sys.argv[verbPosition + 2]
+                        )
+                        for snapshot in snapshotDict["items"]:
+                            snapshotList.append(snapshot["id"])
                 if sys.argv[verbPosition + 1] == "hook":
                     for script in astraSDK.scripts.getScripts().main()["items"]:
                         scriptList.append(script["id"])

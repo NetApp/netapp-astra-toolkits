@@ -671,7 +671,7 @@ class toolkit_parser:
             help="Filter users by this value to minimize output (partial match)",
         )
 
-    def create_backup_args(self, appList):
+    def create_backup_args(self, appList, bucketList, snapshotList):
         """create backups args and flags"""
         self.subparserCreateBackup.add_argument(
             "appID",
@@ -681,6 +681,20 @@ class toolkit_parser:
         self.subparserCreateBackup.add_argument(
             "name",
             help="Name of backup to be taken",
+        )
+        self.subparserCreateBackup.add_argument(
+            "-u",
+            "--bucketID",
+            default=None,
+            choices=(None if self.plaidMode else bucketList),
+            help="Optionally specify which bucket to store the backup",
+        )
+        self.subparserCreateBackup.add_argument(
+            "-s",
+            "--snapshotID",
+            default=None,
+            choices=(None if self.plaidMode else snapshotList),
+            help="Optionally specify an existing snapshot as the source of the backup",
         )
         self.subparserCreateBackup.add_argument(
             "-b",
@@ -1264,7 +1278,7 @@ class toolkit_parser:
         self.list_storageclasses_args()
         self.list_users_args()
 
-        self.create_backup_args(appList)
+        self.create_backup_args(appList, bucketList, snapshotList)
         self.create_cluster_args(cloudList)
         self.create_hook_args(appList, scriptList)
         self.create_protection_args(appList)

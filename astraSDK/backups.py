@@ -127,9 +127,9 @@ class getBackups(SDKCommon):
 
 
 class takeBackup(SDKCommon):
-    """Take a backup of an app.  An AppID and backupName is provided and
-    either the result JSON is returned or the backupID of the newly created
-    backup is returned."""
+    """Take a backup of an app.  An AppID and backupName are required fields,
+    a bucketID and snpshotID are optional fields, and either the result JSON is
+    returned or the backupID of the newly created backup is returned."""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -140,7 +140,7 @@ class takeBackup(SDKCommon):
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
-    def main(self, appID, backupName):
+    def main(self, appID, backupName, bucketID=None, snapshotID=None):
 
         endpoint = f"k8s/v1/apps/{appID}/appBackups"
         url = self.base + endpoint
@@ -150,6 +150,10 @@ class takeBackup(SDKCommon):
             "version": "1.1",
             "name": backupName,
         }
+        if bucketID:
+            data["bucketID"] = bucketID
+        if snapshotID:
+            data["snapshotID"] = snapshotID
 
         if self.verbose:
             print(f"Taking backup for {appID}")
