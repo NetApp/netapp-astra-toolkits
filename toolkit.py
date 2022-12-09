@@ -546,7 +546,7 @@ def main():
                     for bucket in bucketDict["items"]:
                         bucketList.append(bucket["id"])
                     # Generate snapshotList if an appID was provided
-                    if sys.argv[verbPosition + 2] in appList:
+                    if len(sys.argv) - verbPosition > 2 and sys.argv[verbPosition + 2] in appList:
                         snapshotDict = astraSDK.snapshots.getSnaps(quiet=True).main(
                             appFilter=sys.argv[verbPosition + 2]
                         )
