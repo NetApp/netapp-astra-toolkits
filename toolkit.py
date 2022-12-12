@@ -75,6 +75,7 @@ class ToolKit:
             if pgStorageClass:
                 setStr += f" --set postgresql.global.storageClass={pgStorageClass}"
                 setStr += f" --set gitlab.gitaly.persistence.storageClass={pgStorageClass}"
+            tkHelpers.run(f"kubectl apply -f gitlab-psql-secret.yaml")
 
         tkHelpers.run(f"helm install {appName} {chart}{setStr}{valueStr}")
         print("Waiting for Astra to discover the namespace.", end="")
@@ -169,6 +170,9 @@ class ToolKit:
         background,
         pollTimer,
         verbose,
+        source_DBaaS_name=None,
+        dest_DBaaS_name=None,
+        DNS_zone_name=None,
     ):
         """Create a clone."""
         # Check to see if cluster-level resources are needed to be manually created
@@ -322,8 +326,100 @@ class ToolKit:
         )
         if cloneRet:
             print("Submitting clone succeeded.")
+
+            # Handle DBaaS failover
+            if dest_DBaaS_name:
+                # Promote replica database
+                promoteOp = json.loads(
+                    tkHelpers.run(
+                        f"gcloud sql instances promote-replica {dest_DBaaS_name} --async"
+                        + " --quiet --format=json",
+                        captureOutput=True,
+                    ).decode()
+                )
+                # Wait for promoteOp to complete
+                print("Database promote-replica operation in progress...", end="")
+                sys.stdout.flush()
+                while True:
+                    time.sleep(pollTimer)
+                    operationsList = json.loads(
+                        tkHelpers.run(
+                            f"gcloud sql operations list --instance={dest_DBaaS_name} "
+                            + "--format=json",
+                            captureOutput=True,
+                        ).decode()
+                    )
+                    promoteStatus = None
+                    for operation in operationsList:
+                        if operation["name"] == promoteOp["name"]:
+                            promoteStatus = operation["status"]
+                    if promoteStatus == "DONE":
+                        print("Complete!")
+                        sys.stdout.flush()
+                        break
+                    elif (
+                        promoteStatus == "PENDING"
+                        or promoteStatus == "RUNNING"
+                        or promoteStatus == None
+                    ):
+                        print(".", end="")
+                        sys.stdout.flush()
+                    else:
+                        print(f"Error: promote-replica operation in {promoteStatus} state")
+                        return False
+                # Gather instance info for DNS update
+                instancesList = json.loads(
+                    tkHelpers.run("gcloud sql instances list --format=json", captureOutput=True).decode()
+                )
+                for instance in instancesList:
+                    if instance["name"] == dest_DBaaS_name:
+                        for ip in instance["ipAddresses"]:
+                            if ip["type"] == "PRIVATE":
+                                destDBIP = ip["ipAddress"]
+                # Gather record info for DNS update
+                recordsList = json.loads(
+                    tkHelpers.run(
+                        f"gcloud dns record-sets list --zone={DNS_zone_name} --format=json",
+                        captureOutput=True,
+                    ).decode()
+                )
+                for record in recordsList:
+                    if record["type"] == "A":
+                        domainName = record["name"]
+                # Update DNS record
+                tkHelpers.run(
+                    f"gcloud dns record-sets update {domainName} --type=A --zone={DNS_zone_name} "
+                    + f"--rrdatas={destDBIP}"
+                )
+                # Restore replica DB to backup if clone is based on a backupID
+                if backupID is not None and source_DBaaS_name is not None:
+                    backups = astraSDK.backups.getBackups().main()
+                    dbaasBackups = json.loads(
+                        tkHelpers.run(
+                            f"gcloud sql backups list --instance={source_DBaaS_name} --format=json",
+                            captureOutput=True,
+                        ).decode()
+                    )
+                    for backup in backups["items"]:
+                        for dbaasBackup in dbaasBackups:
+                            if (
+                                dbaasBackup.get("description")
+                                and backup["name"] == dbaasBackup["description"]
+                                and backup["id"] == backupID
+                            ):
+                                tkHelpers.run(
+                                    f"gcloud sql backups restore {dbaasBackup['id']} "
+                                    + f"--restore-instance={dest_DBaaS_name} "
+                                    + f"--backup-instance={source_DBaaS_name} --async --quiet"
+                                )
+
             if background:
                 print(f"Background clone flag selected, run 'list apps' to get status.")
+                if dest_DBaaS_name is not None and backupID is not None:
+                    print(
+                        f"Run 'gcloud sql instances list --filter=\"name:{dest_DBaaS_name}\"'"
+                        + " to get DBaaS status"
+                    )
                 return True
             print("Waiting for clone to become available.", end="")
             sys.stdout.flush()
@@ -341,10 +437,47 @@ class ToolKit:
                             print(".", end="")
                             sys.stdout.flush()
                             time.sleep(pollTimer)
+            if backupID is not None and source_DBaaS_name is not None:
+                print("DBaaS restore job in progress...", end="")
+                sys.stdout.flush()
+                while True:
+                    time.sleep(pollTimer)
+                    print(".", end="")
+                    sys.stdout.flush()
+                    time.sleep(pollTimer)
+                    dbs = json.loads(
+                        tkHelpers.run(
+                            "gcloud sql instances list --format=json", captureOutput=True
+                        ).decode()
+                    )
+                    state = None
+                    for db in dbs:
+                        if db["name"] == dest_DBaaS_name:
+                            state = db["state"]
+                    if state == "MAINTENANCE":
+                        print(".", end="")
+                        sys.stdout.flush()
+                    elif state == "RUNNABLE":
+                        print("Success!")
+                        break
+                    else:
+                        print("Error: DBaaS in '{state}' state!")
+                        sys.exit(2)
+
         else:
             print("Submitting clone failed.")
 
-    def doProtectionTask(self, protectionType, appID, name, background, pollTimer):
+    def doProtectionTask(
+        self,
+        protectionType,
+        appID,
+        name,
+        background,
+        pollTimer,
+        dbaas=None,
+        redisName=None,
+        redisRegion=None,
+    ):
         """Take a snapshot/backup of appID giving it name <name>
         Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
         if protectionType == "backup":
@@ -354,12 +487,95 @@ class ToolKit:
         if protectionID == False:
             sys.exit(1)
 
+        # Initiate GCP Memorystore Redis export
+        if redisName:
+            bucket = astraSDK.buckets.getBuckets().main(provider="gcp")["items"][0]
+            exportOp = json.loads(
+                tkHelpers.run(
+                    f"gcloud redis instances export gs://{bucket['name']}/{redisName}/{name}.rdb"
+                    + f" {redisName} --region={redisRegion} --async --format=json",
+                    captureOutput=True,
+                ).decode()
+            )
+            print(f"Redis {redisName} export successfully initiated")
+        # Initiate GCP Cloud SQL Backup
+        if dbaas:
+            tkHelpers.run(
+                f"gcloud sql backups create --async --instance={dbaas} --description={name}"
+            )
+            print(f"DBaaS {dbaas} backup successfully initiated")
+
         print(f"Starting {protectionType} of {appID}")
         if background:
             print(
                 f"Background {protectionType} flag selected, run 'list {protectionType}s' to get status"
             )
+            if redisName:
+                print(
+                    f"Run 'gcloud redis operations list --region={redisRegion} --filter=\"name:"
+                    + f"{exportOp['name']}\"' to get Redis export status"
+                )
+            if dbaas:
+                print(
+                    f"Run 'gcloud sql backups list --instance={dbaas} "
+                    + f'--filter="description:{name}"\' to get DBaaS backup status'
+                )
             return True
+
+        # Verify GCP Cloud SQL Backup
+        if dbaas:
+            print(f"Waiting for DBaaS {dbaas} backup to complete.", end="")
+            sys.stdout.flush()
+            while True:
+                breakLoop = False
+                dbaasBackups = json.loads(
+                    tkHelpers.run(
+                        f"gcloud sql backups list --instance={dbaas} --format=json",
+                        captureOutput=True,
+                    ).decode()
+                )
+                for backup in dbaasBackups:
+                    if backup["description"] == name:
+                        if backup["status"] == "SUCCESSFUL":
+                            breakLoop = True
+                            print("complete!")
+                            sys.stdout.flush()
+                        elif backup["status"] == "RUNNING":
+                            time.sleep(5)
+                            print(".", end="")
+                            sys.stdout.flush()
+                        else:
+                            print(f"DBaaS {dbaas} backup failed")
+                            return False
+                if breakLoop:
+                    break
+        # Verify GCP Memorystore Redis Export
+        if redisName:
+            print(f"Waiting for Redis {redisName} export to complete..", end="")
+            sys.stdout.flush()
+            while True:
+                breakLoop = False
+                redisExports = json.loads(
+                    tkHelpers.run(
+                        f"gcloud redis operations list --region={redisRegion} --format=json",
+                        captureOutput=True,
+                    ).decode()
+                )
+                for redisExport in redisExports:
+                    if redisExport["name"] == exportOp["name"]:
+                        if redisExport["done"] is True:
+                            breakLoop = True
+                            print("complete!")
+                            sys.stdout.flush()
+                        elif redisExport["done"] is False:
+                            time.sleep(5)
+                            print(".", end="")
+                            sys.stdout.flush()
+                        else:
+                            print(f"Redis {redisName} export failed")
+                            return False
+                if breakLoop:
+                    break
 
         print(f"Waiting for {protectionType} to complete.", end="")
         sys.stdout.flush()
@@ -958,12 +1174,22 @@ def main():
 
     elif args.subcommand == "create":
         if args.objectType == "backup":
+            if (args.redis_name and not args.redis_region) or (
+                not args.redis_name and args.redis_region
+            ):
+                print(
+                    "Error: You must specify both (or neither) of --redis-name and --redis-region"
+                )
+                sys.exit(1)
             rc = tk.doProtectionTask(
                 args.objectType,
                 args.appID,
                 tkHelpers.isRFC1123(args.name),
                 args.background,
                 args.pollTimer,
+                dbaas=args.DBaaS_name,
+                redisName=args.redis_name,
+                redisRegion=args.redis_region,
             )
             if rc is False:
                 print("doProtectionTask() failed")
@@ -1351,7 +1577,38 @@ def main():
                 args.appID, args.backupID
             )
             if rc:
+                if plaidMode and (args.DBaaS_name or args.redis_name):
+                    backups = astraSDK.backups.getBackups().main()
                 print(f"Backup {args.backupID} destroyed")
+                if args.DBaaS_name:
+                    dbaasBackups = json.loads(
+                        tkHelpers.run(
+                            f"gcloud sql backups list --instance={args.DBaaS_name} --format=json",
+                            captureOutput=True,
+                        ).decode()
+                    )
+                    for backup in backups["items"]:
+                        for dbaasBackup in dbaasBackups:
+                            if (
+                                backup["id"] == args.backupID
+                                and backup["name"] == dbaasBackup["description"]
+                            ):
+                                tkHelpers.run(
+                                    f"gcloud sql backups delete {dbaasBackup['id']} "
+                                    + f"--quiet --async --instance={args.DBaaS_name}"
+                                )
+                                print(
+                                    f"DBaaS {args.DBaaS_name} backup destruction "
+                                    + "successfully initiated"
+                                )
+                if args.redis_name:
+                    bucket = astraSDK.buckets.getBuckets().main(provider="gcp")["items"][0]
+                    for backup in backups["items"]:
+                        if backup["id"] == args.backupID:
+                            tkHelpers.run(
+                                f"gcloud storage rm gs://{bucket['name']}/{args.redis_name}/"
+                                + f"{backup['name']}.rdb --quiet"
+                            )
             else:
                 print(f"Failed destroying backup: {args.backupID}")
         elif args.objectType == "credential":
@@ -1517,14 +1774,89 @@ def main():
                 sys.exit(1)
 
     elif args.subcommand == "restore":
+        if (args.redis_name and not args.redis_region) or (
+            not args.redis_name and args.redis_region
+        ):
+            print("Error: You must specify both (or neither) of --redis-name and --redis-region")
+            sys.exit(1)
         rc = astraSDK.apps.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
             args.appID, backupID=args.backupID, snapshotID=args.snapshotID
         )
         if rc:
+            if plaidMode and (args.DBaaS_name or args.redis_name):
+                backups = astraSDK.backups.getBackups().main()
+            if args.DBaaS_name:
+                dbaasBackups = json.loads(
+                    tkHelpers.run(
+                        f"gcloud sql backups list --instance={args.DBaaS_name} --format=json",
+                        captureOutput=True,
+                    ).decode()
+                )
+                for backup in backups["items"]:
+                    for dbaasBackup in dbaasBackups:
+                        if (
+                            dbaasBackup.get("description")
+                            and backup["name"] == dbaasBackup["description"]
+                            and backup["id"] == args.backupID
+                        ):
+                            tkHelpers.run(
+                                f"gcloud sql backups restore {dbaasBackup['id']} "
+                                + f"--quiet --async --restore-instance={args.DBaaS_name}"
+                            )
+                            print(f"DBaaS {args.DBaaS_name} restore successfully initiated")
+            if args.redis_name:
+                bucket = astraSDK.buckets.getBuckets().main(provider="gcp")["items"][0]
+                for backup in backups["items"]:
+                    if backup["id"] == args.backupID:
+                        importOp = json.loads(
+                            tkHelpers.run(
+                                f"gcloud redis instances import gs://{bucket['name']}/"
+                                + f"{args.redis_name}/{backup['name']}.rdb {args.redis_name} "
+                                + f"--region={args.redis_region} --async --format=json",
+                                captureOutput=True,
+                            ).decode()
+                        )
+                        print(f"Redis {args.redis_name} restore successfully initiated")
             if args.background:
                 print("Restore job submitted successfully")
                 print("Background restore flag selected, run 'list apps' to get status")
+                if args.DBaaS_name:
+                    print(
+                        f"Run 'gcloud sql instances list --filter=\"name:{args.DBaaS_name}\"'"
+                        + " to get DBaaS status"
+                    )
+                if args.redis_name:
+                    print(
+                        f"Run 'gcloud redis operations list --region={args.redis_region} --filter="
+                        + f"\"name:{importOp['name']}\"' to get Redis import status"
+                    )
                 sys.exit(0)
+            if args.redis_name:
+                print("Redis import job in progress...", end="")
+                sys.stdout.flush()
+                while True:
+                    redisOps = json.loads(
+                        tkHelpers.run(
+                            f"gcloud redis operations list --region={args.redis_region}"
+                            + " --format=json",
+                            captureOutput=True,
+                        ).decode()
+                    )
+                    rImport = None
+                    for redisOp in redisOps:
+                        if redisOp["name"] == importOp["name"]:
+                            rImport = redisOp
+                    if rImport["done"] is True:
+                        print("Complete!")
+                        sys.stdout.flush()
+                        break
+                    elif rImport["done"] is False:
+                        time.sleep(5)
+                        print(".", end="")
+                        sys.stdout.flush()
+                    else:
+                        print(f"Error: Redis {args.redis_name} in {rImport['done']} state")
+                        return False
             print("Restore job in progress...", end="")
             sys.stdout.flush()
             while True:
@@ -1543,6 +1875,29 @@ def main():
                     print("Failed!")
                     sys.exit(2)
                 time.sleep(args.pollTimer)
+            if args.DBaaS_name:
+                print("DBaaS restore job in progress...", end="")
+                sys.stdout.flush()
+                while True:
+                    dbs = json.loads(
+                        tkHelpers.run(
+                            "gcloud sql instances list --format=json", captureOutput=True
+                        ).decode()
+                    )
+                    state = None
+                    for db in dbs:
+                        if db["name"] == args.DBaaS_name:
+                            state = db["state"]
+                    if state == "MAINTENANCE":
+                        print(".", end="")
+                        sys.stdout.flush()
+                    elif state == "RUNNABLE":
+                        print("Success!")
+                        break
+                    else:
+                        print("Error: DBaaS in '{state}' state!")
+                        sys.exit(2)
+                    time.sleep(args.pollTimer)
         else:
             print("Submitting restore job failed.")
             sys.exit(3)
@@ -1585,6 +1940,24 @@ def main():
                 + "your inputs and try again."
             )
             sys.exit(1)
+        if args.source_DBaaS_name or args.dest_DBaaS_name or args.DNS_zone_name:
+            if args.backupID and (
+                not args.source_DBaaS_name or not args.dest_DBaaS_name or not args.DNS_zone_name
+            ):
+                print(
+                    "Error: with --backupID, either none or all of --source-DBaaS-name, "
+                    + "--dest-DBaaS-name, and --DNS-zone-name must be specified"
+                )
+                sys.exit(1)
+            elif args.sourceAppID and (not args.dest_DBaaS_name or not args.DNS_zone_name):
+                print(
+                    "Error: with --sourceAppID, either none or both of --dest-DBaaS-name "
+                    + "and --DNS-zone-name must be specified"
+                )
+                sys.exit(1)
+            elif args.snapshotID:
+                print("Error: --snapshotID based clones are not currently supported with DBaaS")
+                sys.exit(1)
 
         tk.doClone(
             tkHelpers.isRFC1123(args.cloneAppName),
@@ -1597,6 +1970,9 @@ def main():
             background=args.background,
             pollTimer=args.pollTimer,
             verbose=args.verbose,
+            source_DBaaS_name=args.source_DBaaS_name,
+            dest_DBaaS_name=args.dest_DBaaS_name,
+            DNS_zone_name=args.DNS_zone_name,
         )
 
     elif args.subcommand == "update":

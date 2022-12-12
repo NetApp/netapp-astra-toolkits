@@ -70,3 +70,7 @@ For more information on the positional arguments, see the following pages:
 For more information on the optional arguments, please see the following page:
 
 * [Optional Global Arguments](toolkit/optionalargs/README.md).
+
+For more information on the database as a service integration, please see:
+
+* [DBaaS](toolkit/DBaaS/README.md)

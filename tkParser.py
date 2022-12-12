@@ -407,6 +407,22 @@ class toolkit_parser:
             default=5,
             help="The frequency (seconds) to poll the operation status (default: %(default)s)",
         )
+        dbGroup = self.parserClone.add_argument_group()
+        dbGroup.add_argument(
+            "--source-DBaaS-name",
+            default=None,
+            help="Optionally provide GCP CloudSQL source instance name",
+        )
+        dbGroup.add_argument(
+            "--dest-DBaaS-name",
+            default=None,
+            help="Optionally provide GCP CloudSQL destination read replica for promotion",
+        )
+        dbGroup.add_argument(
+            "--DNS-zone-name",
+            default=None,
+            help="Optionally provide the GCP Cloud DNS Zone Name for database IP update",
+        )
 
     def restore_args(self, appList, backupList, snapshotList):
         """restore args and flags"""
@@ -443,6 +459,25 @@ class toolkit_parser:
             type=int,
             default=5,
             help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+        )
+        self.parserRestore.add_argument(
+            "--DBaaS-name",
+            default=None,
+            help="Optionally provide GCP CloudSQL instance name to also restore",
+        )
+        redisGroup = self.parserRestore.add_argument_group(
+            "redisGroup",
+            "Optionally specify both the redis instance name and region for Redis restore",
+        )
+        redisGroup.add_argument(
+            "--redis-name",
+            default=None,
+            help="GCP Memorystore instance name for Redis restore",
+        )
+        redisGroup.add_argument(
+            "--redis-region",
+            default=None,
+            help="GCP Memorystore region name for Redis restore",
         )
 
     def list_apiresources_args(self):
@@ -709,6 +744,25 @@ class toolkit_parser:
             type=int,
             default=5,
             help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+        )
+        self.subparserCreateBackup.add_argument(
+            "--DBaaS-name",
+            default=None,
+            help="Optionally provide GCP CloudSQL instance name for a DBaaS backup",
+        )
+        redisGroup = self.subparserCreateBackup.add_argument_group(
+            "redisGroup",
+            "Optionally specify both the redis instance name and region for Redis export",
+        )
+        redisGroup.add_argument(
+            "--redis-name",
+            default=None,
+            help="GCP Memorystore instance name for Redis export",
+        )
+        redisGroup.add_argument(
+            "--redis-region",
+            default=None,
+            help="GCP Memorystore region name for Redis export",
         )
 
     def create_cluster_args(self, cloudList):
@@ -1095,6 +1149,16 @@ class toolkit_parser:
             "backupID",
             choices=(None if self.plaidMode else backupList),
             help="backupID to destroy",
+        )
+        self.subparserDestroyBackup.add_argument(
+            "--DBaaS-name",
+            default=None,
+            help="Optionally provide GCP CloudSQL instance name to also destroy DBaaS backup",
+        )
+        self.subparserDestroyBackup.add_argument(
+            "--redis-name",
+            default=None,
+            help="Optionally provide GCP Memorystore instance name to also destroy Redis export",
         )
 
     def destroy_credential_args(self, credentialList):
