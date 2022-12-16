@@ -19,7 +19,7 @@
 GCP_REGION = "us-east4"  # Region to deploy the resources in
 GCP_ZONE = "us-east4-b"  # Zone to deploy the resources in
 GKE_NETWORK_NAME = "gke-prod-network"  # GKE cluster network name, needed for SQL peering
-GITLAB_DOMAIN = "astrademo.net"  # The gitlab domain name
+GITLAB_DOMAIN = "astrademo.net"  # The gitlab domain name, DNS *must* be managed by GCP
 EMAIL = "mhaigh@netapp.com"  # Email used for certmanager
 APP_NAME = "gitlab"  # The namespace name, helm deployment name, and astra app name
 
@@ -129,6 +129,24 @@ def destroyGcpResources():
                 f"gcloud storage rm --recursive gs://{bucket}/",
                 ignoreErrors=True,
             )
+    # tkHelpers.run(
+    # f"gcloud services vpc-peerings delete --network={GKE_NETWORK_NAME} "
+    # "--service=servicenetworking.googleapis.com",
+    # ignoreErrors=True,
+    # )
+    tkHelpers.run(
+        f"gcloud -q compute addresses delete google-managed-services-{GKE_NETWORK_NAME} --global",
+        ignoreErrors=True,
+    )
+    tkHelpers.run(
+        f"gcloud dns record-sets delete *.{GITLAB_DOMAIN}. --zone={GITLAB_DOMAIN.replace('.', '-')}"
+        " --type=A",
+        ignoreErrors=True,
+    )
+    tkHelpers.run(
+        f"gcloud -q compute addresses delete {APP_NAME}-external-ip --region={GCP_REGION}",
+        ignoreErrors=True,
+    )
 
 
 def destroyAstraResources():
