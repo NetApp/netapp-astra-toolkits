@@ -28,6 +28,7 @@ try:
     # If these imports succeed, it's due to the actoolkit package being installed
     import astraSDK
     import tkHelpers
+    import toolkit
 except ModuleNotFoundError:
     # If actoolkit isn't installed, then we're working within the git repo
     # Add the repo root dir to sys.path and set it as __package__
@@ -36,6 +37,7 @@ except ModuleNotFoundError:
     __package__ = "netapp-astra-toolkits"
     import astraSDK
     import tkHelpers
+    import toolkit
 
 
 def getGcpProject():
@@ -182,7 +184,7 @@ def createCloudSQL():
 def createRedis():
     """Creates a Redis Instance"""
     tkHelpers.run(
-        f"gcloud redis instances create {REDIS_INSTANCE_NAME} --region={GCP_REGION} "
+        f"gcloud -q redis instances create {REDIS_INSTANCE_NAME} --region={GCP_REGION} "
         f"--zone={GCP_ZONE} --size=4 --tier=standard --persistence-mode=rdb "
         f"--rdb-snapshot-period=1h --connect-mode=private-service-access --enable-auth "
         f"--network=projects/{GCP_PROJECT}/global/networks/{GCP_NETWORK_NAME}"
@@ -218,7 +220,6 @@ def createBuckets():
         "pseudonymizer-storage",
         "tfstate-storage",
         "uploads-storage",
-        "",
     ]
     for bucket in bucketNames:
         tkHelpers.run(f"gcloud storage buckets create gs://{GCP_PROJECT}-{APP_NAME}-{bucket}")
@@ -226,6 +227,7 @@ def createBuckets():
 
 def dictToYamlOnDisk(filename, d):
     """Takes in a dict 'd', converts to yaml, writes filename.yaml to disk"""
+    print(f"Creating {filename}")
     with open(filename, "w") as f:
         f.write(yaml.dump(d))
 
@@ -301,39 +303,39 @@ def createValuesYaml():
             "global": {
                 "appConfig": {
                     "artifacts": {
-                        "bucket": "{GCP_PROJECT}-{APP_NAME}-artifacts-storage",
+                        "bucket": f"{GCP_PROJECT}-{APP_NAME}-artifacts-storage",
                         "connection": {"secret": "object-storage", "key": "connection"},
                     },
                     "backups": {
-                        "bucket": "{GCP_PROJECT}-{APP_NAME}-backup-storage",
-                        "tmpBucket": "{GCP_PROJECT}-{APP_NAME}-tmp-storage",
+                        "bucket": f"{GCP_PROJECT}-{APP_NAME}-backup-storage",
+                        "tmpBucket": f"{GCP_PROJECT}-{APP_NAME}-tmp-storage",
                     },
                     "dependencyProxy": {
-                        "bucket": "{GCP_PROJECT}-{APP_NAME}-dependencyproxy-storage",
+                        "bucket": f"{GCP_PROJECT}-{APP_NAME}-dependencyproxy-storage",
                         "connection": {"secret": "object-storage", "key": "connection"},
                     },
                     "externalDiffs": {
-                        "bucket": "{GCP_PROJECT}-{APP_NAME}-externaldiffs-storage",
+                        "bucket": f"{GCP_PROJECT}-{APP_NAME}-externaldiffs-storage",
                         "connection": {"secret": "object-storage", "key": "connection"},
                     },
                     "lfs": {
-                        "bucket": "{GCP_PROJECT}-{APP_NAME}-lfs-storage",
+                        "bucket": f"{GCP_PROJECT}-{APP_NAME}-lfs-storage",
                         "connection": {"secret": "object-storage", "key": "connection"},
                     },
                     "packages": {
-                        "bucket": "{GCP_PROJECT}-{APP_NAME}-packages-storage",
+                        "bucket": f"{GCP_PROJECT}-{APP_NAME}-packages-storage",
                         "connection": {"secret": "object-storage", "key": "connection"},
                     },
                     "pseudonymizer": {
-                        "bucket": "{GCP_PROJECT}-{APP_NAME}-pseudonymizer-storage",
+                        "bucket": f"{GCP_PROJECT}-{APP_NAME}-pseudonymizer-storage",
                         "connection": {"secret": "object-storage", "key": "connection"},
                     },
                     "terraformState": {
-                        "bucket": "{GCP_PROJECT}-{APP_NAME}-tfstate-storage",
+                        "bucket": f"{GCP_PROJECT}-{APP_NAME}-tfstate-storage",
                         "connection": {"secret": "object-storage", "key": "connection"},
                     },
                     "uploads": {
-                        "bucket": "{GCP_PROJECT}-{APP_NAME}-uploads-storage",
+                        "bucket": f"{GCP_PROJECT}-{APP_NAME}-uploads-storage",
                         "connection": {"secret": "object-storage", "key": "connection"},
                     },
                 },
@@ -351,17 +353,17 @@ def createValuesYaml():
                     "host": getRedisInstance()["host"],
                     "password": {"secret": "gitlab-redis-secret", "key": "redis-password"},
                 },
-                "registry": {"bucket": "{GCP_PROJECT}-{APP_NAME}-registry-storage"},
+                "registry": {"bucket": f"{GCP_PROJECT}-{APP_NAME}-registry-storage"},
             },
             "certmanager": {"install": False},
-            "certmanager-issuer": {"email": "{MY_EMAIL}"},
+            "certmanager-issuer": {"email": f"{EMAIL}"},
             "gitlab": {
                 "toolbox": {
                     "backups": {
                         "objectStorage": {
                             "backend": "gcs",
                             "config": {
-                                "gcpProject": "{GCP_PROJECT}",
+                                "gcpProject": f"{GCP_PROJECT}",
                                 "secret": "storage-config",
                                 "key": "config",
                             },
@@ -388,9 +390,48 @@ def createYamlFiles():
     createValuesYaml()
 
 
+def tkDeploy():
+    """Instantiates a toolkit object and calls deploy method"""
+    tk = toolkit.ToolKit()
+    tk.doDeploy("gitlab/gitlab", APP_NAME, APP_NAME, None, ["gitlab-values.yaml"], False, False)
+
+
+def applyYamlFiles():
+    """Applies the previously create yaml files"""
+    for f in ["gitlab-psql-secret.yaml", "gitlab-redis-secret.yaml"]:
+        tkHelpers.run(f"kubectl -n {APP_NAME} apply -f {f}")
+    tkHelpers.run(
+        f"kubectl -n {APP_NAME} create secret generic registry-storage "
+        "--from-file=config=gitlab-registry-storage.yaml --from-file=gcs.json=storage.config"
+    )
+    tkHelpers.run(
+        f"kubectl -n {APP_NAME} create secret generic storage-config "
+        "--from-file=config=storage.config"
+    )
+    tkHelpers.run(
+        f"kubectl -n {APP_NAME} create secret generic object-storage "
+        "--from-file=connection=gitlab-rails.yaml"
+    )
+
+
 def destroyKubernetesResources():
     """Destroy the Kubernetes resources via delete namespace"""
     tkHelpers.run(f"kubectl delete namespace {APP_NAME}", ignoreErrors=True)
+
+
+def destroyYamlFiles():
+    """Destroy the Yaml files on disk"""
+    files = [
+        "gitlab-values.yaml",
+        "gitlab-psql-secret.yaml",
+        "gitlab-redis-secret.yaml",
+        "gitlab-registry-storage.yaml",
+        "gitlab-rails.yaml",
+        "storage.config",
+    ]
+    for file in files:
+        print(f"Removing {file}")
+        tkHelpers.run(f"rm {file}", ignoreErrors=True)
 
 
 def destroyGcpResources():
@@ -414,16 +455,11 @@ def destroyGcpResources():
         f"gcloud -q iam service-accounts delete {saDict['client_email']}", ignoreErrors=True
     )
     for bucket in list(getBucketNames(valuesDict)):
-        if tkHelpers.run(f"gcloud storage ls gs://{bucket}/", ignoreErrors=True) == 0:
+        if tkHelpers.run(f"gcloud storage ls gs://{bucket}/", ignoreErrors=True) is True:
             tkHelpers.run(
                 f"gcloud storage rm --recursive gs://{bucket}/",
                 ignoreErrors=True,
             )
-    # tkHelpers.run(
-    # f"gcloud services vpc-peerings delete --network={GCP_NETWORK_NAME} "
-    # "--service=servicenetworking.googleapis.com",
-    # ignoreErrors=True,
-    # )
     tkHelpers.run(
         f"gcloud -q compute addresses delete google-managed-services-{GCP_NETWORK_NAME} --global",
         ignoreErrors=True,
@@ -432,6 +468,11 @@ def destroyGcpResources():
         f"gcloud dns record-sets delete *.{GITLAB_DOMAIN}. --zone={GITLAB_DNS_ZONE}" " --type=A",
         ignoreErrors=True,
     )
+    """tkHelpers.run(
+        f"gcloud services vpc-peerings delete --network={GCP_NETWORK_NAME} "
+        "--service=servicenetworking.googleapis.com",
+        ignoreErrors=True,
+    )"""
     tkHelpers.run(
         f"gcloud -q compute addresses delete {APP_NAME}-external-ip --region={GCP_REGION}",
         ignoreErrors=True,
@@ -472,13 +513,15 @@ def deploy():
     createServiceAccount()
     createBuckets()
     createYamlFiles()
+    tkDeploy()
+    applyYamlFiles()
 
 
 def destroy():
     """Destroy Astra (snapshots, backups, app) and GCP (sql, redis, buckets, SA) resources"""
     destroyAstraResources()
     destroyGcpResources()
-    # TODO: Delete files
+    destroyYamlFiles()
     destroyKubernetesResources()
 
 

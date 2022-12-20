@@ -75,7 +75,6 @@ class ToolKit:
             if pgStorageClass:
                 setStr += f" --set postgresql.global.storageClass={pgStorageClass}"
                 setStr += f" --set gitlab.gitaly.persistence.storageClass={pgStorageClass}"
-            tkHelpers.run(f"kubectl apply -f gitlab-psql-secret.yaml")
 
         tkHelpers.run(f"helm install {appName} {chart}{setStr}{valueStr}")
         print("Waiting for Astra to discover the namespace.", end="")
