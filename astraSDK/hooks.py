@@ -125,17 +125,17 @@ class createHook(SDKCommon):
         stage,
         action,
         arguments,
+        matchingCriteria=[],
         containerRegex=None,
         description=None,
     ):
 
-        # endpoint = f"k8s/v1/apps/{appID}/executionHooks"
-        endpoint = f"core/v1/executionHooks"
+        endpoint = f"k8s/v1/apps/{appID}/executionHooks"
         url = self.base + endpoint
         params = {}
         data = {
             "type": "application/astra-executionHook",
-            "version": "1.0",
+            "version": "1.2",
             "name": name,
             "hookType": "custom",
             "action": action,
@@ -143,12 +143,14 @@ class createHook(SDKCommon):
             "hookSourceID": scriptID,
             "arguments": arguments,
             "appID": appID,
+            "matchingCriteria": matchingCriteria,
             "enabled": "true",
         }
         if description:
             data["description"] = description
+        # For backwards compatibility, recommend instead using matchingCriteria argument directly
         if containerRegex:
-            data["matchingCriteria"] = [{"type": "containerImage", "value": containerRegex}]
+            data["matchingCriteria"].append({"type": "containerImage", "value": containerRegex})
 
         ret = super().apicall(
             "post",

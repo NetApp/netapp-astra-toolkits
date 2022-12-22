@@ -121,7 +121,12 @@ The `create hook` command allows you to create an application execution hook for
 
 ```text
 ./toolkit.py create hook <appID> <hookName> <scriptID> -o <operationType> \
-    -a <optionalHookArg1> <optionalHookArgX> -r <optionalContainerRegex>
+    -a <optionalHookArg1> <optionalHookArgX> \
+    -i <optionalContainerImageFilter1> <optionalContainerImageFilterX> \
+    -n <optionalNamespaceFilter1> <optionalNamespaceFilterX> \
+    -p <optionalPodNameFilter1> <optionalPodNameFilterX> \
+    -l <optionalLabelFilter1> <optionalLabelFilterX> \
+    -c <optionalContainerNameFilter1> <optionalContainerNameFilterX>
 ```
 
 Additional information on each argument is as follows:
@@ -136,27 +141,39 @@ Additional information on each argument is as follows:
   * post-backup
   * post-restore
 * `-a`/`--hookArguments` are (optional) command line arguments that *may* be required depending upon the script defined via the `scriptID`.  Any number of arguments can be provided.
-* `-r`/`--containerRegex` is an (optional) way to provide container image name matching criteria, based on [regular expressions](https://docs.netapp.com/us-en/astra-control-service/use/manage-app-execution-hooks.html).  If special characters are required for the regex, please encase the value in quotes.  If this argument is not provided, then this execution hook applies to **all** container images within the application.
+* `filterGroup` is a list of five optional logical AND [regex](https://docs.netapp.com/us-en/astra-control-service/use/manage-app-execution-hooks.html) filters to minimize the number of containers where the hook will execute (if no filterGroup arguments are provided, then this execution hook applies to **all** container images within the application):
+  * `-i`/`--containerImage`: regex filter for container images
+  * `-n`/`--namespace`: regex filter for namespaces (useful for multi-namespace apps)
+  * `-p`/`--podName`: regex filters for pod names
+  * `-l`/`--label`: regex filter for Kubernetes labels
+  * `-c`/`--containerName`: regex filter for container names
 
-This example creates a "post-snapshot" execution hook for appID "7b647ab6-834b-4553-9b23-02ecdd8562f7" named "wordpress-mariadb-post-snapshot", and provides the command line argument "post" to scriptID "41bd1ee4-6283-4e6b-a9f0-a4b29de3fb3d".  Since a container regex is not provided, it matches on all images within the app.
+This example creates a "post-snapshot" execution hook for appID "7b647ab6-834b-4553-9b23-02ecdd8562f7" named "wordpress-mariadb-post-snapshot", and provides the command line argument "post" to scriptID "41bd1ee4-6283-4e6b-a9f0-a4b29de3fb3d".  Since no filters are provided, it matches on all images within the app.
 
 ```text
 $ ./toolkit.py create hook 7b647ab6-834b-4553-9b23-02ecdd8562f7 wordpress-post-snapshot 41bd1ee4-6283-4e6b-a9f0-a4b29de3fb3d -o post-snapshot -a post
 {"metadata": {"labels": [], "creationTimestamp": "2022-08-03T18:43:58Z", "modificationTimestamp": "2022-08-03T18:43:58Z", "createdBy": "59c784bb-9b28-4da5-ae8a-f20794ec562f"}, "type": "application/astra-executionHook", "version": "1.0", "id": "6f9e8190-96fd-420c-be36-7324c6b54ce1", "name": "wordpress-post-snapshot", "hookType": "custom", "action": "snapshot", "stage": "post", "hookSourceID": "41bd1ee4-6283-4e6b-a9f0-a4b29de3fb3d", "arguments": ["post"], "appID": "7b647ab6-834b-4553-9b23-02ecdd8562f7", "enabled": "true"}
 ```
 
-This example creates a "pre-backup" execution hook for appID "7b647ab6-834b-4553-9b23-02ecdd8562f7" named "wordpress-mariadb-pre-snap", provides the command line argument "pre" to scriptID "41bd1ee4-6283-4e6b-a9f0-a4b29de3fb3d", and only runs agains containers with a matching regex of "\bmariadb\b" (**note** the quotes).
+This example creates a "pre-backup" execution hook for appID "7b647ab6-834b-4553-9b23-02ecdd8562f7" named "wordpress-mariadb-pre-snap", provides the command line argument "pre" to scriptID "41bd1ee4-6283-4e6b-a9f0-a4b29de3fb3d", and only runs agains container images with a matching regex of "\bmariadb\b" (**note** the quotes).
 
 ```text
-$ ./toolkit.py create hook 7b647ab6-834b-4553-9b23-02ecdd8562f7 wordpress-mariadb-pre-snap 41bd1ee4-6283-4e6b-a9f0-a4b29de3fb3d -o pre-backup -a pre -r "\bmariadb\b"
+$ ./toolkit.py create hook 7b647ab6-834b-4553-9b23-02ecdd8562f7 wordpress-mariadb-pre-snap 41bd1ee4-6283-4e6b-a9f0-a4b29de3fb3d -o pre-backup -a pre -i "\bmariadb\b"
 {"metadata": {"labels": [], "creationTimestamp": "2022-08-03T18:57:39Z", "modificationTimestamp": "2022-08-03T18:57:39Z", "createdBy": "59c784bb-9b28-4da5-ae8a-f20794ec562f"}, "type": "application/astra-executionHook", "version": "1.0", "id": "f2da43bd-0278-4f21-b9b6-ea64a7247423", "name": "wordpress-mariadb-pre-snap", "hookType": "custom", "matchingCriteria": [{"type": "containerImage", "value": "\\bmariadb\\b"}], "action": "backup", "stage": "pre", "hookSourceID": "41bd1ee4-6283-4e6b-a9f0-a4b29de3fb3d", "arguments": ["pre"], "appID": "7b647ab6-834b-4553-9b23-02ecdd8562f7", "enabled": "true"}
 ```
 
-This example creates a "post-restore" execution hook for appID "eebd59f2-e9b3-47b0-b0e8-1306d805f104" named "cassandra-post-restore", provides two separate command line arguments ("post-restore" and "false") to scriptID "db17a907-9518-4836-850f-1d21bc7651d7", and only runs against containers with a matching regex of "\bcassandra\b" (**note** the quotes).
+This example creates a "post-restore" execution hook for appID "eebd59f2-e9b3-47b0-b0e8-1306d805f104" named "cassandra-post-restore", provides two separate command line arguments ("post-restore" and "false") to scriptID "db17a907-9518-4836-850f-1d21bc7651d7", and only runs against container names of cassandra.
 
 ```text
-$ ./toolkit.py create hook eebd59f2-e9b3-47b0-b0e8-1306d805f104 cassandra-post-restore db17a907-9518-4836-850f-1d21bc7651d7 -o post-restore -a post-restore false -r "\bcassandra\b" 
-{"metadata": {"labels": [], "creationTimestamp": "2022-08-03T19:01:22Z", "modificationTimestamp": "2022-08-03T19:01:22Z", "createdBy": "59c784bb-9b28-4da5-ae8a-f20794ec562f"}, "type": "application/astra-executionHook", "version": "1.0", "id": "a1a1ca43-1aee-4707-a514-0f251a336e06", "name": "cassandra-post-restore", "hookType": "custom", "matchingCriteria": [{"type": "containerImage", "value": "\\bcassandra\\b"}], "action": "restore", "stage": "post", "hookSourceID": "db17a907-9518-4836-850f-1d21bc7651d7", "arguments": ["post-restore", "false"], "appID": "eebd59f2-e9b3-47b0-b0e8-1306d805f104", "enabled": "true"}
+$ ./toolkit.py create hook eebd59f2-e9b3-47b0-b0e8-1306d805f104 cassandra-post-restore db17a907-9518-4836-850f-1d21bc7651d7 -o post-restore -a post-restore false -c cassandra
+{"metadata": {"labels": [], "creationTimestamp": "2022-08-03T19:01:22Z", "modificationTimestamp": "2022-08-03T19:01:22Z", "createdBy": "59c784bb-9b28-4da5-ae8a-f20794ec562f"}, "type": "application/astra-executionHook", "version": "1.0", "id": "a1a1ca43-1aee-4707-a514-0f251a336e06", "name": "cassandra-post-restore", "hookType": "custom", "matchingCriteria": [{"type": "containerName", "value": "cassandra"}], "action": "restore", "stage": "post", "hookSourceID": "db17a907-9518-4836-850f-1d21bc7651d7", "arguments": ["post-restore", "false"], "appID": "eebd59f2-e9b3-47b0-b0e8-1306d805f104", "enabled": "true"}
+```
+
+This example creates a "pre-snapshot" execution hook for appID "187f0f70-c879-40d4-87d4-64219612bc60" named "mdb-presnap", and filters to only run on containers with images matching a regex of "\bmariadb\b", and belonging to the namespace "wordpress", and with a pod name of "wordpress-mariadb-0", and labels matching "app.kubernetes.io/name=mariadb" and "app.kubernetes.io/app=wordpress", and container name of "mariadb".
+
+```text
+$ ./toolkit.py create hook 187f0f70-c879-40d4-87d4-64219612bc60 mdb-presnap f402940e-c9ef-4c49-b5e8-4d126ab8d072 -o pre-snapshot -i "\bmariadb\b" -n wordpress -p wordpress-mariadb-0 -l "app.kubernetes.io/name=mariadb" "app.kubernetes.io/app=wordpress" -c mariadb
+{"metadata": {"labels": [], "creationTimestamp": "2022-12-22T19:59:21Z", "modificationTimestamp": "2022-12-22T19:59:21Z", "createdBy": "ebbc0fde-da6d-4939-a9ad-0f8fd0d70f1c"}, "type": "application/astra-executionHook", "version": "1.2", "id": "2f4f0b8a-b1d1-4119-a185-1850c7550aa6", "name": "mdb-presnap", "hookType": "custom", "matchingCriteria": [{"type": "containerImage", "value": "\\bmariadb\\b"}, {"type": "namespaceName", "value": "wordpress"}, {"type": "podName", "value": "wordpress-mariadb-0"}, {"type": "podLabel", "value": "app.kubernetes.io/name=mariadb"}, {"type": "podLabel", "value": "app.kubernetes.io/app=wordpress"}, {"type": "containerName", "value": "mariadb"}], "action": "snapshot", "stage": "pre", "hookSourceID": "f402940e-c9ef-4c49-b5e8-4d126ab8d072", "arguments": [], "appID": "187f0f70-c879-40d4-87d4-64219612bc60", "enabled": "true"}
 ```
 
 ## Protection
