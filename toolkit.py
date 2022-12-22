@@ -1002,7 +1002,13 @@ def main():
                 args.operation.split("-")[0],
                 args.operation.split("-")[1],
                 tkHelpers.createHookList(args.hookArguments),
-                args.containerRegex,
+                matchingCriteria=tkHelpers.createCriteriaList(
+                    args.containerImage,
+                    args.namespace,
+                    args.podName,
+                    args.label,
+                    args.containerName,
+                ),
             )
             if rc is False:
                 print("astraSDK.hooks.createHook() failed")

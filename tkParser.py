@@ -759,12 +759,54 @@ class toolkit_parser:
             nargs="*",
             help="The (optional) arguments for the execution hook script",
         )
-        self.subparserCreateHook.add_argument(
-            "-r",
-            "--containerRegex",
-            default=None,
-            help="The (optional) container image name regex to match "
-            + "(do not specify to match on all images)",
+        filterGroup = self.subparserCreateHook.add_argument_group(
+            "filterGroup",
+            "optional logical AND regex filters to minimize containers where the hook will execute",
+        )
+        filterGroup.add_argument(
+            "-i",
+            "--containerImage",
+            required=False,
+            default=[],
+            action="append",
+            nargs="*",
+            help="regex filter for container images",
+        )
+        filterGroup.add_argument(
+            "-n",
+            "--namespace",
+            required=False,
+            default=[],
+            action="append",
+            nargs="*",
+            help="regex filter for namespaces (useful for multi-namespace apps)",
+        )
+        filterGroup.add_argument(
+            "-p",
+            "--podName",
+            required=False,
+            default=[],
+            action="append",
+            nargs="*",
+            help="regex filter for pod names",
+        )
+        filterGroup.add_argument(
+            "-l",
+            "--label",
+            required=False,
+            default=[],
+            action="append",
+            nargs="*",
+            help="regex filter for Kubernetes labels",
+        )
+        filterGroup.add_argument(
+            "-c",
+            "--containerName",
+            required=False,
+            default=[],
+            action="append",
+            nargs="*",
+            help="regex filter for container names",
         )
 
     def create_protection_args(self, appList):

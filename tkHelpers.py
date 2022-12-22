@@ -107,6 +107,32 @@ def createHookList(hookArguments):
     return returnList
 
 
+def createFilterTypeList(fType, valueList):
+    """Creates a list of dicts like {"type": "containerImage", "value": "\\bmariadb\\b"} based on
+    the passed filter type and value list strings.  Called by createCriteriaList which aggregates
+    the entire list"""
+    returnList = []
+    for value in valueList:
+        if type(value) == list:
+            for v in value:
+                returnList.append({"type": fType, "value": v})
+        else:
+            returnList.append({"type": fType, "value": value})
+    return returnList
+
+
+def createCriteriaList(images, namespaces, pods, labels, names):
+    """Create a list of dictionaries for hook filters (aka matchingCriteria) of various types, as
+    nargs="*" can provide a variety of different types of lists of lists."""
+    return (
+        createFilterTypeList("containerImage", images)
+        + createFilterTypeList("namespaceName", namespaces)
+        + createFilterTypeList("podName", pods)
+        + createFilterTypeList("podLabel", labels)
+        + createFilterTypeList("containerName", names)
+    )
+
+
 def createNamespaceMapping(app, singleNs, multiNsMapping):
     """Create a list of dictionaries of source and destination namespaces for cloning an
     application, as the user can provide a variety of input.  Return object format:
