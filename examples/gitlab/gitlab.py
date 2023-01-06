@@ -25,6 +25,8 @@ from datetime import datetime, timedelta
 from secrets import token_urlsafe
 from base64 import b64encode, b64decode
 
+import gcpClasses
+
 # A bit of a hack to support both git repo and actoolkit python package use cases
 try:
     # If this import succeeds, it's due to the actoolkit package being installed
@@ -103,491 +105,6 @@ def getBucketNames(valuesDict):
             yield value
 
 
-class ComputeEngineVM:
-    """Manages a Compute Engine VM instance for Gitaly"""
-
-    def __init__(self, app_name):
-        self.name = app_name + "-gitaly-demo"
-        self.app_name = app_name
-        self.setProperties()
-
-    def setProperties(self):
-        self.properties = None
-        for i in json.loads(
-            run("gcloud compute instances list --format=json", captureOutput=True).decode()
-        ):
-            if i["name"] == self.name:
-                self.properties = i
-
-    def createInstance(
-        self,
-        imageFamily,
-        imageProject,
-        machineType,
-        network,
-        zone,
-        project,
-        authToken,
-        shellToken,
-        cloudinit,
-    ):
-        self.network = network
-        self.zone = zone
-        self.project = project
-        self.authToken = authToken
-        self.shellToken = shellToken
-        self.getSubnet()
-        createYamlOnDisk(f"{self.app_name}-gitaly-cloudinit.yaml", cloudinit)
-        run(
-            f"gcloud compute instances create {self.name} --image-family={imageFamily} "
-            f"--image-project={imageProject} --machine-type={machineType} --zone={self.zone} "
-            f"--network-interface=subnet={self.subnet},no-address --create-disk=auto-delete="
-            f"yes,device-name={self.app_name}-disk,mode=rw,name={self.app_name}-disk,size=100,"
-            f"type=projects/{self.project}/zones/{self.zone}/diskTypes/pd-ssd "
-            f"--metadata-from-file=user-data={self.app_name}-gitaly-cloudinit.yaml"
-        )
-        self.setProperties()
-
-    def getSubnet(self):
-        """Gets the subnet that the GKE cluster belongs in based on the current k8s context"""
-        self.subnet = None
-        _, context = kubernetes.config.list_kube_config_contexts()
-        for i in json.loads(
-            run("gcloud container clusters list --format=json", captureOutput=True).decode()
-        ):
-            if i["name"] in context["context"]["cluster"]:
-                self.subnet = i["subnetwork"]
-        if self.subnet is None:
-            print(
-                f"Unable to determine subnet, context {context['name']} not present in 'gcloud "
-                "container clusters list'"
-            )
-            sys.exit(1)
-
-    def createSecretFile(self):
-        """Creates a Gitaly authToken secret and shell authToken secret dictionaries,
-        and then writes yaml to disk"""
-        createYamlOnDisk(
-            f"{self.app_name}-gitaly-secret.yaml",
-            {
-                "apiVersion": "v1",
-                "kind": "Secret",
-                "metadata": {
-                    "name": f"{self.app_name}-gitaly-token",
-                    "namespace": self.app_name,
-                    "labels": {"app": self.app_name},
-                },
-                "type": "Opaque",
-                "data": {"token": b64encode(self.authToken.encode()).decode()},
-            },
-        )
-        createYamlOnDisk(
-            f"{self.app_name}-shell-secret.yaml",
-            {
-                "apiVersion": "v1",
-                "kind": "Secret",
-                "metadata": {
-                    "name": f"{self.app_name}-shell-token",
-                    "namespace": self.app_name,
-                    "labels": {"app": self.app_name},
-                },
-                "type": "Opaque",
-                "data": {"token": b64encode(self.shellToken.encode()).decode()},
-            },
-        )
-        createYamlOnDisk(
-            f"{self.app_name}-psql-secret.yaml",
-            {
-                "apiVersion": "v1",
-                "kind": "Secret",
-                "metadata": {
-                    "name": f"{self.app_name}-postgresql-password",
-                    "namespace": self.app_name,
-                    "labels": {"app": self.app_name},
-                },
-                "type": "Opaque",
-                "data": {"postgres-password": b64encode(self.password.encode()).decode()},
-            },
-        )
-
-    def updateDNS(self, hostname, zoneName):
-        """Creates a DNS A Record pointing to the VM"""
-        run(
-            f"gcloud dns record-sets create {hostname}. --zone={zoneName} --type=A "
-            f"--rrdatas={self.properties['networkInterfaces'][0]['networkIP']}"
-        )
-
-    def deleteInstance(self):
-        if self.properties:
-            run(
-                f"gcloud -q compute instances delete {self.name} "
-                f"--zone={self.properties['zone'].split('/')[-1]}",
-                ignoreErrors=True,
-            )
-            for f in [
-                f"{self.app_name}-gitaly-cloudinit.yaml",
-                f"{self.app_name}-gitaly-secret.yaml",
-                f"{self.app_name}-shell-secret.yaml",
-            ]:
-                print(f"Removing {f}")
-                run(f"rm {f}", ignoreErrors=True)
-
-
-class CloudPostgreSQL:
-    """Manages a PostgreSQL 14 Cloud SQL instance"""
-
-    def __init__(self, app_name):
-        self.name = app_name + "-psql-demo"
-        self.app_name = app_name
-        self.setProperties()
-
-    def setProperties(self):
-        self.properties = None
-        for i in json.loads(
-            run("gcloud sql instances list --format=json", captureOutput=True).decode()
-        ):
-            if i["name"] == self.name:
-                self.properties = i
-
-    def createInstance(self, network, zone, region, project, cpu, mem, password):
-        self.network = network
-        self.zone = zone
-        self.region = region
-        self.project = project
-        self.mem = mem
-        self.cpu = cpu
-        self.password = password
-        run(
-            f"gcloud sql instances create {self.name} --database-version=POSTGRES_14 "
-            f"--cpu={self.cpu} --memory={self.mem} --zone={self.zone} "
-            f"--root-password={self.password} --no-assign-ip "
-            f"--network=projects/{self.project}/global/networks/{self.network}"
-        )
-        self.setProperties()
-
-    def createUser(self, user):
-        run(f"gcloud sql users create {user} --instance={self.name} --password={self.password}")
-
-    def createDB(self, db):
-        run(f"gcloud sql databases create {db} --instance={self.name}")
-
-    def createSecretFile(self):
-        """Creates a PostgreSQL secret dictionary, then writes yaml to disk"""
-        createYamlOnDisk(
-            f"{self.app_name}-psql-secret.yaml",
-            {
-                "apiVersion": "v1",
-                "kind": "Secret",
-                "metadata": {
-                    "name": f"{self.app_name}-postgresql-password",
-                    "namespace": self.app_name,
-                    "labels": {"app": self.app_name},
-                },
-                "type": "Opaque",
-                "data": {"postgres-password": b64encode(self.password.encode()).decode()},
-            },
-        )
-
-    def deleteInstance(self):
-        if self.properties:
-            run(f"gcloud -q sql instances delete {self.name}", ignoreErrors=True)
-            print(f"Removing {self.app_name}-psql-secret.yaml")
-            run(f"rm {self.app_name}-psql-secret.yaml", ignoreErrors=True)
-
-
-class CloudRedis:
-    """Manages a Memorystore Redis instance"""
-
-    def __init__(self, app_name, region):
-        self.name = app_name + "-redis-demo"
-        self.app_name = app_name
-        self.region = region
-        self.setProperties()
-
-    def setProperties(self):
-        self.properties = None
-        for i in json.loads(
-            run(
-                f"gcloud redis instances list --region={self.region} --format=json",
-                captureOutput=True,
-            ).decode()
-        ):
-            if i["name"].split("/")[-1] == self.name:
-                self.properties = i
-        if self.properties:
-            self.authString = json.loads(
-                run(
-                    f"gcloud redis instances get-auth-string {self.name} --region={self.region} "
-                    "--format=json",
-                    captureOutput=True,
-                ).decode()
-            )["authString"]
-
-    def createInstance(self, network, zone, project, mem, tier="standard", persistence="rdb"):
-        self.network = network
-        self.zone = zone
-        self.project = project
-        self.mem = mem
-        self.tier = tier
-        self.persistence = persistence
-        run(
-            f"gcloud -q redis instances create {self.name} --region={self.region} "
-            f"--zone={self.zone} --size={self.mem} --tier={self.tier} --persistence-mode="
-            f"{self.persistence} --rdb-snapshot-period=1h --connect-mode=private-service-access "
-            f"--network=projects/{self.project}/global/networks/{self.network} --enable-auth"
-        )
-        self.setProperties()
-
-    def createSecretFile(self):
-        """Creates a Redis secret dictionary, then writes yaml to disk"""
-        createYamlOnDisk(
-            f"{self.app_name}-redis-secret.yaml",
-            {
-                "apiVersion": "v1",
-                "kind": "Secret",
-                "metadata": {
-                    "name": f"{self.app_name}-redis-secret",
-                    "namespace": self.app_name,
-                    "labels": {"app": self.app_name},
-                },
-                "type": "Opaque",
-                "data": {"redis-password": b64encode(self.authString.encode()).decode()},
-            },
-        )
-
-    def deleteInstance(self):
-        if self.properties:
-            run(
-                f"gcloud -q redis instances delete {self.name} --region={self.region}",
-                ignoreErrors=True,
-            )
-            print(f"Removing {self.app_name}-redis-secret.yaml")
-            run(f"rm {self.app_name}-redis-secret.yaml", ignoreErrors=True)
-
-
-class ExternalDnsAddress:
-    """Manages external DNS for *.domain.tld
-    Domain must already exist and be managed by GCP"""
-
-    def __init__(self, app_name, region):
-        self.name = app_name + "-external-ip"
-        self.region = region
-        self.setProperties()
-
-    def setProperties(self):
-        bProperties = run(
-            f"gcloud compute addresses describe {self.name} --region {self.region} --format=json",
-            captureOutput=True,
-            ignoreErrors=True,
-        )
-        if type(bProperties) is bytes:
-            self.properties = json.loads(bProperties.decode())
-        else:
-            self.properties = None
-
-    def createExternalAddress(self):
-        """Creates an external IP address to set as the GitLab DNS IP"""
-        run(f"gcloud compute addresses create {self.name} --region {self.region}")
-        self.setProperties()
-
-    def deleteAddress(self):
-        """Deletes the external IP address"""
-        run(
-            f"gcloud -q compute addresses delete {self.name} --region={self.region}",
-            ignoreErrors=True,
-        )
-
-
-class RecordSet:
-    """Manages the DNS record set based on domain and DNS zone names"""
-
-    def __init__(self, region, fqdn, dns_zone, app_name):
-        self.region = region
-        self.fqdn = fqdn
-        self.dns_zone = dns_zone
-        self.app_name = app_name
-        self.setProperties()
-
-    def setProperties(self):
-        self.properties = None
-        for r in json.loads(
-            run(
-                f"gcloud dns record-sets list --zone={self.dns_zone} --format=json",
-                captureOutput=True,
-            ).decode()
-        ):
-            if r["name"] == f"{self.fqdn}.":
-                self.properties = r
-
-    def createRecordSet(self, address):
-        run(
-            f"gcloud dns record-sets create {self.fqdn}. --zone={self.dns_zone} --type=A "
-            f"--rrdatas={address}"
-        )
-        """
-        ExternalDnsAddress:
-        run(
-            f"gcloud dns record-sets create *.{self.domain}. --zone={self.dns_zone} --type=A --ttl"
-            f"=60 --rrdatas={ExternalDnsAddress(self.app_name, self.region).properties['address']}"
-        )
-        Gitaly:
-        run(
-            f"gcloud dns record-sets create {hostname}. --zone={zoneName} --type=A "
-            f"--rrdatas={self.properties['networkInterfaces'][0]['networkIP']}"
-        )"""
-        self.setProperties()
-
-    def deleteRecordSet(self):
-        run(
-            f"gcloud dns record-sets delete {self.fqdn} --zone={self.dns_zone} --type=A",
-            ignoreErrors=True,
-        )
-
-
-class VpcPeering:
-    """Manages the VPC peering between Cloud SQL and GKE"""
-
-    def __init__(self, network, project):
-        self.network = network
-        self.project = project
-        self.setProperties()
-
-    def setProperties(self):
-        self.properties = None
-        for p in json.loads(
-            run(
-                f"gcloud services vpc-peerings list --network={self.network} --format=json",
-                captureOutput=True,
-            ).decode()
-        ):
-            if p["service"] == "services/servicenetworking.googleapis.com":
-                self.properties = p
-
-    def createPeering(self):
-        run(
-            f"gcloud compute addresses create google-managed-services-{self.network}"
-            " --global --purpose=VPC_PEERING --prefix-length=20 "
-            f"--network=projects/{self.project}/global/networks/{self.network}"
-        )
-        run(
-            "gcloud services vpc-peerings connect --service=servicenetworking.googleapis.com "
-            f"--ranges=google-managed-services-{self.network} --network={self.network} "
-            f"--project={self.project}"
-        )
-        self.setProperties()
-
-    def deletePeering(self):
-        run(
-            f"gcloud -q compute addresses delete google-managed-services-{self.network} --global",
-            ignoreErrors=True,
-        )
-        # The command below will fail due to the reasons explained here, so commenting it out but
-        # leaving it for posterity:
-        # https://cloud.google.com/vpc/docs/configure-private-services-access#removing-connection
-        # For example, if you delete a Cloud SQL instance, you receive a success response, but the
-        # service waits for four days before deleting the service producer resources. The waiting
-        # period means that if you change your mind about deleting the service, you can request to
-        # reinstate the resources. If you try to delete the connection during the waiting period,
-        # the deletion fails with a message that the resources are still in use by the service
-        # producer.
-        """run(
-            f"gcloud services vpc-peerings delete --network={self.network} "
-            "--service=servicenetworking.googleapis.com",
-            ignoreErrors=True,
-        )"""
-
-
-class ServiceAccount:
-    """Manages the storage service account used for object storage management"""
-
-    def __init__(self, app_name, project):
-        self.app_name = app_name
-        self.name = f"{app_name}-gcs"
-        self.project = project
-        self.setProperties()
-
-    def setProperties(self):
-        self.properties = None
-        for sa in json.loads(
-            run(
-                "gcloud iam service-accounts list --format=json",
-                captureOutput=True,
-            ).decode()
-        ):
-            if sa["displayName"] == self.name:
-                self.properties = sa
-
-    def createServiceAccount(self):
-        """Creates a Cloud Storage Service Account for object storage"""
-        run(f"gcloud iam service-accounts create {self.name} --display-name {self.name}")
-        run(
-            f"gcloud projects add-iam-policy-binding --role roles/storage.admin {self.project} "
-            f"--member=serviceAccount:{self.name}@{self.project}.iam.gserviceaccount.com"
-        )
-        run(
-            f"gcloud iam service-accounts keys create --iam-account {self.name}@{self.project}"
-            f".iam.gserviceaccount.com {self.app_name}-storage.config"
-        )
-        self.setProperties()
-
-    def createRegistrySecret(self):
-        """Creates a Object storage bucket secret for the registry bucket"""
-        createYamlOnDisk(
-            f"{self.app_name}-registry-storage.yaml",
-            {
-                "gcs": {
-                    "bucket": f"{self.project}-{self.app_name}-registry-storage",
-                    "keyfile": "/etc/docker/registry/storage/gcs.json",
-                }
-            },
-        )
-
-    def createRailsStorageSecret(self):
-        """Creates a Rails Object Storage secret for all non-registry buckets"""
-        with open(f"{self.app_name}-storage.config", encoding="utf8") as f:
-            saStr = f.read().rstrip()
-        createYamlOnDisk(
-            f"{self.app_name}-rails.yaml",
-            {
-                "provider": "Google",
-                "google_project": "astracontroltoolkitdev",
-                "google_json_key_string": saStr,
-            },
-        )
-
-    def deleteServiceAccount(self):
-        if self.properties:
-            run(
-                f"gcloud -q iam service-accounts delete {self.properties['email']}",
-                ignoreErrors=True,
-            )
-        for f in [
-            f"{self.app_name}-storage.config",
-            f"{self.app_name}-registry-storage.yaml",
-            f"{self.app_name}-rails.yaml",
-        ]:
-            print(f"Removing {f}")
-            run(f"rm {f}", ignoreErrors=True)
-
-
-class ObjectBuckets:
-    """Manages the object storage buckets needed for GitLab"""
-
-    def __init__(self, app_name, project, buckets):
-        self.app_name = app_name
-        self.project = project
-        self.buckets = buckets
-
-    def createBuckets(self):
-        for bucket in self.buckets:
-            run(f"gcloud storage buckets create gs://{bucket}", ignoreErrors=True)
-
-    def deleteBuckets(self):
-        for bucket in self.buckets:
-            if run(f"gcloud storage ls gs://{bucket}/", ignoreErrors=True) is True:
-                run(f"gcloud storage rm --recursive gs://{bucket}/", ignoreErrors=True)
-
-
 def getAppDict(app_name):
     """Get the appDict based on app_name variable and current kubeconfig context"""
     _, context = kubernetes.config.list_kube_config_contexts()
@@ -625,20 +142,24 @@ def destroyAstraResources():
 
 def destroyGcpResources(valuesDict):
     """Destroy Cloud SQL, Redis, Buckets, and storage service account"""
-    RecordSet(
+    gcpClasses.RecordSet(
         GCP_REGION,
         valuesDict["global"]["gitaly"]["external"][0]["hostname"],
         GITLAB_DNS_ZONE,
         APP_NAME,
     ).deleteRecordSet()
-    ComputeEngineVM(APP_NAME).deleteInstance()
-    CloudPostgreSQL(APP_NAME).deleteInstance()
-    CloudRedis(APP_NAME, GCP_REGION).deleteInstance()
-    ServiceAccount(APP_NAME, GCP_PROJECT).deleteServiceAccount()
-    ObjectBuckets(APP_NAME, GCP_PROJECT, list(getBucketNames(valuesDict))).deleteBuckets()
-    VpcPeering(GCP_NETWORK_NAME, GCP_PROJECT).deletePeering()
-    RecordSet(GCP_REGION, f"*.{GITLAB_DOMAIN}", GITLAB_DNS_ZONE, APP_NAME).deleteRecordSet()
-    ExternalDnsAddress(APP_NAME, GCP_REGION).deleteAddress()
+    gcpClasses.ComputeEngineVM(APP_NAME).deleteInstance()
+    gcpClasses.CloudPostgreSQL(APP_NAME).deleteInstance()
+    gcpClasses.CloudRedis(APP_NAME, GCP_REGION).deleteInstance()
+    gcpClasses.ServiceAccount(APP_NAME, GCP_PROJECT).deleteServiceAccount()
+    gcpClasses.ObjectBuckets(
+        APP_NAME, GCP_PROJECT, list(getBucketNames(valuesDict))
+    ).deleteBuckets()
+    gcpClasses.VpcPeering(GCP_NETWORK_NAME, GCP_PROJECT).deletePeering()
+    gcpClasses.RecordSet(
+        GCP_REGION, f"*.{GITLAB_DOMAIN}", GITLAB_DNS_ZONE, APP_NAME
+    ).deleteRecordSet()
+    gcpClasses.ExternalDnsAddress(APP_NAME, GCP_REGION).deleteAddress()
 
 
 def destroyKubernetesResources():
@@ -649,7 +170,7 @@ def destroyKubernetesResources():
 
 
 def destroy(valuesDict):
-    """Destroy Astra (snapshots, backups, app), GCP (sql, redis, buckets, SA),
+    """Destroy Astra (snapshots, backups, app), GCP (gitaly VM, sql, redis, buckets, SA),
     and Kubernetes resources"""
     destroyAstraResources()
     destroyGcpResources(valuesDict)
@@ -673,7 +194,7 @@ def gcpDeploy(valuesDict, cloudinit):
     """Deploy the GCP hosted resources (Postgres, Redis, Buckets, SA)"""
 
     # Create a VM instance for Gitaly if not already present
-    gitaly = ComputeEngineVM(APP_NAME)
+    gitaly = gcpClasses.ComputeEngineVM(APP_NAME)
     if not gitaly.properties:
         gitaly.createInstance(
             "ubuntu-2204-lts",
@@ -689,7 +210,7 @@ def gcpDeploy(valuesDict, cloudinit):
         gitaly.createSecretFile()
 
     # Create a DNS record set so other services can access the Gitaly VM
-    grs = RecordSet(
+    grs = gcpClasses.RecordSet(
         GCP_REGION,
         valuesDict["global"]["gitaly"]["external"][0]["hostname"],
         GITLAB_DNS_ZONE,
@@ -699,23 +220,23 @@ def gcpDeploy(valuesDict, cloudinit):
         grs.createRecordSet(gitaly.properties["networkInterfaces"][0]["networkIP"])
 
     # Create an external IP for Gitlab access if not already present
-    extIP = ExternalDnsAddress(APP_NAME, GCP_REGION)
+    extIP = gcpClasses.ExternalDnsAddress(APP_NAME, GCP_REGION)
     if not extIP.properties:
         extIP.createExternalAddress()
     valuesDict["global"]["hosts"]["externalIP"] = extIP.properties["address"]
 
-    # Create a wildcard DNS record set to point at the external IP
-    wrs = RecordSet(GCP_REGION, f"*.{GITLAB_DOMAIN}", GITLAB_DNS_ZONE, APP_NAME)
+    # Create a wildcard DNS record set to point at the external IP if not already present
+    wrs = gcpClasses.RecordSet(GCP_REGION, f"*.{GITLAB_DOMAIN}", GITLAB_DNS_ZONE, APP_NAME)
     if not wrs.properties:
         wrs.createRecordSet(extIP.properties["address"])
 
-    # Create a VPC peering between the GKE network and Cloud SQL
-    vp = VpcPeering(GCP_NETWORK_NAME, GCP_PROJECT)
+    # Create a VPC peering between the GKE network and Cloud SQL if not already present
+    vp = gcpClasses.VpcPeering(GCP_NETWORK_NAME, GCP_PROJECT)
     if not vp.properties:
         vp.createPeering()
 
-    # Create a PostgreSQL instance
-    db = CloudPostgreSQL(APP_NAME)
+    # Create a PostgreSQL instance if not already present
+    db = gcpClasses.CloudPostgreSQL(APP_NAME)
     if not db.properties:
         db.createInstance(
             GCP_NETWORK_NAME, GCP_ZONE, GCP_REGION, GCP_PROJECT, "2", "8GiB", DB_PASSWORD
@@ -725,26 +246,28 @@ def gcpDeploy(valuesDict, cloudinit):
         db.createSecretFile()
     valuesDict["global"]["psql"]["host"] = db.properties["ipAddresses"][0]["ipAddress"]
 
-    # Create a Redis instance
-    redis = CloudRedis(APP_NAME, GCP_REGION)
+    # Create a Redis instance if not already present
+    redis = gcpClasses.CloudRedis(APP_NAME, GCP_REGION)
     if not redis.properties:
         redis.createInstance(GCP_NETWORK_NAME, GCP_ZONE, GCP_PROJECT, "4")
         redis.createSecretFile()
     valuesDict["global"]["redis"]["host"] = redis.properties["host"]
 
-    # Create a service account for cloud storage
-    sa = ServiceAccount(APP_NAME, GCP_PROJECT)
+    # Create a service account for cloud storage if not already present
+    sa = gcpClasses.ServiceAccount(APP_NAME, GCP_PROJECT)
     if not sa.properties:
         sa.createServiceAccount()
         sa.createRegistrySecret()
         sa.createRailsStorageSecret()
 
     # Create cloud storage buckets for all buckets listed in the values Dict
-    ObjectBuckets(APP_NAME, GCP_PROJECT, list(getBucketNames(valuesDict))).createBuckets()
+    gcpClasses.ObjectBuckets(
+        APP_NAME, GCP_PROJECT, list(getBucketNames(valuesDict))
+    ).createBuckets()
 
 
 def applyYamlSecrets():
-    """Applies the previously create yaml secret files"""
+    """Applies the previously created external yaml secret files"""
     for f in [
         f"{APP_NAME}-psql-secret.yaml",
         f"{APP_NAME}-redis-secret.yaml",
@@ -767,7 +290,8 @@ def applyYamlSecrets():
 
 
 def kubernetesDeploy(valuesDict):
-    """Creates values file, runs helm install command, manages the Astra app"""
+    """Creates values file, creates the kubernetes namespace, adds/updates the helm repo,
+    applies the external secrets, runs helm install command, and manages the Astra app"""
 
     createYamlOnDisk(f"{APP_NAME}-values.yaml", valuesDict)
 
