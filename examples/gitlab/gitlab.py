@@ -396,7 +396,6 @@ if __name__ == "__main__":
             "hosts": {
                 "domain": GITLAB_DOMAIN,
             },
-            "ingress": {"configureCertmanager": False},
             "minio": {"enabled": False},
             "psql": {
                 "password": {
@@ -412,7 +411,6 @@ if __name__ == "__main__":
                 "authToken": {"secret": f"{APP_NAME}-shell-token", "key": "token"},
             },
         },
-        "certmanager": {"install": False},
         "certmanager-issuer": {"email": f"{EMAIL}"},
         "gitlab": {
             "toolbox": {
@@ -428,7 +426,6 @@ if __name__ == "__main__":
                 }
             }
         },
-        "gitlab-runner": {"install": False},
         "postgresql": {"install": False},
         "redis": {"install": False},
         "registry": {
