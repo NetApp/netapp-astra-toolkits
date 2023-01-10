@@ -20,7 +20,47 @@ import kubernetes
 import sys
 from base64 import b64encode
 
-import gitlab
+from ac_gitlab import run, createYamlOnDisk
+
+
+class ComputeEngineDisk:
+    """Manages a Compute Engine Disk"""
+
+    def __init__(self, partial_name, app_name):
+        self.name = f"{app_name}-gitaly-{partial_name}-disk"
+        self.app_name = app_name
+        self.setProperties()
+
+    def setProperties(self):
+        self.properties = None
+        for i in json.loads(
+            run("gcloud compute disks list --format=json", captureOutput=True).decode()
+        ):
+            if i["name"] == self.name:
+                self.properties = i
+
+    def createDisk(self, dType, size, zone, imageFamily=None, imageProject=None):
+        self.type = dType
+        self.size = size
+        self.zone = zone
+        createStr = (
+            f"gcloud compute disks create {self.name} --type={self.type} --size={self.size} "
+            f"--zone={self.zone}"
+        )
+        if imageFamily:
+            createStr += f" --image-family={imageFamily}"
+        if imageProject:
+            createStr += f" --image-project={imageProject}"
+        run(createStr)
+        self.setProperties()
+
+    def deleteDisk(self):
+        if self.properties:
+            run(
+                f"gcloud -q compute disks delete {self.name} "
+                f"--zone={self.properties['zone'].split('/')[-1]}",
+                ignoreErrors=True,
+            )
 
 
 class ComputeEngineVM:
@@ -34,16 +74,16 @@ class ComputeEngineVM:
     def setProperties(self):
         self.properties = None
         for i in json.loads(
-            gitlab.run("gcloud compute instances list --format=json", captureOutput=True).decode()
+            run("gcloud compute instances list --format=json", captureOutput=True).decode()
         ):
             if i["name"] == self.name:
                 self.properties = i
 
     def createInstance(
         self,
-        imageFamily,
-        imageProject,
         machineType,
+        osDisk,
+        dataDisks,
         network,
         zone,
         project,
@@ -57,13 +97,11 @@ class ComputeEngineVM:
         self.authToken = authToken
         self.shellToken = shellToken
         self.getSubnet()
-        gitlab.createYamlOnDisk(f"{self.app_name}-gitaly-cloudinit.yaml", cloudinit)
-        gitlab.run(
-            f"gcloud compute instances create {self.name} --image-family={imageFamily} "
-            f"--image-project={imageProject} --machine-type={machineType} --zone={self.zone} "
-            f"--network-interface=subnet={self.subnet},no-address --create-disk=auto-delete="
-            f"yes,device-name={self.app_name}-disk,mode=rw,name={self.app_name}-disk,size=100,"
-            f"type=projects/{self.project}/zones/{self.zone}/diskTypes/pd-ssd "
+        createYamlOnDisk(f"{self.app_name}-gitaly-cloudinit.yaml", cloudinit)
+        run(
+            f"gcloud compute instances create {self.name} --machine-type={machineType} "
+            f"--disk=boot=yes,name={osDisk} {' '.join([f'--disk=name={d}' for d in dataDisks])} "
+            f"--zone={self.zone} --network-interface=subnet={self.subnet},no-address "
             f"--metadata-from-file=user-data={self.app_name}-gitaly-cloudinit.yaml"
         )
         self.setProperties()
@@ -73,7 +111,7 @@ class ComputeEngineVM:
         self.subnet = None
         _, context = kubernetes.config.list_kube_config_contexts()
         for i in json.loads(
-            gitlab.run("gcloud container clusters list --format=json", captureOutput=True).decode()
+            run("gcloud container clusters list --format=json", captureOutput=True).decode()
         ):
             if i["name"] in context["context"]["cluster"]:
                 self.subnet = i["subnetwork"]
@@ -87,7 +125,7 @@ class ComputeEngineVM:
     def createSecretFile(self):
         """Creates a Gitaly authToken secret and shell authToken secret dictionaries,
         and then writes yaml to disk"""
-        gitlab.createYamlOnDisk(
+        createYamlOnDisk(
             f"{self.app_name}-gitaly-secret.yaml",
             {
                 "apiVersion": "v1",
@@ -101,7 +139,7 @@ class ComputeEngineVM:
                 "data": {"token": b64encode(self.authToken.encode()).decode()},
             },
         )
-        gitlab.createYamlOnDisk(
+        createYamlOnDisk(
             f"{self.app_name}-shell-secret.yaml",
             {
                 "apiVersion": "v1",
@@ -118,14 +156,14 @@ class ComputeEngineVM:
 
     def updateDNS(self, hostname, zoneName):
         """Creates a DNS A Record pointing to the VM"""
-        gitlab.run(
+        run(
             f"gcloud dns record-sets create {hostname}. --zone={zoneName} --type=A "
             f"--rrdatas={self.properties['networkInterfaces'][0]['networkIP']}"
         )
 
     def deleteInstance(self):
         if self.properties:
-            gitlab.run(
+            run(
                 f"gcloud -q compute instances delete {self.name} "
                 f"--zone={self.properties['zone'].split('/')[-1]}",
                 ignoreErrors=True,
@@ -136,7 +174,7 @@ class ComputeEngineVM:
                 f"{self.app_name}-shell-secret.yaml",
             ]:
                 print(f"Removing {f}")
-                gitlab.run(f"rm {f}", ignoreErrors=True)
+                run(f"rm {f}", ignoreErrors=True)
 
 
 class CloudPostgreSQL:
@@ -150,7 +188,7 @@ class CloudPostgreSQL:
     def setProperties(self):
         self.properties = None
         for i in json.loads(
-            gitlab.run("gcloud sql instances list --format=json", captureOutput=True).decode()
+            run("gcloud sql instances list --format=json", captureOutput=True).decode()
         ):
             if i["name"] == self.name:
                 self.properties = i
@@ -163,7 +201,7 @@ class CloudPostgreSQL:
         self.mem = mem
         self.cpu = cpu
         self.password = password
-        gitlab.run(
+        run(
             f"gcloud sql instances create {self.name} --database-version=POSTGRES_14 "
             f"--cpu={self.cpu} --memory={self.mem} --zone={self.zone} "
             f"--root-password={self.password} --no-assign-ip "
@@ -172,16 +210,14 @@ class CloudPostgreSQL:
         self.setProperties()
 
     def createUser(self, user):
-        gitlab.run(
-            f"gcloud sql users create {user} --instance={self.name} --password={self.password}"
-        )
+        run(f"gcloud sql users create {user} --instance={self.name} --password={self.password}")
 
     def createDB(self, db):
-        gitlab.run(f"gcloud sql databases create {db} --instance={self.name}")
+        run(f"gcloud sql databases create {db} --instance={self.name}")
 
     def createSecretFile(self):
         """Creates a PostgreSQL secret dictionary, then writes yaml to disk"""
-        gitlab.createYamlOnDisk(
+        createYamlOnDisk(
             f"{self.app_name}-psql-secret.yaml",
             {
                 "apiVersion": "v1",
@@ -196,11 +232,16 @@ class CloudPostgreSQL:
             },
         )
 
+    def createBackup(self, backupName):
+        """Initiates a cloud SQL backup operation"""
+        run(f"gcloud sql backups create --async --instance={self.name} --description={backupName}")
+        print(f"Cloud SQL '{self.name}' backup successfully initiated")
+
     def deleteInstance(self):
         if self.properties:
-            gitlab.run(f"gcloud -q sql instances delete {self.name}", ignoreErrors=True)
+            run(f"gcloud -q sql instances delete {self.name}", ignoreErrors=True)
             print(f"Removing {self.app_name}-psql-secret.yaml")
-            gitlab.run(f"rm {self.app_name}-psql-secret.yaml", ignoreErrors=True)
+            run(f"rm {self.app_name}-psql-secret.yaml", ignoreErrors=True)
 
 
 class CloudRedis:
@@ -215,7 +256,7 @@ class CloudRedis:
     def setProperties(self):
         self.properties = None
         for i in json.loads(
-            gitlab.run(
+            run(
                 f"gcloud redis instances list --region={self.region} --format=json",
                 captureOutput=True,
             ).decode()
@@ -224,7 +265,7 @@ class CloudRedis:
                 self.properties = i
         if self.properties:
             self.authString = json.loads(
-                gitlab.run(
+                run(
                     f"gcloud redis instances get-auth-string {self.name} --region={self.region} "
                     "--format=json",
                     captureOutput=True,
@@ -238,7 +279,7 @@ class CloudRedis:
         self.mem = mem
         self.tier = tier
         self.persistence = persistence
-        gitlab.run(
+        run(
             f"gcloud -q redis instances create {self.name} --region={self.region} "
             f"--zone={self.zone} --size={self.mem} --tier={self.tier} --persistence-mode="
             f"{self.persistence} --rdb-snapshot-period=1h --connect-mode=private-service-access "
@@ -248,7 +289,7 @@ class CloudRedis:
 
     def createSecretFile(self):
         """Creates a Redis secret dictionary, then writes yaml to disk"""
-        gitlab.createYamlOnDisk(
+        createYamlOnDisk(
             f"{self.app_name}-redis-secret.yaml",
             {
                 "apiVersion": "v1",
@@ -263,14 +304,25 @@ class CloudRedis:
             },
         )
 
+    def CreateExport(self, bucket, exportName):
+        """Initiates an export operation of the redis instance to object storage"""
+        self.exportOp = json.loads(
+            run(
+                f"gcloud redis instances export gs://{bucket}/{self.name}/{exportName}.rdb"
+                + f" {self.name} --region={self.region} --async --format=json",
+                captureOutput=True,
+            ).decode()
+        )
+        print(f"Redis '{self.name}' export successfully initiated")
+
     def deleteInstance(self):
         if self.properties:
-            gitlab.run(
+            run(
                 f"gcloud -q redis instances delete {self.name} --region={self.region}",
                 ignoreErrors=True,
             )
             print(f"Removing {self.app_name}-redis-secret.yaml")
-            gitlab.run(f"rm {self.app_name}-redis-secret.yaml", ignoreErrors=True)
+            run(f"rm {self.app_name}-redis-secret.yaml", ignoreErrors=True)
 
 
 class ExternalDnsAddress:
@@ -283,7 +335,7 @@ class ExternalDnsAddress:
         self.setProperties()
 
     def setProperties(self):
-        bProperties = gitlab.run(
+        bProperties = run(
             f"gcloud compute addresses describe {self.name} --region {self.region} --format=json",
             captureOutput=True,
             ignoreErrors=True,
@@ -295,12 +347,12 @@ class ExternalDnsAddress:
 
     def createExternalAddress(self):
         """Creates an external IP address to set as the GitLab DNS IP"""
-        gitlab.run(f"gcloud compute addresses create {self.name} --region {self.region}")
+        run(f"gcloud compute addresses create {self.name} --region {self.region}")
         self.setProperties()
 
     def deleteAddress(self):
         """Deletes the external IP address"""
-        gitlab.run(
+        run(
             f"gcloud -q compute addresses delete {self.name} --region={self.region}",
             ignoreErrors=True,
         )
@@ -319,7 +371,7 @@ class RecordSet:
     def setProperties(self):
         self.properties = None
         for r in json.loads(
-            gitlab.run(
+            run(
                 f"gcloud dns record-sets list --zone={self.dns_zone} --format=json",
                 captureOutput=True,
             ).decode()
@@ -328,25 +380,14 @@ class RecordSet:
                 self.properties = r
 
     def createRecordSet(self, address):
-        gitlab.run(
+        run(
             f"gcloud dns record-sets create {self.fqdn}. --zone={self.dns_zone} --type=A "
             f"--rrdatas={address}"
         )
-        """
-        ExternalDnsAddress:
-        gitlab.run(
-            f"gcloud dns record-sets create *.{self.domain}. --zone={self.dns_zone} --type=A --ttl"
-            f"=60 --rrdatas={ExternalDnsAddress(self.app_name, self.region).properties['address']}"
-        )
-        Gitaly:
-        gitlab.run(
-            f"gcloud dns record-sets create {hostname}. --zone={zoneName} --type=A "
-            f"--rrdatas={self.properties['networkInterfaces'][0]['networkIP']}"
-        )"""
         self.setProperties()
 
     def deleteRecordSet(self):
-        gitlab.run(
+        run(
             f"gcloud dns record-sets delete {self.fqdn} --zone={self.dns_zone} --type=A",
             ignoreErrors=True,
         )
@@ -363,7 +404,7 @@ class VpcPeering:
     def setProperties(self):
         self.properties = None
         for p in json.loads(
-            gitlab.run(
+            run(
                 f"gcloud services vpc-peerings list --network={self.network} --format=json",
                 captureOutput=True,
             ).decode()
@@ -372,12 +413,12 @@ class VpcPeering:
                 self.properties = p
 
     def createPeering(self):
-        gitlab.run(
+        run(
             f"gcloud compute addresses create google-managed-services-{self.network}"
             " --global --purpose=VPC_PEERING --prefix-length=20 "
             f"--network=projects/{self.project}/global/networks/{self.network}"
         )
-        gitlab.run(
+        run(
             "gcloud services vpc-peerings connect --service=servicenetworking.googleapis.com "
             f"--ranges=google-managed-services-{self.network} --network={self.network} "
             f"--project={self.project}"
@@ -385,7 +426,7 @@ class VpcPeering:
         self.setProperties()
 
     def deletePeering(self):
-        gitlab.run(
+        run(
             f"gcloud -q compute addresses delete google-managed-services-{self.network} --global",
             ignoreErrors=True,
         )
@@ -398,7 +439,7 @@ class VpcPeering:
         # reinstate the resources. If you try to delete the connection during the waiting period,
         # the deletion fails with a message that the resources are still in use by the service
         # producer.
-        """gitlab.run(
+        """run(
             f"gcloud services vpc-peerings delete --network={self.network} "
             "--service=servicenetworking.googleapis.com",
             ignoreErrors=True,
@@ -417,7 +458,7 @@ class ServiceAccount:
     def setProperties(self):
         self.properties = None
         for sa in json.loads(
-            gitlab.run(
+            run(
                 "gcloud iam service-accounts list --format=json",
                 captureOutput=True,
             ).decode()
@@ -427,12 +468,12 @@ class ServiceAccount:
 
     def createServiceAccount(self):
         """Creates a Cloud Storage Service Account for object storage"""
-        gitlab.run(f"gcloud iam service-accounts create {self.name} --display-name {self.name}")
-        gitlab.run(
+        run(f"gcloud iam service-accounts create {self.name} --display-name {self.name}")
+        run(
             f"gcloud projects add-iam-policy-binding --role roles/storage.admin {self.project} "
             f"--member=serviceAccount:{self.name}@{self.project}.iam.gserviceaccount.com"
         )
-        gitlab.run(
+        run(
             f"gcloud iam service-accounts keys create --iam-account {self.name}@{self.project}"
             f".iam.gserviceaccount.com {self.app_name}-storage.config"
         )
@@ -440,7 +481,7 @@ class ServiceAccount:
 
     def createRegistrySecret(self):
         """Creates a Object storage bucket secret for the registry bucket"""
-        gitlab.createYamlOnDisk(
+        createYamlOnDisk(
             f"{self.app_name}-registry-storage.yaml",
             {
                 "gcs": {
@@ -454,7 +495,7 @@ class ServiceAccount:
         """Creates a Rails Object Storage secret for all non-registry buckets"""
         with open(f"{self.app_name}-storage.config", encoding="utf8") as f:
             saStr = f.read().rstrip()
-        gitlab.createYamlOnDisk(
+        createYamlOnDisk(
             f"{self.app_name}-rails.yaml",
             {
                 "provider": "Google",
@@ -465,7 +506,7 @@ class ServiceAccount:
 
     def deleteServiceAccount(self):
         if self.properties:
-            gitlab.run(
+            run(
                 f"gcloud -q iam service-accounts delete {self.properties['email']}",
                 ignoreErrors=True,
             )
@@ -475,7 +516,7 @@ class ServiceAccount:
             f"{self.app_name}-rails.yaml",
         ]:
             print(f"Removing {f}")
-            gitlab.run(f"rm {f}", ignoreErrors=True)
+            run(f"rm {f}", ignoreErrors=True)
 
 
 class ObjectBuckets:
@@ -488,9 +529,9 @@ class ObjectBuckets:
 
     def createBuckets(self):
         for bucket in self.buckets:
-            gitlab.run(f"gcloud storage buckets create gs://{bucket}", ignoreErrors=True)
+            run(f"gcloud storage buckets create gs://{bucket}", ignoreErrors=True)
 
     def deleteBuckets(self):
         for bucket in self.buckets:
-            if gitlab.run(f"gcloud storage ls gs://{bucket}/", ignoreErrors=True) is True:
-                gitlab.run(f"gcloud storage rm --recursive gs://{bucket}/", ignoreErrors=True)
+            if run(f"gcloud storage ls gs://{bucket}/", ignoreErrors=True) is True:
+                run(f"gcloud storage rm --recursive gs://{bucket}/", ignoreErrors=True)

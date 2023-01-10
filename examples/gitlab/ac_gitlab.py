@@ -149,6 +149,12 @@ def destroyGcpResources(valuesDict):
         APP_NAME,
     ).deleteRecordSet()
     gcpClasses.ComputeEngineVM(APP_NAME).deleteInstance()
+    gcpClasses.ComputeEngineDisk(
+        valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[0], APP_NAME
+    ).deleteDisk()
+    gcpClasses.ComputeEngineDisk(
+        valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[1], APP_NAME
+    ).deleteDisk()
     gcpClasses.CloudPostgreSQL(APP_NAME).deleteInstance()
     gcpClasses.CloudRedis(APP_NAME, GCP_REGION).deleteInstance()
     gcpClasses.ServiceAccount(APP_NAME, GCP_PROJECT).deleteServiceAccount()
@@ -193,13 +199,35 @@ def getWebPassword():
 def gcpDeploy(valuesDict, cloudinit):
     """Deploy the GCP hosted resources (Postgres, Redis, Buckets, SA)"""
 
+    # Create OS and data disks for Gitaly if not already present
+    osDisk = gcpClasses.ComputeEngineDisk(
+        valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[0], APP_NAME
+    )
+    if not osDisk.properties:
+        osDisk.createDisk(
+            "pd-standard",
+            "10GB",
+            GCP_ZONE,
+            imageFamily="ubuntu-2204-lts",
+            imageProject="ubuntu-os-cloud",
+        )
+    dataDisk = gcpClasses.ComputeEngineDisk(
+        valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[1], APP_NAME
+    )
+    if not dataDisk.properties:
+        dataDisk.createDisk(
+            "pd-ssd",
+            "100GB",
+            GCP_ZONE,
+        )
+
     # Create a VM instance for Gitaly if not already present
     gitaly = gcpClasses.ComputeEngineVM(APP_NAME)
     if not gitaly.properties:
         gitaly.createInstance(
-            "ubuntu-2204-lts",
-            "ubuntu-os-cloud",
             "n2-standard-4",
+            osDisk.name,
+            [dataDisk.name],
             GCP_NETWORK_NAME,
             GCP_ZONE,
             GCP_PROJECT,
@@ -393,9 +421,7 @@ if __name__ == "__main__":
                 ],
                 "authToken": {"secret": f"{APP_NAME}-gitaly-token", "key": "token"},
             },
-            "hosts": {
-                "domain": GITLAB_DOMAIN,
-            },
+            "hosts": {"domain": GITLAB_DOMAIN},
             "minio": {"enabled": False},
             "psql": {
                 "password": {
@@ -509,6 +535,9 @@ runcmd:
     elif sys.argv[1].lower() == "destroy":
         destroy(valuesDict)
 
+    elif sys.argv[1].lower() == "backup":
+        pass
+
     else:
-        print("Error: must specify 'deploy' or 'destroy' argument")
+        print("Error: must specify 'backup', 'deploy' or 'destroy' argument")
         sys.exit(1)
