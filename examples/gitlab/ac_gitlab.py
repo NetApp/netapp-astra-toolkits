@@ -23,6 +23,8 @@ import time
 import yaml
 from datetime import datetime, timedelta
 from secrets import token_urlsafe
+from tabulate import tabulate
+from termcolor import colored
 from base64 import b64encode, b64decode
 
 import gcpClasses
@@ -115,6 +117,121 @@ def getAppDict(app_name):
             for app in apps["items"]:
                 if app["name"] == app_name:
                     return app
+
+
+def assignOrAppend(bKey, abKey, backups, allBackups):
+    """For a backups dictionary, either assign the matching 'tmpstmp' backup to the existing
+    allBackups["items"] dictionary, or append in the event there is not already a match"""
+    for backup in backups:
+        append = True
+        for item in allBackups["items"]:
+            if backup.get(bKey):
+                if item.get("tmstmp") == backup[bKey].split("-")[-1]:
+                    item[abKey] = backup
+                    append = False
+            else:  # if the backup key doesn't exist in the backup dict, we do not want to append
+                append = False
+        if append:
+            allBackups["items"].append({"tmstmp": backup[bKey].split("-")[-1], abKey: backup})
+
+
+def printBackups(backups):
+    """Given a dictionary of all the backups, print out their state in a table"""
+    tabHeader = [
+        colored("Timestamp", "blue"),
+        colored("Gitaly OS Disk Backup", "blue"),
+        colored("Gitaly Git Disk Backup", "blue"),
+        colored("PostgreSQL Backup", "blue"),
+        colored("Redis Backup", "blue"),
+        colored("Astra App Backup", "blue"),
+    ]
+    tabData = []
+    for backup in backups["items"]:
+        tabData.append(
+            [
+                colored(backup["tmstmp"], "blue"),
+                backup["osBackup"]["status"]
+                if backup.get("osBackup")
+                else colored("No backup found", "yellow"),
+                backup["dataBackup"]["status"]
+                if backup.get("dataBackup")
+                else colored("No backup found", "yellow"),
+                backup["dbBackup"]["status"]
+                if backup.get("dbBackup")
+                else colored("No backup found", "yellow"),
+                backup["redisBackup"]["response"]["state"]
+                if (backup.get("redisBackup") and backup["redisBackup"].get("response"))
+                else colored("No backup found", "yellow"),
+                backup["appBackup"]["state"]
+                if backup.get("appBackup")
+                else colored("No backup found", "yellow"),
+            ]
+        )
+    print(tabulate(tabData, tabHeader, tablefmt="grid"))
+
+
+def organizeBackups(osBackups, dataBackups, dbBackups, redisBackups, appBackups):
+    """Given five lists of varying order, create a single dictionary of format:
+    {"items": [
+                    {
+                        "tmstmp": "202301111306",
+                        "osBackup": osBackupDict,
+                        "dataBackup": dataBackupDict,
+                        "dbBackup": dbBackupDict,
+                        "redisBackup": redisBackupDict,
+                        "appBackup": appBackupDict,
+                    }
+              ]
+    }"""
+    allBackups = {"items": []}
+    assignOrAppend("name", "osBackup", osBackups, allBackups)
+    assignOrAppend("name", "dataBackup", dataBackups, allBackups)
+    assignOrAppend("description", "dbBackup", dbBackups, allBackups)
+    assignOrAppend("name", "appBackup", appBackups, allBackups)
+    assignOrAppend("backupName", "redisBackup", redisBackups, allBackups)
+    return {"items": sorted(allBackups["items"], key=lambda i: i["tmstmp"])}
+
+
+def listBackups(valuesDict):
+    """Lists the backups of the main objects (astra app, psql, redis, gitaly disks)"""
+    printBackups(
+        organizeBackups(
+            gcpClasses.ComputeEngineDisk(  # os disk
+                valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[0], APP_NAME
+            ).getBackups(),
+            gcpClasses.ComputeEngineDisk(  # data/git disk
+                valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[1], APP_NAME
+            ).getBackups(),
+            gcpClasses.CloudPostgreSQL(APP_NAME).getBackups(),
+            gcpClasses.CloudRedis(APP_NAME, GCP_REGION).getBackups(
+                valuesDict["global"]["appConfig"]["backups"]["bucket"]
+            ),
+            astraSDK.backups.getBackups().main(appFilter=getAppDict(APP_NAME)["id"])["items"],
+        )
+    )
+
+
+def backup(valuesDict):
+    """Backs up GCP and Astra Kubernetes resources"""
+    tmstmp = datetime.utcnow().strftime("%Y%m%d%H%M")
+    # Instantiate the objects
+    osDisk = gcpClasses.ComputeEngineDisk(
+        valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[0], APP_NAME
+    )
+    dataDisk = gcpClasses.ComputeEngineDisk(
+        valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[1], APP_NAME
+    )
+    db = gcpClasses.CloudPostgreSQL(APP_NAME)
+    redis = gcpClasses.CloudRedis(APP_NAME, GCP_REGION)
+    app = getAppDict(APP_NAME)
+
+    # Execute async/background backups
+    # protectionID = astraSDK.backups.takeBackup(quiet=False).main(app["id"], backupName)
+    astraSDK.backups.takeBackup(quiet=False).main(app["id"], f"{APP_NAME}-{tmstmp}")
+    redis.createBackup(valuesDict["global"]["appConfig"]["backups"]["bucket"], tmstmp)
+    db.createBackup(tmstmp)
+    dataDisk.createBackup(tmstmp)
+    osDisk.createBackup(tmstmp)
 
 
 def destroyAstraResources():
@@ -274,13 +391,6 @@ def gcpDeploy(valuesDict, cloudinit):
         db.createSecretFile()
     valuesDict["global"]["psql"]["host"] = db.properties["ipAddresses"][0]["ipAddress"]
 
-    # Create a Redis instance if not already present
-    redis = gcpClasses.CloudRedis(APP_NAME, GCP_REGION)
-    if not redis.properties:
-        redis.createInstance(GCP_NETWORK_NAME, GCP_ZONE, GCP_PROJECT, "4")
-        redis.createSecretFile()
-    valuesDict["global"]["redis"]["host"] = redis.properties["host"]
-
     # Create a service account for cloud storage if not already present
     sa = gcpClasses.ServiceAccount(APP_NAME, GCP_PROJECT)
     if not sa.properties:
@@ -292,6 +402,14 @@ def gcpDeploy(valuesDict, cloudinit):
     gcpClasses.ObjectBuckets(
         APP_NAME, GCP_PROJECT, list(getBucketNames(valuesDict))
     ).createBuckets()
+
+    # Create a Redis instance if not already present
+    redis = gcpClasses.CloudRedis(APP_NAME, GCP_REGION)
+    if not redis.properties:
+        redis.createInstance(GCP_NETWORK_NAME, GCP_ZONE, GCP_PROJECT, "4")
+        redis.createSecretFile()
+        redis.addBucketIamPolicy(valuesDict["global"]["appConfig"]["backups"]["bucket"])
+    valuesDict["global"]["redis"]["host"] = redis.properties["host"]
 
 
 def applyYamlSecrets():
@@ -460,7 +578,7 @@ if __name__ == "__main__":
     }
 
     if len(sys.argv) < 2:
-        print("Error: must specify 'deploy' or 'destroy' argument")
+        print("Error: must specify 'backup', 'deploy', or 'destroy' argument")
         sys.exit(1)
 
     elif sys.argv[1].lower() == "deploy":
@@ -536,7 +654,16 @@ runcmd:
         destroy(valuesDict)
 
     elif sys.argv[1].lower() == "backup":
-        pass
+        if len(sys.argv) < 3:
+            print("Error: must specify 'backup create', or 'backup list' argument")
+            sys.exit(1)
+        if sys.argv[2].lower() == "create":
+            backup(valuesDict)
+        elif sys.argv[2].lower() == "list":
+            listBackups(valuesDict)
+        else:
+            print("Error: must specify 'backup create', or 'backup list' argument")
+            sys.exit(1)
 
     else:
         print("Error: must specify 'backup', 'deploy' or 'destroy' argument")

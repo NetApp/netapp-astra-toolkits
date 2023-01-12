@@ -7,11 +7,14 @@ This example manages a fully functional, 2,000 user, cloud-native hybrid GitLab 
 This particular example utlizes GCP and `gcloud`, however this framework could easily be ported to another cloud like AWS. The command usage is as follows:
 
 ```text
-python3 gitlab.py <arg>
+python3 ac_gitlab.py <arg>
 ```
 
 The available arguments are:
 
+* [Backup](#backup)
+  * [Create](#create)
+  * [List](#list)
 * [Deploy](#deploy)
 * [Destroy](#destroy)
 
@@ -45,12 +48,78 @@ All other resources are automatically deployed and managed by this example. Prio
 * `GITLAB_DOMAIN`: must modify to a domain name owned by you or your organization
 * `GITLAB_DNS_ZONE`: must modify to the name of the DNS Zone which manages the `GITLAB_DOMAIN`
 
+## Backup
+
+The `backup` argument currently supports creating an asyncronous backup (`create`), and listing out all existing backups (`list`).  Synchronous backups, deleting backups, and restoring from backups are currently planned but not yet implemented.
+
+* [Create](#create)
+* [List](#list)
+
+### Create
+
+To create a backup, run the following command:
+
+```text
+python3 ac_gitlab.py backup
+```
+
+This will initiate a backup of all 5 services requiring backups (Gitaly OS disk, Gitaly Git data disk, PostgreSQL, Redis, and the Astra application).  It does not yet monitor the success or failure of these backups, however you can manually check via [list](#list).
+
+```text
+$ python3 ac_gitlab.py backup  
+{"type": "application/astra-appBackup", "version": "1.1", "id": "8a17ae16-5941-4abf-bfbf-290cf69965f4", "name": "gitlab-202301122135", "bucketID": "361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac", "state": "pending", "stateUnready": [], "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/triggerType", "value": "backup"}], "creationTimestamp": "2023-01-12T21:35:42Z", "modificationTimestamp": "2023-01-12T21:35:42Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
+Redis 'gitlab-redis-demo' export successfully initiated
+Cloud SQL 'gitlab-psql-demo' backup successfully initiated
+Update in progress for gce snapshot gitlab-gitaly-git-disk-202301122135 [https://compute.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/operations/operation-1673559344198-5f217e638b38a-af4f610c-cea2f663] Use [gcloud compute operations describe] command to check the status of this operation.
+ 'gitlab-gitaly-git-disk' backup successfully initiated
+Update in progress for gce snapshot gitlab-gitaly-node1-disk-202301122135 [https://compute.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/operations/operation-1673559345866-5f217e65226c6-4fec256b-fc9085b7] Use [gcloud compute operations describe] command to check the status of this operation.
+ 'gitlab-gitaly-node1-disk' backup successfully initiated
+```
+
+### List
+
+To list all available backups, run the following command:
+
+```text
+python3 ac_gitlab.py backup list
+```
+
+Each of the 5 services requiring backups (Gitaly OS disk, Gitaly Git data disk, PostgreSQL, Redis, and the Astra application) will be displayed in a chart, along with the timestamp of the backup.
+
+```text
+$ python3 ac_gitlab.py backup list
++--------------+-------------------------+--------------------------+---------------------+----------------+--------------------+
+|    Timestamp | Gitaly OS Disk Backup   | Gitaly Git Disk Backup   | PostgreSQL Backup   | Redis Backup   | Astra App Backup   |
++==============+=========================+==========================+=====================+================+====================+
+| 202301121654 | READY                   | READY                    | SUCCESSFUL          | READY          | completed          |
++--------------+-------------------------+--------------------------+---------------------+----------------+--------------------+
+| 202301121906 | READY                   | READY                    | SUCCESSFUL          | READY          | completed          |
++--------------+-------------------------+--------------------------+---------------------+----------------+--------------------+
+| 202301122135 | READY                   | READY                    | SUCCESSFUL          | READY          | completed          |
++--------------+-------------------------+--------------------------+---------------------+----------------+--------------------+
+```
+
+In the event a particular service did not complete its backup successfully, this will be displayed in the chart.
+
+```text
+$ python3 ac_gitlab.py backup list
++--------------+-------------------------+--------------------------+---------------------+-----------------+--------------------+
+|    Timestamp | Gitaly OS Disk Backup   | Gitaly Git Disk Backup   | PostgreSQL Backup   | Redis Backup    | Astra App Backup   |
++==============+=========================+==========================+=====================+=================+====================+
+| 202301111306 | No backup found         | READY                    | SUCCESSFUL          | No backup found | completed          |
++--------------+-------------------------+--------------------------+---------------------+-----------------+--------------------+
+| 202301111421 | READY                   | READY                    | SUCCESSFUL          | No backup found | completed          |
++--------------+-------------------------+--------------------------+---------------------+-----------------+--------------------+
+| 202301111425 | READY                   | READY                    | SUCCESSFUL          | READY           | completed          |
++--------------+-------------------------+--------------------------+---------------------+-----------------+--------------------+
+```
+
 ## Deploy
 
 To deploy, simply run the following command:
 
 ```text
-python3 gitlab.py deploy
+python3 ac_gitlab.py deploy
 ```
 
 The `deploy` command carries out the following actions to deploy the cloud-native hybrid GitLab instance:
@@ -61,7 +130,7 @@ The `deploy` command carries out the following actions to deploy the cloud-nativ
 The expected output of the `deploy` command is:
 
 ```text
-$ python3 gitlab.py deploy
+$ python3 ac_gitlab.py deploy
 Creating gitlab-gitaly-cloudinit.yaml
 Created [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-east4-b/instances/gitlab-gitaly-demo].
 NAME                ZONE        MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP  STATUS
@@ -264,13 +333,13 @@ Navigate to the **admin** section to view the GitLab instance overview:
 To destroy all resources created by the [deploy](#deploy) action, run the following command:
 
 ```text
-python3 gitlab.py destroy
+python3 ac_gitlab.py destroy
 ```
 
 Use with caution, as this is a destructive action without any verification. Running this command results in the following output:
 
 ```text
-$ python3 gitlab.py destroy
+$ python3 ac_gitlab.py destroy
 Cleaning up Astra Control resources...
 App unmanaged
 Deleted [https://dns.googleapis.com/dns/v1/projects/astracontroltoolkitdev/managedZones/astrademo-net/rrsets/node1.git.astrademo.net/A].
