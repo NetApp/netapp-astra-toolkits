@@ -71,13 +71,16 @@ class ComputeEngineDisk:
 
     def createBackup(self, tmstmp):
         """Initiates a *multi-regional* disk snapshot (equivalent to a backup)"""
-        self.backupName = f"{self.name}-{tmstmp}"
         run(
-            f"gcloud compute snapshots create --async {self.backupName} --source-disk={self.name} "
-            f"--source-disk-zone={self.properties['zone'].split('/')[-1]} "
+            f"gcloud compute snapshots create --async {self.name}-{tmstmp} --source-disk="
+            f"{self.name} --source-disk-zone={self.properties['zone'].split('/')[-1]} "
             f"--storage-location={self.getMultiRegion(self.properties['zone'].split('/')[-1])}"
         )
         print(f" '{self.name}' backup successfully initiated")
+
+    def deleteBackup(self, tmstmp):
+        """Deletes a backup based on the tmstmp name"""
+        run(f"gcloud -q compute snapshots delete {self.name}-{tmstmp}", ignoreErrors=True)
 
     def getMultiRegion(self, zone):
         """Returns either 'asia', 'eu', or 'us' depending upon the zone provided"""
@@ -273,12 +276,20 @@ class CloudPostgreSQL:
 
     def createBackup(self, tmstmp):
         """Initiates a cloud SQL backup operation"""
-        self.backupName = f"{self.name}-{tmstmp}"
         run(
             f"gcloud sql backups create --async --instance={self.name} "
-            f"--description={self.backupName}"
+            f"--description={self.name}-{tmstmp}"
         )
         print(f"Cloud SQL '{self.name}' backup successfully initiated")
+
+    def deleteBackup(self, tmstmp):
+        """Deletes a cloud SQL backup"""
+        for backup in self.getBackups():
+            if tmstmp in backup["description"]:
+                run(
+                    f"gcloud -q sql backups delete {backup['id']} --instance={self.name}",
+                    ignoreErrors=True,
+                )
 
     def deleteInstance(self):
         if self.properties:
@@ -370,40 +381,48 @@ class CloudRedis:
                 ops.remove(allOps[counter])
         # 'redis operations' unfortunately do not have any information about GCS location,
         # so instead we'll manually infer based on timestamps
-        rdbs = (
-            run(
-                f"gcloud storage ls --buckets gs://{bucket}/{self.name}",
-                captureOutput=True,
+        if (
+            type(
+                rdbs := run(
+                    f"gcloud storage ls --buckets gs://{bucket}/{self.name}",
+                    captureOutput=True,
+                    ignoreErrors=True,
+                )
             )
-            .decode()
-            .rstrip()
-            .split("\n")
-        )
-        for op in ops:
-            for rdb in rdbs:
-                if abs(
-                    datetime.strptime(
-                        op["metadata"]["createTime"].split(".")[0], "%Y-%m-%dT%H:%M:%S"
-                    )
-                    - datetime.strptime(
-                        rdb.split("/")[-1].split("-")[-1].split(".")[0], "%Y%m%d%H%M"
-                    )
-                ) < timedelta(minutes=2):
-                    op["gcsLocation"] = rdb
-                    op["backupName"] = rdb.split("/")[-1].split(".")[0]
+            is not int
+        ):
+            rdbs = rdbs.decode().rstrip().split("\n")
+            for op in ops:
+                for rdb in rdbs:
+                    if abs(
+                        datetime.strptime(
+                            op["metadata"]["createTime"].split(".")[0], "%Y-%m-%dT%H:%M:%S"
+                        )
+                        - datetime.strptime(
+                            rdb.split("/")[-1].split("-")[-1].split(".")[0], "%Y%m%d%H%M"
+                        )
+                    ) < timedelta(minutes=2):
+                        op["gcsLocation"] = rdb
+                        op["backupName"] = rdb.split("/")[-1].split(".")[0]
         return ops
 
     def createBackup(self, bucket, tmstmp):
         """Initiates an export operation of the redis instance to object storage"""
-        self.backupName = f"{self.name}-{tmstmp}"
         self.exportOp = json.loads(
             run(
-                f"gcloud redis instances export gs://{bucket}/{self.name}/{self.backupName}.rdb"
+                f"gcloud redis instances export gs://{bucket}/{self.name}/{self.name}-{tmstmp}.rdb"
                 + f" {self.name} --region={self.region} --async --format=json",
                 captureOutput=True,
             ).decode()
         )
         print(f"Redis '{self.name}' export successfully initiated")
+
+    def deleteBackup(self, bucket, tmstmp):
+        """Deletes a Redis export (backup) from object storage bucket"""
+        run(
+            f"gcloud storage rm gs://{bucket}/{self.name}/{self.name}-{tmstmp}.rdb",
+            ignoreErrors=True,
+        )
 
     def deleteInstance(self):
         if self.properties:

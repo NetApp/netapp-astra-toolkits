@@ -131,7 +131,7 @@ def assignOrAppend(bKey, abKey, backups, allBackups):
                     append = False
             else:  # if the backup key doesn't exist in the backup dict, we do not want to append
                 append = False
-        if append:
+        if append and backup.get(bKey):
             allBackups["items"].append({"tmstmp": backup[bKey].split("-")[-1], abKey: backup})
 
 
@@ -192,6 +192,26 @@ def organizeBackups(osBackups, dataBackups, dbBackups, redisBackups, appBackups)
     return {"items": sorted(allBackups["items"], key=lambda i: i["tmstmp"])}
 
 
+def destroyBackup(valuesDict, tmstmp):
+    """Destroy the backups of the services based on the provided 'tmpstmp'"""
+    gcpClasses.ComputeEngineDisk(  # os disk
+        valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[0], APP_NAME
+    ).deleteBackup(tmstmp)
+    gcpClasses.ComputeEngineDisk(  # data/git disk
+        valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[1], APP_NAME
+    ).deleteBackup(tmstmp)
+    gcpClasses.CloudPostgreSQL(APP_NAME).deleteBackup(tmstmp)
+    gcpClasses.CloudRedis(APP_NAME, GCP_REGION).deleteBackup(
+        valuesDict["global"]["appConfig"]["backups"]["bucket"],
+        tmstmp,
+    )
+    if app := getAppDict(APP_NAME):
+        for backup in astraSDK.backups.getBackups().main(appFilter=app["id"])["items"]:
+            if tmstmp in backup["name"]:
+                astraSDK.backups.destroyBackup(quiet=False).main(app["id"], backup["id"])
+                print(f"Astra backup {backup['id']} of app {app['id']} destroyd")
+
+
 def listBackups(valuesDict):
     """Lists the backups of the main objects (astra app, psql, redis, gitaly disks)"""
     printBackups(
@@ -206,7 +226,9 @@ def listBackups(valuesDict):
             gcpClasses.CloudRedis(APP_NAME, GCP_REGION).getBackups(
                 valuesDict["global"]["appConfig"]["backups"]["bucket"]
             ),
-            astraSDK.backups.getBackups().main(appFilter=getAppDict(APP_NAME)["id"])["items"],
+            astraSDK.backups.getBackups().main(appFilter=app["id"])["items"]
+            if (app := getAppDict(APP_NAME))
+            else [],
         )
     )
 
@@ -226,7 +248,6 @@ def backup(valuesDict):
     app = getAppDict(APP_NAME)
 
     # Execute async/background backups
-    # protectionID = astraSDK.backups.takeBackup(quiet=False).main(app["id"], backupName)
     astraSDK.backups.takeBackup(quiet=False).main(app["id"], f"{APP_NAME}-{tmstmp}")
     redis.createBackup(valuesDict["global"]["appConfig"]["backups"]["bucket"], tmstmp)
     db.createBackup(tmstmp)
@@ -258,7 +279,21 @@ def destroyAstraResources():
 
 
 def destroyGcpResources(valuesDict):
-    """Destroy Cloud SQL, Redis, Buckets, and storage service account"""
+    """Destroy backups, Cloud SQL, Redis, Buckets, and storage service account"""
+    for backup in organizeBackups(
+        gcpClasses.ComputeEngineDisk(  # os disk
+            valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[0], APP_NAME
+        ).getBackups(),
+        gcpClasses.ComputeEngineDisk(  # data/git disk
+            valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[1], APP_NAME
+        ).getBackups(),
+        gcpClasses.CloudPostgreSQL(APP_NAME).getBackups(),
+        gcpClasses.CloudRedis(APP_NAME, GCP_REGION).getBackups(
+            valuesDict["global"]["appConfig"]["backups"]["bucket"]
+        ),
+        [],
+    )["items"]:
+        destroyBackup(valuesDict, backup["tmstmp"])
     gcpClasses.RecordSet(
         GCP_REGION,
         valuesDict["global"]["gitaly"]["external"][0]["hostname"],
@@ -655,10 +690,17 @@ runcmd:
 
     elif sys.argv[1].lower() == "backup":
         if len(sys.argv) < 3:
-            print("Error: must specify 'backup create', or 'backup list' argument")
+            print(
+                "Error: must specify 'backup create', 'backup destroy', or 'backup list' argument"
+            )
             sys.exit(1)
         if sys.argv[2].lower() == "create":
             backup(valuesDict)
+        elif sys.argv[2].lower() == "destroy":
+            if len(sys.argv) < 4:
+                print("Error: must specify 'backup destroy <timestamp>' argument")
+                sys.exit(1)
+            destroyBackup(valuesDict, sys.argv[3])
         elif sys.argv[2].lower() == "list":
             listBackups(valuesDict)
         else:

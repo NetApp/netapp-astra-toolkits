@@ -13,8 +13,9 @@ python3 ac_gitlab.py <arg>
 The available arguments are:
 
 * [Backup](#backup)
-  * [Create](#create)
-  * [List](#list)
+  * [Create](#backup-create)
+  * [Destroy](#backup-destroy)
+  * [List](#backup-list)
 * [Deploy](#deploy)
 * [Destroy](#destroy)
 
@@ -50,12 +51,13 @@ All other resources are automatically deployed and managed by this example. Prio
 
 ## Backup
 
-The `backup` argument currently supports creating an asyncronous backup (`create`), and listing out all existing backups (`list`).  Synchronous backups, deleting backups, and restoring from backups are currently planned but not yet implemented.
+The `backup` argument currently supports creating an asyncronous backup (`create`), destruction (`destroy`), and listing out all existing backups (`list`).  Synchronous backups, and restoring from backups are currently planned but not yet implemented.
 
-* [Create](#create)
-* [List](#list)
+* [Create](#backup-create)
+* [Destroy](#backup-destroy)
+* [List](#backup-list)
 
-### Create
+### Backup Create
 
 To create a backup, run the following command:
 
@@ -66,7 +68,7 @@ python3 ac_gitlab.py backup
 This will initiate a backup of all 5 services requiring backups (Gitaly OS disk, Gitaly Git data disk, PostgreSQL, Redis, and the Astra application).  It does not yet monitor the success or failure of these backups, however you can manually check via [list](#list).
 
 ```text
-$ python3 ac_gitlab.py backup  
+$ python3 ac_gitlab.py backup
 {"type": "application/astra-appBackup", "version": "1.1", "id": "8a17ae16-5941-4abf-bfbf-290cf69965f4", "name": "gitlab-202301122135", "bucketID": "361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac", "state": "pending", "stateUnready": [], "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/triggerType", "value": "backup"}], "creationTimestamp": "2023-01-12T21:35:42Z", "modificationTimestamp": "2023-01-12T21:35:42Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 Redis 'gitlab-redis-demo' export successfully initiated
 Cloud SQL 'gitlab-psql-demo' backup successfully initiated
@@ -76,7 +78,29 @@ Update in progress for gce snapshot gitlab-gitaly-node1-disk-202301122135 [https
  'gitlab-gitaly-node1-disk' backup successfully initiated
 ```
 
-### List
+### Backup Destroy
+
+To destroy a backup, run the following command:
+
+```text
+python3 ac_gitlab.py backup destroy <timestamp>
+```
+
+The `<timestamp>` value can be gathered from a [backup list](#list) command.
+
+```text
+$ python3 ac_gitlab.py backup destroy 202301131944
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/snapshots/gitlab-gitaly-node1-disk-202301131944].
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/snapshots/gitlab-gitaly-git-disk-202301131944].
+Deleting backup run...done.
+Deleted backup run [1673639090208].
+Removing objects:
+⠹Removing gs://astracontroltoolkitdev-gitlab-backup-storage/gitlab-redis-demo/gitlab-redis-demo-202301131944.rdb...
+  Completed 1/1
+Astra backup 2863bc3c-d167-4321-a508-0dfdf2027868 of app 650ecc00-e245-4da8-a521-d204c506ba6e destroyd
+```
+
+### Backup List
 
 To list all available backups, run the following command:
 
@@ -330,7 +354,7 @@ Navigate to the **admin** section to view the GitLab instance overview:
 
 ## Destroy
 
-To destroy all resources created by the [deploy](#deploy) action, run the following command:
+To destroy all resources created by the [deploy](#deploy) action, and any underlying backups, run the following command:
 
 ```text
 python3 ac_gitlab.py destroy
@@ -341,17 +365,34 @@ Use with caution, as this is a destructive action without any verification. Runn
 ```text
 $ python3 ac_gitlab.py destroy
 Cleaning up Astra Control resources...
+Sleeping for 60 seconds for backup/snapshot cleanup...
 App unmanaged
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/snapshots/gitlab-gitaly-node1-disk-202301131950].
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/snapshots/gitlab-gitaly-git-disk-202301131950].
+Deleting backup run...done.
+Deleted backup run [1673639449743].
+Removing objects:
+Removing gs://astracontroltoolkitdev-gitlab-backup-storage/gitlab-redis-demo/gitlab-redis-demo-202301131950.rdb...
+  Completed 1/1
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/snapshots/gitlab-gitaly-node1-disk-202301132001].
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/snapshots/gitlab-gitaly-git-disk-202301132001].
+Deleting backup run...done.
+Deleted backup run [1673640080257].
+Removing objects:
+Removing gs://astracontroltoolkitdev-gitlab-backup-storage/gitlab-redis-demo/gitlab-redis-demo-202301132001.rdb...
+  Completed 1/1
 Deleted [https://dns.googleapis.com/dns/v1/projects/astracontroltoolkitdev/managedZones/astrademo-net/rrsets/node1.git.astrademo.net/A].
 Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-east4-b/instances/gitlab-gitaly-demo].
 Removing gitlab-gitaly-cloudinit.yaml
 Removing gitlab-gitaly-secret.yaml
 Removing gitlab-shell-secret.yaml
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-east4-b/disks/gitlab-gitaly-node1-disk].
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-east4-b/disks/gitlab-gitaly-git-disk].
 Deleting Cloud SQL instance...done.
 Deleted [https://sqladmin.googleapis.com/sql/v1beta4/projects/astracontroltoolkitdev/instances/gitlab-psql-demo].
 Removing gitlab-psql-secret.yaml
 Delete request issued for: [gitlab-redis-demo]
-Waiting for operation [projects/astracontroltoolkitdev/locations/us-east4/operations/operation-1673039349942-5f19ed42607a3-88499603-aa44d5a3] to complete...done.
+Waiting for operation [projects/astracontroltoolkitdev/locations/us-east4/operations/operation-1673640917235-5f22ae45a78f1-0f6a6157-2f79e01b] to complete...done.
 Deleted instance [gitlab-redis-demo].
 Removing gitlab-redis-secret.yaml
 deleted service account [gitlab-gcs@astracontroltoolkitdev.iam.gserviceaccount.com]
@@ -361,17 +402,17 @@ Removing gitlab-rails.yaml
 Removing objects:
   Completed 0
 Removing Buckets:
-⠹Removing gs://astracontroltoolkitdev-gitlab-artifacts-storage/...
+Removing gs://astracontroltoolkitdev-gitlab-artifacts-storage/...
   Completed 1/1
 Removing objects:
   Completed 0
 Removing Buckets:
-⠹Removing gs://astracontroltoolkitdev-gitlab-backup-storage/...
+Removing gs://astracontroltoolkitdev-gitlab-backup-storage/...
   Completed 1/1
 Removing objects:
   Completed 0
 Removing Buckets:
-⠹Removing gs://astracontroltoolkitdev-gitlab-tmp-storage/...
+Removing gs://astracontroltoolkitdev-gitlab-tmp-storage/...
   Completed 1/1
 Removing objects:
   Completed 0
@@ -381,37 +422,40 @@ Removing Buckets:
 Removing objects:
   Completed 0
 Removing Buckets:
-⠹Removing gs://astracontroltoolkitdev-gitlab-externaldiffs-storage/...
+Removing gs://astracontroltoolkitdev-gitlab-externaldiffs-storage/...
   Completed 1/1
 Removing objects:
   Completed 0
 Removing Buckets:
-⠹Removing gs://astracontroltoolkitdev-gitlab-lfs-storage/...
+Removing gs://astracontroltoolkitdev-gitlab-lfs-storage/...
   Completed 1/1
 Removing objects:
   Completed 0
 Removing Buckets:
-⠹Removing gs://astracontroltoolkitdev-gitlab-packages-storage/...
+Removing gs://astracontroltoolkitdev-gitlab-packages-storage/...
   Completed 1/1
 Removing objects:
   Completed 0
 Removing Buckets:
-⠹Removing gs://astracontroltoolkitdev-gitlab-pseudonymizer-storage/...
+Removing gs://astracontroltoolkitdev-gitlab-pseudonymizer-storage/...
   Completed 1/1
 Removing objects:
   Completed 0
 Removing Buckets:
-⠹Removing gs://astracontroltoolkitdev-gitlab-tfstate-storage/...
+Removing gs://astracontroltoolkitdev-gitlab-tfstate-storage/...
+  Completed 1/1
+gs://astracontroltoolkitdev-gitlab-uploads-storage/user/
+Removing objects:
+Removing gs://astracontroltoolkitdev-gitlab-uploads-storage/user/avatar/2/alert-bot.png#1673409693427564...
+Removing gs://astracontroltoolkitdev-gitlab-uploads-storage/user/avatar/3/support-bot.png#1673409699914416...
+  Completed 2/2
+Removing Buckets:
+Removing gs://astracontroltoolkitdev-gitlab-uploads-storage/...
   Completed 1/1
 Removing objects:
   Completed 0
 Removing Buckets:
-⠹Removing gs://astracontroltoolkitdev-gitlab-uploads-storage/...
-  Completed 1/1
-Removing objects:
-  Completed 0
-Removing Buckets:
-⠹Removing gs://astracontroltoolkitdev-gitlab-registry-storage/...
+Removing gs://astracontroltoolkitdev-gitlab-registry-storage/...
   Completed 1/1
 Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/addresses/google-managed-services-gke-prod-network].
 Deleted [https://dns.googleapis.com/dns/v1/projects/astracontroltoolkitdev/managedZones/astrademo-net/rrsets/%2A.astrademo.net/A].
