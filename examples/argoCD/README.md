@@ -305,7 +305,7 @@ Argo CD is [unopinionated](https://argo-cd.readthedocs.io/en/stable/operator-man
 
 Since this demo is focused on resource hooks and automatic application data protection, we’re going to sidestep requiring setup and configuration of a secret manager.  However, it’s a bad practice to put secrets into a git repository (production or not), so we’ll manually define our secrets outside of Argo CD and apply them through **kubectl**.
 
-We’ll first create our Astra Control API config file as described earlier.  Run the following commands, but be sure to substitute in your Astra Control account ID, [API authorization token](https://docs.netapp.com/us-en/astra-automation/get-started/get_api_token.html#create-an-astra-api-token), and project name.  If you’re not sure of these values, additional information can be found in the [authentication section of the main readme](../../README.md##authentication) page on GitHub.
+We’ll first create our Astra Control API config file as described earlier.  Run the following commands, but be sure to substitute in your Astra Control account ID, [API authorization token](https://docs.netapp.com/us-en/astra-automation/get-started/get_api_token.html#create-an-astra-api-token), and project name.  If you’re not sure of these values, additional information can be found in the [authentication section of the main readme](../../README.md#authentication) page on GitHub.
 
 ```text
 API_TOKEN=NL1bSP5712pFCUvoBUOi2JX4xUKVVtHpW6fJMo0bRa8=
