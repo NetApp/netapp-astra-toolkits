@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: astra-manage-app
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookFailed
+spec:
+  template:
+    spec:
+      volumes:
+        - name: astra-control-config
+          secret:
+            secretName: astra-control-config
+      containers:
+      - name: alpine-actoolkit
+        image: alpine:latest
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - >
+          APPNAME=wordpress-argocd &&
+          NAMESPACE=wordpress &&
+          apk add py3-pip jq &&
+          python3 -m pip install --upgrade pip &&
+          python3 -m pip install actoolkit==2.4.0 &&
+          for i in `actoolkit -o json list namespaces -m 120 -f $NAMESPACE | jq -r '.items[].clusterID'`;
+          do
+            echo actoolkit: managing app $APPNAME in namespace $NAMESPACE on cluster $i;
+            actoolkit manage app $APPNAME $NAMESPACE $i;
+            sleep 5;
+          done &&
+          for j in `actoolkit -o json list apps -f $APPNAME | jq -r '.items[].id'`;
+          do
+            echo actoolkit: creating protection policy for $APPNAME / $j;
+            actoolkit create protection $j -g hourly  -m 0      -b 1 -s 1;
+            actoolkit create protection $j -g daily   -H 0      -b 2 -s 2;
+            actoolkit create protection $j -g weekly  -H 0 -W 1 -b 2 -s 2;
+            actoolkit create protection $j -g monthly -H 0 -M 1 -b 2 -s 2;
+          done
+        volumeMounts:
+          - mountPath: /etc/astra-toolkits
+            name: astra-control-config
+            readOnly: true
+      restartPolicy: Never
+  backoffLimit: 1
