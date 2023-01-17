@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: presync-astra-snapshot-
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  template:
+    spec:
+      volumes:
+        - name: astra-control-config
+          secret:
+            secretName: astra-control-config
+      containers:
+      - name: alpine-actoolkit
+        image: alpine:latest
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - >
+          APPNAME=wordpress-argocd &&
+          apk add py3-pip jq &&
+          python3 -m pip install --upgrade pip &&
+          python3 -m pip install actoolkit==2.4.0 &&
+          for i in `actoolkit -o json list apps -f $APPNAME | jq -r '.items[].id'`;
+          do
+            echo actoolkit: snapshotting app $APPNAME / $i;
+            actoolkit create snapshot $i argo-presync-`date "+%Y%m%d%H%M%S"`;
+          done
+        volumeMounts:
+          - mountPath: /etc/astra-toolkits
+            name: astra-control-config
+            readOnly: true
+      restartPolicy: Never
+  backoffLimit: 1
