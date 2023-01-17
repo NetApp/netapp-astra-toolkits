@@ -1,5 +1,17 @@
 # Extending GitOps Patterns to Application Data Protection with NetApp Astra Control
 
+* [Prerequisites](#prerequisites)
+* [Argo CD Deployment](#argo-cd-deployment)
+* [GitHub Repository Setup](#github-repository-setup)
+* [Repository Contents](#repository-contents)
+* [Secret Creation](#secret-creation)
+* [Argo CD Application Creation](#argo-cd-application-creation)
+* [Application Configuration](#application-configuration)
+* [Breaking Change](#breaking-change)
+* [Application Restoration](#application-restoration)
+* [Application Verification](#application-verification)
+* [Conclusion](#conclusion)
+
 Many organizations have been extremely successful extending the DevOps operational framework to cover application infrastructure by utilizing git as the single source of truth.  This process has been coined “GitOps” and has a wide array of benefits, including increased productivity, improved security and compliance, increased reliability, and a built-in audit trail.
 
 [Argo CD](https://argoproj.github.io/cd/) is a very popular GitOps tool in the market today, is entirely open source and currently a [CNCF incubating project](https://landscape.cncf.io/?selected=argo).  Argo CD is extremely easy to set up, has a robust built-in GUI, and is great at abstracting the complexities of Kubernetes.  Developers only need to commit code to their git repository, and Argo CD picks up on those changes and automatically syncs them to the relevant infrastructure.
@@ -68,7 +80,7 @@ _Create New Fork_
 In your workstation CLI, clone the repository (be sure to update the username) and change into the new directory.
 
 ```text
-git clone https://github.com/&lt;YourUsername>/argocd-astra-demo.git
+git clone https://github.com/<YourUsername>/argocd-astra-demo.git
 cd argocd-astra-demo
 ```
 
@@ -86,8 +98,8 @@ Within the **wordpress/** directory of our repo, you’ll find four Kubernetes Y
   * A **service** of type **ClusterIP**
   * A **persistent volume claim** with an access mode of **ReadWriteOnce**
   * A **deployment** with 2 replicas of the mysql:5.6 container image
-* **postsync-hook.yaml**: a Kubernetes **Job** which defines an [Argo CD resource hook](https://argo-cd.readthedocs.io/en/stable/user-guide/resource_hooks/), and is run _a single time_ _after_ the application _initially_ syncs
-* **presync-hook.yaml**: a Kubernetes **Job** which defines another resource hook, and runs _every time_ _prior_ to the application syncing
+* **postsync-hook.yaml**: a Kubernetes **Job** which defines an [Argo CD resource hook](https://argo-cd.readthedocs.io/en/stable/user-guide/resource_hooks/), and is run _a single time after_ the application _initially_ syncs
+* **presync-hook.yaml**: a Kubernetes **Job** which defines another resource hook, and runs _every time prior_ to the application syncing
 
 The Wordpress and MySQL definitions should be quite straightforward, but let’s investigate the Argo CD resource hooks in greater detail.  Here’s the entire contents of the PostSync hook for posterity:
 
@@ -175,7 +187,7 @@ spec:
             readOnly: true
 ```
 
-This references a Kubernetes secret that we’ll be creating momentarily, which contains the account ID, API token, and name/FQDN of your Astra Control instance mentioned in the prerequisites section.  It mounts the secret to **/etc/astra-toolkits** which is [one of the directories](https://github.com/NetApp/netapp-astra-toolkits/tree/main/docs/astrasdk/baseClasses#getconfig) that the [Astra Control toolkit](https://github.com/NetApp/netapp-astra-toolkits) reads from.
+This references a Kubernetes secret that we’ll be creating momentarily, which contains the account ID, API token, and name/FQDN of your Astra Control instance mentioned in the prerequisites section.  It mounts the secret to **/etc/astra-toolkits** which is [one of the directories](../../docs/astrasdk/common#getconfig) that the [Astra Control toolkit](https://github.com/NetApp/netapp-astra-toolkits) reads from.
 
 Finally, we have the main container definition:
 
@@ -293,12 +305,12 @@ Argo CD is [unopinionated](https://argo-cd.readthedocs.io/en/stable/operator-man
 
 Since this demo is focused on resource hooks and automatic application data protection, we’re going to sidestep requiring setup and configuration of a secret manager.  However, it’s a bad practice to put secrets into a git repository (production or not), so we’ll manually define our secrets outside of Argo CD and apply them through **kubectl**.
 
-We’ll first create our Astra Control API config file as described earlier.  Run the following commands, but be sure to substitute in your Astra Control account ID, [API authorization token](https://docs.netapp.com/us-en/astra-automation/get-started/get_api_token.html#create-an-astra-api-token), and project name.  If you’re not sure of these values, additional information can be found in the [readme of the Astra Control toolkits](https://github.com/NetApp/netapp-astra-toolkits) page on GitHub.
+We’ll first create our Astra Control API config file as described earlier.  Run the following commands, but be sure to substitute in your Astra Control account ID, [API authorization token](https://docs.netapp.com/us-en/astra-automation/get-started/get_api_token.html#create-an-astra-api-token), and project name.  If you’re not sure of these values, additional information can be found in the [authentication section of the main readme](../../README.md##authentication) page on GitHub.
 
 ```text
 API_TOKEN=NL1bSP5712pFCUvoBUOi2JX4xUKVVtHpW6fJMo0bRa8=
 ACCOUNT_ID=12345678-abcd-4efg-1234-567890abcdef
-ASTRA_PROJECT=demo
+ASTRA_PROJECT=astra.netapp.io
 cat <<EOF > config.yaml
 headers:
   Authorization: Bearer $API_TOKEN
@@ -314,7 +326,7 @@ $ cat config.yaml
 headers:
   Authorization: Bearer NL1bSP5712pFCUvoBUOi2JX4xUKVVtHpW6fJMo0bRa8=
 uid: 12345678-abcd-4efg-1234-567890abcdef
-astra_project: demo
+astra_project: astra.netapp.io
 ```
 
 Next, we’re going to create our MySQL database password, which can be any value you desire.
@@ -393,7 +405,7 @@ _Application Definition_
 Argo CD will now have a **wordpress-demo** tile on the main application page.  **Click on the tile** to view the application in detail.
 
 ![alt_text](images/08-application-tile.png "wordpress-demo Application Tile")
-**_wordpress-demo Application Tile_**
+_wordpress-demo Application Tile_
 
 We should see our application status as **OutofSync** and in a **Syncing** state.  Since we have a PreSync hook defined, this will be the first thing that is run.  However as detailed earlier, the for loop within the PreSync hook is only looking for managed applications, and since our app is not managed yet this hook will not take any real action this first time.
 
@@ -405,7 +417,7 @@ After a few more moments, the PreSync hook will “complete,” and the rest of 
 ![alt_text](images/10-app-deployment.png "Application Deployment")
 _Application Deployment_
 
-After a couple of minutes, all the Wordpress Kubernetes resources should be in a healthy state, and the **astra-manage-app** PostSync hook should appear.  Click on the **pod tile** that’s associated with the astra-manage-app job to expand the info.
+After a couple of minutes, all the Wordpress Kubernetes resources should be in a healthy state, and the **astra-manage-app** PostSync hook should appear.  Click on the **pod tile** that’s associated with the **astra-manage-app** job to expand the info.
 
 ![alt_text](images/11-manage-app-hook.png "Manage App PostSync Hook")
 _Manage App PostSync Hook_
@@ -479,14 +491,14 @@ Our next step is to see the PreSync hook in action, which we’ll do by pushing 
 
 Please note that in a production environment, these types of drastic changes are unlikely to make it past the review process, however smaller, harder-to-detect changes can still have drastic consequences where data protection is required to recover the application.
 
-In your terminal, ensure you’re still in the argocd-astra-demo project root, then remove the mysql.yaml file from the wordpress/ directory, and add the wordpress directory to our commit list.
+In your terminal, ensure you’re still in the **argocd-astra-demo** project root, then remove the **mysql.yaml** file from the **wordpress/** directory, and add the **wordpress** directory to our commit list.
 
 ```text
 mv wordpress/mysql.yaml .
 git add wordpress/
 ```
 
-If done correctly, running a **git status** should show our deleted file ready to be committed, and several untracked files, which we will not commit.
+If done correctly, running a **git status** should show our deleted file ready to be committed, and several untracked files, which we will _not_ commit.
 
 ```text
 $ git status
@@ -693,6 +705,6 @@ NetApp Astra Control provides robust application-aware disaster recovery for all
 * Restored our Wordpress application from an automated PreSync hook snapshot
 * Validated our restored application was fully functional
 
-If you’re looking to make use of Argo CD resource hooks in conjunction with Astra Control for a unique use case, the most critical component to understand are the [PreSync](https://github.com/MichaelHaigh/argocd-astra-demo/blob/main/wordpress/presync-hook.yaml) and [PostSync](https://github.com/MichaelHaigh/argocd-astra-demo/blob/main/wordpress/postsync-hook.yaml) resource hooks, in particular the **for loops** within the **args** section of the container spec.  If you’re looking for more information on how to construct these commands, please see the [toolkit documentation](https://github.com/NetApp/netapp-astra-toolkits/tree/main/docs/toolkit), specifically the [json section](https://github.com/NetApp/netapp-astra-toolkits/tree/main/docs/toolkit/optionalargs#json) in the optional arguments page.
+If you’re looking to make use of Argo CD resource hooks in conjunction with Astra Control for a unique use case, the most critical component to understand are the [PreSync](https://github.com/MichaelHaigh/argocd-astra-demo/blob/main/wordpress/presync-hook.yaml) and [PostSync](https://github.com/MichaelHaigh/argocd-astra-demo/blob/main/wordpress/postsync-hook.yaml) resource hooks, in particular the **for loops** within the **args** section of the container spec.  If you’re looking for more information on how to construct these commands, please see the [toolkit documentation](../../docs#toolkit-functions), specifically the [json section](https://github.com/NetApp/netapp-astra-toolkits/tree/main/docs/toolkit/optionalargs#json) in the optional arguments page.
 
 Thanks for reading!
