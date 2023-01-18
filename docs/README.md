@@ -2,7 +2,10 @@
 
 ## Installation and Configuration
 
-See [the main README](../README.md) for information on how to install the NetApp Astra Control SDK.
+See [the main README](../README.md) for information on how to install the NetApp Astra Control SDK, and/or the following videos:
+
+* [Python SDK Installation](https://www.youtube.com/watch?v=r6lBQ2I7O7M)
+* [Astra Control API Credentials](https://www.youtube.com/watch?v=o-q-q_41A5A)
 
 ## Astra SDK Classes
 

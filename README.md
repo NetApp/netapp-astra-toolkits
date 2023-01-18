@@ -18,7 +18,9 @@ The NetApp Astra Control SDK can be utilized three different ways, depending upo
 1. **DevOps / GitOps**: if utilizing the toolkit in a software pipeline, the [python package](#2-python-package-installation) ([actoolkit](https://pypi.org/project/actoolkit/)) is *typically* the most straightforward method of consumption. A simple `pip install` command results in toolkit.py (as `actoolkit`) being available in the user's PATH and all python-related dependencies installed.  It also installs the `astraSDK/` library for use in custom scripts.
 1. **Developer**: if you plan to modify the SDK for internal consumption, [manual installation](#3-manual-installation) is recommended by cloning (or forking) this repository and working in your local development environment. Ensure that all dependencies mentioned below are met.
 
-This [Python SDK Installation video](https://www.youtube.com/watch?v=r6lBQ2I7O7M) walks through all three use cases / installation methods.
+This [Python SDK Installation video](https://www.youtube.com/watch?v=r6lBQ2I7O7M) walks through all three use cases / installation methods:
+
+[![Python SDK Installation](https://img.youtube.com/vi/r6lBQ2I7O7M/maxresdefault.jpg)](https://youtu.be/r6lBQ2I7O7M)
 
 ### Prerequisites
 
@@ -59,6 +61,10 @@ uid: <Account-ID-From-API-Access-Page>
 astra_project: <Shortname-or-FQDN>
 verifySSL: <True-or-False>
 ```
+
+This [Astra Control API Credentials](https://www.youtube.com/watch?v=o-q-q_41A5A) video walks through creating the `config.yaml` file:
+
+[![Python SDK Installation](https://img.youtube.com/vi/o-q-q_41A5A/maxresdefault.jpg)](https://youtu.be/o-q-q_41A5A)
 
 Create (if using `actoolkit`) or edit (if using the git repo) the `config.yaml` file in one of the above mentioned locations with your NetApp Astra Control account information:
 
