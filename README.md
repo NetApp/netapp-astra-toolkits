@@ -4,7 +4,7 @@ The NetApp Astra Control Python SDK is designed to provide guidance for working 
 
 You can use the `astraSDK/` library out of the box, and as a set of example recommended code and processes, "cookbook" style. The `toolkit.py` script provides a command line interface to interact with Astra Control with built-in guardrails, and since it utilizes `astraSDK/` it can provide additional context around the requirements of the astraSDK classes.
 
-![Astra SDK Component and Installation Diagram](/docs/install/img/components-install.png)
+![Astra SDK Component and Installation Diagram](/docs/install/img/components-install.png | width=200)
 
 When using `toolkit.py`/`actoolkit` in automation, it is **highly** recommended to tie your workflows to a specific [tag](https://github.com/NetApp/netapp-astra-toolkits/tags) or [release](https://pypi.org/project/actoolkit/#history) (as functionality may change over time), and be sure to thoroughly test all workflows to ensure expected behavior.
 
@@ -64,7 +64,7 @@ verifySSL: <True-or-False>
 
 This [Astra Control API Credentials](https://www.youtube.com/watch?v=o-q-q_41A5A) video walks through creating the `config.yaml` file:
 
-[![Python SDK Installation](https://img.youtube.com/vi/o-q-q_41A5A/maxresdefault.jpg)](https://youtu.be/o-q-q_41A5A)
+[![Python SDK Installation](https://img.youtube.com/vi/o-q-q_41A5A/maxresdefault.jpg)](https://youtu.be/o-q-q_41A5A | width=200)
 
 Create (if using `actoolkit`) or edit (if using the git repo) the `config.yaml` file in one of the above mentioned locations with your NetApp Astra Control account information:
 
