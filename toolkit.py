@@ -344,15 +344,15 @@ class ToolKit:
         else:
             print("Submitting clone failed.")
 
-    def doProtectionTask(self, protectionType, appID, name, background, pollTimer):
+    def doProtectionTask(self, protectionType, appID, name, background, pollTimer, quiet, verbose):
         """Take a snapshot/backup of appID giving it name <name>
         Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
         if protectionType == "backup":
-            protectionID = astraSDK.backups.takeBackup().main(appID, name)
+            protectionID = astraSDK.backups.takeBackup(quiet=quiet, verbose=verbose).main(appID, name)
         elif protectionType == "snapshot":
-            protectionID = astraSDK.snapshots.takeSnap().main(appID, name)
+            protectionID = astraSDK.snapshots.takeSnap(quiet=quiet, verbose=verbose).main(appID, name)
         if protectionID == False:
-            sys.exit(1)
+            return False
 
         print(f"Starting {protectionType} of {appID}")
         if background:
@@ -538,13 +538,13 @@ def main():
                     or sys.argv[verbPosition + 1] == "snapshot"
                 )
             ):
-                apps = astraSDK.apps.getApps().main()
-                for app in apps["items"]:
-                    appList.append(app["id"])
+                if apps := astraSDK.apps.getApps().main():
+                    for app in apps["items"]:
+                        appList.append(app["id"])
                 if sys.argv[verbPosition + 1] == "backup":
-                    bucketDict = astraSDK.buckets.getBuckets(quiet=True).main()
-                    for bucket in bucketDict["items"]:
-                        bucketList.append(bucket["id"])
+                    if bucketDict := astraSDK.buckets.getBuckets(quiet=True).main():
+                        for bucket in bucketDict["items"]:
+                            bucketList.append(bucket["id"])
                     # Generate snapshotList if an appID was provided
                     if len(sys.argv) - verbPosition > 2 and sys.argv[verbPosition + 2] in appList:
                         snapshotDict = astraSDK.snapshots.getSnaps(quiet=True).main(
@@ -601,16 +601,17 @@ def main():
                 and len(sys.argv) - verbPosition >= 2
                 and sys.argv[verbPosition + 1] == "assets"
             ):
-                for app in astraSDK.apps.getApps().main()["items"]:
-                    appList.append(app["id"])
+                if apps := astraSDK.apps.getApps().main():
+                    for app in apps["items"]:
+                        appList.append(app["id"])
 
             elif (verbs["manage"] or verbs["define"]) and len(sys.argv) - verbPosition >= 2:
                 if sys.argv[verbPosition + 1] == "app":
-                    namespaceDict = astraSDK.namespaces.getNamespaces().main()
-                    for namespace in namespaceDict["items"]:
-                        namespaceList.append(namespace["name"])
-                        clusterList.append(namespace["clusterID"])
-                    clusterList = list(set(clusterList))
+                    if namespaceDict := astraSDK.namespaces.getNamespaces().main():
+                        for namespace in namespaceDict["items"]:
+                            namespaceList.append(namespace["name"])
+                            clusterList.append(namespace["clusterID"])
+                        clusterList = list(set(clusterList))
                 elif sys.argv[verbPosition + 1] == "bucket":
                     credentialDict = astraSDK.credentials.getCredentials().main()
                     for credential in credentialDict["items"]:
@@ -627,27 +628,27 @@ def main():
                             if credID:
                                 credentialList.append(credential["id"])
                 elif sys.argv[verbPosition + 1] == "cluster":
-                    clusterDict = astraSDK.clusters.getClusters(quiet=True).main()
-                    for cluster in clusterDict["items"]:
-                        if cluster["managedState"] == "unmanaged":
-                            clusterList.append(cluster["id"])
-                    storageClassDict = astraSDK.storageclasses.getStorageClasses(quiet=True).main()
-                    if isinstance(storageClassDict, bool):
-                        # getStorageClasses(quiet=True).main() returns either True
-                        # or False if it doesn't work, or if there are no clouds or clusters
+                    if clusterDict := astraSDK.clusters.getClusters(quiet=True).main():
+                        for cluster in clusterDict["items"]:
+                            if cluster["managedState"] == "unmanaged":
+                                clusterList.append(cluster["id"])
+                    else:
                         sys.exit(1)
-                    for storageClass in storageClassDict["items"]:
-                        if (
+                    if storageClassDict := astraSDK.storageclasses.getStorageClasses(quiet=True).main():
+                        for storageClass in storageClassDict["items"]:
+                            if (
                             len(sys.argv) - verbPosition >= 3
                             and sys.argv[verbPosition + 2] in clusterList
                             and storageClass["clusterID"] != sys.argv[verbPosition + 2]
                         ):
-                            continue
-                        storageClassList.append(storageClass["id"])
+                                continue
+                            storageClassList.append(storageClass["id"])
+                    else:
+                        sys.exit(1)
                 elif sys.argv[verbPosition + 1] == "cloud":
-                    bucketDict = astraSDK.buckets.getBuckets(quiet=True).main()
-                    for bucket in bucketDict["items"]:
-                        bucketList.append(bucket["id"])
+                    if bucketDict := astraSDK.buckets.getBuckets(quiet=True).main():
+                        for bucket in bucketDict["items"]:
+                            bucketList.append(bucket["id"])
 
             elif verbs["destroy"] and len(sys.argv) - verbPosition >= 2:
                 if sys.argv[verbPosition + 1] == "backup" and len(sys.argv) - verbPosition >= 3:
@@ -706,21 +707,22 @@ def main():
 
             elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
                 if sys.argv[verbPosition + 1] == "app":
-                    for app in astraSDK.apps.getApps().main()["items"]:
-                        appList.append(app["id"])
+                    if apps := astraSDK.apps.getApps().main():
+                        for app in apps["items"]:
+                            appList.append(app["id"])
                 elif sys.argv[verbPosition + 1] == "bucket":
-                    bucketDict = astraSDK.buckets.getBuckets(quiet=True).main()
-                    for bucket in bucketDict["items"]:
-                        bucketList.append(bucket["id"])
+                    if bucketDict := astraSDK.buckets.getBuckets(quiet=True).main():
+                        for bucket in bucketDict["items"]:
+                            bucketList.append(bucket["id"])
                 elif sys.argv[verbPosition + 1] == "cluster":
-                    clusterDict = astraSDK.clusters.getClusters(quiet=True).main()
-                    for cluster in clusterDict["items"]:
-                        if cluster["managedState"] == "managed":
-                            clusterList.append(cluster["id"])
+                    if clusterDict := astraSDK.clusters.getClusters(quiet=True).main():
+                        for cluster in clusterDict["items"]:
+                            if cluster["managedState"] == "managed":
+                                clusterList.append(cluster["id"])
                 elif sys.argv[verbPosition + 1] == "cloud":
-                    cloudDict = astraSDK.clouds.getClouds().main()
-                    for cloud in cloudDict["items"]:
-                        cloudList.append(cloud["id"])
+                    if cloudDict := astraSDK.clouds.getClouds().main():
+                        for cloud in cloudDict["items"]:
+                            cloudList.append(cloud["id"])
 
             elif (verbs["update"]) and len(sys.argv) - verbPosition >= 2:
                 if sys.argv[verbPosition + 1] == "replication":
@@ -964,6 +966,8 @@ def main():
                 tkHelpers.isRFC1123(args.name),
                 args.background,
                 args.pollTimer,
+                args.quiet,
+                args.verbose,
             )
             if rc is False:
                 print("doProtectionTask() failed")
@@ -1144,6 +1148,8 @@ def main():
                 tkHelpers.isRFC1123(args.name),
                 args.background,
                 args.pollTimer,
+                args.quiet,
+                args.verbose,
             )
             if rc is False:
                 print("doProtectionTask() failed")

@@ -45,15 +45,16 @@ class getUsers(SDKCommon):
         data = {}
         params = {}
 
-        if self.verbose:
-            print("Getting users...")
-            self.printVerbose(url, "GET", self.headers, data, params)
-
-        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "get",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             users = super().jsonifyResults(ret)
@@ -85,10 +86,6 @@ class getUsers(SDKCommon):
             return dataReturn
 
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -132,19 +129,16 @@ class createUser(SDKCommon):
         if phone:
             data["phone"] = phone
 
-        if self.verbose:
-            print(f"Creating user: {email}")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
-
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -152,8 +146,4 @@ class createUser(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False

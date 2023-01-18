@@ -34,14 +34,14 @@ class getStorageClasses(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
-        self.clouds = getClouds().main()
-        self.clusters = getClusters().main()
+        self.clouds = getClouds(quiet=True, verbose=verbose).main()
+        self.clusters = getClusters(quiet=True, verbose=verbose).main() if self.clouds else False
 
     def main(self, cloudType=None):
         if self.clouds is False:
             print("getClouds().main() failed")
             return False
-        if self.clusters is False:
+        elif self.clusters is False:
             print("getClusters().main() failed")
             return False
         if len(self.clouds["items"]) == 0:
@@ -70,17 +70,17 @@ class getStorageClasses(SDKCommon):
                 data = {}
                 params = {}
 
-                if self.verbose:
-                    print(
-                        f"Listing StorageClasses for cluster: {cluster['id']} in cloud: {cloud['id']}"
-                    )
-                    self.printVerbose(url, "GET", self.headers, data, params)
+                ret = super().apicall(
+                    "get",
+                    url,
+                    data,
+                    self.headers,
+                    params,
+                    self.verifySSL,
+                    quiet=self.quiet,
+                    verbose=self.verbose,
+                )
 
-                ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-                if self.verbose:
-                    print(f"API HTTP Status Code: {ret.status_code}")
-                    print()
                 if ret.ok:
                     results = super().jsonifyResults(ret)
                     if results is None:

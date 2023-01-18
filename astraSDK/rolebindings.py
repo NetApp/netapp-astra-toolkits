@@ -18,7 +18,6 @@
 import yaml
 import json
 import copy
-from termcolor import colored
 
 from .common import SDKCommon
 
@@ -45,15 +44,16 @@ class getRolebindings(SDKCommon):
         data = {}
         params = {}
 
-        if self.verbose:
-            print("Getting roleBindings...")
-            self.printVerbose(url, "GET", self.headers, data, params)
-
-        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "get",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             rbindings = super().jsonifyResults(ret)
@@ -77,10 +77,6 @@ class getRolebindings(SDKCommon):
             return dataReturn
 
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -120,19 +116,16 @@ class createRolebinding(SDKCommon):
         if roleConstraints:
             data["roleConstraints"] = roleConstraints
 
-        if self.verbose:
-            print(f"Creating roleBinding...")
-            print(colored(f"API URL: {url}", "green"))
-            print(colored("API Method: POST", "green"))
-            print(colored(f"API Headers: {self.headers}", "green"))
-            print(colored(f"API data: {data}", "green"))
-            print(colored(f"API params: {params}", "green"))
-
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -140,10 +133,6 @@ class createRolebinding(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -169,21 +158,15 @@ class destroyRolebinding(SDKCommon):
         params = {}
         data = {}
 
-        if self.verbose:
-            print(f"Deleting: {roleBindingID}")
-            self.printVerbose(url, "DELETE", self.headers, data, params)
+        ret = super().apicall(
+            "delete",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
-        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
-
-        if ret.ok:
-            return True
-        else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
-            return False
+        return True if ret.ok else False

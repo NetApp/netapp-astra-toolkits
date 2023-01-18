@@ -44,15 +44,16 @@ class getScripts(SDKCommon):
         data = {}
         params = {}
 
-        if self.verbose:
-            print("Getting scripts...")
-            self.printVerbose(url, "GET", self.headers, data, params)
-
-        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "get",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             scripts = super().jsonifyResults(ret)
@@ -76,10 +77,6 @@ class getScripts(SDKCommon):
             return dataReturn
 
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -115,15 +112,16 @@ class createScript(SDKCommon):
         if description:
             data["description"] = description
 
-        if self.verbose:
-            print(f"Creating script {name}")
-            self.printVerbose(url, "POST", self.headers, data, params)
-
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -131,10 +129,6 @@ class createScript(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -161,21 +155,15 @@ class destroyScript(SDKCommon):
             "version": "1.0",
         }
 
-        if self.verbose:
-            print(f"Deleting scriptID {scriptID}")
-            self.printVerbose(url, "DELETE", self.headers, data, params)
+        ret = super().apicall(
+            "delete",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
-        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
-
-        if ret.ok:
-            return True
-        else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
-            return False
+        return True if ret.ok else False

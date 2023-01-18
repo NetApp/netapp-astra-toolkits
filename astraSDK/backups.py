@@ -39,7 +39,7 @@ class getBackups(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
-        self.apps = getApps().main()
+        self.apps = getApps(quiet=True, verbose=verbose).main()
 
     def main(self, appFilter=None):
         if self.apps is False:
@@ -73,15 +73,16 @@ class getBackups(SDKCommon):
             data = {}
             params = {}
 
-            if self.verbose:
-                print(f"Listing Backups for {app['id']} {app['name']}")
-                self.printVerbose(url, "GET", self.headers, data, params)
-
-            ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-            if self.verbose:
-                print(f"API HTTP Status Code: {ret.status_code}")
-                print()
+            ret = super().apicall(
+                "get",
+                url,
+                data,
+                self.headers,
+                params,
+                self.verifySSL,
+                quiet=self.quiet,
+                verbose=self.verbose,
+            )
 
             if ret.ok:
                 results = super().jsonifyResults(ret)
@@ -155,15 +156,16 @@ class takeBackup(SDKCommon):
         if snapshotID:
             data["snapshotID"] = snapshotID
 
-        if self.verbose:
-            print(f"Taking backup for {appID}")
-            self.printVerbose(url, "POST", self.headers, data, params)
-
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -172,9 +174,6 @@ class takeBackup(SDKCommon):
             else:
                 return results.get("id") or True
         else:
-            print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-            if ret.text.strip():
-                print(f"Error text: {ret.text}")
             return False
 
 
@@ -201,21 +200,15 @@ class destroyBackup(SDKCommon):
             "version": "1.1",
         }
 
-        if self.verbose:
-            print(f"Deleting backup {backupID} for {appID}")
-            self.printVerbose(url, "DELETE", self.headers, data, params)
+        ret = super().apicall(
+            "delete",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
-        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
-
-        if ret.ok:
-            return True
-        else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
-            return False
+        return True if ret.ok else False

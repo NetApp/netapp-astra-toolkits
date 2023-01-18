@@ -104,7 +104,7 @@ class SDKCommon:
         self.headers = self.conf.get("headers")
         self.verifySSL = self.conf.get("verifySSL")
 
-    def apicall(self, method, url, data, headers, params, verify, quiet=False):
+    def apicall(self, method, url, data, headers, params, verify, quiet=False, verbose=False):
         """Make a call using the requests module.
         method can be get, put, post, patch, or delete"""
         try:
@@ -112,24 +112,54 @@ class SDKCommon:
         except AttributeError as e:
             raise SystemExit(e)
         try:
+            if verbose:
+                self.printVerbose(url, method, headers, data, params)
             ret = r(url, json=data, headers=headers, params=params, verify=verify)
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
-        if not ret.ok and not quiet:
-            if ret.status_code >= 400 and ret.status_code < 500:
+        if not ret.ok:
+            # GET clouds has more response information than other calls, so if
+            # there's an error make a second API call to improve error messaging
+            if (
+                url.split("/")[-1] != "clouds"
+                or (url.split("/")[-1] == "clouds" and method != "get")
+                or (url.split("/")[-1] == "clouds" and quiet is True)
+            ):
+                self.apicall(
+                    "get",
+                    self.base + "topology/v1/clouds",
+                    {},
+                    self.headers,
+                    {},
+                    self.verifySSL,
+                    quiet=False,
+                    verbose=False,
+                )
+            elif ret.status_code >= 400 and ret.status_code < 500:
                 if "x-pcloud-accountid" in ret.text:
-                    print("preflight API call to Astra Control failed (check uid in config.json)")
+                    print(
+                        "API call to Astra Control failed: "
+                        + colored("check uid in config.json", "red")
+                    )
                 elif ret.status_code == 401:
                     print(
-                        "preflight API call to Astra Control failed "
-                        "(check Authoriztion in config.json)"
+                        "API call to Astra Control failed: "
+                        + colored("check Authorization in config.json", "red")
                     )
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                print(f"text: {ret.text}")
+                else:
+                    print(
+                        f"API call to Astra Control failed: "
+                        + colored(f"{ret.status_code} - {ret.reason}", "red")
+                    )
+                    if ret.text.strip():
+                        print(f"text: {ret.text.strip()}")
             else:
-                print("preflight API call to Astra Control failed (Internal Server Error)")
+                print("API call to Astra Control failed (Internal Server Error)")
                 print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                print(f"text: {ret.text}")
+                if ret.text.strip():
+                    print(f"text: {ret.text}")
+        if verbose:
+            print(f"API HTTP Status Code: {ret.status_code}")
         return ret
 
     def jsonifyResults(self, requestsObject):

@@ -36,7 +36,7 @@ class getProtectionpolicies(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
-        self.apps = getApps().main()
+        self.apps = getApps(quiet=True, verbose=verbose).main()
 
     def main(self, appFilter=None):
         if self.apps is False:
@@ -56,15 +56,16 @@ class getProtectionpolicies(SDKCommon):
             data = {}
             params = {}
 
-            if self.verbose:
-                print(f"Getting protection policies for {app['id']} {app['name']}...")
-                self.printVerbose(url, "GET", self.headers, data, params)
-
-            ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-            if self.verbose:
-                print(f"API HTTP Status Code: {ret.status_code}")
-                print()
+            ret = super().apicall(
+                "get",
+                url,
+                data,
+                self.headers,
+                params,
+                self.verifySSL,
+                quiet=self.quiet,
+                verbose=self.verbose,
+            )
 
             if ret.ok:
                 results = super().jsonifyResults(ret)
@@ -198,15 +199,16 @@ class createProtectionpolicy(SDKCommon):
             data["recurrenceRule"] = recurrenceRule
             data["replicate"] = "true"
 
-        if self.verbose:
-            print(f"Creating {granularity} protection policy for app: {appID}")
-            self.printVerbose(url, "POST", self.headers, data, params)
-
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -214,10 +216,6 @@ class createProtectionpolicy(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -240,21 +238,15 @@ class destroyProtectiontionpolicy(SDKCommon):
         params = {}
         data = {}
 
-        if self.verbose:
-            print(f"Deleting {protectionID} of app {appID}")
-            self.printVerbose(url, "DELETE", self.headers, data, params)
+        ret = super().apicall(
+            "delete",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
-        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
-
-        if ret.ok:
-            return True
-        else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
-            return False
+        return True if ret.ok else False

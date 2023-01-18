@@ -37,7 +37,7 @@ class getReplicationpolicies(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
-        self.apps = getApps().main()
+        self.apps = getApps(quiet=True, verbose=verbose).main()
 
     def main(self, appFilter=None):
         if self.apps is False:
@@ -50,15 +50,16 @@ class getReplicationpolicies(SDKCommon):
         data = {}
         params = {}
 
-        if self.verbose:
-            print("Getting replication policies...")
-            self.printVerbose(url, "GET", self.headers, data, params)
-
-        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "get",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             replPolicies = super().jsonifyResults(ret)
@@ -118,10 +119,9 @@ class getReplicationpolicies(SDKCommon):
             return dataReturn
 
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
+            # Handle ACS environments
+            if ret.text.strip():
+                print(json.loads(ret.text).get("detail"))
             return False
 
 
@@ -163,15 +163,16 @@ class createReplicationpolicy(SDKCommon):
         if destinationStorageClass:
             data["storageClasses"] = destinationStorageClass
 
-        if self.verbose:
-            print(f"Creating replication policy for app: {sourceAppID}")
-            self.printVerbose(url, "POST", self.headers, data, params)
-
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -179,10 +180,6 @@ class createReplicationpolicy(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -229,15 +226,16 @@ class updateReplicationpolicy(SDKCommon):
         if sourceClusterID:
             data["sourceClusterID"] = sourceClusterID
 
-        if self.verbose:
-            print(f"Updating replication policy: {replicationID}")
-            self.printVerbose(url, "PUT", self.headers, data, params)
-
-        ret = super().apicall("put", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "put",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -245,10 +243,6 @@ class updateReplicationpolicy(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -271,21 +265,15 @@ class destroyReplicationpolicy(SDKCommon):
         params = {}
         data = {}
 
-        if self.verbose:
-            print(f"Deleting: {replicationID}")
-            self.printVerbose(url, "DELETE", self.headers, data, params)
+        ret = super().apicall(
+            "delete",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
-        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
-
-        if ret.ok:
-            return True
-        else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
-            return False
+        return True if ret.ok else False

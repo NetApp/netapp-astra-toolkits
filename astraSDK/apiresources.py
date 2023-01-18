@@ -34,7 +34,7 @@ class getApiResources(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
-        self.clusters = getClusters().main()
+        self.clusters = getClusters(quiet=True, verbose=verbose).main()
 
     def main(self, cluster=None):
         if self.clusters is False:
@@ -56,15 +56,17 @@ class getApiResources(SDKCommon):
             data = {}
             params = {}
 
-            if self.verbose:
-                print(f"Listing ApiResources for cluster: {sCluster['id']}")
-                self.printVerbose(url, "GET", self.headers, data, params)
+            ret = super().apicall(
+                "get",
+                url,
+                data,
+                self.headers,
+                params,
+                self.verifySSL,
+                quiet=self.quiet,
+                verbose=self.verbose,
+            )
 
-            ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-            if self.verbose:
-                print(f"API HTTP Status Code: {ret.status_code}")
-                print()
             if ret.ok:
                 results = super().jsonifyResults(ret)
                 if results is None:

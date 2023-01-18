@@ -58,15 +58,16 @@ class getApps(SDKCommon):
         url = self.base + endpoint
         data = {}
 
-        if self.verbose:
-            print("Getting apps...")
-            self.printVerbose(url, "GET", self.headers, data, params)
-
-        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "get",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             apps = super().jsonifyResults(ret)
@@ -169,10 +170,6 @@ class getApps(SDKCommon):
             return dataReturn
 
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -229,15 +226,16 @@ class manageApp(SDKCommon):
         if clusterScopedResources:
             data["clusterScopedResources"] = clusterScopedResources
 
-        if self.verbose:
-            print(f"Managing app: {appName}")
-            self.printVerbose(url, "POST", self.headers, data, params)
-
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL, self.quiet)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -245,10 +243,6 @@ class manageApp(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -271,25 +265,22 @@ class unmanageApp(SDKCommon):
         params = {}
         data = {}
 
-        if self.verbose:
-            print(f"Unmanaging app: {appID}")
-            self.printVerbose(url, "DELETE", self.headers, data, params)
-
-        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "delete",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             if not self.quiet:
                 print("App unmanaged")
             return True
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -346,28 +337,24 @@ class cloneApp(SDKCommon):
         if namespaceMapping:
             data["namespaceMapping"] = namespaceMapping
 
-        if self.verbose:
-            print("Cloning app")
-            self.printVerbose(url, "POST", self.headers, data, params)
-
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
-
             if not self.quiet:
                 print(json.dumps(results))
             else:
                 return results
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -413,24 +400,18 @@ class restoreApp(SDKCommon):
         elif snapshotID:
             data["snapshotID"] = snapshotID
 
-        if self.verbose:
-            print("Restoring app")
-            self.printVerbose(url, "PUT", self.headers, data, params)
+        ret = super().apicall(
+            "put",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
-        ret = super().apicall("put", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
-
-        if ret.ok:
-            return True
-        else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
-            return False
+        return True if ret.ok else False
 
 
 class getAppAssets(SDKCommon):
@@ -453,15 +434,16 @@ class getAppAssets(SDKCommon):
         data = {}
         params = {}
 
-        if self.verbose:
-            print("Getting app assets...")
-            self.printVerbose(url, "GET", self.headers, data, params)
-
-        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "get",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             assets = super().jsonifyResults(ret)
@@ -480,8 +462,4 @@ class getAppAssets(SDKCommon):
             return dataReturn
 
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False

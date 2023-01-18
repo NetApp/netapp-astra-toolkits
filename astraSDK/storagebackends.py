@@ -21,9 +21,8 @@ import json
 from .common import SDKCommon
 
 
-class getEntitlements(SDKCommon):
-    """Get the Astra Control entitlements, which can be used to determine if it's
-    an Astra Control Service or Center environment."""
+class getStorageBackends(SDKCommon):
+    """Get all of the storageBackends in Astra Control"""
 
     def __init__(self, quiet=True, verbose=False, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -38,7 +37,7 @@ class getEntitlements(SDKCommon):
 
     def main(self):
 
-        endpoint = "core/v1/entitlements"
+        endpoint = "topology/v1/storageBackends"
         url = self.base + endpoint
 
         data = {}
@@ -56,22 +55,16 @@ class getEntitlements(SDKCommon):
         )
 
         if ret.ok:
-            entitlements = super().jsonifyResults(ret)
+            backends = super().jsonifyResults(ret)
             if self.output == "json":
-                dataReturn = entitlements
+                dataReturn = backends
             elif self.output == "yaml":
-                dataReturn = yaml.dump(entitlements)
+                dataReturn = yaml.dump(backends)
             elif self.output == "table":
                 dataReturn = self.basicTable(
-                    ["entitlementID", "product", "type", "value", "consumption"],
-                    [
-                        "id",
-                        "product",
-                        "entitlementType",
-                        "entitlementValue",
-                        "entitlementConsumption",
-                    ],
-                    entitlements,
+                    ["backendID", "backendName"],
+                    ["id", "backendName"],
+                    backends,
                 )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)

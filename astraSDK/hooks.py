@@ -35,7 +35,7 @@ class getHooks(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
-        self.apps = getApps().main()
+        self.apps = getApps(quiet=True, verbose=verbose).main()
 
     def main(self, appFilter=None):
         if self.apps is False:
@@ -55,15 +55,16 @@ class getHooks(SDKCommon):
             data = {}
             params = {}
 
-            if self.verbose:
-                print("Getting execution hooks...")
-                self.printVerbose(url, "GET", self.headers, data, params)
-
-            ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-            if self.verbose:
-                print(f"API HTTP Status Code: {ret.status_code}")
-                print()
+            ret = super().apicall(
+                "get",
+                url,
+                data,
+                self.headers,
+                params,
+                self.verifySSL,
+                quiet=self.quiet,
+                verbose=self.verbose,
+            )
 
             if ret.ok:
                 results = super().jsonifyResults(ret)
@@ -87,10 +88,6 @@ class getHooks(SDKCommon):
                         )
                         print()
             else:
-                if not self.quiet:
-                    print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                    if ret.text.strip():
-                        print(f"Error text: {ret.text}")
                 continue
         if self.output == "json":
             dataReturn = hooks
@@ -153,15 +150,16 @@ class createHook(SDKCommon):
         if containerRegex:
             data["matchingCriteria"] = [{"type": "containerImage", "value": containerRegex}]
 
-        if self.verbose:
-            print(f"Creating executionHook {name}")
-            self.printVerbose(url, "POST", self.headers, data, params)
-
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -169,10 +167,6 @@ class createHook(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -201,21 +195,15 @@ class destroyHook(SDKCommon):
             "appID": appID,  # Not strictly required at this time
         }
 
-        if self.verbose:
-            print(f"Deleting hookID {hookID}")
-            self.printVerbose(url, "DELETE", self.headers, data, params)
+        ret = super().apicall(
+            "delete",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
-        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
-
-        if ret.ok:
-            return True
-        else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
-            return False
+        return True if ret.ok else False

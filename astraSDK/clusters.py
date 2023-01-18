@@ -35,7 +35,7 @@ class getClusters(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
-        self.clouds = getClouds(quiet=True).main()
+        self.clouds = getClouds(quiet=True, verbose=verbose).main()
 
     def main(self, hideManaged=False, hideUnmanaged=False, nameFilter=None):
         clusters = {}
@@ -52,15 +52,16 @@ class getClusters(SDKCommon):
             data = {}
             params = {}
 
-            if self.verbose:
-                print(f"Getting clusters in cloud {cloud['id']} ({cloud['name']})...")
-                self.printVerbose(url, "GET", self.headers, data, params)
-
-            ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-            if self.verbose:
-                print(f"API HTTP Status Code: {ret.status_code}")
-                print()
+            ret = super().apicall(
+                "get",
+                url,
+                data,
+                self.headers,
+                params,
+                self.verifySSL,
+                quiet=self.quiet,
+                verbose=self.verbose,
+            )
 
             if ret.ok:
                 results = super().jsonifyResults(ret)
@@ -130,15 +131,16 @@ class manageCluster(SDKCommon):
         if storageClassID:
             data["defaultStorageClass"] = storageClassID
 
-        if self.verbose:
-            print(f"Managing: {clusterID}")
-            self.printVerbose(url, "POST", self.headers, data, params)
-
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -146,10 +148,6 @@ class manageCluster(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -173,25 +171,22 @@ class unmanageCluster(SDKCommon):
         params = {}
         data = {}
 
-        if self.verbose:
-            print(f"Unmanaging: {clusterID}")
-            self.printVerbose(url, "DELETE", self.headers, data, params)
-
-        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "delete",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             if not self.quiet:
                 print("Cluster unmanaged")
             return True
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -219,15 +214,16 @@ class addCluster(SDKCommon):
             "credentialID": credentialID,
         }
 
-        if self.verbose:
-            print(f"Adding cluster from credential: {credentialID}")
-            self.printVerbose(url, "POST", self.headers, data, params)
-
-        ret = super().apicall("post", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             results = super().jsonifyResults(ret)
@@ -235,10 +231,6 @@ class addCluster(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
 
 
@@ -262,23 +254,20 @@ class deleteCluster(SDKCommon):
         params = {}
         data = {}
 
-        if self.verbose:
-            print(f"Deleting: {clusterID}")
-            self.printVerbose(url, "DELETE", self.headers, data, params)
-
-        ret = super().apicall("delete", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "delete",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             if not self.quiet:
                 print("Cluster deleted")
             return True
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False

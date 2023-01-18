@@ -36,8 +36,8 @@ class getNamespaces(SDKCommon):
         self.verbose = verbose
         self.output = output
         super().__init__()
-        self.apps = getApps().main()
-        self.clusters = getClusters().main()
+        self.clusters = getClusters(quiet=True, verbose=verbose).main()
+        self.apps = getApps(quiet=True, verbose=verbose).main() if self.clusters else False
 
     def main(
         self,
@@ -47,7 +47,10 @@ class getNamespaces(SDKCommon):
         unassociated=False,
         minuteFilter=False,
     ):
-        if self.apps is False:
+        if self.clusters is False:
+            print("Call to getClusters().main() failed")
+            return False
+        elif self.apps is False:
             print("Call to getApps().main() failed")
             return False
 
@@ -60,15 +63,16 @@ class getNamespaces(SDKCommon):
         data = {}
         params = {}
 
-        if self.verbose:
-            print("Getting namespaces...")
-            self.printVerbose(url, "GET", self.headers, data, params)
-
-        ret = super().apicall("get", url, data, self.headers, params, self.verifySSL)
-
-        if self.verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
-            print()
+        ret = super().apicall(
+            "get",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
 
         if ret.ok:
             systemNS = ["kube-node-lease", "kube-public", "kube-system", "trident"]
@@ -126,8 +130,4 @@ class getNamespaces(SDKCommon):
             return dataReturn
 
         else:
-            if not self.quiet:
-                print(f"API HTTP Status Code: {ret.status_code} - {ret.reason}")
-                if ret.text.strip():
-                    print(f"Error text: {ret.text}")
             return False
