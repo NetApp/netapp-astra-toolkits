@@ -171,8 +171,7 @@ class takeBackup(SDKCommon):
             results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(json.dumps(results))
-            else:
-                return results.get("id") or True
+            return results.get("id") or True
         else:
             return False
 
