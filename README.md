@@ -94,7 +94,7 @@ verifySSL: True
 Launch the prepared Docker image. Docker will automatically download the image if you don't already have it on your system.
 
 ```text
-docker run -it netapp/astra-toolkits:2.5.1 /bin/bash
+docker run -it netapp/astra-toolkits:2.5.2 /bin/bash
 ```
 
 NOTE: From this point forward, you will be working in the Docker container you just launched.
