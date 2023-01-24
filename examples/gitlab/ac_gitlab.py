@@ -80,10 +80,10 @@ DB_PASSWORD = token_urlsafe(13)  # Optionally change random password to your des
 GITALY_AUTH = token_urlsafe(13)  # Optionally change random password to your desired value
 GITLAB_SHELL = token_urlsafe(13)  # Optionally change random password to your desired value
 EMAIL = "mhaigh@netapp.com"  # Change to your email, used for certmanager
-GCP_NETWORK_NAME = "gke-prod-network"  # Existing network name, must be GKE's network
+GCP_NETWORK_NAME = "gke-uscentral1-network"  # Existing network name, must be GKE's network
 GCP_PROJECT = getGcpProject()  # Uses gcloud config value
-GCP_REGION = "us-east4"  # Region to deploy the resources in, must be GKE's region
-GCP_ZONE = "us-east4-b"  # Zone to deploy the resources in
+GCP_REGION = "us-central1"  # Region to deploy the resources in, must be GKE's region
+GCP_ZONE = "us-central1-b"  # Zone to deploy the resources in
 GITLAB_DOMAIN = "astrademo.net"  # The existing domain name, DNS must be managed by GCP
 GITLAB_DNS_ZONE = "astrademo-net"  # The existing DNS zone name, DNS must be managed by GCP
 ###########################################################################################
@@ -231,6 +231,90 @@ def listBackups(valuesDict):
             else [],
         )
     )
+
+
+def validateAndGetBackup(timestamp, backups):
+    """Validates that a given timestamp has valid backups for all services"""
+    for backup in backups["items"]:
+        if backup["tmstmp"] == timestamp:
+            if (
+                backup.get("osBackup")
+                and backup["osBackup"]["status"] == "READY"
+                and backup.get("dataBackup")
+                and backup["dataBackup"]["status"] == "READY"
+                and backup.get("dbBackup")
+                and backup["dbBackup"]["status"] == "SUCCESSFUL"
+                and backup.get("redisBackup")
+                and backup["redisBackup"].get("response")
+                and backup["redisBackup"]["response"]["state"] == "READY"
+                and backup.get("appBackup")
+                and backup["appBackup"]["state"] == "completed"
+            ):
+                return backup
+            else:
+                print(f"Error: not all components of backup timestamp {timestamp} in valid state:")
+                printBackups(backups)
+                sys.exit(1)
+    print(f"Error: No backup of timestamp {timestamp} found:")
+    printBackups(backups)
+    sys.exit(1)
+
+
+def restore(valuesDict, timestamp):
+    """In-place restore for GitLab to a backup from 'timestamp'"""
+
+    # Instantiate the objects
+    osDisk = gcpClasses.ComputeEngineDisk(
+        valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[0], APP_NAME
+    )
+    dataDisk = gcpClasses.ComputeEngineDisk(
+        valuesDict["global"]["gitaly"]["external"][0]["hostname"].split(".")[1], APP_NAME
+    )
+    db = gcpClasses.CloudPostgreSQL(APP_NAME)
+    redis = gcpClasses.CloudRedis(APP_NAME, GCP_REGION)
+    app = getAppDict(APP_NAME)
+    gitaly = gcpClasses.ComputeEngineVM(APP_NAME)
+
+    # Ensure timestamp has valid backups for all instantiated objects, and get backup info
+    backup = validateAndGetBackup(
+        timestamp,
+        organizeBackups(
+            osDisk.getBackups(),
+            dataDisk.getBackups(),
+            db.getBackups(),
+            redis.getBackups(valuesDict["global"]["appConfig"]["backups"]["bucket"]),
+            astraSDK.backups.getBackups().main(appFilter=app["id"])["items"],
+        ),
+    )
+
+    # Restore the backups
+    if astraSDK.apps.restoreApp(quiet=False).main(app["id"], backupID=backup["appBackup"]["id"]):
+        print(f"Astra app {app['name']} restore successfully initiated")
+    db.restoreFromBackup(backup["dbBackup"]["id"])
+    redis.restoreFromBackup(backup["redisBackup"]["gcsLocation"])
+    gitaly.shutdownAndDetach()
+    osDisk.deleteDisk()
+    dataDisk.deleteDisk()
+    osDisk.createDiskFromBackup(backup["osBackup"]["name"], GCP_ZONE)
+    dataDisk.createDiskFromBackup(backup["dataBackup"]["name"], GCP_ZONE)
+    gitaly.attachAndBoot()
+
+    # Wait for completion
+    print(f"Waiting for {APP_NAME} application to finish restoration...", end="")
+    sys.stdout.flush()
+    while True:
+        time.sleep(60)
+        db.setProperties()
+        if db.properties["state"] == "MAINTENANCE":
+            print(".", end="")
+            sys.stdout.flush()
+        elif db.properties["state"] == "RUNNABLE":
+            print("success!")
+            break
+        else:
+            print(f"Error restoring {APP_NAME} application")
+            sys.exit(1)
+    print(f"\n{APP_NAME} application successfully restored")
 
 
 def backup(valuesDict):
@@ -707,6 +791,12 @@ runcmd:
             print("Error: must specify 'backup create', or 'backup list' argument")
             sys.exit(1)
 
+    elif sys.argv[1].lower() == "restore":
+        if len(sys.argv) < 3:
+            print("Error: must specify 'restore <timestamp>' argument")
+            sys.exit(1)
+        restore(valuesDict, sys.argv[2])
+
     else:
-        print("Error: must specify 'backup', 'deploy' or 'destroy' argument")
+        print("Error: must specify 'backup', 'deploy', 'destroy', or 'restore' argument")
         sys.exit(1)

@@ -56,6 +56,14 @@ class ComputeEngineDisk:
         run(createStr)
         self.setProperties()
 
+    def createDiskFromBackup(self, sourceBackup, zone):
+        self.zone = zone
+        run(
+            f"gcloud compute disks create {self.name} --source-snapshot={sourceBackup} "
+            f"--zone={self.zone}"
+        )
+        self.setProperties()
+
     def getBackups(self):
         allSnaps = json.loads(
             run(
@@ -196,6 +204,49 @@ class ComputeEngineVM:
             f"--rrdatas={self.properties['networkInterfaces'][0]['networkIP']}"
         )
 
+    def attachDisk(self, disk, boot=False):
+        """Attaches a disk to an existing VM instance"""
+        adStr = (
+            f"gcloud compute instances attach-disk {self.name} --disk={disk} "
+            + f"--zone={self.properties['zone'].split('/')[-1]}"
+        )
+        if boot:
+            adStr += " --boot"
+        run(adStr)
+
+    def startupInstance(self):
+        """Starts up a VM instance"""
+        run(
+            f"gcloud compute instances start {self.name} "
+            f"--zone={self.properties['zone'].split('/')[-1]} --async"
+        )
+
+    def attachAndBoot(self):
+        """Attaches disks and starts up the VM instance"""
+        for disk in self.properties["disks"]:
+            self.attachDisk(disk["source"].split("/")[-1], boot=disk["boot"])
+        self.startupInstance()
+
+    def shutdownInstance(self):
+        """Shutdown / stop a VM instance"""
+        run(
+            f"gcloud compute instances stop {self.name} "
+            f"--zone={self.properties['zone'].split('/')[-1]}"
+        )
+
+    def detachDisk(self, disk):
+        """Detaches a disk from an instance (should first be shut down)"""
+        run(
+            f"gcloud compute instances detach-disk {self.name} --disk={disk}"
+            f" --zone={self.properties['zone'].split('/')[-1]}"
+        )
+
+    def shutdownAndDetach(self):
+        """Shuts down and detaches disks from a VM instance"""
+        self.shutdownInstance()
+        for disk in self.properties["disks"]:
+            self.detachDisk(disk["source"].split("/")[-1])
+
     def deleteInstance(self):
         if self.properties:
             run(
@@ -268,11 +319,19 @@ class CloudPostgreSQL:
         )
 
     def getBackups(self):
-        return json.loads(
-            run(
-                f"gcloud sql backups list --instance={self.name} --format=json", captureOutput=True
-            ).decode()
-        )
+        if (
+            type(
+                backups := run(
+                    f"gcloud sql backups list --instance={self.name} --format=json",
+                    captureOutput=True,
+                    ignoreErrors=True,
+                )
+            )
+            is not int
+        ):
+            return json.loads(backups.decode())
+        else:
+            return []
 
     def createBackup(self, tmstmp):
         """Initiates a cloud SQL backup operation"""
@@ -290,6 +349,11 @@ class CloudPostgreSQL:
                     f"gcloud -q sql backups delete {backup['id']} --instance={self.name}",
                     ignoreErrors=True,
                 )
+
+    def restoreFromBackup(self, backupID):
+        """Restores a Cloud SQL instance from a backupID"""
+        run(f"gcloud sql backups restore {backupID} --quiet --async --restore-instance={self.name}")
+        print(f"Cloud SQL {self.name} restore successfully initiated")
 
     def deleteInstance(self):
         if self.properties:
@@ -423,6 +487,14 @@ class CloudRedis:
             f"gcloud storage rm gs://{bucket}/{self.name}/{self.name}-{tmstmp}.rdb",
             ignoreErrors=True,
         )
+
+    def restoreFromBackup(self, gcsLocation):
+        """Restores (imports) a Redis instance"""
+        run(
+            f"gcloud redis instances import {gcsLocation} {self.name} --region={self.region} "
+            "--async",
+        )
+        print(f"Redis {self.name} import successfully initiated")
 
     def deleteInstance(self):
         if self.properties:

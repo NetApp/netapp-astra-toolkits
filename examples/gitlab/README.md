@@ -18,6 +18,7 @@ The available arguments are:
   * [List](#backup-list)
 * [Deploy](#deploy)
 * [Destroy](#destroy)
+* [Restore](#restore)
 
 ## Prerequisites
 
@@ -51,7 +52,7 @@ All other resources are automatically deployed and managed by this example. Prio
 
 ## Backup
 
-The `backup` argument currently supports creating an asyncronous backup (`create`), destruction (`destroy`), and listing out all existing backups (`list`).  Synchronous backups, and restoring from backups are currently planned but not yet implemented.
+The `backup` argument currently supports creating an asyncronous backup (`create`), destruction (`destroy`), and listing out all existing backups (`list`).  Synchronous backups are currently planned but not yet implemented.
 
 * [Create](#backup-create)
 * [Destroy](#backup-destroy)
@@ -465,3 +466,70 @@ Removing gitlab-values.yaml
 
 Success! All resources destroyed.
 ```
+
+## Restore
+
+To restore the GitLab application to a backup, run the following command:
+
+```text
+python3 ac_gitlab.py restore <timestamp>
+```
+
+To gather the `timestamp` argument, run a [backup list](#backup-list) command.
+
+As an example, here is our GitLab admin project page showing the default monitoring project, and the Hugo Docs repository we created earlier:
+
+![Admin Projects page](images/restore1-admin-projects.png)
+
+If we have a user that accidentally deletes our project:
+
+![Delete Project](images/restore2-delete-project.png)
+
+Navigating back to the main GitLab page, we see that our project is now gone:
+
+![Main Projects Page - Single Project](images/restore3-single-project.png)
+
+Let's restore our project to a known good state:
+
+```text
+$ python3 ac_gitlab.py restore 202301122135
+Astra app gitlab restore successfully initiated
+Cloud SQL gitlab-psql-demo restore successfully initiated
+Request issued for: [gitlab-redis-demo]
+Check operation [projects/astracontroltoolkitdev/locations/us-central1/operations/operation-1674583015674-5f3063dcbd26b-25d64d1b-5618c685] for status.
+done: false
+metadata:
+  '@type': type.googleapis.com/google.cloud.redis.v1.OperationMetadata
+  apiVersion: v1
+  cancelRequested: false
+  createTime: '2023-01-24T17:56:55.690151370Z'
+  target: projects/astracontroltoolkitdev/locations/us-central1/instances/gitlab-redis-demo
+  verb: import
+name: projects/astracontroltoolkitdev/locations/us-central1/operations/operation-1674583015674-5f3063dcbd26b-25d64d1b-5618c685
+Redis gitlab-redis-demo import successfully initiated
+Stopping instance(s) gitlab-gitaly-demo...done.
+Updated [https://compute.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/instances/gitlab-gitaly-demo].
+Updated [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/instances/gitlab-gitaly-demo].
+Updated [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/instances/gitlab-gitaly-demo].
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/disks/gitlab-gitaly-node1-disk].
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/disks/gitlab-gitaly-git-disk].
+Created [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/disks/gitlab-gitaly-node1-disk].
+NAME                      ZONE           SIZE_GB  TYPE         STATUS
+gitlab-gitaly-node1-disk  us-central1-b  10       pd-standard  READY
+Created [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/disks/gitlab-gitaly-git-disk].
+NAME                    ZONE           SIZE_GB  TYPE         STATUS
+gitlab-gitaly-git-disk  us-central1-b  100      pd-standard  READY
+Updated [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/instances/gitlab-gitaly-demo].
+Updated [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/instances/gitlab-gitaly-demo].
+Start instance in progress for [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/operations/operation-1674583117727-5f30643e106ca-fbe3e269-43ebaf84].
+Use [gcloud compute operations describe URI] command to check the status of the operation(s).
+Waiting for gitlab application to finish restoration...success!
+
+gitlab application successfully restored
+```
+
+Once the app is finished restoring, refresh the UI, and you'll see the Hugo Docs project is available and fully functional:
+
+![Main Projects Page - Two Projects](images/restore4-two-projects.png)
+
+![Hugo Docs Project](images/restore5-hugo-docs.png)
