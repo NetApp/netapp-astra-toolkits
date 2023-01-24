@@ -43,7 +43,7 @@ All other resources are automatically deployed and managed by this example. Prio
 * `GITALY_AUTH`: optionally modify the random password to your desired value
 * `GITLAB_SHELL`: optionally modify the random password to your desired value
 * `EMAIL`: must modify this to your email (used via Certmanager to generate SSL certificates)
-* `GCP_NETWORK_NAME`: must modify this to the existing GCP network that your GKE cluster is deployed in (will also be used to deploy GitLab related services)
+* `GCP_NETWORK_NAME`: must modify this to the existing GCP network that your GKE cluster is deployed in (the same network will also be used to deploy GitLab related services)
 * `GCP_PROJECT`: should not need to modify, as it uses the current project per your `gcloud` setting
 * `GCP_REGION`: must modify this to the existing GCP region that your GKE cluster is deployed in (will also be used to deploy GitLab related services)
 * `GCP_ZONE`: must modify to any zone within `GCP_REGION`, used to deploy GitLab related services
@@ -157,22 +157,22 @@ The expected output of the `deploy` command is:
 ```text
 $ python3 ac_gitlab.py deploy
 Creating gitlab-gitaly-cloudinit.yaml
-Created [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-east4-b/instances/gitlab-gitaly-demo].
-NAME                ZONE        MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP  STATUS
-gitlab-gitaly-demo  us-east4-b  n2-standard-4               10.10.0.42                RUNNING
+Created [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/instances/gitlab-gitaly-demo].
+NAME                ZONE           MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP  STATUS
+gitlab-gitaly-demo  us-central1-b  n2-standard-4               10.10.0.42                RUNNING
 Creating gitlab-gitaly-secret.yaml
 Creating gitlab-shell-secret.yaml
 NAME                      TYPE  TTL  DATA
 node1.git.astrademo.net.  A     0    10.10.0.42
-Created [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/regions/us-east4/addresses/gitlab-external-ip].
+Created [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/regions/us-central1/addresses/gitlab-external-ip].
 NAME              TYPE  TTL  DATA
 *.astrademo.net.  A     0    35.245.99.164
-Created [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/addresses/google-managed-services-gke-prod-network].
+Created [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/addresses/google-managed-services-gke-uscentral1-network].
 Operation "operations/pssn.p24-239048101169-3d75d09d-7c6a-47bd-9ffa-608d3fabfa78" finished successfully.
 Creating Cloud SQL instance for POSTGRES_14...done.
 Created [https://sqladmin.googleapis.com/sql/v1beta4/projects/astracontroltoolkitdev/instances/gitlab-psql-demo].
-NAME              DATABASE_VERSION  LOCATION    TIER              PRIMARY_ADDRESS  PRIVATE_ADDRESS  STATUS
-gitlab-psql-demo  POSTGRES_14       us-east4-b  db-custom-2-8192  -                10.96.96.3       RUNNABLE
+NAME              DATABASE_VERSION  LOCATION       TIER              PRIMARY_ADDRESS  PRIVATE_ADDRESS  STATUS
+gitlab-psql-demo  POSTGRES_14       us-central1-b  db-custom-2-8192  -                10.96.96.3       RUNNABLE
 Creating Cloud SQL user...done.
 Created user [gitlab].
 Creating Cloud SQL database...done.
@@ -182,7 +182,7 @@ name: gitlabhq_production
 project: astracontroltoolkitdev
 Creating gitlab-psql-secret.yaml
 Create request issued for: [gitlab-redis-demo]
-Waiting for operation [projects/astracontroltoolkitdev/locations/us-east4/operations/operation-1673038350248-5f19e988fe8fc-819e27c0-02396a01] to complete...done.
+Waiting for operation [projects/astracontroltoolkitdev/locations/us-central1/operations/operation-1673038350248-5f19e988fe8fc-819e27c0-02396a01] to complete...done.
 Created instance [gitlab-redis-demo].
 Creating gitlab-redis-secret.yaml
 Created service account [gitlab-gcs].
@@ -295,7 +295,7 @@ Hang tight while we grab the latest from your chart repositories...
 ...Successfully got an update from the "jfrog" chart repository
 Update Complete. ⎈Happy Helming!⎈
 namespace/gitlab created
-Context "gke_astracontroltoolkitdev_us-east4-a_prod-cluster" modified.
+Context "gke_astracontroltoolkitdev_us-central1-b_uscentral1-cluster" modified.
 secret/gitlab-postgresql-password created
 secret/gitlab-redis-secret created
 secret/gitlab-gitaly-token created
@@ -383,17 +383,17 @@ Removing objects:
 Removing gs://astracontroltoolkitdev-gitlab-backup-storage/gitlab-redis-demo/gitlab-redis-demo-202301132001.rdb...
   Completed 1/1
 Deleted [https://dns.googleapis.com/dns/v1/projects/astracontroltoolkitdev/managedZones/astrademo-net/rrsets/node1.git.astrademo.net/A].
-Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-east4-b/instances/gitlab-gitaly-demo].
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/instances/gitlab-gitaly-demo].
 Removing gitlab-gitaly-cloudinit.yaml
 Removing gitlab-gitaly-secret.yaml
 Removing gitlab-shell-secret.yaml
-Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-east4-b/disks/gitlab-gitaly-node1-disk].
-Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-east4-b/disks/gitlab-gitaly-git-disk].
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/disks/gitlab-gitaly-node1-disk].
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/zones/us-central1-b/disks/gitlab-gitaly-git-disk].
 Deleting Cloud SQL instance...done.
 Deleted [https://sqladmin.googleapis.com/sql/v1beta4/projects/astracontroltoolkitdev/instances/gitlab-psql-demo].
 Removing gitlab-psql-secret.yaml
 Delete request issued for: [gitlab-redis-demo]
-Waiting for operation [projects/astracontroltoolkitdev/locations/us-east4/operations/operation-1673640917235-5f22ae45a78f1-0f6a6157-2f79e01b] to complete...done.
+Waiting for operation [projects/astracontroltoolkitdev/locations/us-central1/operations/operation-1673640917235-5f22ae45a78f1-0f6a6157-2f79e01b] to complete...done.
 Deleted instance [gitlab-redis-demo].
 Removing gitlab-redis-secret.yaml
 deleted service account [gitlab-gcs@astracontroltoolkitdev.iam.gserviceaccount.com]
@@ -458,9 +458,9 @@ Removing objects:
 Removing Buckets:
 Removing gs://astracontroltoolkitdev-gitlab-registry-storage/...
   Completed 1/1
-Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/addresses/google-managed-services-gke-prod-network].
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/global/addresses/google-managed-services-gke-uscentral1-network].
 Deleted [https://dns.googleapis.com/dns/v1/projects/astracontroltoolkitdev/managedZones/astrademo-net/rrsets/%2A.astrademo.net/A].
-Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/regions/us-east4/addresses/gitlab-external-ip].
+Deleted [https://www.googleapis.com/compute/v1/projects/astracontroltoolkitdev/regions/us-central1/addresses/gitlab-external-ip].
 namespace "gitlab" deleted
 Removing gitlab-values.yaml
 
@@ -489,10 +489,10 @@ Navigating back to the main GitLab page, we see that our project is now gone:
 
 ![Main Projects Page - Single Project](images/restore3-single-project.png)
 
-Let's restore our project to a known good state:
+Let's restore our application to a known good state:
 
 ```text
-$ python3 ac_gitlab.py restore 202301122135
+$ python3 ac_gitlab.py restore 202301231924
 Astra app gitlab restore successfully initiated
 Cloud SQL gitlab-psql-demo restore successfully initiated
 Request issued for: [gitlab-redis-demo]
