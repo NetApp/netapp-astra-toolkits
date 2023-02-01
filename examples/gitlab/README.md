@@ -36,7 +36,7 @@ The following cloud resources must already be available prior to utilizing this 
   * `helm` installed
   * the Astra Control Python SDK installed and configured, either via `actoolkit` or a local git repo
 
-All other resources are automatically deployed and managed by this example. Prior to utilization, edit the [global variables](gitlab.py#L73) section of the `gitlab.py` script to match your environment:
+All other resources are automatically deployed and managed by this example. Prior to utilization, edit the [global variables](ac_gitlab.py#L75) section of the `gitlab.py` script to match your environment:
 
 * `APP_NAME`: optionally modify, this value represents the Kubernetes namespace (that will be created), helm release name, Astra Control application name, and the prepended value for all GCP resources that will be created
 * `DB_PASSWORD`: optionally modify the random password to your desired value
