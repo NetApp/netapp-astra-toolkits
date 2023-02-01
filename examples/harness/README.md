@@ -52,6 +52,7 @@ Each template has three steps:
 Depending upon the delegate in use in your environment, it may not be necessary to run steps 1 and 2 above every time the stage runs (for instance if you use long lived VMs). However, for ephemeral delegates like Kubernetes pods, it's a good practice to leave these steps in the stage.
 
 ![SDK config.yaml Credential file added to Harness Secret Manager](images/01-credentials-harness-secret-file.png)
+\
 _SDK config.yaml Credential file added to Harness Secret Manager_
 
 ## Manage App
