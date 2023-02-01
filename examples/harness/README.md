@@ -46,14 +46,14 @@ Each template has the same four stage variables:
 Each template has three steps:
 
 1. `install-actoolkit`: Installs python3, pip, and actoolkit (to the version specified by `actoolkit_version`) on the delegate
-1. `create-credential-file`: Creates a file `/etc/astra-toolkits/config.yaml` on the delegate based on a Harness secret with the id of `astracontrolsdkcreds`. For more info on the components of this file, see the [main readme](../../README.md#authentication) or [this video](https://www.youtube.com/watch?v=o-q-q_41A5A).
+1. `create-credential-file`: Creates a file `/etc/astra-toolkits/config.yaml` on the delegate based on a Harness secret with the id of `astracontrolsdkcreds`. For more info on the required components of this file, see the [main readme](../../README.md#authentication) or [this video](https://www.youtube.com/watch?v=o-q-q_41A5A).
 1. Stage-specific-step: The final step varies depending upon the template, see below sections for additional detail.
 
-Depending upon the delegate in use in your environment, it may not be necessary to run steps 1 and 2 above every time the stage runs (for instance if you use long lived VMs). However, for ephemeral delegates like Kubernetes pods, it's a good practice to leave these steps in the stage.
+Depending upon the delegate in use in your environment, it may not be necessary to run steps 1 and 2 above every time the stage runs (for example if you use long lived VMs). However, for ephemeral delegates like Kubernetes pods, it's a good practice to leave these steps in the stage.
 
-![SDK config.yaml Credential file added to Harness Secret Manager](images/01-credentials-harness-secret-file.png)
+![SDK config.yaml credential file added to Harness Secret Manager](images/01-credentials-harness-secret-file.png)
 \
-_SDK config.yaml Credential file added to Harness Secret Manager_
+_SDK config.yaml credential file added to Harness Secret Manager_
 
 ## Manage App
 
