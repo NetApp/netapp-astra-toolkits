@@ -44,7 +44,7 @@ template:
                       echo "Making /etc/astra-toolkits directory if not already present"
                       mkdir -p /etc/astra-toolkits
                       echo "Creating config.yaml file"
-                      > /etc/astra-toolkits/config.yaml cat <<< '<+secrets.getValue("sdkcredentials")>'
+                      > /etc/astra-toolkits/config.yaml cat <<< '<+secrets.getValue("astracontrolsdkcreds")>'
                       echo "Success"
                 environmentVariables: []
                 outputVariables: []

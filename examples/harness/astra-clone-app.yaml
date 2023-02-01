@@ -1,5 +1,5 @@
 template:
-  name: astra-backup-app
+  name: astra-clone-app
   type: Stage
   spec:
     type: Custom
@@ -51,8 +51,8 @@ template:
               timeout: 10m
           - step:
               type: ShellScript
-              name: backup-app
-              identifier: backupapp
+              name: clone-app
+              identifier: cloneapp
               spec:
                 shell: Bash
                 onDelegate: true
@@ -70,13 +70,26 @@ template:
                       appID=`actoolkit -o json list apps -c <+stage.variables.cluster_name> -n <+stage.variables.namespace> -f <+stage.variables.app_name> | jq -r '.items[].id'`
                       if [ -z "${appID}" ] ; then
                         echo "  Error: app <+stage.variables.app_name> in namespace <+stage.variables.namespace> on cluster <+stage.variables.cluster_name> not found, exiting."
-                        exit 0
+                        exit 1
                       fi
 
-                      echo "actoolkit: backing up <+stage.variables.app_name> / ${appID}"
-                      actoolkit create backup ${appID} <+stage.variables.app_name>-harness-`date "+%Y%m%d%H%M%S"`
+                      echo "actoolkit: cloning app"
+                      cloneAppName=<+stage.variables.app_name>-harness-clone-<+pipeline.sequenceId>
+                      actoolkit clone --cloneAppName ${cloneAppName} --clusterID ${clusterID} --sourceAppID ${appID} -t 30
+
+                      echo "actoolkit: getting clonedAppID"
+                      clonedAppID=`actoolkit -o json list apps -c ${clusterID} -n ${cloneAppName} -f ${cloneAppName} | jq -r '.items[].id'`
+                      if [ -z "${clonedAppID}" ] ; then
+                        echo "  Error: cloned app ${cloneAppName} in namespace ${cloneAppName} on cluster ${clusterID} not found, exiting."
+                        exit 1
+                      fi
+
+                      export clonedAppID
                 environmentVariables: []
-                outputVariables: []
+                outputVariables:
+                  - name: clonedAppID
+                    type: String
+                    value: clonedAppID
               timeout: 10m
     variables:
       - name: actoolkit_version
@@ -95,5 +108,5 @@ template:
         type: String
         description: The friendly Astra Control name of the app
         value: ""
-  identifier: astrabackupapp
+  identifier: astracloneapp
   versionLabel: 1.0.0
