@@ -1,6 +1,6 @@
 # Kubernetes Application Data Management and CI/CD with Astra Control and Harness
 
-[Harness](https://www.harness.io/) provides a GitOps, continuous delivery, and continuous integration platform for software development teams which helps automate and streamline their delivery processes, reducing the time and effort required to put new features and updates into production. By using Harness, customers can increase their velocity, improve the reliability of their deployments, and simplify the overall delivery process. This is important because it allows development teams to focus on delivering value to their users, while relying on Harness to handle the complex and error-prone aspects of delivery.
+[Harness](https://www.harness.io/) provides a GitOps, continuous delivery, and continuous integration platform for software development teams that helps automate and streamline delivery processes, reducing the time and effort required to put new features and updates into production. By using Harness, organizations can increase their velocity, improve the reliability of their deployments, and simplify the overall delivery process. This is important because it allows development teams to focus on delivering value to their users, while relying on Harness to handle the complex and error-prone aspects of delivery.
 
 By integrating Harness with [NetApp Astra Control](https://cloud.netapp.com/astra), customers can take advantage of the robust data management capabilities provided by Astra Control and use Harness to automate and streamline their delivery processes for containerized applications running on Kubernetes. This integration provides an end-to-end solution for application data management and continuous delivery of Kubernetes applications, ensuring reliable and consistent deployment experiences while reducing the time and effort required to manage applications.
 
@@ -39,7 +39,7 @@ Each template has the same four stage variables:
 * `actoolkit_version`: the version of [actoolkit](https://pypi.org/project/actoolkit/) to install. These templates are set to `2.6.0`, which is the latest release at the time of creating this integration. It is recommended to thoroughly test all steps and stages if changing this value.
 * `cluster_name`: the Kubernetes [cluster name](../../docs/toolkit/list/README.md#clusters) that the application lives on, which should already be managed by Astra Control
 * `namespace`: the Kubernetes namespace name that the application lives in
-* `app_name`: the friendly name of the Astra Control application
+* `app_name`: the friendly name of the Astra Control application (which should already be managed, except for the [manage app](#manage-app) template where it's used as the to-be-managed app name)
 
 ### Steps
 
@@ -50,6 +50,9 @@ Each template has three steps:
 1. Stage-specific-step: The final step varies depending upon the template, see below sections for additional detail.
 
 Depending upon the delegate in use in your environment, it may not be necessary to run steps 1 and 2 above every time the stage runs (for instance if you use long lived VMs). However, for ephemeral delegates like Kubernetes pods, it's a good practice to leave these steps in the stage.
+
+![SDK config.yaml Credential file added to Harness Secret Manager](images/01-credentials-harness-secret-file.png)
+_SDK config.yaml Credential file added to Harness Secret Manager_
 
 ## Manage App
 
