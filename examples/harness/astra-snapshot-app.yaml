@@ -1,0 +1,99 @@
+template:
+  name: astra-snapshot-app
+  type: Stage
+  spec:
+    type: Custom
+    spec:
+      execution:
+        steps:
+          - step:
+              type: ShellScript
+              name: install-actoolkit
+              identifier: installactoolkit
+              spec:
+                shell: Bash
+                onDelegate: true
+                source:
+                  type: Inline
+                  spec:
+                    script: |-
+                      #!/bin/bash
+                      set -ex
+
+                      apt-get -y update
+                      apt-get -y install python3-pip jq
+                      python3 -m pip install --upgrade pip
+                      python3 -m pip install actoolkit==<+stage.variables.actoolkit_version>
+                environmentVariables: []
+                outputVariables: []
+              timeout: 10m
+          - step:
+              type: ShellScript
+              name: create-credential-file
+              identifier: createcredentialfile
+              spec:
+                shell: Bash
+                onDelegate: true
+                source:
+                  type: Inline
+                  spec:
+                    script: |-
+                      #!/bin/bash
+                      set -e
+
+                      echo "Making /etc/astra-toolkits directory if not already present"
+                      mkdir -p /etc/astra-toolkits
+                      echo "Creating config.yaml file"
+                      > /etc/astra-toolkits/config.yaml cat <<< '<+secrets.getValue("astracontrolsdkcreds")>'
+                      echo "Success"
+                environmentVariables: []
+                outputVariables: []
+              timeout: 10m
+          - step:
+              type: ShellScript
+              name: snapshot-app
+              identifier: snapshotapp
+              spec:
+                shell: Bash
+                onDelegate: true
+                source:
+                  type: Inline
+                  spec:
+                    script: |-
+                      #!/bin/bash
+                      set -e
+
+                      echo "actoolkit: gathering clusterID"
+                      clusterID=`actoolkit -o json list clusters -f <+stage.variables.cluster_name> | jq -r '.items[].id'`
+
+                      echo "actoolkit: ensuring the app is already managed"
+                      appID=`actoolkit -o json list apps -c <+stage.variables.cluster_name> -n <+stage.variables.namespace> -f <+stage.variables.app_name> | jq -r '.items[].id'`
+                      if [ -z "${appID}" ] ; then
+                        echo "  Error: app <+stage.variables.app_name> in namespace <+stage.variables.namespace> on cluster <+stage.variables.cluster_name> not found, exiting."
+                        exit 0
+                      fi
+
+                      echo "actoolkit: snapshotting <+stage.variables.app_name> / ${appID}"
+                      actoolkit create snapshot ${appID} <+stage.variables.app_name>-harness-`date "+%Y%m%d%H%M%S"`
+                environmentVariables: []
+                outputVariables: []
+              timeout: 10m
+    variables:
+      - name: actoolkit_version
+        type: String
+        description: The PyPI version of actoolkit
+        value: 2.6.0
+      - name: cluster_name
+        type: String
+        description: The name of the Kubernetes Cluster running the app
+        value: ""
+      - name: namespace
+        type: String
+        description: The name of the Kubernetes Namespace
+        value: ""
+      - name: app_name
+        type: String
+        description: The friendly Astra Control name of the app
+        value: ""
+  identifier: astrasnapshotapp
+  versionLabel: 1.0.0

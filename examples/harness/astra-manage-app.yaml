@@ -1,0 +1,106 @@
+template:
+  name: astra-manage-app
+  type: Stage
+  spec:
+    type: Custom
+    spec:
+      execution:
+        steps:
+          - step:
+              type: ShellScript
+              name: install-actoolkit
+              identifier: installactoolkit
+              spec:
+                shell: Bash
+                onDelegate: true
+                source:
+                  type: Inline
+                  spec:
+                    script: |-
+                      #!/bin/bash
+                      set -ex
+
+                      apt-get -y update
+                      apt-get -y install python3-pip jq
+                      python3 -m pip install --upgrade pip
+                      python3 -m pip install actoolkit==<+stage.variables.actoolkit_version>
+                environmentVariables: []
+                outputVariables: []
+              timeout: 10m
+          - step:
+              type: ShellScript
+              name: create-credential-file
+              identifier: createcredentialfile
+              spec:
+                shell: Bash
+                onDelegate: true
+                source:
+                  type: Inline
+                  spec:
+                    script: |-
+                      #!/bin/bash
+                      set -e
+
+                      echo "Making /etc/astra-toolkits directory if not already present"
+                      mkdir -p /etc/astra-toolkits
+                      echo "Creating config.yaml file"
+                      > /etc/astra-toolkits/config.yaml cat <<< '<+secrets.getValue("astracontrolsdkcreds")>'
+                      echo "Success"
+                environmentVariables: []
+                outputVariables: []
+              timeout: 10m
+              failureStrategies: []
+          - step:
+              type: ShellScript
+              name: manage-app
+              identifier: manageapp
+              spec:
+                shell: Bash
+                onDelegate: true
+                source:
+                  type: Inline
+                  spec:
+                    script: |-
+                      #!/bin/bash
+                      set -e
+
+                      echo "actoolkit: gathering clusterID"
+                      clusterID=`actoolkit -o json list clusters -f <+stage.variables.cluster_name> | jq -r '.items[].id'`
+
+                      echo "actoolkit: checking if app is already managed"
+                      appID=`actoolkit -o json list apps -c <+stage.variables.cluster_name> -n <+stage.variables.namespace> -f <+stage.variables.app_name> | jq -r '.items[].id'`
+                      if [[ ! -z "${appID}" ]] ; then
+                        echo "  app <+stage.variables.app_name> in namespace <+stage.variables.namespace> on cluster <+stage.variables.cluster_name> is already managed, exiting."
+                        exit 0
+                      fi
+
+                      echo "actoolkit: managing app <+stage.variables.app_name> in namespace <+stage.variables.namespace> on cluster ${clusterID}"
+                      appID=`actoolkit manage app <+stage.variables.app_name> <+stage.variables.namespace> ${clusterID} | jq -r '.id'`
+
+                      echo "actoolkit: creating protection policy for <+stage.variables.app_name> / ${appID}"
+                      actoolkit create protection ${appID} -g hourly  -m 0      -b 1 -s 1
+                      actoolkit create protection ${appID} -g daily   -H 0      -b 2 -s 2
+                      actoolkit create protection ${appID} -g weekly  -H 0 -W 1 -b 2 -s 2
+                      actoolkit create protection ${appID} -g monthly -H 0 -M 1 -b 2 -s 2
+                environmentVariables: []
+                outputVariables: []
+              timeout: 10m
+    variables:
+      - name: actoolkit_version
+        type: String
+        description: The PyPI version of actoolkit
+        value: 2.6.0
+      - name: cluster_name
+        type: String
+        description: The name of the Kubernetes Cluster running the app
+        value: ""
+      - name: namespace
+        type: String
+        description: The name of the Kubernetes Namespace
+        value: ""
+      - name: app_name
+        type: String
+        description: The friendly Astra Control name of the app
+        value: ""
+  identifier: astramanageapp
+  versionLabel: 1.0.0
