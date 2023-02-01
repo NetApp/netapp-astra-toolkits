@@ -1,6 +1,6 @@
-# Kubernetes Application Deployment and Data Management with Harness and Astra Control
+# Kubernetes Application Data Management and CI/CD with Astra Control and Harness
 
-[Harness](https://www.harness.io/) provides a GitOps, continuous delivery, and continuous integration platform for software development team, which helps customers automate and streamline their delivery processes, reducing the time and effort required to get new features and updates into production. By using Harness, customers can increase their velocity, improve the reliability of their deployments, and simplify the overall delivery process. This is important because it allows development teams to focus on delivering value to their users, while relying on Harness to handle the complex and error-prone aspects of delivery.
+[Harness](https://www.harness.io/) provides a GitOps, continuous delivery, and continuous integration platform for software development teams which helps automate and streamline their delivery processes, reducing the time and effort required to put new features and updates into production. By using Harness, customers can increase their velocity, improve the reliability of their deployments, and simplify the overall delivery process. This is important because it allows development teams to focus on delivering value to their users, while relying on Harness to handle the complex and error-prone aspects of delivery.
 
 By integrating Harness with [NetApp Astra Control](https://cloud.netapp.com/astra), customers can take advantage of the robust data management capabilities provided by Astra Control and use Harness to automate and streamline their delivery processes for containerized applications running on Kubernetes. This integration provides an end-to-end solution for application data management and continuous delivery of Kubernetes applications, ensuring reliable and consistent deployment experiences while reducing the time and effort required to manage applications.
 
@@ -70,6 +70,7 @@ The [clone app](./astra-clone-app.yaml) template has a 3rd step `clone-app` whic
   * If there is not, then it exits 1 (failure), as the app must be under management to clone
 * Clones the app to a new namespace, with a name of `<app_name>-harness-clone-<pipeline.sequenceId>`
 * Ensures that the clone succeeds and is under management, otherwise exits 1 (failure)
+* **Defines a `clonedAppID` output variable for optional use elsewhere in the pipeline**
 
 ## Backup App
 
