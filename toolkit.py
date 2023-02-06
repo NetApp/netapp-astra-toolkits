@@ -146,8 +146,8 @@ class ToolKit:
             hour = cppData[period]["hour"]
             cppRet = cpp.main(
                 period,
-                snapshotRetention,
                 backupRetention,
+                snapshotRetention,
                 dayOfWeek,
                 dayOfMonth,
                 hour,
@@ -348,9 +348,13 @@ class ToolKit:
         """Take a snapshot/backup of appID giving it name <name>
         Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
         if protectionType == "backup":
-            protectionID = astraSDK.backups.takeBackup(quiet=quiet, verbose=verbose).main(appID, name)
+            protectionID = astraSDK.backups.takeBackup(quiet=quiet, verbose=verbose).main(
+                appID, name
+            )
         elif protectionType == "snapshot":
-            protectionID = astraSDK.snapshots.takeSnap(quiet=quiet, verbose=verbose).main(appID, name)
+            protectionID = astraSDK.snapshots.takeSnap(quiet=quiet, verbose=verbose).main(
+                appID, name
+            )
         if protectionID == False:
             return False
 
@@ -634,13 +638,15 @@ def main():
                                 clusterList.append(cluster["id"])
                     else:
                         sys.exit(1)
-                    if storageClassDict := astraSDK.storageclasses.getStorageClasses(quiet=True).main():
+                    if storageClassDict := astraSDK.storageclasses.getStorageClasses(
+                        quiet=True
+                    ).main():
                         for storageClass in storageClassDict["items"]:
                             if (
-                            len(sys.argv) - verbPosition >= 3
-                            and sys.argv[verbPosition + 2] in clusterList
-                            and storageClass["clusterID"] != sys.argv[verbPosition + 2]
-                        ):
+                                len(sys.argv) - verbPosition >= 3
+                                and sys.argv[verbPosition + 2] in clusterList
+                                and storageClass["clusterID"] != sys.argv[verbPosition + 2]
+                            ):
                                 continue
                             storageClassList.append(storageClass["id"])
                     else:
@@ -725,7 +731,12 @@ def main():
                             cloudList.append(cloud["id"])
 
             elif (verbs["update"]) and len(sys.argv) - verbPosition >= 2:
-                if sys.argv[verbPosition + 1] == "replication":
+                if sys.argv[verbPosition + 1] == "cloud":
+                    for cloud in (cloudDict := astraSDK.clouds.getClouds().main())["items"]:
+                        cloudList.append(cloud["id"])
+                    for bucket in (bucketDict := astraSDK.buckets.getBuckets().main())["items"]:
+                        bucketList.append(bucket["id"])
+                elif sys.argv[verbPosition + 1] == "replication":
                     replicationDict = astraSDK.replications.getReplicationpolicies().main()
                     if not replicationDict:  # Gracefully handle ACS env
                         print("Error: 'replication' commands are currently only supported in ACC.")
@@ -1612,7 +1623,44 @@ def main():
         )
 
     elif args.subcommand == "update":
-        if args.objectType == "replication":
+        if args.objectType == "cloud":
+            credentialID = None
+            if args.credentialPath:
+                with open(args.credentialPath, encoding="utf8") as f:
+                    try:
+                        credDict = json.loads(f.read().rstrip())
+                    except json.decoder.JSONDecodeError:
+                        print(f"Error: {args.credentialPath} does not seem to be valid JSON")
+                        sys.exit(1)
+                encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
+                if plaidMode:
+                    cloudDict = astraSDK.clouds.getClouds().main()
+                cloud = next(c for c in cloudDict["items"] if c["id"] == args.cloudID)
+                rc = astraSDK.credentials.createCredential(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(
+                    "astra-sa@" + cloud["name"],
+                    "service-account",
+                    {"base64": encodedStr},
+                    cloud["cloudType"],
+                )
+                if rc:
+                    credentialID = rc["id"]
+                else:
+                    print("astraSDK.credentials.createCredential() failed")
+                    sys.exit(1)
+            # Next update the cloud
+            rc = astraSDK.clouds.updateCloud(quiet=args.quiet, verbose=args.verbose).main(
+                args.cloudID,
+                credentialID=credentialID,
+                defaultBucketID=args.defaultBucketID,
+            )
+            if rc:
+                sys.exit(0)
+            else:
+                print(rc.error)
+                print("astraSDK.clouds.updateCloud() failed")
+        elif args.objectType == "replication":
             # Gather replication data
             if plaidMode:
                 replicationDict = astraSDK.replications.getReplicationpolicies().main()

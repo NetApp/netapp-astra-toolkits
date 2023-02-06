@@ -2,18 +2,60 @@
 
 The `update` argument allows you to update an Astra resource, at this time only including:
 
+* [Clouds](#cloud)
 * [Replications](#replication)
 
 ```text
-$ ./toolkit.py update -h
-usage: toolkit.py update [-h] {replication} ...
+usage: toolkit.py update [-h] {cloud,replication} ...
 
-optional arguments:
-  -h, --help     show this help message and exit
+options:
+  -h, --help           show this help message and exit
 
 objectType:
-  {replication}
-    replication  update replication
+  {cloud,replication}
+    cloud              update cloud
+    replication        update replication
+```
+
+## Cloud
+
+The `update cloud` command allows you to update the credential and/or default bucket of a [cloud](../manage/README.md#cloud).  The high level command usage is:
+
+```text
+./toolkit.py update cloud <cloudID> <updateArg>
+```
+
+The \<cloudID\> argument can be gathered from a [list clouds](../list/README.md#clouds) command.  The other two possible commands are:
+
+### Credential Path
+
+To update the credentials of a cloud, use the `--credentialPath` argument to point at a local filesystem JSON credential object:
+
+```text
+./toolkit.py update cloud <cloudID> --credentialPath path/to/credentials.json
+```
+
+This command first creates the credential object, and then updates the cloud to reference the new credential ID:
+
+```text
+$ ./toolkit.py update cloud 0ec2e027-80bc-426a-b844-692de243b29e -c ~/gcp-astra-demo-3d7d.json
+{"type": "application/astra-credential", "version": "1.1", "id": "8e6c9667-f2f2-40c2-92d0-38467f7f45be", "name": "astra-sa@GCP", "keyType": "generic", "valid": "true", "metadata": {"creationTimestamp": "2023-02-06T19:54:32Z", "modificationTimestamp": "2023-02-06T19:54:32Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "service-account"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "GCP"}]}}
+{"type": "application/astra-cloud", "version": "1.0", "id": "0ec2e027-80bc-426a-b844-692de243b29e", "name": "GCP", "state": "running", "stateUnready": [], "cloudType": "GCP", "credentialID": "8e6c9667-f2f2-40c2-92d0-38467f7f45be", "defaultBucketID": "361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac", "metadata": {"labels": [], "creationTimestamp": "2022-04-26T01:53:06Z", "modificationTimestamp": "2023-02-06T19:54:33Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
+```
+
+### Default Bucket
+
+To change a cloud's default bucket for backups, run the following command:
+
+```text
+./toolkit.py update cloud <cloudID> --defaultBucketID <bucketID>
+```
+
+The \<bucketID\> can be gathered from a [list buckets](../list/README.md#buckets) command (the bucket must already be under [management](../manage/README.md#bucket)).
+
+```text
+$ ./toolkit.py update cloud 0ec2e027-80bc-426a-b844-692de243b29e --defaultBucketID 361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac
+{"type": "application/astra-cloud", "version": "1.0", "id": "0ec2e027-80bc-426a-b844-692de243b29e", "name": "GCP", "state": "running", "stateUnready": [], "cloudType": "GCP", "credentialID": "8e6c9667-f2f2-40c2-92d0-38467f7f45be", "defaultBucketID": "361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac", "metadata": {"labels": [], "creationTimestamp": "2022-04-26T01:53:06Z", "modificationTimestamp": "2023-02-06T20:24:53Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
 
 ## Replication

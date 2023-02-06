@@ -302,6 +302,10 @@ class toolkit_parser:
 
     def sub_update_commands(self):
         """update 'X'"""
+        self.subparserUpdateCloud = self.subparserUpdate.add_parser(
+            "cloud",
+            help="update cloud",
+        )
         self.subparserUpdateReplication = self.subparserUpdate.add_parser(
             "replication",
             help="update replication",
@@ -1242,6 +1246,27 @@ class toolkit_parser:
             help="cloudID of the cloud to unmanage",
         )
 
+    def update_cloud_args(self, cloudList, bucketList):
+        """update cloud args and flags"""
+        self.subparserUpdateCloud.add_argument(
+            "cloudID",
+            choices=(None if self.plaidMode else cloudList),
+            help="cloudID to update",
+        )
+        self.subparserUpdateCloud.add_argument(
+            "-c",
+            "--credentialPath",
+            default=None,
+            help="the local filesystem path to the new cloud credential",
+        )
+        self.subparserUpdateCloud.add_argument(
+            "-b",
+            "--defaultBucketID",
+            choices=(None if self.plaidMode else bucketList),
+            default=None,
+            help="the new default bucketID for backups",
+        )
+
     def update_replication_args(self, replicationList):
         """update replication args and flags"""
         self.subparserUpdateReplication.add_argument(
@@ -1348,6 +1373,7 @@ class toolkit_parser:
         self.unmanage_cluster_args(clusterList)
         self.unmanage_cloud_args(cloudList)
 
+        self.update_cloud_args(cloudList, bucketList)
         self.update_replication_args(replicationList)
 
         return self.parser

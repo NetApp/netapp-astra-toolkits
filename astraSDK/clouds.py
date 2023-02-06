@@ -161,3 +161,51 @@ class unmanageCloud(SDKCommon):
             return True
         else:
             return False
+
+
+class updateCloud(SDKCommon):
+    """This class updates a cloud, it is currently intended for updating the credentialID
+    or defaultBucketID of a cloud, but has been created in a way to allow other kinds of
+    updates in future versions."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        # self.headers["accept"] = "application/astra-cloud+json"
+        self.headers["Content-Type"] = "application/astra-cloud+json"
+
+    def main(self, cloudID, credentialID=None, defaultBucketID=None):
+
+        endpoint = f"topology/v1/clouds/{cloudID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-cloud",
+            "version": "1.0",
+        }
+        if credentialID:
+            data["credentialID"] = credentialID
+        if defaultBucketID:
+            data["defaultBucketID"] = defaultBucketID
+
+        ret = super().apicall(
+            "put",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            return False
