@@ -168,3 +168,49 @@ class unmanageBucket(SDKCommon):
             return True
         else:
             return False
+
+
+class updateBucket(SDKCommon):
+    """This class updates a bucket, it is currently intended for updating the credentialID,
+    but has been created in a way to allow other kinds of updates in future versions."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-bucket+json"
+        self.headers["Content-Type"] = "application/astra-bucket+json"
+
+    def main(self, bucketID, credentialID=None):
+
+        endpoint = f"topology/v1/buckets/{bucketID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-bucket",
+            "version": "1.2",
+        }
+        if credentialID:
+            data["credentialID"] = credentialID
+
+        ret = super().apicall(
+            "put",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+
+        if ret.ok:
+            # the buckets/ endpoint doesn't return a dict for PUTs, so calling getBuckets
+            results = next(b for b in getBuckets().main()["items"] if b["id"] == bucketID)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            return False

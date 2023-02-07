@@ -302,6 +302,10 @@ class toolkit_parser:
 
     def sub_update_commands(self):
         """update 'X'"""
+        self.subparserUpdateBucket = self.subparserUpdate.add_parser(
+            "bucket",
+            help="update bucket",
+        )
         self.subparserUpdateCloud = self.subparserUpdate.add_parser(
             "cloud",
             help="update cloud",
@@ -1246,6 +1250,35 @@ class toolkit_parser:
             help="cloudID of the cloud to unmanage",
         )
 
+    def update_bucket_args(self, bucketList, credentialList):
+        """update bucket args and flags"""
+        self.subparserUpdateBucket.add_argument(
+            "bucketID",
+            choices=(None if self.plaidMode else bucketList),
+            help="bucketID to update",
+        )
+        credGroup = self.subparserUpdateBucket.add_argument_group(
+            "credentialGroup",
+            "Either an (existing credentialID) OR (accessKey AND accessSecret)",
+        )
+        credGroup.add_argument(
+            "-c",
+            "--credentialID",
+            choices=(None if self.plaidMode else credentialList),
+            help="The ID of the credentials used to access the bucket",
+            default=None,
+        )
+        credGroup.add_argument(
+            "--accessKey",
+            help="The access key of the bucket",
+            default=None,
+        )
+        credGroup.add_argument(
+            "--accessSecret",
+            help="The access secret of the bucket",
+            default=None,
+        )
+
     def update_cloud_args(self, cloudList, bucketList):
         """update cloud args and flags"""
         self.subparserUpdateCloud.add_argument(
@@ -1373,6 +1406,7 @@ class toolkit_parser:
         self.unmanage_cluster_args(clusterList)
         self.unmanage_cloud_args(cloudList)
 
+        self.update_bucket_args(bucketList, credentialList)
         self.update_cloud_args(cloudList, bucketList)
         self.update_replication_args(replicationList)
 

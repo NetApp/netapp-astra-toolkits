@@ -619,7 +619,6 @@ def main():
                 elif sys.argv[verbPosition + 1] == "bucket":
                     credentialDict = astraSDK.credentials.getCredentials().main()
                     for credential in credentialDict["items"]:
-                        # if credential["keyType"] == "s3" or (
                         if credential["metadata"].get("labels"):
                             credID = None
                             if credential["keyType"] == "s3":
@@ -731,7 +730,23 @@ def main():
                             cloudList.append(cloud["id"])
 
             elif (verbs["update"]) and len(sys.argv) - verbPosition >= 2:
-                if sys.argv[verbPosition + 1] == "cloud":
+                if sys.argv[verbPosition + 1] == "bucket":
+                    for bucket in (bucketDict := astraSDK.buckets.getBuckets().main())["items"]:
+                        bucketList.append(bucket["id"])
+                    credentialDict = astraSDK.credentials.getCredentials().main()
+                    for credential in credentialDict["items"]:
+                        if credential["metadata"].get("labels"):
+                            credID = None
+                            if credential["keyType"] == "s3":
+                                credID = credential["id"]
+                            else:
+                                for label in credential["metadata"]["labels"]:
+                                    if label["name"] == "astra.netapp.io/labels/read-only/credType":
+                                        if label["value"] in ["AzureContainer", "service-account"]:
+                                            credID = credential["id"]
+                            if credID:
+                                credentialList.append(credential["id"])
+                elif sys.argv[verbPosition + 1] == "cloud":
                     for cloud in (cloudDict := astraSDK.clouds.getClouds().main())["items"]:
                         cloudList.append(cloud["id"])
                     for bucket in (bucketDict := astraSDK.buckets.getBuckets().main())["items"]:
@@ -1623,7 +1638,51 @@ def main():
         )
 
     elif args.subcommand == "update":
-        if args.objectType == "cloud":
+        if args.objectType == "bucket":
+            # Validate that both credentialID and accessKey/accessSecret were not specified
+            if args.credentialID is not None and (
+                args.accessKey is not None or args.accessSecret is not None
+            ):
+                print(
+                    f"Error: if a credentialID is specified, neither accessKey nor accessSecret"
+                    + " should be specified."
+                )
+                sys.exit(1)
+            # Validate args and create credential if credentialID was not specified
+            if args.credentialID is None:
+                if args.accessKey is None or args.accessSecret is None:
+                    print(
+                        "Error: if a credentialID is not specified, both accessKey and "
+                        + "accessSecret arguments must be provided."
+                    )
+                    sys.exit(1)
+                if plaidMode:
+                    bucketDict = astraSDK.buckets.getBuckets().main()
+                encodedKey = base64.b64encode(args.accessKey.encode("utf-8")).decode("utf-8")
+                encodedSecret = base64.b64encode(args.accessSecret.encode("utf-8")).decode("utf-8")
+                crc = astraSDK.credentials.createCredential(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(
+                    next(b for b in bucketDict["items"] if b["id"] == args.bucketID)["name"],
+                    "s3",
+                    {"accessKey": encodedKey, "accessSecret": encodedSecret},
+                    cloudName="s3",
+                )
+                if crc:
+                    args.credentialID = crc["id"]
+                else:
+                    print("astraSDK.credentials.createCredential() failed")
+                    sys.exit(1)
+            # Call updateBucket class
+            rc = astraSDK.buckets.updateBucket(quiet=args.quiet, verbose=args.verbose).main(
+                args.bucketID, credentialID=args.credentialID
+            )
+            if rc is False:
+                print("astraSDK.buckets.updateBucket() failed")
+                sys.exit(1)
+            else:
+                sys.exit(0)
+        elif args.objectType == "cloud":
             credentialID = None
             if args.credentialPath:
                 with open(args.credentialPath, encoding="utf8") as f:

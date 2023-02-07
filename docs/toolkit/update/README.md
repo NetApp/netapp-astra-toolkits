@@ -2,19 +2,50 @@
 
 The `update` argument allows you to update an Astra resource, at this time only including:
 
+* [Buckets](#bucket)
 * [Clouds](#cloud)
 * [Replications](#replication)
 
 ```text
-usage: toolkit.py update [-h] {cloud,replication} ...
+$ ./toolkit.py update -h
+usage: toolkit.py update [-h] {bucket,cloud,replication} ...
 
 options:
-  -h, --help           show this help message and exit
+  -h, --help            show this help message and exit
 
 objectType:
-  {cloud,replication}
-    cloud              update cloud
-    replication        update replication
+  {bucket,cloud,replication}
+    bucket              update bucket
+    cloud               update cloud
+    replication         update replication
+```
+
+## Bucket
+
+The `update bucket` command allows you to update the credential of a managed [bucket](../manage/README.md#bucket).  The high level command usage is:
+
+```text
+./toolkit.py update <bucketID> <credentialGroupArgs>
+```
+
+The \<bucketID\> argument can be gathered from a [list buckets](../list/README.md#buckets) command.  The possible \<credentialGroupArgs\> are:
+
+* `--credentialID`/`-c`: the **already existing** [credentialID](../list/README.md#credentials), or
+* `--accessKey` and `--accessSecret`: to create a new credential which the bucket is then updated to use
+
+Sample commands and output are as follows:
+
+```text
+$ ./toolkit.py update bucket 361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac \
+    --credentialID ad0754c4-08dd-4b68-b478-b4d2456968d3
+{"type": "application/astra-bucket", "version": "1.0", "id": "361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac", "name": "astra-gcp-backup-fbe43be9aaa0", "state": "available", "credentialID": "ad0754c4-08dd-4b68-b478-b4d2456968d3", "provider": "gcp", "bucketParameters": {"gcp": {"bucketName": "astra-gcp-backup-fbe43be9aaa0"}}, "metadata": {"labels": [{"name": "astra.netapp.io/labels/internal/nautilusCreated", "value": "true"}], "creationTimestamp": "2022-04-28T19:05:53Z", "modificationTimestamp": "2023-02-07T19:03:21Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
+```
+
+```text
+$ ./toolkit.py update bucket 266f3453-fef2-4f93-849b-a165a5625d25 \
+    --accessKey accessKey1234567890 --accessSecret accessSecret1234567890
+{"type": "application/astra-credential", "version": "1.1", "id": "03851a0d-c8cb-4550-83da-40cde27e530a", "name": "mhaigh-test-bucket", "keyType": "s3", "valid": "true", "metadata": {"creationTimestamp": "2023-02-07T19:08:55Z", "modificationTimestamp": "2023-02-07T19:08:55Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "s3"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "s3"}]}}
+{"type": "application/astra-bucket", "version": "1.1", "id": "266f3453-fef2-4f93-849b-a165a5625d25", "name": "mhaigh-test-bucket", "state": "available", "credentialID": "03851a0d-c8cb-4550-83da-40cde27e530a", "provider": "gcp", "bucketParameters": {"gcp": {"bucketName": "mhaigh-test-bucket"}}, "metadata": {"creationTimestamp": "2023-02-06T20:19:58Z", "modificationTimestamp": "2023-02-07T19:08:55Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
 
 ## Cloud
