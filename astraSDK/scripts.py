@@ -167,3 +167,56 @@ class destroyScript(SDKCommon):
         )
 
         return True if ret.ok else False
+
+
+class updateScript(SDKCommon):
+    """Update a script (aka hook source)"""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-hookSource+json"
+        self.headers["Content-Type"] = "application/astra-hookSource+json"
+
+    def main(
+        self,
+        scriptID,
+        source=None,
+        description=None,
+    ):
+
+        endpoint = f"core/v1/hookSources/{scriptID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-hookSource",
+            "version": "1.0",
+            "sourceType": "script",
+        }
+        if source:
+            data["source"] = source
+        if description:
+            data["description"] = description
+
+        ret = super().apicall(
+            "put",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+
+        if ret.ok:
+            # the scripts/ endpoint doesn't return a dict for PUTs, so calling getScripts
+            results = next(s for s in getScripts().main()["items"] if s["id"] == scriptID)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            return False

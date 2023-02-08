@@ -5,19 +5,21 @@ The `update` argument allows you to update an Astra resource, at this time only 
 * [Buckets](#bucket)
 * [Clouds](#cloud)
 * [Replications](#replication)
+* [Scripts](#script)
 
 ```text
 $ ./toolkit.py update -h
-usage: toolkit.py update [-h] {bucket,cloud,replication} ...
+usage: toolkit.py update [-h] {bucket,cloud,replication,script} ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {bucket,cloud,replication}
+  {bucket,cloud,replication,script}
     bucket              update bucket
     cloud               update cloud
     replication         update replication
+    script              update script
 ```
 
 ## Bucket
@@ -25,7 +27,7 @@ objectType:
 The `update bucket` command allows you to update the credential of a managed [bucket](../manage/README.md#bucket).  The high level command usage is:
 
 ```text
-./toolkit.py update <bucketID> <credentialGroupArgs>
+./toolkit.py update bucket <bucketID> <credentialGroupArgs>
 ```
 
 The \<bucketID\> argument can be gathered from a [list buckets](../list/README.md#buckets) command.  The possible \<credentialGroupArgs\> are:
@@ -149,4 +151,21 @@ In this situation, you are swapping the source and destination. The original sou
 $ ./toolkit.py update replication 5dbb4893-373d-46be-a5ec-cbdbf65ac673 reverse
 {"type": "application/astra-appMirror", "version": "1.0", "id": "5dbb4893-373d-46be-a5ec-cbdbf65ac673", "sourceAppID": "1be8daef-816e-4d17-a449-14b03639dcd1", "sourceClusterID": "0c00ddc3-4a80-45f9-8dd7-c8885153ad02", "destinationAppID": "dbda1d21-76b2-4cad-bd92-f047e41453c7", "destinationClusterID": "f3332e48-d175-4d6d-852f-bdee0f65a6fe", "namespaceMapping": [{"clusterID": "0c00ddc3-4a80-45f9-8dd7-c8885153ad02", "namespaces": ["wordpress"]}, {"clusterID": "f3332e48-d175-4d6d-852f-bdee0f65a6fe", "namespaces": ["wordpress"]}], "state": "establishing", "stateDesired": "established", "stateAllowed": ["established"], "stateDetails": [{"type": "https://astra.netapp.io/stateDetails/24", "title": "Snapshot replication completed", "detail": "A snapshot was replicated to the destination.", "additionalDetails": {"completionTime": "2022-09-20T20:07:05Z", "snapshotID": "1a5fc936-4f21-4e27-8081-d17155f50453", "startTime": "2022-09-20T20:05:44Z"}}], "transferState": "idle", "transferStateDetails": [], "healthState": "normal", "healthStateTransitions": [], "healthStateDetails": [], "metadata": {"labels": [], "creationTimestamp": "2022-09-19T19:09:32Z", "modificationTimestamp": "2022-09-20T20:18:44Z", "createdBy": "2b7a3f5e-c7da-4835-bfe2-6dd51c9b1444"}, "ReplicatedPVCs_": null}
 Replication reverse initiated
+```
+
+## Script
+
+The `update script` command allows you to update the source of an already existing [script](../create/README.md#script).  The high level command usage is:
+
+```text
+./toolkit.py update script <scriptID> <updatedScriptFilePath>
+```
+
+The \<scriptID\> argument can be gathered from a [list scripts](../list/README.md#scripts) command.
+
+Sample command and output are as follows:
+
+```text
+$ ./toolkit.py update script 282adc93-9df7-40e7-89d5-e120f525628d exampleScript.sh 
+{"metadata": {"labels": [], "creationTimestamp": "2023-02-08T21:31:30Z", "modificationTimestamp": "2023-02-08T21:32:08Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}, "type": "application/astra-hookSource", "version": "1.0", "id": "282adc93-9df7-40e7-89d5-e120f525628d", "name": "exampleScript", "private": "false", "preloaded": "false", "sourceType": "script", "source": "IyEvYmluL2Jhc2gKZWNobyAidGhpcyBpcyBqdXN0IGFuIGV4YW1wbGUgdXBkYXRlIg==", "sourceMD5Checksum": "30978f9517ef027e7c6861e4cc1797ae"}
 ```

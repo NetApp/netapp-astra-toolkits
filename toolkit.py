@@ -771,6 +771,9 @@ def main():
                         sys.exit(1)
                     for replication in replicationDict["items"]:
                         replicationList.append(replication["id"])
+                elif sys.argv[verbPosition + 1] == "script":
+                    for script in astraSDK.scripts.getScripts().main()["items"]:
+                        scriptList.append(script["id"])
 
     parser = tkParser.toolkit_parser(plaidMode=plaidMode).main(
         appList,
@@ -1821,6 +1824,16 @@ def main():
             else:
                 print("astraSDK.replications.updateReplicationpolicy() failed")
                 sys.exit(1)
+        elif args.objectType == "script":
+            with open(args.filePath, encoding="utf8") as f:
+                encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
+            rc = astraSDK.scripts.updateScript(quiet=args.quiet, verbose=args.verbose).main(
+                args.scriptID, source=encodedStr
+            )
+            if rc is False:
+                print("astraSDK.scripts.updateScript() failed")
+            else:
+                sys.exit(0)
 
 
 if __name__ == "__main__":

@@ -314,6 +314,10 @@ class toolkit_parser:
             "replication",
             help="update replication",
         )
+        self.subparserUpdateScript = self.subparserUpdate.add_parser(
+            "script",
+            help="update script",
+        )
 
     def deploy_args(self, chartsList):
         """deploy args and flags"""
@@ -1327,6 +1331,18 @@ class toolkit_parser:
             help="resync operation: the new source replication data (either appID or clusterID)",
         )
 
+    def update_script_args(self, scriptList):
+        """update script args and flags"""
+        self.subparserUpdateScript.add_argument(
+            "scriptID",
+            choices=(None if self.plaidMode else scriptList),
+            help="scriptID to update",
+        )
+        self.subparserUpdateScript.add_argument(
+            "filePath",
+            help="the local filesystem path to the updated script",
+        )
+
     def main(
         self,
         appList,
@@ -1417,5 +1433,6 @@ class toolkit_parser:
         self.update_bucket_args(bucketList, credentialList)
         self.update_cloud_args(cloudList, bucketList, credentialList)
         self.update_replication_args(replicationList)
+        self.update_script_args(scriptList)
 
         return self.parser
