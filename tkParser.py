@@ -1120,7 +1120,7 @@ class toolkit_parser:
             help="a friendly name for the cloud",
         )
         self.subparserManageCloud.add_argument(
-            "-c",
+            "-p",
             "--credentialPath",
             default=None,
             help="the local filesystem path to the cloud credential (required for all but "
@@ -1279,15 +1279,23 @@ class toolkit_parser:
             default=None,
         )
 
-    def update_cloud_args(self, cloudList, bucketList):
+    def update_cloud_args(self, cloudList, bucketList, credentialList):
         """update cloud args and flags"""
         self.subparserUpdateCloud.add_argument(
             "cloudID",
             choices=(None if self.plaidMode else cloudList),
             help="cloudID to update",
         )
-        self.subparserUpdateCloud.add_argument(
+        credGroup = self.subparserUpdateCloud.add_mutually_exclusive_group()
+        credGroup.add_argument(
             "-c",
+            "--credentialID",
+            default=None,
+            choices=(None if self.plaidMode else credentialList),
+            help="The existing ID of the credentials used to access the cloud",
+        )
+        credGroup.add_argument(
+            "-p",
             "--credentialPath",
             default=None,
             help="the local filesystem path to the new cloud credential",
@@ -1407,7 +1415,7 @@ class toolkit_parser:
         self.unmanage_cloud_args(cloudList)
 
         self.update_bucket_args(bucketList, credentialList)
-        self.update_cloud_args(cloudList, bucketList)
+        self.update_cloud_args(cloudList, bucketList, credentialList)
         self.update_replication_args(replicationList)
 
         return self.parser

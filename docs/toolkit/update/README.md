@@ -56,11 +56,11 @@ The `update cloud` command allows you to update the credential and/or default bu
 ./toolkit.py update cloud <cloudID> <updateArg>
 ```
 
-The \<cloudID\> argument can be gathered from a [list clouds](../list/README.md#clouds) command.  The other two possible commands are:
+The \<cloudID\> argument can be gathered from a [list clouds](../list/README.md#clouds) command.  The other three possible commands are:
 
 ### Credential Path
 
-To update the credentials of a cloud, use the `--credentialPath` argument to point at a local filesystem JSON credential object:
+To update the credentials of a cloud to a currently non-existing credential, use the `--credentialPath` argument to point at a local filesystem JSON credential object:
 
 ```text
 ./toolkit.py update cloud <cloudID> --credentialPath path/to/credentials.json
@@ -72,6 +72,22 @@ This command first creates the credential object, and then updates the cloud to 
 $ ./toolkit.py update cloud 0ec2e027-80bc-426a-b844-692de243b29e -c ~/gcp-astra-demo-3d7d.json
 {"type": "application/astra-credential", "version": "1.1", "id": "8e6c9667-f2f2-40c2-92d0-38467f7f45be", "name": "astra-sa@GCP", "keyType": "generic", "valid": "true", "metadata": {"creationTimestamp": "2023-02-06T19:54:32Z", "modificationTimestamp": "2023-02-06T19:54:32Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "service-account"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "GCP"}]}}
 {"type": "application/astra-cloud", "version": "1.0", "id": "0ec2e027-80bc-426a-b844-692de243b29e", "name": "GCP", "state": "running", "stateUnready": [], "cloudType": "GCP", "credentialID": "8e6c9667-f2f2-40c2-92d0-38467f7f45be", "defaultBucketID": "361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac", "metadata": {"labels": [], "creationTimestamp": "2022-04-26T01:53:06Z", "modificationTimestamp": "2023-02-06T19:54:33Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
+```
+
+### Credential ID
+
+To update the credentials of a cloud to a currently existing credential, use the `--credentialID` argument to reference an existing credentialID:
+
+```text
+./toolkit.py update cloud <cloudID> --credentialID <credentialID>
+```
+
+The \<credentialID\> value can be gathered from a [list credentials](../list/README.md#credentials) command.
+
+```text
+$ ./toolkit.py update cloud 0ec2e027-80bc-426a-b844-692de243b29e \
+    --credentialID 8e6c9667-f2f2-40c2-92d0-38467f7f45be
+{"type": "application/astra-cloud", "version": "1.0", "id": "0ec2e027-80bc-426a-b844-692de243b29e", "name": "GCP", "state": "running", "stateUnready": [], "cloudType": "GCP", "credentialID": "8e6c9667-f2f2-40c2-92d0-38467f7f45be", "defaultBucketID": "361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac", "metadata": {"labels": [], "creationTimestamp": "2022-04-26T01:53:06Z", "modificationTimestamp": "2023-02-08T13:48:23Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
 
 ### Default Bucket

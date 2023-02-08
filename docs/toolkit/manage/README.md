@@ -193,14 +193,14 @@ The arguments have the following requirements:
 Sample output:
 
 ```text
-$ ./toolkit.py manage cloud Azure azure-tme -c ~/.azure/azure-sp-tme-demo2-astra.json \
+$ ./toolkit.py manage cloud Azure azure-tme -p ~/.azure/azure-sp-tme-demo2-astra.json \
     -b e626e015-bc0b-4cac-9ccf-c55ed5eeb18a
 {"type": "application/astra-credential", "version": "1.1", "id": "09f8b4ca-975f-4084-b123-53423af6924b", "name": "astra-sa@azure-tme", "keyType": "generic", "valid": "true", "metadata": {"creationTimestamp": "2022-11-11T14:17:38Z", "modificationTimestamp": "2022-11-11T14:17:38Z", "createdBy": "23ecfb3a-c581-473b-9f44-9495c280fb8b", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "service-account"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "Azure"}]}}
 {"type": "application/astra-cloud", "version": "1.0", "id": "f7d8204a-1ff8-4ae7-983f-2c4352b01dc8", "name": "azure-tme", "state": "pending", "stateUnready": [], "cloudType": "Azure", "credentialID": "09f8b4ca-975f-4084-b123-53423af6924b", "defaultBucketID": "e626e015-bc0b-4cac-9ccf-c55ed5eeb18a", "metadata": {"labels": [], "creationTimestamp": "2022-11-11T14:17:40Z", "modificationTimestamp": "2022-11-11T14:17:40Z", "createdBy": "23ecfb3a-c581-473b-9f44-9495c280fb8b"}}
 ```
 
 ```text
-$ ./toolkit.py manage cloud AWS aws-tme-demo -c ~/.aws/aws-astra-control.json 
+$ ./toolkit.py manage cloud AWS aws-tme-demo -p ~/.aws/aws-astra-control.json
 {"type": "application/astra-credential", "version": "1.1", "id": "8bc83523-8406-4d21-ae03-3b931ad79a67", "name": "astra-sa@aws-tme-demo", "keyType": "generic", "valid": "true", "metadata": {"creationTimestamp": "2022-11-11T14:44:23Z", "modificationTimestamp": "2022-11-11T14:44:23Z", "createdBy": "23ecfb3a-c581-473b-9f44-9495c280fb8b", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "service-account"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "AWS"}]}}
 {"type": "application/astra-cloud", "version": "1.0", "id": "bd63bd2e-c6d5-4435-a5b2-71163d5c5dc1", "name": "aws-tme-demo", "state": "pending", "stateUnready": [], "cloudType": "AWS", "credentialID": "8bc83523-8406-4d21-ae03-3b931ad79a67", "metadata": {"labels": [], "creationTimestamp": "2022-11-11T14:44:23Z", "modificationTimestamp": "2022-11-11T14:44:23Z", "createdBy": "23ecfb3a-c581-473b-9f44-9495c280fb8b"}}
 ```

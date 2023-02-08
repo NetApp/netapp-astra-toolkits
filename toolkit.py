@@ -751,6 +751,19 @@ def main():
                         cloudList.append(cloud["id"])
                     for bucket in (bucketDict := astraSDK.buckets.getBuckets().main())["items"]:
                         bucketList.append(bucket["id"])
+                    credentialDict = astraSDK.credentials.getCredentials().main()
+                    for credential in credentialDict["items"]:
+                        if credential["metadata"].get("labels"):
+                            credID = None
+                            if credential["keyType"] == "s3":
+                                credID = credential["id"]
+                            else:
+                                for label in credential["metadata"]["labels"]:
+                                    if label["name"] == "astra.netapp.io/labels/read-only/credType":
+                                        if label["value"] in ["AzureContainer", "service-account"]:
+                                            credID = credential["id"]
+                            if credID:
+                                credentialList.append(credential["id"])
                 elif sys.argv[verbPosition + 1] == "replication":
                     replicationDict = astraSDK.replications.getReplicationpolicies().main()
                     if not replicationDict:  # Gracefully handle ACS env
@@ -1683,7 +1696,6 @@ def main():
             else:
                 sys.exit(0)
         elif args.objectType == "cloud":
-            credentialID = None
             if args.credentialPath:
                 with open(args.credentialPath, encoding="utf8") as f:
                     try:
@@ -1704,14 +1716,14 @@ def main():
                     cloud["cloudType"],
                 )
                 if rc:
-                    credentialID = rc["id"]
+                    args.credentialID = rc["id"]
                 else:
                     print("astraSDK.credentials.createCredential() failed")
                     sys.exit(1)
             # Next update the cloud
             rc = astraSDK.clouds.updateCloud(quiet=args.quiet, verbose=args.verbose).main(
                 args.cloudID,
-                credentialID=credentialID,
+                credentialID=args.credentialID,
                 defaultBucketID=args.defaultBucketID,
             )
             if rc:
