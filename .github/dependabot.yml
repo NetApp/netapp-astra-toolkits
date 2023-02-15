@@ -1,0 +1,24 @@
+version: 2
+updates:
+
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      # Every week Monday 11am UTC
+      interval: "weekly"
+      day: "monday"
+      time: "11:00"
+    assignees:
+      - "MichaelHaigh"
+
+  # Maintain dependencies for PyPI / pip
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      # Every week Monday 11am UTC
+      interval: "weekly"
+      day: "monday"
+      time: "11:00"
+    assignees:
+      - "MichaelHaigh"
