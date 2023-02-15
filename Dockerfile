@@ -1,22 +1,19 @@
-FROM google/cloud-sdk:alpine
+FROM ubuntu:jammy
 
-# Ignore to update version here, it is controlled by .travis.yml and build.sh
-# docker build --no-cache --build-arg KUBECTL_VERSION=${tag} --build-arg HELM_VERSION=${helm} --build-arg KUSTOMIZE_VERSION=${kustomize_version} -t ${image}:${tag} .
-ARG HELM_VERSION=3.9.4
-ARG KUBECTL_VERSION=1.23.9
-ARG KUSTOMIZE_VERSION=v4.5.7
-ARG KUBESEAL_VERSION=v0.18.2
-ARG EKSCTL_VERSION=v0.109.0
+ARG HELM_VERSION=3.11.1
+ARG KUBECTL_VERSION=1.24.10
+ARG KUSTOMIZE_VERSION=v5.0.0
+ARG KUBESEAL_VERSION=v0.18.4
+ARG EKSCTL_VERSION=v0.129.0
+ARG AWS_IAM_AUTH_VERSION=0.5.9
 
-# https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html
-ARG AWS_IAM_AUTH_VERSION_URL=https://s3.us-west-2.amazonaws.com/amazon-eks/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator
+RUN apt-get update && \
+    apt-get -y install ca-certificates curl apt-transport-https lsb-release gnupg jq git python3-pip zip
 
-# Install helm (latest release)
-# ENV BASE_URL="https://storage.googleapis.com/kubernetes-helm"
+# Install helm
 ENV BASE_URL="https://get.helm.sh"
 ENV TAR_FILE="helm-v${HELM_VERSION}-linux-amd64.tar.gz"
-RUN apk add --update --no-cache curl ca-certificates bash git && \
-    curl -sL ${BASE_URL}/${TAR_FILE} | tar -xvz && \
+RUN curl -sL ${BASE_URL}/${TAR_FILE} | tar -xvz && \
     mv linux-amd64/helm /usr/bin/helm && \
     chmod +x /usr/bin/helm && \
     rm -rf linux-amd64
@@ -39,7 +36,7 @@ RUN curl -sLO https://github.com/kubernetes-sigs/kustomize/releases/download/kus
     chmod +x /usr/bin/kustomize
 
 # Install aws-iam-authenticator
-RUN curl -sLO ${AWS_IAM_AUTH_VERSION_URL} && \
+RUN curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v${AWS_IAM_AUTH_VERSION}/aws-iam-authenticator_${AWS_IAM_AUTH_VERSION}_linux_amd64 && \
     mv aws-iam-authenticator /usr/bin/aws-iam-authenticator && \
     chmod +x /usr/bin/aws-iam-authenticator
 
@@ -48,40 +45,32 @@ RUN curl -sL "https://github.com/weaveworks/eksctl/releases/download/${EKSCTL_VE
     mv /tmp/eksctl /usr/bin && \
     chmod +x /usr/bin/eksctl
 
-# Install awscli and required python packages
-RUN apk add --update --no-cache python3 && \
-    python3 -m ensurepip && \
-    pip3 install --upgrade pip && \
-    pip3 install virtualenv && \
-    pip3 install awscli && \
-    pip3 install requests && \
-    pip3 install termcolor && \
-    pip3 install certifi && \
-    pip3 install chardet && \
-    pip3 install dnspython && \
-    pip3 install idna && \
-    pip3 install PyYAML && \
-    pip3 install tabulate && \
-    pip3 install urllib3 && \
-    pip3 install kubernetes && \
-    pip3 install actoolkit && \
-    pip3 cache purge
+# Install awscli
+RUN curl -Lo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
+    unzip awscliv2.zip -d /tmp && \
+    /tmp/aws/install -i /usr/local/aws-cli -b /usr/local/bin
 
 # Install gcloud
-RUN gcloud components install core gsutil beta
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+    | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+    | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && \
+    apt-get update && \
+    apt-get -y install google-cloud-cli
 
 # Install az
-RUN apk add bash make && \
-    apk add --virtual=build gcc libffi-dev musl-dev openssl-dev python3-dev && \
-    pip3 install azure-cli
-
-# Install jq
-RUN apk add --update --no-cache jq
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
 
 # Install kubeseal
 RUN curl -sL https://github.com/bitnami-labs/sealed-secrets/releases/download/${KUBESEAL_VERSION}/kubeseal-linux-amd64 -o kubeseal && \
     mv kubeseal /usr/bin/kubeseal && \
     chmod +x /usr/bin/kubeseal
+
+# Install actoolkit
+RUN pip3 install --upgrade pip && \
+    pip3 install virtualenv && \
+    pip3 install actoolkit && \
+    pip3 cache purge
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
