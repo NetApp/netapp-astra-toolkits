@@ -12,6 +12,17 @@ updates:
     assignees:
       - "MichaelHaigh"
 
+  # Maintain dependencies for docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      # Every week Monday 11am UTC
+      interval: "weekly"
+      day: "monday"
+      time: "11:00"
+    assignees:
+      - "MichaelHaigh"
+
   # Maintain dependencies for PyPI / pip
   - package-ecosystem: "pip"
     directory: "/"
