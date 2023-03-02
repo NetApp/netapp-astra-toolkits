@@ -208,7 +208,6 @@ class manageApp(SDKCommon):
         addNamespaces=None,
         clusterScopedResources=None,
     ):
-
         endpoint = "k8s/v2/apps"
         url = self.base + endpoint
         params = {}
@@ -259,7 +258,6 @@ class unmanageApp(SDKCommon):
         self.headers["Content-Type"] = "application/astra-app+json"
 
     def main(self, appID):
-
         endpoint = f"k8s/v2/apps/{appID}"
         url = self.base + endpoint
         params = {}
@@ -427,7 +425,6 @@ class getAppAssets(SDKCommon):
         super().__init__()
 
     def main(self, appID):
-
         endpoint = f"k8s/v1/apps/{appID}/appAssets"
         url = self.base + endpoint
 

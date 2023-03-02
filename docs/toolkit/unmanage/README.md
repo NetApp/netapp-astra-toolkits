@@ -4,20 +4,20 @@ The `unmanage` argument allows you to unmanage a currently managed object:
 
 * [App](#app)
 * [Bucket](#bucket)
-* [Cluster](#cluster)
 * [Cloud](#cloud)
+* [Cluster](#cluster)
 
 ```text
-$ ./toolkit.py unmanage -h
-usage: toolkit.py unmanage [-h] {app,bucket,cluster} ...
+usage: toolkit.py unmanage [-h] {app,bucket,cloud,cluster} ...
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
 
 objectType:
-  {app,bucket,cluster}
+  {app,bucket,cloud,cluster}
     app                 unmanage app
     bucket              unmanage bucket
+    cloud               unmanage cloud
     cluster             unmanage cluster
 ```
 
@@ -51,6 +51,24 @@ $ ./toolkit.py unmanage bucket d6c59f83-fcb2-4475-87de-cd5dc7277ac6
 Bucket unmanaged
 ```
 
+## Cloud
+
+Prior to unmanaging a cloud, it is recommended to first unmanage all [clusters](#cluster) running in the environment.  Once that is complete, utilize the [cloud ID](../list/README.md#clouds) with the following command.
+
+```text
+./toolkit.py unmanage cloud <cloudID>
+```
+
+For all non-`private` cloudTypes, the associated credential is also destroyed.
+
+Sample output:
+
+```text
+$ ./toolkit.py unmanage cloud bd63bd2e-c6d5-4435-a5b2-71163d5c5dc1
+Cloud unmanaged
+Credential deleted
+```
+
 ## Cluster
 
 Prior to unmanaging a cluster, it is recommended to first unmanage all [applications](#app) running in the cluster.  Once that is complete, utilize the [cluster ID](../list/README.md#clusters) with the following command.
@@ -72,23 +90,5 @@ In the event the cluster in question is a **non-public-cloud-managed** Kubernete
 $ ./toolkit.py unmanage cluster 1fe9f33e-a560-41db-a72a-9544e2a4adcf
 Cluster unmanaged
 Cluster deleted
-Credential deleted
-```
-
-## Cloud
-
-Prior to unmanaging a cloud, it is recommended to first unmanage all [clusters](#cluster) running in the environment.  Once that is complete, utilize the [cloud ID](../list/README.md#clouds) with the following command.
-
-```text
-./toolkit.py unmanage cloud <cloudID>
-```
-
-For all non-`private` cloudTypes, the associated credential is also destroyed.
-
-Sample output:
-
-```text
-$ ./toolkit.py unmanage cloud bd63bd2e-c6d5-4435-a5b2-71163d5c5dc1
-Cloud unmanaged
 Credential deleted
 ```

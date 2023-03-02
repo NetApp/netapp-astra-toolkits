@@ -237,13 +237,13 @@ class toolkit_parser:
             "bucket",
             help="manage bucket",
         )
-        self.subparserManageCluster = self.subparserManage.add_parser(
-            "cluster",
-            help="manage cluster",
-        )
         self.subparserManageCloud = self.subparserManage.add_parser(
             "cloud",
             help="manage cloud",
+        )
+        self.subparserManageCluster = self.subparserManage.add_parser(
+            "cluster",
+            help="manage cluster",
         )
 
     def sub_destroy_commands(self):
@@ -291,13 +291,13 @@ class toolkit_parser:
             "bucket",
             help="unmanage bucket",
         )
-        self.subparserUnmanageCluster = self.subparserUnmanage.add_parser(
-            "cluster",
-            help="unmanage cluster",
-        )
         self.subparserUnmanageCloud = self.subparserUnmanage.add_parser(
             "cloud",
             help="unmanage cloud",
+        )
+        self.subparserUnmanageCluster = self.subparserUnmanage.add_parser(
+            "cluster",
+            help="unmanage cluster",
         )
 
     def sub_update_commands(self):
@@ -1363,7 +1363,6 @@ class toolkit_parser:
         storageClassList,
         userList,
     ):
-
         # Create the top-level commands like: deploy, clone, list, manage, etc.
         self.top_level_commands()
 
