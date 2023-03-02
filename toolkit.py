@@ -621,7 +621,7 @@ def main():
                     for credential in credentialDict["items"]:
                         if credential["metadata"].get("labels"):
                             credID = None
-                            if credential["keyType"] == "s3":
+                            if credential.get("keyType") == "s3":
                                 credID = credential["id"]
                             else:
                                 for label in credential["metadata"]["labels"]:
@@ -737,7 +737,7 @@ def main():
                     for credential in credentialDict["items"]:
                         if credential["metadata"].get("labels"):
                             credID = None
-                            if credential["keyType"] == "s3":
+                            if credential.get("keyType") == "s3":
                                 credID = credential["id"]
                             else:
                                 for label in credential["metadata"]["labels"]:
@@ -755,7 +755,7 @@ def main():
                     for credential in credentialDict["items"]:
                         if credential["metadata"].get("labels"):
                             credID = None
-                            if credential["keyType"] == "s3":
+                            if credential.get("keyType") == "s3":
                                 credID = credential["id"]
                             else:
                                 for label in credential["metadata"]["labels"]:
