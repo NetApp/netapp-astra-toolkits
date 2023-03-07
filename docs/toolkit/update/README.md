@@ -2,22 +2,24 @@
 
 The `update` argument allows you to update an Astra resource, at this time only including:
 
-* [Buckets](#bucket)
-* [Clouds](#cloud)
-* [Replications](#replication)
-* [Scripts](#script)
+* [Bucket](#bucket)
+* [Cloud](#cloud)
+* [Cluster](#cluster)
+* [Replication](#replication)
+* [Script](#script)
 
 ```text
 $ ./toolkit.py update -h
-usage: toolkit.py update [-h] {bucket,cloud,replication,script} ...
+usage: toolkit.py update [-h] {bucket,cloud,cluster,replication,script} ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {bucket,cloud,replication,script}
+  {bucket,cloud,cluster,replication,script}
     bucket              update bucket
     cloud               update cloud
+    cluster             update cluster
     replication         update replication
     script              update script
 ```
@@ -58,7 +60,7 @@ The `update cloud` command allows you to update the credential and/or default bu
 ./toolkit.py update cloud <cloudID> <updateArg>
 ```
 
-The \<cloudID\> argument can be gathered from a [list clouds](../list/README.md#clouds) command.  The other three possible commands are:
+The \<cloudID\> argument can be gathered from a [list clouds](../list/README.md#clouds) command.  The other three possible arguments are:
 
 ### Credential Path
 
@@ -105,6 +107,29 @@ The \<bucketID\> can be gathered from a [list buckets](../list/README.md#buckets
 ```text
 $ ./toolkit.py update cloud 0ec2e027-80bc-426a-b844-692de243b29e --defaultBucketID 361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac
 {"type": "application/astra-cloud", "version": "1.0", "id": "0ec2e027-80bc-426a-b844-692de243b29e", "name": "GCP", "state": "running", "stateUnready": [], "cloudType": "GCP", "credentialID": "8e6c9667-f2f2-40c2-92d0-38467f7f45be", "defaultBucketID": "361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac", "metadata": {"labels": [], "creationTimestamp": "2022-04-26T01:53:06Z", "modificationTimestamp": "2023-02-06T20:24:53Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
+```
+
+## Cluster
+
+The `update cluster` command allows you to update a [cluster](../create/README.md#cluster).  The high level command usage is:
+
+```text
+./toolkit.py update cluster <clusterID> <updateArg>
+```
+
+The \<clusterID\> argument can be gathered from a [list clusters](../list/README.md#clusters) command.  The only current \<updateArg\> available is:
+
+### Credential Path
+
+The `-p`/`--credentialPath` argument allows for updating the kubeconfig credential of an existing cluster:
+
+```text
+./toolkit.py update cluster <clusterID> --credentialPath path/to/kubeconfig
+```
+
+```text
+$ ./toolkit.py update cluster 2d37cc47-f543-46a6-8895-2504b1a50ce2 --credentialPath ~/.kube/config
+{"type": "application/astra-credential", "version": "1.1", "id": "f1bfe212-fb48-4f1f-9637-138efc04e788", "name": "aks-eastus-cluster", "keyType": "kubeconfig", "valid": "true", "metadata": {"creationTimestamp": "2023-03-07T20:17:21Z", "modificationTimestamp": "2023-03-07T20:26:48Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "kubeconfig"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "private"}, {"name": "astra.netapp.io/labels/read-only/clusterID", "value": "2d37cc47-f543-46a6-8895-2504b1a50ce2"}, {"name": "astra.netapp.io/labels/read-only/clusterName", "value": "aks-eastus-cluster"}]}}
 ```
 
 ## Replication

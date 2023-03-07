@@ -36,7 +36,6 @@ class getCredentials(SDKCommon):
         super().__init__()
 
     def main(self, kubeconfigOnly=False):
-
         endpoint = "core/v1/credentials"
         url = self.base + endpoint
 
@@ -129,7 +128,6 @@ class createCredential(SDKCommon):
         keyStore,
         cloudName=None,
     ):
-
         endpoint = "core/v1/credentials"
         url = self.base + endpoint
         params = {}
@@ -183,7 +181,6 @@ class destroyCredential(SDKCommon):
         self.headers["Content-Type"] = "application/astra-credential+json"
 
     def main(self, credentialID):
-
         endpoint = f"core/v1/credentials/{credentialID}"
         url = self.base + endpoint
         params = {}
@@ -201,3 +198,50 @@ class destroyCredential(SDKCommon):
         )
 
         return True if ret.ok else False
+
+
+class updateCredential(SDKCommon):
+    """This class updates a credential, it is currently intended for updating a kubeconfig
+    for a cluster (via the keyStore value), but has been created in a way to allow other
+    kinds of updates in future versions."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-credential+json"
+        self.headers["Content-Type"] = "application/astra-credential+json"
+
+    def main(self, credentialID, credName=None, keyStore=None):
+        endpoint = f"core/v1/credentials/{credentialID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-credential",
+            "version": "1.1",
+        }
+        if keyStore:
+            data["keyStore"] = keyStore
+        if credName:
+            data["name"] = credName
+
+        ret = super().apicall(
+            "put",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            return False

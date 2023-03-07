@@ -35,7 +35,6 @@ class getClouds(SDKCommon):
         super().__init__()
 
     def main(self, cloudType=None):
-
         endpoint = "topology/v1/clouds"
         url = self.base + endpoint
 
@@ -65,7 +64,9 @@ class getClouds(SDKCommon):
                 dataReturn = yaml.dump(cloudsCooked)
             elif self.output == "table":
                 dataReturn = self.basicTable(
-                    ["cloudName", "cloudID", "cloudType"], ["name", "id", "cloudType"], cloudsCooked
+                    ["cloudName", "cloudID", "cloudType", "credentialID"],
+                    ["name", "id", "cloudType", "credentialID"],
+                    cloudsCooked,
                 )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
@@ -88,7 +89,6 @@ class manageCloud(SDKCommon):
         self.headers["Content-Type"] = "application/astra-cloud+json"
 
     def main(self, cloudName, cloudType, credentialID=None, description=None, defaultBucketID=None):
-
         endpoint = "topology/v1/clouds"
         url = self.base + endpoint
         params = {}
@@ -138,7 +138,6 @@ class unmanageCloud(SDKCommon):
         self.headers["Content-Type"] = "application/astra-cloud+json"
 
     def main(self, cloudID):
-
         endpoint = f"topology/v1/clouds/{cloudID}"
         url = self.base + endpoint
         params = {}
@@ -178,7 +177,6 @@ class updateCloud(SDKCommon):
         self.headers["Content-Type"] = "application/astra-cloud+json"
 
     def main(self, cloudID, credentialID=None, defaultBucketID=None):
-
         endpoint = f"topology/v1/clouds/{cloudID}"
         url = self.base + endpoint
         params = {}

@@ -776,6 +776,12 @@ def main():
                                             credID = credential["id"]
                             if credID:
                                 credentialList.append(credential["id"])
+                elif sys.argv[verbPosition + 1] == "cluster":
+                    if clusterDict := astraSDK.clusters.getClusters(quiet=True).main():
+                        for cluster in clusterDict["items"]:
+                            clusterList.append(cluster["id"])
+                    else:
+                        sys.exit(1)
                 elif sys.argv[verbPosition + 1] == "replication":
                     replicationDict = astraSDK.replications.getReplicationpolicies().main()
                     if not replicationDict:  # Gracefully handle ACS env
@@ -1687,7 +1693,11 @@ def main():
                 encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
                 if plaidMode:
                     cloudDict = astraSDK.clouds.getClouds().main()
-                cloud = next(c for c in cloudDict["items"] if c["id"] == args.cloudID)
+                try:
+                    cloud = next(c for c in cloudDict["items"] if c["id"] == args.cloudID)
+                except StopIteration:
+                    print(f"Error: {args.cloudID} does not seem to be a valid cloudID")
+                    sys.exit(1)
                 rc = astraSDK.credentials.createCredential(
                     quiet=args.quiet, verbose=args.verbose
                 ).main(
@@ -1712,6 +1722,34 @@ def main():
             else:
                 print(rc.error)
                 print("astraSDK.clouds.updateCloud() failed")
+        elif args.objectType == "cluster":
+            # Get the cluster information based on the clusterID input
+            if plaidMode:
+                clusterDict = astraSDK.clusters.getClusters().main()
+            try:
+                cluster = next(c for c in clusterDict["items"] if c["id"] == args.clusterID)
+            except StopIteration:
+                print(f"Error: {args.clusterID} does not seem to be a valid clusterID")
+                sys.exit(1)
+            # Currently this is required to be True, but this will not always be the case
+            if args.credentialPath:
+                with open(args.credentialPath, encoding="utf8") as f:
+                    kubeconfigDict = yaml.load(f.read().rstrip(), Loader=yaml.SafeLoader)
+                    encodedStr = base64.b64encode(
+                        json.dumps(kubeconfigDict).encode("utf-8")
+                    ).decode("utf-8")
+                rc = astraSDK.credentials.updateCredential(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(
+                    cluster.get("credentialID"),
+                    credName=kubeconfigDict["clusters"][0]["name"],
+                    keyStore={"base64": encodedStr},
+                )
+                if rc:
+                    sys.exit(0)
+                else:
+                    print("astraSDK.credentials.updateCredential() failed")
+                    sys.exit(1)
         elif args.objectType == "replication":
             # Gather replication data
             if plaidMode:
