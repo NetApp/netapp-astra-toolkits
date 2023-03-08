@@ -39,7 +39,6 @@ class getNotifications(SDKCommon):
         super().__init__()
 
     def main(self, limit=None, skip=None, minuteFilter=None, severityFilter=None):
-
         endpoint = "core/v1/notifications"
         url = self.base + endpoint
 
@@ -91,4 +90,6 @@ class getNotifications(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False

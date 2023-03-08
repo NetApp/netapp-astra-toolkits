@@ -37,7 +37,6 @@ class getRolebindings(SDKCommon):
         super().__init__()
 
     def main(self, idFilter=None):
-
         endpoint = "core/v1/roleBindings"
         url = self.base + endpoint
 
@@ -77,6 +76,8 @@ class getRolebindings(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -99,7 +100,6 @@ class createRolebinding(SDKCommon):
         groupID=None,
         roleConstraints=None,
     ):
-
         endpoint = f"core/v1/roleBindings"
         url = self.base + endpoint
         params = {}
@@ -133,6 +133,8 @@ class createRolebinding(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -152,7 +154,6 @@ class destroyRolebinding(SDKCommon):
         self.headers["Content-Type"] = "application/astra-roleBinding+json"
 
     def main(self, roleBindingID):
-
         endpoint = f"core/v1/roleBindings/{roleBindingID}"
         url = self.base + endpoint
         params = {}
@@ -169,4 +170,9 @@ class destroyRolebinding(SDKCommon):
             verbose=self.verbose,
         )
 
-        return True if ret.ok else False
+        if ret.ok:
+            return True
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False

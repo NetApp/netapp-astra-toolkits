@@ -100,6 +100,8 @@ class getCredentials(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -165,6 +167,8 @@ class createCredential(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -197,7 +201,12 @@ class destroyCredential(SDKCommon):
             verbose=self.verbose,
         )
 
-        return True if ret.ok else False
+        if ret.ok:
+            return True
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False
 
 
 class updateCredential(SDKCommon):
@@ -244,4 +253,6 @@ class updateCredential(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False

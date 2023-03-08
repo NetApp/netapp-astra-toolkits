@@ -36,7 +36,6 @@ class getStorageBackends(SDKCommon):
         super().__init__()
 
     def main(self):
-
         endpoint = "topology/v1/storageBackends"
         url = self.base + endpoint
 
@@ -71,4 +70,6 @@ class getStorageBackends(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False

@@ -119,9 +119,8 @@ class getReplicationpolicies(SDKCommon):
             return dataReturn
 
         else:
-            # Handle ACS environments
-            if ret.text.strip():
-                print(json.loads(ret.text).get("detail"))
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -148,7 +147,6 @@ class createReplicationpolicy(SDKCommon):
         namespaceMapping,
         destinationStorageClass=None,
     ):
-
         endpoint = "k8s/v1/appMirrors"
         url = self.base + endpoint
         params = {}
@@ -180,6 +178,8 @@ class createReplicationpolicy(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -208,7 +208,6 @@ class updateReplicationpolicy(SDKCommon):
         destinationAppID=None,
         destinationClusterID=None,
     ):
-
         endpoint = f"k8s/v1/appMirrors/{replicationID}"
         url = self.base + endpoint
         params = {}
@@ -243,6 +242,8 @@ class updateReplicationpolicy(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -259,7 +260,6 @@ class destroyReplicationpolicy(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appMirror+json"
 
     def main(self, replicationID):
-
         endpoint = f"k8s/v1/appMirrors/{replicationID}"
         url = self.base + endpoint
         params = {}
@@ -276,4 +276,9 @@ class destroyReplicationpolicy(SDKCommon):
             verbose=self.verbose,
         )
 
-        return True if ret.ok else False
+        if ret.ok:
+            return True
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False

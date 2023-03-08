@@ -18,7 +18,6 @@
 import yaml
 import json
 import copy
-from termcolor import colored
 
 from .common import SDKCommon
 
@@ -38,7 +37,6 @@ class getUsers(SDKCommon):
         super().__init__()
 
     def main(self, nameFilter=None):
-
         endpoint = "core/v1/users"
         url = self.base + endpoint
 
@@ -86,6 +84,8 @@ class getUsers(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -111,7 +111,6 @@ class createUser(SDKCommon):
         companyName=None,
         phone=None,
     ):
-
         endpoint = "core/v1/users"
         url = self.base + endpoint
         params = {}
@@ -146,4 +145,6 @@ class createUser(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False

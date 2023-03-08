@@ -130,4 +130,6 @@ class getNamespaces(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False

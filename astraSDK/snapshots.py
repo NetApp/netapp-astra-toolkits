@@ -100,6 +100,8 @@ class getSnaps(SDKCommon):
                         )
                         print()
             else:
+                if not self.quiet:
+                    super().printError(ret)
                 continue
         if self.output == "json":
             dataReturn = snaps
@@ -132,7 +134,6 @@ class takeSnap(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
     def main(self, appID, snapName):
-
         endpoint = f"k8s/v1/apps/{appID}/appSnaps"
         url = self.base + endpoint
         params = {}
@@ -159,6 +160,8 @@ class takeSnap(SDKCommon):
                 print(json.dumps(results))
             return results.get("id") or True
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -176,7 +179,6 @@ class destroySnapshot(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appSnap+json"
 
     def main(self, appID, snapID):
-
         endpoint = f"k8s/v1/apps/{appID}/appSnaps/{snapID}"
         url = self.base + endpoint
         params = {}
@@ -196,4 +198,9 @@ class destroySnapshot(SDKCommon):
             verbose=self.verbose,
         )
 
-        return True if ret.ok else False
+        if ret.ok:
+            return True
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False

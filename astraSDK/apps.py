@@ -170,6 +170,8 @@ class getApps(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -242,6 +244,8 @@ class manageApp(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -279,6 +283,8 @@ class unmanageApp(SDKCommon):
                 print("App unmanaged")
             return True
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -353,6 +359,8 @@ class cloneApp(SDKCommon):
             else:
                 return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -409,7 +417,12 @@ class restoreApp(SDKCommon):
             verbose=self.verbose,
         )
 
-        return True if ret.ok else False
+        if ret.ok:
+            return True
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False
 
 
 class getAppAssets(SDKCommon):
@@ -459,4 +472,6 @@ class getAppAssets(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False

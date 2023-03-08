@@ -73,6 +73,10 @@ class getClusters(SDKCommon):
                     if hideUnmanaged and item.get("managedState") == "unmanaged":
                         continue
                     clusters["items"].append(item)
+            else:
+                if not self.quiet:
+                    super().printError(ret)
+                continue
 
         if self.output == "json":
             dataReturn = clusters
@@ -119,7 +123,6 @@ class manageCluster(SDKCommon):
         self.headers["Content-Type"] = "application/managedCluster+json"
 
     def main(self, clusterID, storageClassID=None):
-
         endpoint = "topology/v1/managedClusters"
         url = self.base + endpoint
         params = {}
@@ -148,6 +151,8 @@ class manageCluster(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -165,7 +170,6 @@ class unmanageCluster(SDKCommon):
         self.clusters = getClusters().main()
 
     def main(self, clusterID):
-
         endpoint = f"topology/v1/managedClusters/{clusterID}"
         url = self.base + endpoint
         params = {}
@@ -187,6 +191,8 @@ class unmanageCluster(SDKCommon):
                 print("Cluster unmanaged")
             return True
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -204,7 +210,6 @@ class addCluster(SDKCommon):
         self.headers["Content-Type"] = "application/astra-cluster+json"
 
     def main(self, cloudID, credentialID):
-
         endpoint = f"topology/v1/clouds/{cloudID}/clusters"
         url = self.base + endpoint
         params = {}
@@ -231,6 +236,8 @@ class addCluster(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -248,7 +255,6 @@ class deleteCluster(SDKCommon):
         self.headers["Content-Type"] = "application/astra-cluster+json"
 
     def main(self, clusterID, cloudID):
-
         endpoint = f"topology/v1/clouds/{cloudID}/clusters/{clusterID}"
         url = self.base + endpoint
         params = {}
@@ -270,4 +276,6 @@ class deleteCluster(SDKCommon):
                 print("Cluster deleted")
             return True
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False

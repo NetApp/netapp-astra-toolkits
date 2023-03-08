@@ -37,7 +37,6 @@ class getScripts(SDKCommon):
         super().__init__()
 
     def main(self, nameFilter=None):
-
         endpoint = "core/v1/hookSources"
         url = self.base + endpoint
 
@@ -77,6 +76,8 @@ class getScripts(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -98,7 +99,6 @@ class createScript(SDKCommon):
         source,
         description=None,
     ):
-
         endpoint = f"core/v1/hookSources"
         url = self.base + endpoint
         params = {}
@@ -129,6 +129,8 @@ class createScript(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -146,7 +148,6 @@ class destroyScript(SDKCommon):
         self.headers["Content-Type"] = "application/astra-hookSource+json"
 
     def main(self, scriptID):
-
         endpoint = f"core/v1/hookSources/{scriptID}"
         url = self.base + endpoint
         params = {}
@@ -166,7 +167,12 @@ class destroyScript(SDKCommon):
             verbose=self.verbose,
         )
 
-        return True if ret.ok else False
+        if ret.ok:
+            return True
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False
 
 
 class updateScript(SDKCommon):
@@ -187,7 +193,6 @@ class updateScript(SDKCommon):
         source=None,
         description=None,
     ):
-
         endpoint = f"core/v1/hookSources/{scriptID}"
         url = self.base + endpoint
         params = {}
@@ -219,4 +224,6 @@ class updateScript(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False

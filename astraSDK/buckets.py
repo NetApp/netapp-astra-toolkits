@@ -37,7 +37,6 @@ class getBuckets(SDKCommon):
         super().__init__()
 
     def main(self, nameFilter=None, provider=None):
-
         endpoint = "topology/v1/buckets"
         url = self.base + endpoint
 
@@ -79,6 +78,8 @@ class getBuckets(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -99,7 +100,6 @@ class manageBucket(SDKCommon):
         self.headers["Content-Type"] = "application/astra-bucket+json"
 
     def main(self, name, credentialID, provider, bucketParameters):
-
         endpoint = "topology/v1/buckets"
         url = self.base + endpoint
         params = {}
@@ -129,6 +129,8 @@ class manageBucket(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -145,7 +147,6 @@ class unmanageBucket(SDKCommon):
         self.headers["Content-Type"] = "application/astra-bucket+json"
 
     def main(self, bucketID):
-
         endpoint = f"topology/v1/buckets/{bucketID}"
         url = self.base + endpoint
         params = {}
@@ -167,6 +168,8 @@ class unmanageBucket(SDKCommon):
                 print("Bucket unmanaged")
             return True
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -184,7 +187,6 @@ class updateBucket(SDKCommon):
         self.headers["Content-Type"] = "application/astra-bucket+json"
 
     def main(self, bucketID, credentialID=None):
-
         endpoint = f"topology/v1/buckets/{bucketID}"
         url = self.base + endpoint
         params = {}
@@ -213,4 +215,6 @@ class updateBucket(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False

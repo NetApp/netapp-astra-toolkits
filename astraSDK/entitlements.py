@@ -37,7 +37,6 @@ class getEntitlements(SDKCommon):
         super().__init__()
 
     def main(self):
-
         endpoint = "core/v1/entitlements"
         url = self.base + endpoint
 
@@ -78,4 +77,6 @@ class getEntitlements(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False

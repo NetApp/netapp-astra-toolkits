@@ -73,6 +73,8 @@ class getClouds(SDKCommon):
             return dataReturn
 
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -122,6 +124,8 @@ class manageCloud(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -159,6 +163,8 @@ class unmanageCloud(SDKCommon):
                 print("Cloud unmanaged")
             return True
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -206,4 +212,6 @@ class updateCloud(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False

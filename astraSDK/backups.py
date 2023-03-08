@@ -110,7 +110,10 @@ class getBackups(SDKCommon):
                         )
                         print()
             else:
+                if not self.quiet:
+                    super().printError(ret)
                 continue
+
         if self.output == "json":
             dataReturn = backups
         elif self.output == "yaml":
@@ -142,7 +145,6 @@ class takeBackup(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
     def main(self, appID, backupName, bucketID=None, snapshotID=None):
-
         endpoint = f"k8s/v1/apps/{appID}/appBackups"
         url = self.base + endpoint
         params = {}
@@ -173,6 +175,8 @@ class takeBackup(SDKCommon):
                 print(json.dumps(results))
             return results.get("id") or True
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -190,7 +194,6 @@ class destroyBackup(SDKCommon):
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
     def main(self, appID, backupID):
-
         endpoint = f"k8s/v1/apps/{appID}/appBackups/{backupID}"
         url = self.base + endpoint
         params = {}
@@ -210,4 +213,9 @@ class destroyBackup(SDKCommon):
             verbose=self.verbose,
         )
 
-        return True if ret.ok else False
+        if ret.ok:
+            return True
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False

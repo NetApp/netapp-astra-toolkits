@@ -97,6 +97,10 @@ class getStorageClasses(SDKCommon):
                         if not entry.get("clusterName"):
                             entry["clusterName"] = cluster["name"]
                         storageClasses["items"].append(entry)
+                else:
+                    if not self.quiet:
+                        super().printError(ret)
+                    continue
 
         if self.output == "json":
             dataReturn = storageClasses

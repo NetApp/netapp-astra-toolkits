@@ -76,6 +76,8 @@ class getApiResources(SDKCommon):
                     if not entry.get("clusterID"):
                         entry["clusterID"] = sCluster["id"]
                     apiResources["items"].append(entry)
+            elif not self.quiet:
+                super().printError(ret)
 
         if self.output == "json":
             dataReturn = apiResources

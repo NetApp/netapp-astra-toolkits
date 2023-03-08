@@ -88,6 +88,8 @@ class getHooks(SDKCommon):
                         )
                         print()
             else:
+                if not self.quiet:
+                    super().printError(ret)
                 continue
         if self.output == "json":
             dataReturn = hooks
@@ -129,7 +131,6 @@ class createHook(SDKCommon):
         containerRegex=None,
         description=None,
     ):
-
         endpoint = f"k8s/v1/apps/{appID}/executionHooks"
         url = self.base + endpoint
         params = {}
@@ -169,6 +170,8 @@ class createHook(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -186,7 +189,6 @@ class destroyHook(SDKCommon):
         self.headers["Content-Type"] = "application/astra-executionHook+json"
 
     def main(self, appID, hookID):
-
         # endpoint = f"k8s/v1/apps/{appID}/executionHooks/{hookID}"
         endpoint = f"core/v1/executionHooks/{hookID}"
         url = self.base + endpoint
@@ -208,4 +210,9 @@ class destroyHook(SDKCommon):
             verbose=self.verbose,
         )
 
-        return True if ret.ok else False
+        if ret.ok:
+            return True
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False

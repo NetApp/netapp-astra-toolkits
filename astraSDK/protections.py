@@ -110,7 +110,10 @@ class getProtectionpolicies(SDKCommon):
                         )
                         print()
             else:
+                if not self.quiet:
+                    super().printError(ret)
                 continue
+
         if self.output == "json":
             dataReturn = protections
         elif self.output == "yaml":
@@ -178,7 +181,6 @@ class createProtectionpolicy(SDKCommon):
         appID,
         recurrenceRule=None,
     ):
-
         endpoint = f"k8s/v1/apps/{appID}/schedules"
         url = self.base + endpoint
         params = {}
@@ -216,6 +218,8 @@ class createProtectionpolicy(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
+            if not self.quiet:
+                super().printError(ret)
             return False
 
 
@@ -232,7 +236,6 @@ class destroyProtectiontionpolicy(SDKCommon):
         self.headers["Content-Type"] = "application/astra-schedule+json"
 
     def main(self, appID, protectionID):
-
         endpoint = f"k8s/v1/apps/{appID}/schedules/{protectionID}"
         url = self.base + endpoint
         params = {}
@@ -249,4 +252,9 @@ class destroyProtectiontionpolicy(SDKCommon):
             verbose=self.verbose,
         )
 
-        return True if ret.ok else False
+        if ret.ok:
+            return True
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False

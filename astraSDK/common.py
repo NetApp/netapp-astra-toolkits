@@ -16,6 +16,7 @@
 """
 
 import inspect
+import json
 import os
 import sys
 import yaml
@@ -177,6 +178,10 @@ class SDKCommon:
         print(colored(f"API Headers: {headers}", "green"))
         print(colored(f"API data: {data}", "green"))
         print(colored(f"API params: {params}", "green"))
+
+    def printError(self, ret):
+        """Function to print relevant error information when a call fails"""
+        sys.stderr.write(colored(json.dumps(json.loads(ret.text), indent=2), "red") + "\n")
 
     def recursiveGet(self, k, item):
         """Recursion function which is just a wrapper around dict.get(key), to handle cases
