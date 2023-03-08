@@ -181,7 +181,12 @@ class SDKCommon:
 
     def printError(self, ret):
         """Function to print relevant error information when a call fails"""
-        sys.stderr.write(colored(json.dumps(json.loads(ret.text), indent=2), "red") + "\n")
+        try:
+            sys.stderr.write(colored(json.dumps(json.loads(ret.text), indent=2), "red") + "\n")
+        except json.decoder.JSONDecodeError:
+            sys.stderr.write(colored(ret.text, "red"))
+        except AttributeError:
+            sys.stderr.write(colored(f"SDKCommon().printError: Unknown error: {ret}", "red"))
 
     def recursiveGet(self, k, item):
         """Recursion function which is just a wrapper around dict.get(key), to handle cases
