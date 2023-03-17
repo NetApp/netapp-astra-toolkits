@@ -90,7 +90,7 @@ class getClusters(SDKCommon):
                     "clusterType",
                     "location",
                     "managedState",
-                    "tridentState",
+                    "tridentStateAllowed",
                     "tridentVersion",
                 ],
                 [
