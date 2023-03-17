@@ -89,7 +89,7 @@ class getCredentials(SDKCommon):
                         [
                             cred["name"],
                             cred["id"],
-                            (cred["keyType"] if not credType else credType),
+                            (cred.get("keyType") if not credType else credType),
                             cloudName,
                             clusterName,
                         ]
