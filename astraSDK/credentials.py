@@ -223,18 +223,17 @@ class updateCredential(SDKCommon):
         self.headers["accept"] = "application/astra-credential+json"
         self.headers["Content-Type"] = "application/astra-credential+json"
 
-    def main(self, credentialID, credName=None, keyStore=None):
+    def main(self, credentialID, credName, keyStore=None):
         endpoint = f"core/v1/credentials/{credentialID}"
         url = self.base + endpoint
         params = {}
         data = {
             "type": "application/astra-credential",
             "version": "1.1",
+            "name": credName,
         }
         if keyStore:
             data["keyStore"] = keyStore
-        if credName:
-            data["name"] = credName
 
         ret = super().apicall(
             "put",

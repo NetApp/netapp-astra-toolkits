@@ -1742,7 +1742,7 @@ def main():
                     quiet=args.quiet, verbose=args.verbose
                 ).main(
                     cluster.get("credentialID"),
-                    credName=kubeconfigDict["clusters"][0]["name"],
+                    kubeconfigDict["clusters"][0]["name"],
                     keyStore={"base64": encodedStr},
                 )
                 if rc:
