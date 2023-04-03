@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Docker Setup Buildx
+      uses: docker/setup-buildx-action@v2.5.0
     - name: Build the Docker image
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -24,7 +26,9 @@ jobs:
           DOCKERIMAGE_TAG: ${{ inputs.tag }}
       run: |
         docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
-        docker build . --file Dockerfile --tag netapp/astra-toolkits:latest --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG
+        docker buildx build . --file Dockerfile \
+        --tag netapp/astra-toolkits:latest --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG \
+        --platform linux/amd64,linux/arm/v7,linux/arm64
     - name: Push the Docker image
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
