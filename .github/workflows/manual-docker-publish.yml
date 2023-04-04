@@ -28,7 +28,7 @@ jobs:
         docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
         docker buildx build . --file Dockerfile \
         --tag netapp/astra-toolkits:latest --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG \
-        --platform linux/amd64,linux/arm/v7,linux/arm64
+        --platform linux/amd64,linux/arm64
     - name: Push the Docker image
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
