@@ -19,22 +19,13 @@ jobs:
     - uses: actions/checkout@v3
     - name: Docker Setup Buildx
       uses: docker/setup-buildx-action@v2.5.0
-    - name: Build the Docker image
+    - name: Build and push the Docker image
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           DOCKERIMAGE_TAG: ${{ inputs.tag }}
       run: |
         docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
-        docker buildx build . --file Dockerfile \
+        docker buildx build . --push --file Dockerfile \
         --tag netapp/astra-toolkits:latest --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG \
         --platform linux/amd64,linux/arm64
-    - name: Push the Docker image
-      env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          DOCKERIMAGE_TAG: ${{ inputs.tag }}
-      run: |
-        docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
-        docker push netapp/astra-toolkits:latest
-        docker push netapp/astra-toolkits:$DOCKERIMAGE_TAG
