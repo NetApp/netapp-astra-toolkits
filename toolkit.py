@@ -1660,14 +1660,18 @@ def main():
                     bucketDict = astraSDK.buckets.getBuckets().main()
                 encodedKey = base64.b64encode(args.accessKey.encode("utf-8")).decode("utf-8")
                 encodedSecret = base64.b64encode(args.accessSecret.encode("utf-8")).decode("utf-8")
-                crc = astraSDK.credentials.createCredential(
-                    quiet=args.quiet, verbose=args.verbose
-                ).main(
-                    next(b for b in bucketDict["items"] if b["id"] == args.bucketID)["name"],
-                    "s3",
-                    {"accessKey": encodedKey, "accessSecret": encodedSecret},
-                    cloudName="s3",
-                )
+                try:
+                    crc = astraSDK.credentials.createCredential(
+                        quiet=args.quiet, verbose=args.verbose
+                    ).main(
+                        next(b for b in bucketDict["items"] if b["id"] == args.bucketID)["name"],
+                        "s3",
+                        {"accessKey": encodedKey, "accessSecret": encodedSecret},
+                        cloudName="s3",
+                    )
+                except StopIteration:
+                    print(f"Error: {args.bucketID} does not seem to be a valid bucketID")
+                    sys.exit(1)
                 if crc:
                     args.credentialID = crc["id"]
                 else:
