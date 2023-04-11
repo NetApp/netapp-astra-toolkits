@@ -129,6 +129,7 @@ class ToolKit:
                             sys.exit(1)
 
         # Create a protection policy on that namespace (using its appID)
+        time.sleep(5)
         backupRetention = "1"
         snapshotRetention = "1"
         minute = "0"
