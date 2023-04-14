@@ -77,7 +77,7 @@ class ToolKit:
                 setStr += f" --set gitlab.gitaly.persistence.storageClass={pgStorageClass}"
 
         tkHelpers.run(f"helm install {appName} {chart}{setStr}{valueStr}")
-        print("Waiting for Astra to discover the namespace.", end="")
+        print("Waiting for Astra to discover the namespace", end="")
         sys.stdout.flush()
 
         appID = ""
@@ -170,6 +170,7 @@ class ToolKit:
         background,
         pollTimer,
         verbose,
+        quiet,
     ):
         """Create a clone."""
         # Check to see if cluster-level resources are needed to be manually created
@@ -312,7 +313,7 @@ class ToolKit:
                 if not (body.get("reason") == "AlreadyExists"):
                     raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
 
-        cloneRet = astraSDK.apps.cloneApp(verbose=verbose).main(
+        cloneRet = astraSDK.apps.cloneApp(verbose=verbose, quiet=quiet).main(
             cloneAppName,
             clusterID,
             oApp["clusterID"],
@@ -338,6 +339,10 @@ class ToolKit:
                             state = app["state"]
                             print("Cloning operation complete.")
                             sys.stdout.flush()
+                        elif app["state"] == "failed":
+                            print(f"Error: \"{app['name']}\" in a failed state")
+                            sys.stdout.flush()
+                            sys.exit(1)
                         else:
                             print(".", end="")
                             sys.stdout.flush()
@@ -1636,6 +1641,7 @@ def main():
             background=args.background,
             pollTimer=args.pollTimer,
             verbose=args.verbose,
+            quiet=args.quiet,
         )
 
     elif args.subcommand == "update":
