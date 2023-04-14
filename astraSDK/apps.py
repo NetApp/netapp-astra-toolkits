@@ -356,8 +356,7 @@ class cloneApp(SDKCommon):
             results = super().jsonifyResults(ret)
             if not self.quiet:
                 print(json.dumps(results))
-            else:
-                return results
+            return results
         else:
             if not self.quiet:
                 super().printError(ret)
