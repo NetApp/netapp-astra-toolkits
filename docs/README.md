@@ -40,8 +40,8 @@ positional arguments:
   {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage,update}
                         subcommand help
     deploy              Deploy a helm chart
-    clone               Clone an app
-    restore             Restore an app from a backup or snapshot
+    clone               Clone an app from a backup, snapshot, or running app (live clone)
+    restore             In-Place Restore (IPR) an app from a backup or snapshot
     list (get)          List all items in a class
     create              Create an object
     manage (define)     Manage an object
@@ -49,7 +49,7 @@ positional arguments:
     unmanage            Unmanage an object
     update              Update an object
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -v, --verbose         print verbose/verbose output
   -o {json,yaml,table}, --output {json,yaml,table}
