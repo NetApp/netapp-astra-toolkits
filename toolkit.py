@@ -169,6 +169,7 @@ class ToolKit:
         sourceAppID,
         background,
         pollTimer,
+        resourceFilter,
         verbose,
         quiet,
     ):
@@ -321,6 +322,7 @@ class ToolKit:
             backupID=backupID,
             snapshotID=snapshotID,
             sourceAppID=sourceAppID,
+            resourceFilter=resourceFilter,
         )
         if cloneRet:
             print("Submitting clone succeeded.")
@@ -1561,8 +1563,21 @@ def main():
                 sys.exit(1)
 
     elif args.subcommand == "restore":
+        if (args.filterSelection and not args.filterSet) or (
+            args.filterSet and not args.filterSelection
+        ):
+            print(
+                f"{' '.join(sys.argv[0:verbPosition+1])}: error: either both or none of "
+                "--filterSelection and --filterSet should be specified"
+            )
+            sys.exit(1)
         rc = astraSDK.apps.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
-            args.appID, backupID=args.backupID, snapshotID=args.snapshotID
+            args.appID,
+            backupID=args.backupID,
+            snapshotID=args.snapshotID,
+            resourceFilter=tkHelpers.createFilterSet(
+                args.filterSelection, args.filterSet, astraSDK.apps.getAppAssets().main(args.appID)
+            ),
         )
         if rc:
             if args.background:
@@ -1592,6 +1607,20 @@ def main():
             sys.exit(3)
 
     elif args.subcommand == "clone":
+        if (args.filterSelection and not args.filterSet) or (
+            args.filterSet and not args.filterSelection
+        ):
+            print(
+                f"{' '.join(sys.argv[0:verbPosition+1])}: error: either both or none of "
+                "--filterSelection and --filterSet should be specified"
+            )
+            sys.exit(1)
+        if args.filterSet and args.sourceAppID:
+            print(
+                "Error: resource filters (--filterSet) may only be specified with --backupID "
+                "or --snapshotID arguments, not --sourceAppID"
+            )
+            sys.exit(1)
         if not args.cloneAppName:
             args.cloneAppName = input("App name for the clone: ")
         if not args.clusterID:
@@ -1635,13 +1664,16 @@ def main():
             args.clusterID,
             oApp,
             tkHelpers.createNamespaceMapping(oApp, args.cloneNamespace, args.multiNsMapping),
-            backupID=args.backupID,
-            snapshotID=args.snapshotID,
-            sourceAppID=args.sourceAppID,
-            background=args.background,
-            pollTimer=args.pollTimer,
-            verbose=args.verbose,
-            quiet=args.quiet,
+            args.backupID,
+            args.snapshotID,
+            args.sourceAppID,
+            args.background,
+            args.pollTimer,
+            tkHelpers.createFilterSet(
+                args.filterSelection, args.filterSet, astraSDK.apps.getAppAssets().main(oApp["id"])
+            ),
+            args.verbose,
+            args.quiet,
         )
 
     elif args.subcommand == "update":

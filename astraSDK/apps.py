@@ -319,6 +319,7 @@ class cloneApp(SDKCommon):
         backupID=None,
         snapshotID=None,
         sourceAppID=None,
+        resourceFilter=None,
     ):
         assert backupID or snapshotID or sourceAppID
 
@@ -340,6 +341,8 @@ class cloneApp(SDKCommon):
             data["snapshotID"] = snapshotID
         if namespaceMapping:
             data["namespaceMapping"] = namespaceMapping
+        if resourceFilter:
+            data["restoreFilter"] = resourceFilter
 
         ret = super().apicall(
             "post",
@@ -364,7 +367,7 @@ class cloneApp(SDKCommon):
 
 
 class restoreApp(SDKCommon):
-    """Restore a backup or snapshot of an app.
+    """In place Restore (IPR) an app from a backup or snapshot.
     Must pass in an AppID and either a snapshotID or a backupID
     Note that this is a destructive operation that overwrites the current AppID
     with the backup/snapshot.
@@ -390,6 +393,7 @@ class restoreApp(SDKCommon):
         appID,
         backupID=None,
         snapshotID=None,
+        resourceFilter=None,
     ):
         assert backupID or snapshotID
 
@@ -404,6 +408,8 @@ class restoreApp(SDKCommon):
             data["backupID"] = backupID
         elif snapshotID:
             data["snapshotID"] = snapshotID
+        if resourceFilter:
+            data["restoreFilter"] = resourceFilter
 
         ret = super().apicall(
             "put",
@@ -456,14 +462,15 @@ class getAppAssets(SDKCommon):
 
         if ret.ok:
             assets = super().jsonifyResults(ret)
+            assets["metadata"]["appID"] = appID
             if self.output == "json":
                 dataReturn = assets
             elif self.output == "yaml":
                 dataReturn = yaml.dump(assets)
             elif self.output == "table":
                 dataReturn = self.basicTable(
-                    ["assetName", "assetType"],
-                    ["assetName", "assetType"],
+                    ["assetName", "group", "version", "kind"],
+                    ["assetName", "GVK.group", "GVK.version", "GVK.kind"],
                     assets,
                 )
             if not self.quiet:

@@ -367,3 +367,103 @@ def isRFC1123(string):
             + "(for example 'my-name' or '123-abc')."
         )
         sys.exit(15)
+
+
+def dupeKeyError(key):
+    """Print an error message if duplicate keys are used"""
+    print(f"Error: '{key}' should not be specified multiple times within a single --filterSet arg")
+    sys.exit(1)
+
+
+def createSetDict(setDict, filterStr, assets):
+    """Given a filterStr such as:
+        label=app.kubernetes.io/tier=backend,name=mysql,kind=Deployment
+    Return a setDict with the following format:
+        {
+            "labelSelectors": ["app.kubernetes.io/tier=backend"],
+            "names": ["mysql"],
+            "kind": "Deployment",
+        }
+    Also verifies that the GVK choices are valid options for the given app."""
+    for f in filterStr.split(","):
+        key = f.split("=")[0].lower()
+        val = f.split("=", 1)[1]
+        if "namespace" in key:
+            setDict.setdefault("namespaces", []).append(isRFC1123(val))
+        elif "name" in key:
+            setDict.setdefault("names", []).append(isRFC1123(val))
+        elif "label" in key:
+            setDict.setdefault("labelSelectors", []).append(val)
+        elif "group" in key:
+            setDict["group"] = val if not setDict.get("group") else dupeKeyError("group")
+        elif "version" in key:
+            setDict["version"] = val if not setDict.get("version") else dupeKeyError("version")
+        elif "kind" in key:
+            setDict["kind"] = val if not setDict.get("kind") else dupeKeyError("kind")
+        else:
+            print(
+                f"Error: '{key}' not one of ['namespace', 'name', 'label', 'group', 'version', "
+                "'kind']"
+            )
+            sys.exit(1)
+    # Validate the inputs are valid assets for this app
+    for key in ["group", "version", "kind"]:
+        if setDict.get(key) and setDict[key] not in [a["GVK"][key] for a in assets["items"]]:
+            print(
+                f"Error: '{setDict[key]}' is not a valid '{key}' for this application, please run "
+                f"'list assets {assets['metadata']['appID']}' to view possible '{key}' choices"
+            )
+            sys.exit(1)
+    # Validate the inputs are valid GVK combinations
+    for key1 in ["group", "version", "kind"]:
+        for key2 in ["group", "version", "kind"]:
+            if key1 == key2:
+                continue
+            if setDict.get(key1) and setDict.get(key2):
+                if setDict[key1] not in [
+                    a["GVK"][key1] for a in assets["items"] if a["GVK"][key2] == setDict[key2]
+                ]:
+                    print(
+                        f"Error: '{key1}={setDict[key1]}' does not match with "
+                        f"'{key2}={setDict[key2]}', please run 'list assets "
+                        f"{assets['metadata']['appID']}' to view valid GVK combinations"
+                    )
+                    sys.exit(1)
+
+
+def createFilterSet(selection, filters, assets):
+    """createFilterSet takes in a selection string, and a filters array of arrays, for example:
+        [
+            ['group=apps,version=v1,kind=Deployment'],
+            ['label=app.kubernetes.io/tier=backend,name=mysql,namespace=wordpress']
+        ]
+    And returns an object for use in a restore filter, like so:
+        {
+            "GVKN": [
+                {
+                    "group": "apps",
+                    "version": "v1",
+                    "kind": "Deployment",
+                },
+                {
+                    "labelSelectors": ["app.kubernetes.io/tier=backend"],
+                    "names": ["mysql"],
+                    "namespaces": ["wordpress"],
+                },
+            ],
+            "resourceSelectionCriteria": "include",
+        }
+    Also performs validation to ensure that the given appID contains GVK asset type.
+    """
+    if selection is None:
+        return None
+    rFilter = {"GVKN": [], "resourceSelectionCriteria": selection}
+    for fil in filters:
+        setDict = {}
+        if type(fil) == list:
+            for f in fil:
+                createSetDict(setDict, f, assets)
+        else:
+            createSetDict(setDict, fil, assets)
+        rFilter["GVKN"].append(setDict)
+    return rFilter

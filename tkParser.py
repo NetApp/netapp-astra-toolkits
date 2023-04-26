@@ -63,11 +63,11 @@ class toolkit_parser:
         )
         self.parserClone = self.subparsers.add_parser(
             "clone",
-            help="Clone an app",
+            help="Clone an app from a backup, snapshot, or running app (live clone)",
         )
         self.parserRestore = self.subparsers.add_parser(
             "restore",
-            help="Restore an app from a backup or snapshot",
+            help="In-Place Restore (IPR) an app from a backup or snapshot",
         )
         self.parserList = self.subparsers.add_parser(
             "list",
@@ -414,7 +414,7 @@ class toolkit_parser:
             choices=(None if self.plaidMode else appList),
             required=False,
             default=None,
-            help="Source app to clone",
+            help="Source app to live clone",
         )
         self.parserClone.add_argument(
             "-t",
@@ -422,6 +422,25 @@ class toolkit_parser:
             type=int,
             default=5,
             help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+        )
+        filterGroup = self.parserClone.add_argument_group(
+            title="filter group", description="optionally clone a subset of resources via filters"
+        )
+        filterGroup.add_argument(
+            "--filterSelection",
+            choices=["include", "exclude"],
+            default=None,
+            help="How the resource filter(s) select resources",
+        )
+        filterGroup.add_argument(
+            "--filterSet",
+            default=None,
+            action="append",
+            nargs="*",
+            help=r"A comma separated set of key=value filter pairs, where 'key' is one of "
+            "['namespace', 'name', 'label', 'group', 'version', 'kind']. This argument can be "
+            "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
+            "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
         )
 
     def restore_args(self, appList, backupList, snapshotList):
@@ -459,6 +478,25 @@ class toolkit_parser:
             type=int,
             default=5,
             help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+        )
+        filterGroup = self.parserRestore.add_argument_group(
+            title="filter group", description="optionally restore a subset of resources via filters"
+        )
+        filterGroup.add_argument(
+            "--filterSelection",
+            choices=["include", "exclude"],
+            default=None,
+            help="How the resource filter(s) select resources",
+        )
+        filterGroup.add_argument(
+            "--filterSet",
+            default=None,
+            action="append",
+            nargs="*",
+            help=r"A comma separated set of key=value filter pairs, where 'key' is one of "
+            "['namespace', 'name', 'label', 'group', 'version', 'kind']. This argument can be "
+            "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
+            "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
         )
 
     def list_apiresources_args(self):
@@ -1052,7 +1090,7 @@ class toolkit_parser:
             nargs="*",
             action="append",
             help="Any number of clusterScopedResources (and optional labelSelectors), one set per"
-            + " argument (-a csr-kind1 -a csr-kind2 app=appname)",
+            + " argument (-c csr-kind1 -c csr-kind2 app=appname)",
         )
 
     def manage_bucket_args(self, credentialList):
