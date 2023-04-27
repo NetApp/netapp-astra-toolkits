@@ -328,7 +328,7 @@ class cloneApp(SDKCommon):
         params = {}
         data = {
             "type": "application/astra-app",
-            "version": "2.0",
+            "version": "2.2",
             "name": cloneName,
             "clusterID": clusterID,
             "sourceClusterID": sourceClusterID,
@@ -402,7 +402,7 @@ class restoreApp(SDKCommon):
         params = {}
         data = {
             "type": "application/astra-app",
-            "version": "2.0",
+            "version": "2.2",
         }
         if backupID:
             data["backupID"] = backupID

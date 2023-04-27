@@ -65,7 +65,7 @@ RUN curl -sL https://aka.ms/InstallAzureCLIDeb | sed "s/apt-get install -y/apt-g
 # Install actoolkit
 RUN pip3 install --upgrade pip && \
     pip3 install virtualenv && \
-    pip3 install actoolkit --pre && \
+    pip3 install actoolkit && \
     pip3 cache purge && \
     ln -s /usr/bin/python3 /usr/bin/python
 
