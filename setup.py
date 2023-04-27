@@ -9,8 +9,9 @@ with open("requirements.txt", "r") as req:
 
 setuptools.setup(
     name="actoolkit",
-    version="2.6.2",
     py_modules=["toolkit", "tkParser", "tkHelpers", "astraSDK"],
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
     author="Michael Haigh",
     author_email="Michael.Haigh@netapp.com",
     description="Toolkit and SDK for interacting with Astra Control",
