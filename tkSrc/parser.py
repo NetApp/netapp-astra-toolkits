@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2022 NetApp, Inc
+   Copyright 2023 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,10 +18,10 @@
 import argparse
 
 
-class toolkit_parser:
+class ToolkitParser:
     """Creates and returns an argparse parser for use in toolkit.py"""
 
-    def __init__(self, plaidMode=False):
+    def __init__(self, acl, plaidMode=False):
         """Creates the parser object and global arguments"""
         self.parser = argparse.ArgumentParser(allow_abbrev=True)
         self.parser.add_argument(
@@ -49,6 +49,7 @@ class toolkit_parser:
             help="prioritize speed over validation (using this will not validate arguments, which "
             + "may have unintended consequences)",
         )
+        self.acl = acl
         self.plaidMode = plaidMode
 
     def top_level_commands(self):
@@ -323,7 +324,7 @@ class toolkit_parser:
             help="update script",
         )
 
-    def deploy_args(self, chartsList):
+    def deploy_args(self):
         """deploy args and flags"""
         self.parserDeploy.add_argument(
             "app",
@@ -331,7 +332,7 @@ class toolkit_parser:
         )
         self.parserDeploy.add_argument(
             "chart",
-            choices=(None if self.plaidMode else chartsList),
+            choices=(None if self.plaidMode else self.acl.charts),
             help="chart to deploy",
         )
         self.parserDeploy.add_argument(
@@ -356,7 +357,7 @@ class toolkit_parser:
             help="Individual helm chart parameters",
         )
 
-    def clone_args(self, appList, backupList, destclusterList, snapshotList):
+    def clone_args(self):
         """clone args and flags"""
         self.parserClone.add_argument(
             "-b",
@@ -373,7 +374,7 @@ class toolkit_parser:
         )
         self.parserClone.add_argument(
             "--clusterID",
-            choices=(None if self.plaidMode else destclusterList),
+            choices=(None if self.plaidMode else self.acl.destClusters),
             required=False,
             default=None,
             help="Cluster to clone into (can be same as source)",
@@ -397,21 +398,21 @@ class toolkit_parser:
         sourceGroup = self.parserClone.add_mutually_exclusive_group(required=True)
         sourceGroup.add_argument(
             "--backupID",
-            choices=(None if self.plaidMode else backupList),
+            choices=(None if self.plaidMode else self.acl.backups),
             required=False,
             default=None,
             help="Source backup to clone from",
         )
         sourceGroup.add_argument(
             "--snapshotID",
-            choices=(None if self.plaidMode else snapshotList),
+            choices=(None if self.plaidMode else self.acl.snapshots),
             required=False,
             default=None,
             help="Source snapshot to clone from",
         )
         sourceGroup.add_argument(
             "--sourceAppID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             required=False,
             default=None,
             help="Source app to live clone",
@@ -443,7 +444,7 @@ class toolkit_parser:
             "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
         )
 
-    def restore_args(self, appList, backupList, snapshotList):
+    def restore_args(self):
         """restore args and flags"""
         self.parserRestore.add_argument(
             "-b",
@@ -454,20 +455,20 @@ class toolkit_parser:
         )
         self.parserRestore.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="appID to restore",
         )
         group = self.parserRestore.add_mutually_exclusive_group(required=True)
         group.add_argument(
             "--backupID",
-            choices=(None if self.plaidMode else backupList),
+            choices=(None if self.plaidMode else self.acl.backups),
             required=False,
             default=None,
             help="Source backup to restore from",
         )
         group.add_argument(
             "--snapshotID",
-            choices=(None if self.plaidMode else snapshotList),
+            choices=(None if self.plaidMode else self.acl.snapshots),
             required=False,
             default=None,
             help="Source snapshot to restore from",
@@ -520,11 +521,11 @@ class toolkit_parser:
             "-c", "--cluster", default=None, help="Only show apps from this cluster"
         )
 
-    def list_assets_args(self, appList):
+    def list_assets_args(self):
         """list assets args and flags"""
         self.subparserListAssets.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="The appID from which to display the assets",
         )
 
@@ -725,11 +726,11 @@ class toolkit_parser:
             help="Filter users by this value to minimize output (partial match)",
         )
 
-    def create_backup_args(self, appList, bucketList, snapshotList):
+    def create_backup_args(self):
         """create backups args and flags"""
         self.subparserCreateBackup.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="appID to backup",
         )
         self.subparserCreateBackup.add_argument(
@@ -740,14 +741,14 @@ class toolkit_parser:
             "-u",
             "--bucketID",
             default=None,
-            choices=(None if self.plaidMode else bucketList),
+            choices=(None if self.plaidMode else self.acl.buckets),
             help="Optionally specify which bucket to store the backup",
         )
         self.subparserCreateBackup.add_argument(
             "-s",
             "--snapshotID",
             default=None,
-            choices=(None if self.plaidMode else snapshotList),
+            choices=(None if self.plaidMode else self.acl.snapshots),
             help="Optionally specify an existing snapshot as the source of the backup",
         )
         self.subparserCreateBackup.add_argument(
@@ -765,7 +766,7 @@ class toolkit_parser:
             help="The frequency (seconds) to poll the operation status (default: %(default)s)",
         )
 
-    def create_cluster_args(self, cloudList):
+    def create_cluster_args(self):
         """create cluster args and flags"""
         self.subparserCreateCluster.add_argument(
             "filePath",
@@ -774,17 +775,17 @@ class toolkit_parser:
         self.subparserCreateCluster.add_argument(
             "-c",
             "--cloudID",
-            choices=(None if self.plaidMode else cloudList),
-            default=(cloudList[0] if len(cloudList) == 1 else None),
-            required=(False if len(cloudList) == 1 else True),
+            choices=(None if self.plaidMode else self.acl.clouds),
+            default=(self.acl.clouds[0] if len(self.acl.clouds) == 1 else None),
+            required=(False if len(self.acl.clouds) == 1 else True),
             help="The cloudID to add the cluster to (only required if # of clouds > 1)",
         )
 
-    def create_hook_args(self, appList, scriptList):
+    def create_hook_args(self):
         """create hooks args and flags"""
         self.subparserCreateHook.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="appID to create an execution hook for",
         )
         self.subparserCreateHook.add_argument(
@@ -793,7 +794,7 @@ class toolkit_parser:
         )
         self.subparserCreateHook.add_argument(
             "scriptID",
-            choices=(None if self.plaidMode else scriptList),
+            choices=(None if self.plaidMode else self.acl.scripts),
             help="scriptID to use for the execution hook",
         )
         self.subparserCreateHook.add_argument(
@@ -863,11 +864,11 @@ class toolkit_parser:
             help="regex filter for container names",
         )
 
-    def create_protection_args(self, appList):
+    def create_protection_args(self):
         """create protectionpolicy args and flags"""
         self.subparserCreateProtection.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="appID of the application to create protection schedule for",
         )
         self.subparserCreateProtection.add_argument(
@@ -910,17 +911,17 @@ class toolkit_parser:
             "-m", "--minute", default=0, type=int, choices=range(60), help="Minute"
         )
 
-    def create_replication_args(self, appList, destclusterList, storageClassList):
+    def create_replication_args(self):
         """create replication policy args and flags"""
         self.subparserCreateReplication.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="appID of the application to create the replication policy for",
         )
         self.subparserCreateReplication.add_argument(
             "-c",
             "--destClusterID",
-            choices=(None if self.plaidMode else destclusterList),
+            choices=(None if self.plaidMode else self.acl.destClusters),
             help="the destination cluster ID to replicate to",
             required=True,
         )
@@ -933,7 +934,7 @@ class toolkit_parser:
         self.subparserCreateReplication.add_argument(
             "-s",
             "--destStorageClass",
-            choices=(None if self.plaidMode else storageClassList),
+            choices=(None if self.plaidMode else self.acl.storageClasses),
             default=None,
             help="the destination storage class to use for volume creation",
         )
@@ -983,11 +984,11 @@ class toolkit_parser:
             help="The optional description of the script",
         )
 
-    def create_snapshot_args(self, appList):
+    def create_snapshot_args(self):
         """create snapshot args and flags"""
         self.subparserCreateSnapshot.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="appID to snapshot",
         )
         self.subparserCreateSnapshot.add_argument(
@@ -1009,7 +1010,7 @@ class toolkit_parser:
             help="The frequency (seconds) to poll the operation status (default: %(default)s)",
         )
 
-    def create_user_args(self, labelList, namespaceList):
+    def create_user_args(self):
         """create user args and flags"""
         self.subparserCreateUser.add_argument("email", help="The email of the user to add")
         self.subparserCreateUser.add_argument(
@@ -1034,7 +1035,7 @@ class toolkit_parser:
             "-a",
             "--labelConstraint",
             default=None,
-            choices=(None if self.plaidMode else labelList),
+            choices=(None if self.plaidMode else self.acl.labels),
             nargs="*",
             action="append",
             help="Restrict user role to label constraints",
@@ -1043,25 +1044,25 @@ class toolkit_parser:
             "-n",
             "--namespaceConstraint",
             default=None,
-            choices=(None if self.plaidMode else namespaceList),
+            choices=(None if self.plaidMode else self.acl.namespaces),
             nargs="*",
             action="append",
             help="Restrict user role to namespace constraints",
         )
 
-    def manage_app_args(self, clusterList, namespaceList):
+    def manage_app_args(self):
         """manage app args and flags"""
         self.subparserManageApp.add_argument(
             "appName", help="The logical name of the newly defined app"
         )
         self.subparserManageApp.add_argument(
             "namespace",
-            choices=(None if self.plaidMode else namespaceList),
+            choices=(None if self.plaidMode else self.acl.namespaces),
             help="The namespace to move from undefined (aka unmanaged) to defined (aka managed)",
         )
         self.subparserManageApp.add_argument(
             "clusterID",
-            choices=(None if self.plaidMode else clusterList),
+            choices=(None if self.plaidMode else self.acl.clusters),
             help="The clusterID hosting the newly defined app",
         )
         self.subparserManageApp.add_argument(
@@ -1093,7 +1094,7 @@ class toolkit_parser:
             + " argument (-c csr-kind1 -c csr-kind2 app=appname)",
         )
 
-    def manage_bucket_args(self, credentialList):
+    def manage_bucket_args(self):
         """manage bucket args and flags"""
         self.subparserManageBucket.add_argument(
             "provider",
@@ -1111,7 +1112,7 @@ class toolkit_parser:
         credGroup.add_argument(
             "-c",
             "--credentialID",
-            choices=(None if self.plaidMode else credentialList),
+            choices=(None if self.plaidMode else self.acl.credentials),
             help="The ID of the credentials used to access the bucket",
             default=None,
         )
@@ -1139,22 +1140,22 @@ class toolkit_parser:
             default=None,
         )
 
-    def manage_cluster_args(self, clusterList, storageClassList):
+    def manage_cluster_args(self):
         """manage cluster args and flags"""
         self.subparserManageCluster.add_argument(
             "clusterID",
-            choices=(None if self.plaidMode else clusterList),
+            choices=(None if self.plaidMode else self.acl.clusters),
             help="clusterID of the cluster to manage",
         )
         self.subparserManageCluster.add_argument(
             "-s",
             "--defaultStorageClassID",
-            choices=(None if self.plaidMode else storageClassList),
+            choices=(None if self.plaidMode else self.acl.storageClasses),
             default=None,
             help="Optionally modify the default storage class",
         )
 
-    def manage_cloud_args(self, bucketList):
+    def manage_cloud_args(self):
         """manage cloud args and flags"""
         self.subparserManageCloud.add_argument(
             "cloudType",
@@ -1175,132 +1176,132 @@ class toolkit_parser:
         self.subparserManageCloud.add_argument(
             "-b",
             "--defaultBucketID",
-            choices=(None if self.plaidMode else bucketList),
+            choices=(None if self.plaidMode else self.acl.buckets),
             default=None,
             help="optionally specify the default bucketID for backups",
         )
 
-    def destroy_backup_args(self, appList, backupList):
+    def destroy_backup_args(self):
         """destroy backup args and flags"""
         self.subparserDestroyBackup.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="appID of app to destroy backups from",
         )
         self.subparserDestroyBackup.add_argument(
             "backupID",
-            choices=(None if self.plaidMode else backupList),
+            choices=(None if self.plaidMode else self.acl.backups),
             help="backupID to destroy",
         )
 
-    def destroy_credential_args(self, credentialList):
+    def destroy_credential_args(self):
         """destroy credential args and flags"""
         self.subparserDestroyCredential.add_argument(
             "credentialID",
-            choices=(None if self.plaidMode else credentialList),
+            choices=(None if self.plaidMode else self.acl.credentials),
             help="credentialID to destroy",
         )
 
-    def destroy_hook_args(self, appList, hookList):
+    def destroy_hook_args(self):
         """destroy hook args and flags"""
         self.subparserDestroyHook.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="appID of app to destroy hooks from",
         )
         self.subparserDestroyHook.add_argument(
             "hookID",
-            choices=(None if self.plaidMode else hookList),
+            choices=(None if self.plaidMode else self.acl.hooks),
             help="hookID to destroy",
         )
 
-    def destroy_protection_args(self, appList, protectionList):
+    def destroy_protection_args(self):
         """destroy protection args and flags"""
         self.subparserDestroyProtection.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="appID of app to destroy protection policy from",
         )
         self.subparserDestroyProtection.add_argument(
             "protectionID",
-            choices=(None if self.plaidMode else protectionList),
+            choices=(None if self.plaidMode else self.acl.protections),
             help="protectionID to destroy",
         )
 
-    def destroy_replication_args(self, replicationList):
+    def destroy_replication_args(self):
         """destroy replication args and flags"""
         self.subparserDestroyReplication.add_argument(
             "replicationID",
-            choices=(None if self.plaidMode else replicationList),
+            choices=(None if self.plaidMode else self.acl.replications),
             help="replicationID to destroy",
         )
 
-    def destroy_script_args(self, scriptList):
+    def destroy_script_args(self):
         """destroy script args and flags"""
         self.subparserDestroyScript.add_argument(
             "scriptID",
-            choices=(None if self.plaidMode else scriptList),
+            choices=(None if self.plaidMode else self.acl.scripts),
             help="scriptID of script to destroy",
         )
 
-    def destroy_snapshot_args(self, appList, snapshotList):
+    def destroy_snapshot_args(self):
         """destroy snapshot args and flags"""
         self.subparserDestroySnapshot.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="appID of app to destroy snapshot from",
         )
         self.subparserDestroySnapshot.add_argument(
             "snapshotID",
-            choices=(None if self.plaidMode else snapshotList),
+            choices=(None if self.plaidMode else self.acl.snapshots),
             help="snapshotID to destroy",
         )
 
-    def destroy_user_args(self, userList):
+    def destroy_user_args(self):
         """destroy user args and flags"""
         self.subparserDestroyUser.add_argument(
             "userID",
-            choices=(None if self.plaidMode else userList),
+            choices=(None if self.plaidMode else self.acl.users),
             help="userID to destroy",
         )
 
-    def unmanage_app_args(self, appList):
+    def unmanage_app_args(self):
         """unmanage app args and flags"""
         self.subparserUnmanageApp.add_argument(
             "appID",
-            choices=(None if self.plaidMode else appList),
+            choices=(None if self.plaidMode else self.acl.apps),
             help="appID of app to move from managed to unmanaged",
         )
 
-    def unmanage_bucket_args(self, bucketList):
+    def unmanage_bucket_args(self):
         """unmanage bucket args and flags"""
         self.subparserUnmanageBucket.add_argument(
             "bucketID",
-            choices=(None if self.plaidMode else bucketList),
+            choices=(None if self.plaidMode else self.acl.buckets),
             help="bucketID of bucket to unmanage",
         )
 
-    def unmanage_cluster_args(self, clusterList):
+    def unmanage_cluster_args(self):
         """unmanage cluster args and flags"""
         self.subparserUnmanageCluster.add_argument(
             "clusterID",
-            choices=(None if self.plaidMode else clusterList),
+            choices=(None if self.plaidMode else self.acl.clusters),
             help="clusterID of the cluster to unmanage",
         )
 
-    def unmanage_cloud_args(self, cloudList):
+    def unmanage_cloud_args(self):
         """unmanage cloud args and flags"""
         self.subparserUnmanageCloud.add_argument(
             "cloudID",
-            choices=(None if self.plaidMode else cloudList),
+            choices=(None if self.plaidMode else self.acl.clouds),
             help="cloudID of the cloud to unmanage",
         )
 
-    def update_bucket_args(self, bucketList, credentialList):
+    def update_bucket_args(self):
         """update bucket args and flags"""
         self.subparserUpdateBucket.add_argument(
             "bucketID",
-            choices=(None if self.plaidMode else bucketList),
+            choices=(None if self.plaidMode else self.acl.buckets),
             help="bucketID to update",
         )
         credGroup = self.subparserUpdateBucket.add_argument_group(
@@ -1310,7 +1311,7 @@ class toolkit_parser:
         credGroup.add_argument(
             "-c",
             "--credentialID",
-            choices=(None if self.plaidMode else credentialList),
+            choices=(None if self.plaidMode else self.acl.credentials),
             help="The ID of the credentials used to access the bucket",
             default=None,
         )
@@ -1325,11 +1326,11 @@ class toolkit_parser:
             default=None,
         )
 
-    def update_cloud_args(self, cloudList, bucketList, credentialList):
+    def update_cloud_args(self):
         """update cloud args and flags"""
         self.subparserUpdateCloud.add_argument(
             "cloudID",
-            choices=(None if self.plaidMode else cloudList),
+            choices=(None if self.plaidMode else self.acl.clouds),
             help="cloudID to update",
         )
         credGroup = self.subparserUpdateCloud.add_mutually_exclusive_group()
@@ -1337,7 +1338,7 @@ class toolkit_parser:
             "-c",
             "--credentialID",
             default=None,
-            choices=(None if self.plaidMode else credentialList),
+            choices=(None if self.plaidMode else self.acl.credentials),
             help="The existing ID of the credentials used to access the cloud",
         )
         credGroup.add_argument(
@@ -1349,16 +1350,16 @@ class toolkit_parser:
         self.subparserUpdateCloud.add_argument(
             "-b",
             "--defaultBucketID",
-            choices=(None if self.plaidMode else bucketList),
+            choices=(None if self.plaidMode else self.acl.buckets),
             default=None,
             help="the new default bucketID for backups",
         )
 
-    def update_cluster_args(self, clusterList):
+    def update_cluster_args(self):
         """update cluster args and flags"""
         self.subparserUpdateCluster.add_argument(
             "clusterID",
-            choices=(None if self.plaidMode else clusterList),
+            choices=(None if self.plaidMode else self.acl.clusters),
             help="clusterID to update",
         )
         self.subparserUpdateCluster.add_argument(
@@ -1369,11 +1370,11 @@ class toolkit_parser:
             help="the local filesystem path to the new cluster credential",
         )
 
-    def update_replication_args(self, replicationList):
+    def update_replication_args(self):
         """update replication args and flags"""
         self.subparserUpdateReplication.add_argument(
             "replicationID",
-            choices=(None if self.plaidMode else replicationList),
+            choices=(None if self.plaidMode else self.acl.replications),
             help="replicationID to update",
         )
         self.subparserUpdateReplication.add_argument(
@@ -1388,11 +1389,11 @@ class toolkit_parser:
             help="resync operation: the new source replication data (either appID or clusterID)",
         )
 
-    def update_script_args(self, scriptList):
+    def update_script_args(self):
         """update script args and flags"""
         self.subparserUpdateScript.add_argument(
             "scriptID",
-            choices=(None if self.plaidMode else scriptList),
+            choices=(None if self.plaidMode else self.acl.scripts),
             help="scriptID to update",
         )
         self.subparserUpdateScript.add_argument(
@@ -1400,26 +1401,7 @@ class toolkit_parser:
             help="the local filesystem path to the updated script",
         )
 
-    def main(
-        self,
-        appList,
-        backupList,
-        bucketList,
-        chartsList,
-        cloudList,
-        clusterList,
-        credentialList,
-        destclusterList,
-        hookList,
-        labelList,
-        namespaceList,
-        protectionList,
-        replicationList,
-        scriptList,
-        snapshotList,
-        storageClassList,
-        userList,
-    ):
+    def main(self):
         # Create the top-level commands like: deploy, clone, list, manage, etc.
         self.top_level_commands()
 
@@ -1435,13 +1417,13 @@ class toolkit_parser:
         self.sub_update_commands()
 
         # Create arguments for all commands
-        self.deploy_args(chartsList)
-        self.clone_args(appList, backupList, destclusterList, snapshotList)
-        self.restore_args(appList, backupList, snapshotList)
+        self.deploy_args()
+        self.clone_args()
+        self.restore_args()
 
         self.list_apiresources_args()
         self.list_apps_args()
-        self.list_assets_args(appList)
+        self.list_assets_args()
         self.list_backups_args()
         self.list_buckets_args()
         self.list_clouds_args()
@@ -1458,38 +1440,38 @@ class toolkit_parser:
         self.list_storageclasses_args()
         self.list_users_args()
 
-        self.create_backup_args(appList, bucketList, snapshotList)
-        self.create_cluster_args(cloudList)
-        self.create_hook_args(appList, scriptList)
-        self.create_protection_args(appList)
-        self.create_replication_args(appList, destclusterList, storageClassList)
+        self.create_backup_args()
+        self.create_cluster_args()
+        self.create_hook_args()
+        self.create_protection_args()
+        self.create_replication_args()
         self.create_script_args()
-        self.create_snapshot_args(appList)
-        self.create_user_args(labelList, namespaceList)
+        self.create_snapshot_args()
+        self.create_user_args()
 
-        self.manage_app_args(clusterList, namespaceList)
-        self.manage_bucket_args(credentialList)
-        self.manage_cluster_args(clusterList, storageClassList)
-        self.manage_cloud_args(bucketList)
+        self.manage_app_args()
+        self.manage_bucket_args()
+        self.manage_cluster_args()
+        self.manage_cloud_args()
 
-        self.destroy_backup_args(appList, backupList)
-        self.destroy_credential_args(credentialList)
-        self.destroy_hook_args(appList, hookList)
-        self.destroy_protection_args(appList, protectionList)
-        self.destroy_replication_args(replicationList)
-        self.destroy_script_args(scriptList)
-        self.destroy_snapshot_args(appList, snapshotList)
-        self.destroy_user_args(userList)
+        self.destroy_backup_args()
+        self.destroy_credential_args()
+        self.destroy_hook_args()
+        self.destroy_protection_args()
+        self.destroy_replication_args()
+        self.destroy_script_args()
+        self.destroy_snapshot_args()
+        self.destroy_user_args()
 
-        self.unmanage_app_args(appList)
-        self.unmanage_bucket_args(bucketList)
-        self.unmanage_cluster_args(clusterList)
-        self.unmanage_cloud_args(cloudList)
+        self.unmanage_app_args()
+        self.unmanage_bucket_args()
+        self.unmanage_cluster_args()
+        self.unmanage_cloud_args()
 
-        self.update_bucket_args(bucketList, credentialList)
-        self.update_cloud_args(cloudList, bucketList, credentialList)
-        self.update_replication_args(replicationList)
-        self.update_script_args(scriptList)
-        self.update_cluster_args(clusterList)
+        self.update_bucket_args()
+        self.update_cloud_args()
+        self.update_replication_args()
+        self.update_script_args()
+        self.update_cluster_args()
 
         return self.parser
