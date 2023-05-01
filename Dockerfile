@@ -30,6 +30,7 @@ RUN curl -sLO https://storage.googleapis.com/kubernetes-release/release/v${KUBEC
     tar xvzf kustomize_${KUSTOMIZE_VERSION}_linux_$(dpkg --print-architecture).tar.gz && \
     mv kustomize /usr/bin/kustomize && \
     chmod +x /usr/bin/kustomize && \
+    rm kustomize_${KUSTOMIZE_VERSION}_linux_$(dpkg --print-architecture).tar.gz && \
     curl -sL https://github.com/bitnami-labs/sealed-secrets/releases/download/${KUBESEAL_VERSION}/kubeseal-linux-$(dpkg --print-architecture) -o kubeseal && \
     mv kubeseal /usr/bin/kubeseal && \
     chmod +x /usr/bin/kubeseal
@@ -43,6 +44,7 @@ RUN curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-au
     chmod +x /usr/bin/eksctl && \
     curl -Lo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
     unzip awscliv2.zip -d /tmp && \
+    rm awscliv2.zip && \
     /tmp/aws/install -i /usr/local/aws-cli -b /usr/local/bin
 
 # Install gcloud

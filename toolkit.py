@@ -27,8 +27,8 @@ def main():
     # parsing the options. By then it's too late to decide which functions to run to
     # populate the various choices the differing options for each subcommand needs. So
     # we just go around argparse's back and inspect sys.argv directly.
-    acl = tkSrc.structures.ArgparseChoicesLists()
-    ard = tkSrc.structures.AstraResourceDicts()
+    acl = tkSrc.classes.ArgparseChoicesLists()
+    ard = tkSrc.classes.AstraResourceDicts()
     plaidMode = False
 
     if len(sys.argv) > 1:

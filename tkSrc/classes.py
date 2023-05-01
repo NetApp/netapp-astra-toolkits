@@ -61,6 +61,7 @@ class AstraResourceDicts:
             return True
 
     def buildList(self, name, key, fKey=None, fVal=None):
+        """Generates a list for use in argparse choices"""
         try:
             # return a list of resource values based on 'key'
             if not fKey or not fVal:
