@@ -15,7 +15,6 @@
    limitations under the License.
 """
 
-import inspect
 import json
 import os
 import sys
@@ -30,17 +29,16 @@ class getConfig:
     """In order to make API calls to Astra Control we need to know which Astra Control instance
     to connect to, and the credentials to make calls.  This info is found in config.yaml,
     which we search for in the following four places:
-    1) The directory that astraSDK.py is located in
+    1) The current working directory that the executed function is located in
     2) ~/.config/astra-toolkits/
     3) /etc/astra-toolkits/
     4) The directory pointed to by the shell env var ASTRATOOLKITS_CONF
     """
 
     def __init__(self):
-        path = sys.argv[0] or inspect.getfile(getConfig)
         self.conf = None
         for loc in (
-            os.path.realpath(os.path.dirname(path)),
+            os.getcwd(),
             os.path.join(os.path.expanduser("~"), ".config", "astra-toolkits"),
             "/etc/astra-toolkits",
             os.environ.get("ASTRATOOLKITS_CONF"),
