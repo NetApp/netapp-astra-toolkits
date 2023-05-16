@@ -21,7 +21,7 @@ import astraSDK
 import tkSrc
 
 
-def main():
+def main(argv=sys.argv):
     # The various functions to populate the lists used for choices() in the options are
     # expensive. argparse provides no way to know what subcommand was selected prior to
     # parsing the options. By then it's too late to decide which functions to run to
@@ -31,7 +31,7 @@ def main():
     ard = tkSrc.classes.AstraResourceDicts()
     plaidMode = False
 
-    if len(sys.argv) > 1:
+    if len(argv) > 1:
         # verbs must manually be kept in sync with top_level_commands() in tkSrc/parser.py
         verbs = {
             "deploy": False,
@@ -51,13 +51,13 @@ def main():
         verbPosition = None
         cookedlistofVerbs = [x for x in verbs]
         for verb in verbs:
-            if verb not in sys.argv:
+            if verb not in argv:
                 # no need to iterate over the arg list for a verb that isn't in there
                 continue
             if verbPosition:
                 # once we've found the first verb we can stop looking
                 break
-            for counter, item in enumerate(sys.argv):
+            for counter, item in enumerate(argv):
                 if item == verb:
                     if firstverbfoundPosition is None:
                         # firstverbfoundPosition exists to prevent
@@ -83,8 +83,8 @@ def main():
                         pass
                     verbs[verb] = True
                     verbPosition = counter
-                    for item2 in sys.argv[:(counter)]:
-                        # sys.argv[:(counter)] is a slice of sys.argv of all the items
+                    for item2 in argv[:(counter)]:
+                        # argv[:(counter)] is a slice of sys.argv of all the items
                         # before the one we found
                         if item2 in cookedlistofVerbs:
                             # deploy wasn't the verb, it was a symbolic name of an object
@@ -95,17 +95,17 @@ def main():
         # 'toolkit.py list apps,backups,snapshots'
         if (
             (verbs["list"] or verbs["get"])
-            and len(sys.argv) > (verbPosition + 1)
-            and "," in sys.argv[verbPosition + 1]
+            and len(argv) > (verbPosition + 1)
+            and "," in argv[verbPosition + 1]
         ):
-            listTypeArray = sys.argv[verbPosition + 1].split(",")
+            listTypeArray = argv[verbPosition + 1].split(",")
             for lt in listTypeArray:
-                sys.argv[verbPosition + 1] = lt
+                argv[verbPosition + 1] = lt
                 main()
             sys.exit(0)
 
         # Turn off verification to speed things up if true
-        for counter, item in enumerate(sys.argv):
+        for counter, item in enumerate(argv):
             if verbPosition and counter < verbPosition and (item == "-f" or item == "--fast"):
                 plaidMode = True
 
@@ -130,40 +130,40 @@ def main():
                 acl.apps = ard.buildList("apps", "id")
 
                 # This expression translates to "Is there an arg after the verb we found?"
-                if len(sys.argv) - verbPosition >= 2:
+                if len(argv) - verbPosition >= 2:
                     # If that arg after the verb "restore" matches an appID then
                     # populate the lists of backups and snapshots for that appID
                     ard.backups = astraSDK.backups.getBackups().main()
                     ard.snapshots = astraSDK.snapshots.getSnaps().main()
-                    for a in sys.argv[verbPosition + 1 :]:
+                    for a in argv[verbPosition + 1 :]:
                         acl.backups += ard.buildList("backups", "id", "appID", a)
                         acl.snapshots += ard.buildList("snapshots", "id", "appID", a)
             elif (
                 verbs["create"]
-                and len(sys.argv) - verbPosition >= 2
+                and len(argv) - verbPosition >= 2
                 and (
-                    sys.argv[verbPosition + 1] == "backup"
-                    or sys.argv[verbPosition + 1] == "hook"
-                    or sys.argv[verbPosition + 1] == "protectionpolicy"
-                    or sys.argv[verbPosition + 1] == "protection"
-                    or sys.argv[verbPosition + 1] == "replication"
-                    or sys.argv[verbPosition + 1] == "snapshot"
+                    argv[verbPosition + 1] == "backup"
+                    or argv[verbPosition + 1] == "hook"
+                    or argv[verbPosition + 1] == "protectionpolicy"
+                    or argv[verbPosition + 1] == "protection"
+                    or argv[verbPosition + 1] == "replication"
+                    or argv[verbPosition + 1] == "snapshot"
                 )
             ):
                 ard.apps = astraSDK.apps.getApps().main()
                 acl.apps = ard.buildList("apps", "id")
-                if sys.argv[verbPosition + 1] == "backup":
+                if argv[verbPosition + 1] == "backup":
                     ard.buckets = astraSDK.buckets.getBuckets(quiet=True).main()
                     acl.buckets = ard.buildList("buckets", "id")
                     # Generate acl.snapshots if an appID was provided
-                    for a in sys.argv[verbPosition + 1 :]:
+                    for a in argv[verbPosition + 1 :]:
                         if a in acl.apps:
                             ard.snapshots = astraSDK.snapshots.getSnaps().main(appFilter=a)
                             acl.snapshots = ard.buildList("snapshots", "id")
-                if sys.argv[verbPosition + 1] == "hook":
+                if argv[verbPosition + 1] == "hook":
                     ard.scripts = astraSDK.scripts.getScripts().main()
                     acl.scripts = ard.buildList("scripts", "id")
-                if sys.argv[verbPosition + 1] == "replication":
+                if argv[verbPosition + 1] == "replication":
                     ard.destClusters = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
                     acl.destClusters = ard.buildList("destClusters", "id")
                     ard.storageClasses = astraSDK.storageclasses.getStorageClasses(
@@ -173,8 +173,8 @@ def main():
                     acl.storageClasses = list(set(acl.storageClasses))
             elif (
                 verbs["create"]
-                and len(sys.argv) - verbPosition >= 2
-                and sys.argv[verbPosition + 1] == "cluster"
+                and len(argv) - verbPosition >= 2
+                and argv[verbPosition + 1] == "cluster"
             ):
                 ard.clouds = astraSDK.clouds.getClouds().main()
                 for cloud in ard.clouds["items"]:
@@ -187,8 +187,8 @@ def main():
                         acl.clouds.append(rc["id"])
             elif (
                 verbs["create"]
-                and len(sys.argv) - verbPosition >= 2
-                and sys.argv[verbPosition + 1] == "user"
+                and len(argv) - verbPosition >= 2
+                and argv[verbPosition + 1] == "user"
             ):
                 ard.namespaces = astraSDK.namespaces.getNamespaces().main()
                 for namespace in ard.namespaces["items"]:
@@ -203,19 +203,19 @@ def main():
 
             elif (
                 verbs["list"]
-                and len(sys.argv) - verbPosition >= 2
-                and sys.argv[verbPosition + 1] == "assets"
+                and len(argv) - verbPosition >= 2
+                and argv[verbPosition + 1] == "assets"
             ):
                 ard.apps = astraSDK.apps.getApps().main()
                 acl.apps = ard.buildList("apps", "id")
 
-            elif (verbs["manage"] or verbs["define"]) and len(sys.argv) - verbPosition >= 2:
-                if sys.argv[verbPosition + 1] == "app":
+            elif (verbs["manage"] or verbs["define"]) and len(argv) - verbPosition >= 2:
+                if argv[verbPosition + 1] == "app":
                     ard.namespaces = astraSDK.namespaces.getNamespaces().main()
                     acl.namespaces = ard.buildList("namespaces", "name")
                     acl.clusters = ard.buildList("namespaces", "clusterID")
                     acl.clusters = list(set(acl.clusters))
-                elif sys.argv[verbPosition + 1] == "bucket":
+                elif argv[verbPosition + 1] == "bucket":
                     ard.credentials = astraSDK.credentials.getCredentials().main()
                     for credential in ard.credentials["items"]:
                         if credential["metadata"].get("labels"):
@@ -229,88 +229,81 @@ def main():
                                             credID = credential["id"]
                             if credID:
                                 acl.credentials.append(credential["id"])
-                elif sys.argv[verbPosition + 1] == "cluster":
+                elif argv[verbPosition + 1] == "cluster":
                     ard.clusters = astraSDK.clusters.getClusters().main()
                     acl.clusters = ard.buildList(
                         "clusters", "id", fKey="managedState", fVal="unmanaged"
                     )
                     ard.storageClasses = astraSDK.storageclasses.getStorageClasses().main()
-                    for a in sys.argv[verbPosition + 2 :]:
+                    for a in argv[verbPosition + 2 :]:
                         acl.storageClasses += ard.buildList("storageClasses", "id", "clusterID", a)
-                elif sys.argv[verbPosition + 1] == "cloud":
+                elif argv[verbPosition + 1] == "cloud":
                     ard.buckets = astraSDK.buckets.getBuckets().main()
                     acl.buckets = ard.buildList("buckets", "id")
 
-            elif verbs["destroy"] and len(sys.argv) - verbPosition >= 2:
-                if sys.argv[verbPosition + 1] == "backup" and len(sys.argv) - verbPosition >= 3:
+            elif verbs["destroy"] and len(argv) - verbPosition >= 2:
+                if argv[verbPosition + 1] == "backup" and len(argv) - verbPosition >= 3:
                     ard.apps = astraSDK.apps.getApps().main()
                     acl.apps = ard.buildList("apps", "id")
                     ard.backups = astraSDK.backups.getBackups().main()
                     acl.backups = ard.buildList(
-                        "backups", "id", fKey="appID", fVal=sys.argv[verbPosition + 2]
+                        "backups", "id", fKey="appID", fVal=argv[verbPosition + 2]
                     )
-                elif (
-                    sys.argv[verbPosition + 1] == "credential" and len(sys.argv) - verbPosition >= 3
-                ):
+                elif argv[verbPosition + 1] == "credential" and len(argv) - verbPosition >= 3:
                     ard.credentials = astraSDK.credentials.getCredentials().main()
                     acl.credentials = ard.buildList("credentials", "id")
-                elif sys.argv[verbPosition + 1] == "hook" and len(sys.argv) - verbPosition >= 3:
+                elif argv[verbPosition + 1] == "hook" and len(argv) - verbPosition >= 3:
                     ard.apps = astraSDK.apps.getApps().main()
                     acl.apps = ard.buildList("apps", "id")
                     ard.hooks = astraSDK.hooks.getHooks().main()
                     acl.hooks = ard.buildList(
-                        "hooks", "id", fKey="appID", fVal=sys.argv[verbPosition + 2]
+                        "hooks", "id", fKey="appID", fVal=argv[verbPosition + 2]
                     )
-                elif (
-                    sys.argv[verbPosition + 1] == "protection" and len(sys.argv) - verbPosition >= 3
-                ):
+                elif argv[verbPosition + 1] == "protection" and len(argv) - verbPosition >= 3:
                     ard.apps = astraSDK.apps.getApps().main()
                     acl.apps = ard.buildList("apps", "id")
                     ard.protections = astraSDK.protections.getProtectionpolicies().main()
                     acl.protections = ard.buildList(
-                        "protections", "id", fKey="appID", fVal=sys.argv[verbPosition + 2]
+                        "protections", "id", fKey="appID", fVal=argv[verbPosition + 2]
                     )
-                elif (
-                    sys.argv[verbPosition + 1] == "replication"
-                    and len(sys.argv) - verbPosition >= 3
-                ):
+                elif argv[verbPosition + 1] == "replication" and len(argv) - verbPosition >= 3:
                     ard.replications = astraSDK.replications.getReplicationpolicies().main()
                     if not ard.replications:  # Gracefully handle ACS env
                         print("Error: 'replication' commands are currently only supported in ACC.")
                         sys.exit(1)
                     acl.replications = ard.buildList("replications", "id")
-                elif sys.argv[verbPosition + 1] == "snapshot" and len(sys.argv) - verbPosition >= 3:
+                elif argv[verbPosition + 1] == "snapshot" and len(argv) - verbPosition >= 3:
                     ard.apps = astraSDK.apps.getApps().main()
                     acl.apps = ard.buildList("apps", "id")
                     ard.snapshots = astraSDK.snapshots.getSnaps().main()
                     acl.snapshots = ard.buildList(
-                        "snapshots", "id", fKey="appID", fVal=sys.argv[verbPosition + 2]
+                        "snapshots", "id", fKey="appID", fVal=argv[verbPosition + 2]
                     )
-                elif sys.argv[verbPosition + 1] == "script" and len(sys.argv) - verbPosition >= 3:
+                elif argv[verbPosition + 1] == "script" and len(argv) - verbPosition >= 3:
                     ard.scripts = astraSDK.scripts.getScripts().main()
                     acl.scripts = ard.buildList("scripts", "id")
-                elif sys.argv[verbPosition + 1] == "user" and len(sys.argv) - verbPosition >= 3:
+                elif argv[verbPosition + 1] == "user" and len(argv) - verbPosition >= 3:
                     ard.users = astraSDK.users.getUsers().main()
                     acl.users = ard.buildList("users", "id")
 
-            elif verbs["unmanage"] and len(sys.argv) - verbPosition >= 2:
-                if sys.argv[verbPosition + 1] == "app":
+            elif verbs["unmanage"] and len(argv) - verbPosition >= 2:
+                if argv[verbPosition + 1] == "app":
                     ard.apps = astraSDK.apps.getApps().main()
                     acl.apps = ard.buildList("apps", "id")
-                elif sys.argv[verbPosition + 1] == "bucket":
+                elif argv[verbPosition + 1] == "bucket":
                     ard.buckets = astraSDK.buckets.getBuckets().main()
                     acl.buckets = ard.buildList("buckets", "id")
-                elif sys.argv[verbPosition + 1] == "cluster":
+                elif argv[verbPosition + 1] == "cluster":
                     ard.clusters = astraSDK.clusters.getClusters().main()
                     acl.clusters = ard.buildList(
                         "clusters", "id", fKey="managedState", fVal="managed"
                     )
-                elif sys.argv[verbPosition + 1] == "cloud":
+                elif argv[verbPosition + 1] == "cloud":
                     ard.clouds = astraSDK.clouds.getClouds().main()
                     acl.clouds = ard.buildList("clouds", "id")
 
-            elif (verbs["update"]) and len(sys.argv) - verbPosition >= 2:
-                if sys.argv[verbPosition + 1] == "bucket":
+            elif (verbs["update"]) and len(argv) - verbPosition >= 2:
+                if argv[verbPosition + 1] == "bucket":
                     ard.buckets = astraSDK.buckets.getBuckets().main()
                     acl.buckets = ard.buildList("buckets", "id")
                     ard.credentials = astraSDK.credentials.getCredentials().main()
@@ -326,7 +319,7 @@ def main():
                                             credID = credential["id"]
                             if credID:
                                 acl.credentials.append(credential["id"])
-                elif sys.argv[verbPosition + 1] == "cloud":
+                elif argv[verbPosition + 1] == "cloud":
                     ard.buckets = astraSDK.buckets.getBuckets().main()
                     acl.buckets = ard.buildList("buckets", "id")
                     ard.clouds = astraSDK.clouds.getClouds().main()
@@ -344,22 +337,29 @@ def main():
                                             credID = credential["id"]
                             if credID:
                                 acl.credentials.append(credential["id"])
-                elif sys.argv[verbPosition + 1] == "cluster":
+                elif argv[verbPosition + 1] == "cluster":
                     ard.clusters = astraSDK.clusters.getClusters().main()
                     acl.clusters = ard.buildList("clusters", "id")
-                elif sys.argv[verbPosition + 1] == "replication":
+                elif argv[verbPosition + 1] == "replication":
                     ard.replications = astraSDK.replications.getReplicationpolicies().main()
                     if not ard.replications:  # Gracefully handle ACS env
                         print("Error: 'replication' commands are currently only supported in ACC.")
                         sys.exit(1)
                     acl.replications = ard.buildList("replications", "id")
-                elif sys.argv[verbPosition + 1] == "script":
+                elif argv[verbPosition + 1] == "script":
                     ard.scripts = astraSDK.scripts.getScripts().main()
                     acl.scripts = ard.buildList("scripts", "id")
 
+    else:
+        print(
+            f"{argv[0]}: error: please specify a subcommand. Run '{argv[0]} -h' for "
+            "parser information."
+        )
+        sys.exit(1)
+
     tkParser = tkSrc.parser.ToolkitParser(acl, plaidMode=plaidMode)
     tkSrc.callers.main(
-        sys.argv[: verbPosition + 1],
+        argv[: verbPosition + 1] if verbPosition else argv,
         tkParser,
         ard,
     )

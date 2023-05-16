@@ -45,7 +45,7 @@ For the **developer** use case or to [manually install](#3-manual-installation) 
 
 No matter the method of installation, the SDK authenticates by reading in the `config.yaml` file from the following locations (in order):
 
-1. The directory that the executed function is located in
+1. The current working directory that the executed function is located in
 1. `~/.config/astra-toolkits/`
 1. `/etc/astra-toolkits/`
 1. The directory pointed to by the shell env var `ASTRATOOLKITS_CONF`
