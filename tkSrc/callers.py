@@ -400,10 +400,11 @@ class ToolKit:
             sys.stdout.flush()
 
 
-def main(cmdHeader, tkParser, ard):
+def main(argv, tkParser, ard):
+    argv = argv[1:] if "toolkit" in argv[0] else argv
     tk = ToolKit()
     parser = tkParser.main()
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     if args.subcommand == "deploy":
         tk.doDeploy(
@@ -637,38 +638,28 @@ def main(cmdHeader, tkParser, ard):
         elif args.objectType == "protection" or args.objectType == "protectionpolicy":
             if args.granularity == "hourly":
                 if args.hour:
-                    print("Error: 'hourly' granularity must not specify -H / --hour")
-                    sys.exit(1)
-                if not hasattr(args, "minute"):
-                    print("Error: 'hourly' granularity requires -m / --minute")
-                    sys.exit(1)
+                    parser.error("'hourly' granularity must not specify -H / --hour")
                 args.hour = "*"
                 args.dayOfWeek = "*"
                 args.dayOfMonth = "*"
             elif args.granularity == "daily":
                 if type(args.hour) != int and not args.hour:
-                    print("Error: 'daily' granularity requires -H / --hour")
-                    sys.exit(1)
+                    parser.error("'daily' granularity requires -H / --hour")
                 args.dayOfWeek = "*"
                 args.dayOfMonth = "*"
             elif args.granularity == "weekly":
                 if type(args.hour) != int and not args.hour:
-                    print("Error: 'weekly' granularity requires -H / --hour")
-                    sys.exit(1)
+                    parser.error("'weekly' granularity requires -H / --hour")
                 if type(args.dayOfWeek) != int and not args.dayOfWeek:
-                    print("Error: 'weekly' granularity requires -W / --dayOfWeek")
-                    sys.exit(1)
+                    parser.error("'weekly' granularity requires -W / --dayOfWeek")
                 args.dayOfMonth = "*"
             elif args.granularity == "monthly":
                 if type(args.hour) != int and not args.hour:
-                    print("Error: 'monthly' granularity requires -H / --hour")
-                    sys.exit(1)
+                    parser.error("'monthly' granularity requires -H / --hour")
                 if args.dayOfWeek:
-                    print("Error: 'monthly' granularity must not specify -W / --dayOfWeek")
-                    sys.exit(1)
+                    parser.error("'monthly' granularity must not specify -W / --dayOfWeek")
                 if not args.dayOfMonth:
-                    print("Error: 'monthly' granularity requires -M / --dayOfMonth")
-                    sys.exit(1)
+                    parser.error("'monthly' granularity requires -M / --dayOfMonth")
                 args.dayOfWeek = "*"
             rc = astraSDK.protections.createProtectionpolicy(
                 quiet=args.quiet, verbose=args.verbose
@@ -696,11 +687,11 @@ def main(cmdHeader, tkParser, ard):
                 hours = "00"
                 minutes = args.offset.zfill(2)
             if int(hours) < 0 or int(hours) > 23:
-                print(f"Error: offset {args.offset} hours must be between 0 and 23, inclusive")
-                sys.exit(1)
+                parser.error(f"offset {args.offset} hours must be between 0 and 23, inclusive")
             elif int(minutes) < 0 or int(minutes) > 59:
-                print(f"Error: offset {args.offset} minutes must be between 0 and 59, inclusive")
-                sys.exit(1)
+                parser.error(
+                    f"offset '{args.offset}' minutes must be between 0 and 59, inclusive"
+                )
             dtstart = "DTSTART:20220101T" + hours + minutes + "00Z\n"
             # Create RRULE string
             rrule = "RRULE:FREQ=MINUTELY;INTERVAL="
@@ -838,11 +829,10 @@ def main(cmdHeader, tkParser, ard):
                 # Validate input as argparse+choices is unable to only validate the first input
                 for csr in args.clusterScopedResource:
                     if csr[0] not in (apiRes := [a["kind"] for a in apiResourcesDict["items"]]):
-                        print(
-                            f"{' '.join(cmdHeader)}: error: argument -c/--clusterScopedResource: "
-                            f"invalid choice: '{csr[0]}' (choose from {', '.join(apiRes)})"
+                        parser.error(
+                            f"argument -c/--clusterScopedResource: invalid choice: '{csr[0]}' "
+                            f"(choose from {', '.join(apiRes)})"
                         )
-                        sys.exit(1)
                 args.clusterScopedResource = tkSrc.helpers.createCsrList(
                     args.clusterScopedResource, apiResourcesDict
                 )
@@ -864,16 +854,15 @@ def main(cmdHeader, tkParser, ard):
             if args.credentialID is not None and (
                 args.accessKey is not None or args.accessSecret is not None
             ):
-                print(
-                    f"Error: if a credentialID is specified, neither accessKey nor accessSecret"
+                parser.error(
+                    f"if a credentialID is specified, neither accessKey nor accessSecret"
                     + " should be specified."
                 )
-                sys.exit(1)
             # Validate args and create credential if credentialID was not specified
             if args.credentialID is None:
                 if args.accessKey is None or args.accessSecret is None:
-                    print(
-                        "Error: if a credentialID is not specified, both accessKey and "
+                    parser.error(
+                        "if a credentialID is not specified, both accessKey and "
                         + "accessSecret arguments must be provided."
                     )
                     sys.exit(1)
@@ -899,11 +888,9 @@ def main(cmdHeader, tkParser, ard):
                 "ontap-s3",
                 "storagegrid-s3",
             ]:
-                print(f"Error: --serverURL must be provided for '{args.provider}' provider.")
-                sys.exit(1)
+                parser.error(f"--serverURL must be provided for '{args.provider}' provider.")
             if args.storageAccount is None and args.provider == "azure":
-                print("Error: --storageAccount must be provided for 'azure' provider.")
-                sys.exit(1)
+                parser.error("--storageAccount must be provided for 'azure' provider.")
             # Create bucket parameters based on provider and optional arguments
             if args.provider == "azure":
                 bucketParameters = {
@@ -938,14 +925,12 @@ def main(cmdHeader, tkParser, ard):
             # First create the credential
             if args.cloudType != "private":
                 if args.credentialPath is None:
-                    print(f"Error: --credentialPath is required for cloudType of {args.cloudType}")
-                    sys.exit(1)
+                    parser.error(f"--credentialPath is required for cloudType of {args.cloudType}")
                 with open(args.credentialPath, encoding="utf8") as f:
                     try:
                         credDict = json.loads(f.read().rstrip())
                     except json.decoder.JSONDecodeError:
-                        print(f"Error: {args.credentialPath} does not seem to be valid JSON")
-                        sys.exit(1)
+                        parser.error(f"{args.credentialPath} does not seem to be valid JSON")
                 encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
                 rc = astraSDK.credentials.createCredential(
                     quiet=args.quiet, verbose=args.verbose
@@ -1069,8 +1054,7 @@ def main(cmdHeader, tkParser, ard):
                         print(f"Failed destroying user {args.userID} with roleBinding {rb['id']}")
                         sys.exit(1)
             # If we reached this point, it's due to plaidMode == True and bad userID
-            print(f"Error: userID {args.userID} not found")
-            sys.exit(1)
+            parser.error(f"userID {args.userID} not found")
 
     elif args.subcommand == "unmanage":
         if args.objectType == "app":
@@ -1148,11 +1132,9 @@ def main(cmdHeader, tkParser, ard):
         if (args.filterSelection and not args.filterSet) or (
             args.filterSet and not args.filterSelection
         ):
-            print(
-                f"{' '.join(cmdHeader)}: error: either both or none of "
-                "--filterSelection and --filterSet should be specified"
+            parser.error(
+                f"either both or none of --filterSelection and --filterSet should be specified"
             )
-            sys.exit(1)
         rc = astraSDK.apps.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
             args.appID,
             backupID=args.backupID,
@@ -1192,26 +1174,22 @@ def main(cmdHeader, tkParser, ard):
         if (args.filterSelection and not args.filterSet) or (
             args.filterSet and not args.filterSelection
         ):
-            print(
-                f"{' '.join(cmdHeader)}: error: either both or none of "
-                "--filterSelection and --filterSet should be specified"
+            parser.error(
+                f"either both or none of --filterSelection and --filterSet should be specified"
             )
-            sys.exit(1)
         if args.filterSet and args.sourceAppID:
-            print(
-                "Error: resource filters (--filterSet) may only be specified with --backupID "
+            parser.error(
+                "resource filters (--filterSet) may only be specified with --backupID "
                 "or --snapshotID arguments, not --sourceAppID"
             )
-            sys.exit(1)
         if not args.cloneAppName:
             args.cloneAppName = input("App name for the clone: ")
-        # TODO: add this back in
-        """if not args.clusterID:
+        if not args.clusterID:
+            if ard.needsattr("clusters"):
+                ard.clusters = astraSDK.clusters.getClusters().main()
             print("Select destination cluster for the clone")
             print("Index\tClusterID\t\t\t\tclusterName\tclusterPlatform")
-            args.clusterID = userSelect(
-                destCluster, ["id", "name", "clusterType"]
-            )"""
+            args.clusterID = tkSrc.helpers.userSelect(ard.clusters, ["id", "name", "clusterType"])
         # Get the original app dictionary based on args.sourceAppID/args.backupID/args.snapshotID,
         # as the app dict contains sourceClusterID and namespaceScopedResources which we need
         oApp = {}
@@ -1238,11 +1216,10 @@ def main(cmdHeader, tkParser, ard):
                         oApp = app
         # Ensure appIDstr is not equal to "", if so bad values were passed in with plaidMode
         if not oApp:
-            print(
-                "Error: the corresponding appID was not found in the system, please check "
+            parser.error(
+                "the corresponding appID was not found in the system, please check "
                 + "your inputs and try again."
             )
-            sys.exit(1)
 
         tk.doClone(
             tkSrc.helpers.isRFC1123(args.cloneAppName),
@@ -1267,19 +1244,17 @@ def main(cmdHeader, tkParser, ard):
             if args.credentialID is not None and (
                 args.accessKey is not None or args.accessSecret is not None
             ):
-                print(
-                    f"Error: if a credentialID is specified, neither accessKey nor accessSecret"
+                parser.error(
+                    f"if a credentialID is specified, neither accessKey nor accessSecret"
                     + " should be specified."
                 )
-                sys.exit(1)
             # Validate args and create credential if credentialID was not specified
             if args.credentialID is None:
                 if args.accessKey is None or args.accessSecret is None:
-                    print(
-                        "Error: if a credentialID is not specified, both accessKey and "
+                    parser.error(
+                        "if a credentialID is not specified, both accessKey and "
                         + "accessSecret arguments must be provided."
                     )
-                    sys.exit(1)
                 if ard.needsattr("buckets"):
                     ard.buckets = astraSDK.buckets.getBuckets().main()
                 encodedKey = base64.b64encode(args.accessKey.encode("utf-8")).decode("utf-8")
@@ -1294,8 +1269,7 @@ def main(cmdHeader, tkParser, ard):
                         cloudName="s3",
                     )
                 except StopIteration:
-                    print(f"Error: {args.bucketID} does not seem to be a valid bucketID")
-                    sys.exit(1)
+                    parser.error(f"{args.bucketID} does not seem to be a valid bucketID")
                 if crc:
                     args.credentialID = crc["id"]
                 else:
@@ -1316,16 +1290,14 @@ def main(cmdHeader, tkParser, ard):
                     try:
                         credDict = json.loads(f.read().rstrip())
                     except json.decoder.JSONDecodeError:
-                        print(f"Error: {args.credentialPath} does not seem to be valid JSON")
-                        sys.exit(1)
+                        parser.error(f"{args.credentialPath} does not seem to be valid JSON")
                 encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
                 if ard.needsattr("clouds"):
                     ard.clouds = astraSDK.clouds.getClouds().main()
                 try:
                     cloud = next(c for c in ard.clouds["items"] if c["id"] == args.cloudID)
                 except StopIteration:
-                    print(f"Error: {args.cloudID} does not seem to be a valid cloudID")
-                    sys.exit(1)
+                    parser.error(f"{args.cloudID} does not seem to be a valid cloudID")
                 rc = astraSDK.credentials.createCredential(
                     quiet=args.quiet, verbose=args.verbose
                 ).main(
@@ -1357,8 +1329,7 @@ def main(cmdHeader, tkParser, ard):
             try:
                 cluster = next(c for c in ard.clusters["items"] if c["id"] == args.clusterID)
             except StopIteration:
-                print(f"Error: {args.clusterID} does not seem to be a valid clusterID")
-                sys.exit(1)
+                parser.error(f"{args.clusterID} does not seem to be a valid clusterID")
             # Currently this is required to be True, but this will not always be the case
             if args.credentialPath:
                 with open(args.credentialPath, encoding="utf8") as f:
@@ -1383,26 +1354,22 @@ def main(cmdHeader, tkParser, ard):
             if ard.needsattr("replications"):
                 ard.replications = astraSDK.replications.getReplicationpolicies().main()
                 if not ard.replications:  # Gracefully handle ACS env
-                    print("Error: 'replication' commands are currently only supported in ACC.")
-                    sys.exit(1)
+                    parser.error("'replication' commands are currently only supported in ACC.")
             repl = None
             for replication in ard.replications["items"]:
                 if args.replicationID == replication["id"]:
                     repl = replication
             if not repl:
-                print(f"Error: replicationID {args.replicationID} not found")
-                sys.exit(1)
+                parser.error(f"replicationID {args.replicationID} not found")
             # Make call based on operation type
             if args.operation == "resync":
                 if not args.dataSource:
-                    print("Error: --dataSource must be provided for 'resync' operations")
-                    sys.exit(1)
+                    parser.error("--dataSource must be provided for 'resync' operations")
                 if repl["state"] != "failedOver":
-                    print(
-                        "Error: to resync a replication, it must be in a `failedOver` state"
-                        + f", not a(n) `{repl['state']}` state"
+                    parser.error(
+                        "to resync a replication, it must be in a 'failedOver' state"
+                        + f", not a(n) '{repl['state']}' state"
                     )
-                    sys.exit(1)
                 if args.dataSource in [repl["sourceAppID"], repl["sourceClusterID"]]:
                     rc = astraSDK.replications.updateReplicationpolicy(
                         quiet=args.quiet, verbose=args.verbose
@@ -1426,21 +1393,19 @@ def main(cmdHeader, tkParser, ard):
                         destinationClusterID=repl["sourceClusterID"],
                     )
                 else:
-                    print(
-                        f"Error: dataSource '{args.dataSource}' not one of:\n"
+                    parser.error(
+                        f"dataSource '{args.dataSource}' not one of:\n"
                         + f"\t{repl['sourceAppID']}\t(original sourceAppID)\n"
                         + f"\t{repl['sourceClusterID']}\t(original sourceClusterID)\n"
                         + f"\t{repl['destinationAppID']}\t(original destinationAppID)\n"
                         + f"\t{repl['destinationClusterID']}\t(original destinationClusterID)"
                     )
-                    sys.exit(1)
             elif args.operation == "reverse":
                 if repl["state"] != "established" and repl["state"] != "failedOver":
-                    print(
-                        "Error: to reverse a replication, it must be in an `established` or "
-                        + f"`failedOver` state, not a(n) `{repl['state']}` state"
+                    parser.error(
+                        "to reverse a replication, it must be in an `established` or "
+                        + f"'failedOver' state, not a(n) '{repl['state']}' state"
                     )
-                    sys.exit(1)
                 rc = astraSDK.replications.updateReplicationpolicy(
                     quiet=args.quiet, verbose=args.verbose
                 ).main(
@@ -1453,11 +1418,10 @@ def main(cmdHeader, tkParser, ard):
                 )
             else:  # failover
                 if repl["state"] != "established":
-                    print(
-                        "Error: to failover a replication, it must be in an `established` state"
-                        + f", not a(n) `{repl['state']}` state"
+                    parser.error(
+                        "to failover a replication, it must be in an 'established' state"
+                        + f", not a(n) '{repl['state']}' state"
                     )
-                    sys.exit(1)
                 rc = astraSDK.replications.updateReplicationpolicy(
                     quiet=args.quiet, verbose=args.verbose
                 ).main(args.replicationID, "failedOver")

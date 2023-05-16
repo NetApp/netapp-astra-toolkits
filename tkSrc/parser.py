@@ -23,7 +23,7 @@ class ToolkitParser:
 
     def __init__(self, acl, plaidMode=False):
         """Creates the parser object and global arguments"""
-        self.parser = argparse.ArgumentParser(allow_abbrev=True)
+        self.parser = argparse.ArgumentParser(allow_abbrev=True, prog="actoolkit")
         self.parser.add_argument(
             "-v",
             "--verbose",

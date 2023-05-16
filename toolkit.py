@@ -101,7 +101,7 @@ def main(argv=sys.argv):
             listTypeArray = argv[verbPosition + 1].split(",")
             for lt in listTypeArray:
                 argv[verbPosition + 1] = lt
-                main()
+                main(argv=argv)
             sys.exit(0)
 
         # Turn off verification to speed things up if true
@@ -358,11 +358,7 @@ def main(argv=sys.argv):
         sys.exit(1)
 
     tkParser = tkSrc.parser.ToolkitParser(acl, plaidMode=plaidMode)
-    tkSrc.callers.main(
-        argv[: verbPosition + 1] if verbPosition else argv,
-        tkParser,
-        ard,
-    )
+    tkSrc.callers.main(argv, tkParser, ard)
 
 
 if __name__ == "__main__":
