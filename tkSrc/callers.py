@@ -589,8 +589,6 @@ def main(argv, tkParser, ard):
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
-            else:
-                sys.exit(0)
         elif args.objectType == "cluster":
             with open(args.filePath, encoding="utf8") as f:
                 kubeconfigDict = yaml.load(f.read().rstrip(), Loader=yaml.SafeLoader)
@@ -610,8 +608,6 @@ def main(argv, tkParser, ard):
                 )
                 if rc is False:
                     print("astraSDK.clusters.createCluster() failed")
-                else:
-                    sys.exit(0)
             else:
                 print("astraSDK.credentials.createCredential() failed")
                 sys.exit(1)
@@ -633,8 +629,6 @@ def main(argv, tkParser, ard):
             )
             if rc is False:
                 print("astraSDK.hooks.createHook() failed")
-            else:
-                sys.exit(0)
         elif args.objectType == "protection" or args.objectType == "protectionpolicy":
             if args.granularity == "hourly":
                 if args.hour:
@@ -676,8 +670,6 @@ def main(argv, tkParser, ard):
             if rc is False:
                 print("astraSDK.protections.createProtectionpolicy() failed")
                 sys.exit(1)
-            else:
-                sys.exit(0)
         elif args.objectType == "replication":
             # Validate offset values and create DTSTART string
             if ":" in args.offset:
@@ -736,9 +728,7 @@ def main(argv, tkParser, ard):
                     args.appID,
                     dtstart + rrule,
                 )
-                if prc:
-                    sys.exit(0)
-                else:
+                if prc is False:
                     print("astraSDK.protections.createProtectionpolicy() failed")
                     sys.exit(1)
             else:
@@ -752,8 +742,6 @@ def main(argv, tkParser, ard):
             )
             if rc is False:
                 print("astraSDK.scripts.createScript() failed")
-            else:
-                sys.exit(0)
         elif args.objectType == "snapshot":
             rc = tk.doProtectionTask(
                 args.objectType,
@@ -767,8 +755,6 @@ def main(argv, tkParser, ard):
             if rc is False:
                 print("doProtectionTask() failed")
                 sys.exit(1)
-            else:
-                sys.exit(0)
         elif args.objectType == "user":
             # First create the user
             urc = astraSDK.users.createUser(quiet=args.quiet, verbose=args.verbose).main(
@@ -847,8 +833,6 @@ def main(argv, tkParser, ard):
             if rc is False:
                 print("astraSDK.apps.manageApp() failed")
                 sys.exit(1)
-            else:
-                sys.exit(0)
         elif args.objectType == "bucket":
             # Validate that both credentialID and accessKey/accessSecret were not specified
             if args.credentialID is not None and (
@@ -909,8 +893,6 @@ def main(argv, tkParser, ard):
             if rc is False:
                 print("astraSDK.buckets.manageBucket() failed")
                 sys.exit(1)
-            else:
-                sys.exit(0)
         elif args.objectType == "cluster":
             rc = astraSDK.clusters.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.clusterID, args.defaultStorageClassID
@@ -918,8 +900,6 @@ def main(argv, tkParser, ard):
             if rc is False:
                 print("astraSDK.clusters.manageCluster() failed")
                 sys.exit(1)
-            else:
-                sys.exit(0)
         elif args.objectType == "cloud":
             credentialID = None
             # First create the credential
@@ -952,9 +932,7 @@ def main(argv, tkParser, ard):
                 credentialID=credentialID,
                 defaultBucketID=args.defaultBucketID,
             )
-            if rc:
-                sys.exit(0)
-            else:
+            if rc is False:
                 print("astraSDK.clouds.manageCloud() failed")
 
     elif args.subcommand == "destroy":
@@ -1049,7 +1027,7 @@ def main(argv, tkParser, ard):
                     ).main(rb["id"])
                     if rc:
                         print(f"User {args.userID} / roleBinding {rb['id']} destroyed")
-                        sys.exit(0)
+                        break
                     else:
                         print(f"Failed destroying user {args.userID} with roleBinding {rb['id']}")
                         sys.exit(1)
@@ -1062,8 +1040,6 @@ def main(argv, tkParser, ard):
             if rc is False:
                 print("astraSDK.apps.unmanageApp() failed")
                 sys.exit(1)
-            else:
-                sys.exit(0)
         elif args.objectType == "bucket":
             rc = astraSDK.buckets.unmanageBucket(quiet=args.quiet, verbose=args.verbose).main(
                 args.bucketID
@@ -1071,8 +1047,6 @@ def main(argv, tkParser, ard):
             if rc is False:
                 print("astraSDK.buckets.unmanageBucket() failed")
                 sys.exit(1)
-            else:
-                sys.exit(0)
         elif args.objectType == "cluster":
             rc = astraSDK.clusters.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.clusterID
@@ -1101,7 +1075,6 @@ def main(argv, tkParser, ard):
                             else:
                                 print("astraSDK.clusters.deleteCluster() failed")
                                 sys.exit(1)
-                sys.exit(0)
             else:
                 print("astraSDK.clusters.unmanageCluster() failed")
                 sys.exit(1)
@@ -1123,7 +1096,6 @@ def main(argv, tkParser, ard):
                             else:
                                 print("astraSDK.credentials.destroyCredential() failed")
                                 sys.exit(1)
-                sys.exit(0)
             else:
                 print("astraSDK.clusters.unmanageCloud() failed")
                 sys.exit(1)
@@ -1147,7 +1119,6 @@ def main(argv, tkParser, ard):
             if args.background:
                 print("Restore job submitted successfully")
                 print("Background restore flag selected, run 'list apps' to get status")
-                sys.exit(0)
             print("Restore job in progress...", end="")
             sys.stdout.flush()
             while True:
@@ -1282,8 +1253,6 @@ def main(argv, tkParser, ard):
             if rc is False:
                 print("astraSDK.buckets.updateBucket() failed")
                 sys.exit(1)
-            else:
-                sys.exit(0)
         elif args.objectType == "cloud":
             if args.credentialPath:
                 with open(args.credentialPath, encoding="utf8") as f:
@@ -1317,11 +1286,10 @@ def main(argv, tkParser, ard):
                 credentialID=args.credentialID,
                 defaultBucketID=args.defaultBucketID,
             )
-            if rc:
-                sys.exit(0)
-            else:
+            if rc is False:
                 print(rc.error)
                 print("astraSDK.clouds.updateCloud() failed")
+                sys.exit(1)
         elif args.objectType == "cluster":
             # Get the cluster information based on the clusterID input
             if ard.needsattr("clusters"):
@@ -1344,9 +1312,7 @@ def main(argv, tkParser, ard):
                     kubeconfigDict["clusters"][0]["name"],
                     keyStore={"base64": encodedStr},
                 )
-                if rc:
-                    sys.exit(0)
-                else:
+                if rc is False:
                     print("astraSDK.credentials.updateCredential() failed")
                     sys.exit(1)
         elif args.objectType == "replication":
@@ -1428,7 +1394,6 @@ def main(argv, tkParser, ard):
             # Exit based on response
             if rc:
                 print(f"Replication {args.operation} initiated")
-                sys.exit(0)
             else:
                 print("astraSDK.replications.updateReplicationpolicy() failed")
                 sys.exit(1)
@@ -1440,5 +1405,3 @@ def main(argv, tkParser, ard):
             )
             if rc is False:
                 print("astraSDK.scripts.updateScript() failed")
-            else:
-                sys.exit(0)
