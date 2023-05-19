@@ -50,6 +50,8 @@ class getNamespaces(SDKCommon):
         if self.clusters is False:
             print("Call to getClusters().main() failed")
             return False
+        elif self.clusters is True:
+            return True
         elif self.apps is False:
             print("Call to getApps().main() failed")
             return False
