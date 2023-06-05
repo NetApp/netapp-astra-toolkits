@@ -357,8 +357,30 @@ def main(argv=sys.argv):
         )
         sys.exit(1)
 
+    # Manually passing args into argparse via parse_args() shouldn't include the function name
+    argv = argv[1:] if "toolkit" in argv[0] else argv
     tkParser = tkSrc.parser.ToolkitParser(acl, plaidMode=plaidMode)
-    tkSrc.callers.main(argv, tkParser, ard)
+    parser = tkParser.main()
+    args = parser.parse_args(args=argv)
+
+    if args.subcommand == "deploy":
+        tkSrc.deploy.exec(args)
+    elif args.subcommand == "list" or args.subcommand == "get":
+        tkSrc.list.exec(args)
+    elif args.subcommand == "create":
+        tkSrc.create.exec(args, parser, ard)
+    elif args.subcommand == "manage" or args.subcommand == "define":
+        tkSrc.manage.exec(args, parser)
+    elif args.subcommand == "destroy":
+        tkSrc.destroy.exec(args, parser, ard)
+    elif args.subcommand == "unmanage":
+        tkSrc.unmanage.exec(args, ard)
+    elif args.subcommand == "restore":
+        tkSrc.restore.exec(args, parser)
+    elif args.subcommand == "clone":
+        tkSrc.clone.exec(args, parser, ard)
+    elif args.subcommand == "update":
+        tkSrc.update.exec(args, parser, ard)
 
 
 if __name__ == "__main__":
