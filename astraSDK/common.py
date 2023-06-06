@@ -60,15 +60,13 @@ class getConfig:
                 continue
 
         if self.conf is None:
-            print("config.yaml not found.")
-            sys.exit(4)
+            raise SystemExit("config.yaml not found.")
 
         for item in ["astra_project", "uid", "headers"]:
             try:
                 assert self.conf.get(item) is not None
             except AssertionError:
-                print(f"{item} is a required field in {configFile}")
-                sys.exit(3)
+                raise SystemExit(f"{item} is a required field in {configFile}")
 
         if "." in self.conf.get("astra_project"):
             self.base = "https://%s/accounts/%s/" % (

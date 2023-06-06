@@ -204,18 +204,17 @@ def doClone(
                         print("Cloning operation complete.")
                         sys.stdout.flush()
                     elif app["state"] == "failed":
-                        print(f"Error: \"{app['name']}\" in a failed state")
                         sys.stdout.flush()
-                        sys.exit(1)
+                        raise SystemExit(f"Error: \"{app['name']}\" in a failed state")
                     else:
                         print(".", end="")
                         sys.stdout.flush()
                         time.sleep(pollTimer)
     else:
-        print("Submitting clone failed.")
+        raise SystemExit("Submitting clone failed.")
 
 
-def exec(args, parser, ard):
+def main(args, parser, ard):
     if (args.filterSelection and not args.filterSet) or (
         args.filterSet and not args.filterSelection
     ):

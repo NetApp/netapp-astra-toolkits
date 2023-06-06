@@ -70,7 +70,7 @@ def doProtectionTask(protectionType, appID, name, background, pollTimer, quiet, 
         sys.stdout.flush()
 
 
-def exec(args, parser, ard):
+def main(args, parser, ard):
     if args.objectType == "backup":
         rc = doProtectionTask(
             args.objectType,
@@ -82,8 +82,7 @@ def exec(args, parser, ard):
             args.verbose,
         )
         if rc is False:
-            print("doProtectionTask() failed")
-            sys.exit(1)
+            raise SystemExit("doProtectionTask() failed")
     elif args.objectType == "cluster":
         with open(args.filePath, encoding="utf8") as f:
             kubeconfigDict = yaml.load(f.read().rstrip(), Loader=yaml.SafeLoader)
@@ -102,10 +101,9 @@ def exec(args, parser, ard):
                 rc["id"],
             )
             if rc is False:
-                print("astraSDK.clusters.createCluster() failed")
+                raise SystemExit("astraSDK.clusters.createCluster() failed")
         else:
-            print("astraSDK.credentials.createCredential() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.credentials.createCredential() failed")
     elif args.objectType == "hook":
         rc = astraSDK.hooks.createHook(quiet=args.quiet, verbose=args.verbose).main(
             args.appID,
@@ -123,7 +121,7 @@ def exec(args, parser, ard):
             ),
         )
         if rc is False:
-            print("astraSDK.hooks.createHook() failed")
+            raise SystemExit("astraSDK.hooks.createHook() failed")
     elif args.objectType == "protection" or args.objectType == "protectionpolicy":
         if args.granularity == "hourly":
             if args.hour:
@@ -163,8 +161,7 @@ def exec(args, parser, ard):
             args.appID,
         )
         if rc is False:
-            print("astraSDK.protections.createProtectionpolicy() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.protections.createProtectionpolicy() failed")
     elif args.objectType == "replication":
         # Validate offset values and create DTSTART string
         if ":" in args.offset:
@@ -222,11 +219,9 @@ def exec(args, parser, ard):
                 dtstart + rrule,
             )
             if prc is False:
-                print("astraSDK.protections.createProtectionpolicy() failed")
-                sys.exit(1)
+                raise SystemExit("astraSDK.protections.createProtectionpolicy() failed")
         else:
-            print("astraSDK.replications.createReplicationpolicy() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.replications.createReplicationpolicy() failed")
     elif args.objectType == "script":
         with open(args.filePath, encoding="utf8") as f:
             encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
@@ -234,7 +229,7 @@ def exec(args, parser, ard):
             name=args.name, source=encodedStr, description=args.description
         )
         if rc is False:
-            print("astraSDK.scripts.createScript() failed")
+            raise SystemExit("astraSDK.scripts.createScript() failed")
     elif args.objectType == "snapshot":
         rc = doProtectionTask(
             args.objectType,
@@ -246,8 +241,7 @@ def exec(args, parser, ard):
             args.verbose,
         )
         if rc is False:
-            print("doProtectionTask() failed")
-            sys.exit(1)
+            raise SystemExit("doProtectionTask() failed")
     elif args.objectType == "user":
         # First create the user
         urc = astraSDK.users.createUser(quiet=args.quiet, verbose=args.verbose).main(
@@ -267,11 +261,10 @@ def exec(args, parser, ard):
             if rrc:
                 # Delete+error "local" users where a tempPassword wasn't provided
                 if urc["authProvider"] == "local" and not args.tempPassword:
-                    print("Error: --tempPassword is required for ACC+localAuth")
                     drc = astraSDK.rolebindings.destroyRolebinding(quiet=True).main(rrc["id"])
                     if not drc:
-                        print("astraSDK.rolebindings.destroyRolebinding() failed")
-                    sys.exit(1)
+                        raise SystemExit("astraSDK.rolebindings.destroyRolebinding() failed")
+                    raise SystemExit("Error: --tempPassword is required for ACC+localAuth")
                 # Finally, create the credential if local user
                 if urc["authProvider"] == "local":
                     crc = astraSDK.credentials.createCredential(
@@ -287,11 +280,8 @@ def exec(args, parser, ard):
                         },
                     )
                     if not crc:
-                        print("astraSDK.credentials.createCredential() failed")
-                        sys.exit(1)
+                        raise SystemExit("astraSDK.credentials.createCredential() failed")
             else:
-                print("astraSDK.rolebindings.createRolebinding() failed")
-                sys.exit(1)
+                raise SystemExit("astraSDK.rolebindings.createRolebinding() failed")
         else:
-            print("astraSDK.users.createUser() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.users.createUser() failed")

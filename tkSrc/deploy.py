@@ -37,8 +37,7 @@ def doDeploy(chart, appName, namespace, setValues, fileValues, verbose, quiet):
     retvalJSON = json.loads(retval)
     for item in retvalJSON["items"]:
         if item["metadata"]["name"] == namespace:
-            print(f"Namespace {namespace} already exists!")
-            sys.exit(24)
+            raise SystemExit(f"Namespace {namespace} already exists!")
     tkSrc.helpers.run(f"kubectl create namespace {namespace}")
     tkSrc.helpers.run(f"kubectl config set-context --current --namespace={namespace}")
 
@@ -118,7 +117,7 @@ def doDeploy(chart, appName, namespace, setValues, fileValues, verbose, quiet):
                         print("Success!")
                         break
                     else:
-                        sys.exit(1)
+                        raise SystemExit("Error managing app")
 
     # Create a protection policy on that namespace (using its appID)
     time.sleep(5)
@@ -151,7 +150,7 @@ def doDeploy(chart, appName, namespace, setValues, fileValues, verbose, quiet):
             raise SystemExit(f"cpp.main({period}...) returned False")
 
 
-def exec(args):
+def main(args):
     doDeploy(
         args.chart,
         tkSrc.helpers.isRFC1123(args.app),

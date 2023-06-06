@@ -19,7 +19,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 import tempfile
 import yaml
 
@@ -140,8 +139,7 @@ def createNamespaceMapping(app, singleNs, multiNsMapping):
       { "source": "sourcens2", "destination": "destns2" } ]"""
     # Ensure that multiNsMapping was used for multi-namespace apps
     if multiNsMapping is None and len(app["namespaceScopedResources"]) > 1:
-        print("Error: for multi-namespace apps, --multiNsMapping must be used.")
-        sys.exit(1)
+        raise SystemExit("Error: for multi-namespace apps, --multiNsMapping must be used.")
     # For single-namespace apps, the namespace mapping is **not** a required field
     elif singleNs is None and multiNsMapping is None:
         return None
@@ -166,18 +164,16 @@ def createNamespaceMapping(app, singleNs, multiNsMapping):
         # Ensure the mappings are of 'sourcens=destns' format
         for mapping in mappingList:
             if len(mapping.split("=")) != 2:
-                print(f"Error: '{mapping}' does not conform to 'sourcens=destns' format")
-                sys.exit(1)
+                raise SystemExit(f"Error: '{mapping}' does not conform to 'sourcens=destns' format")
         # Ensure that the user-provided source mapping equals the app namespaces
         sortedMappingSourceNs = sorted([i.split("=")[0] for i in mappingList])
         sortedAppSourceNs = sorted([i["namespace"] for i in app["namespaceScopedResources"]])
         if sortedMappingSourceNs != sortedAppSourceNs:
-            print(
+            raise SystemExit(
                 "Error: the source namespaces provided by --multiNsMapping do not match the "
                 + f"namespaces in the source app:\nsourceApp:\t{sortedAppSourceNs}"
                 + f"\nmultiNsMapping:\t{sortedMappingSourceNs}"
             )
-            sys.exit(1)
         # Generate the return mapping list and return it
         returnList = []
         for mapping in mappingList:
@@ -186,8 +182,7 @@ def createNamespaceMapping(app, singleNs, multiNsMapping):
             )
         return returnList
     else:
-        print("Unknown Error")
-        sys.exit(1)
+        raise SystemExit("Unknown Error")
 
 
 def createNamespaceList(namespaceArguments):
@@ -199,12 +194,11 @@ def createNamespaceList(namespaceArguments):
         if len(mapping) == 2:
             returnList[-1]["labelSelectors"] = [mapping[1]]
         elif len(mapping) > 2:
-            print(
+            raise SystemExit(
                 "Error: --additionalNamespace should have at most two arguments per flag:\n"
                 + "  -a namespace1\n  -a namespace1 app=appname\n"
                 + "  -a namespace1 -a namespace2 app=app2name"
             )
-            sys.exit(1)
     return returnList
 
 
@@ -227,18 +221,16 @@ def createCsrList(CSRs, apiResourcesDict):
                 if len(csr) == 2:
                     returnList[-1]["labelSelectors"] = [csr[1]]
                 elif len(csr) > 2:
-                    print(
+                    raise SystemExit(
                         "Error: --clusterScopedResource should have at most two arguments per "
                         + "flag:\n  -a csr-kind1\n  -a csr-kind1 app=appname\n"
                         + "  -a csr-kind1 -a csr-kind2 app=app2name"
                     )
-                    sys.exit(1)
     if len(returnList) == 0:
-        print(
+        raise SystemExit(
             "Error: matching clusterScopedResource kind not found, please ensure the kind "
             + "is correct via 'list apiresources'"
         )
-        sys.exit(1)
     return returnList
 
 
@@ -335,11 +327,9 @@ def stsPatch(patch, stsName):
         # were used
         ret = os.system(f'kubectl patch statefulset.apps/{stsName} -p "$(cat {tmp.name})"')
     except OSError as e:
-        print(f"Exception: {e}")
-        sys.exit(11)
+        raise SystemExit(f"Exception: {e}")
     if ret:
-        print(f"os.system exited with RC: {ret}")
-        sys.exit(12)
+        raise SystemExit(f"os.system exited with RC: {ret}")
     tmp.close()
     try:
         os.system(
@@ -347,11 +337,9 @@ def stsPatch(patch, stsName):
             f"sleep 10 && kubectl scale sts {stsName} --replicas=1"
         )
     except OSError as e:
-        print(f"Exception: {e}")
-        sys.exit(13)
+        raise SystemExit(f"Exception: {e}")
     if ret:
-        print(f"os.system exited with RC: {ret}")
-        sys.exit(14)
+        raise SystemExit(f"os.system exited with RC: {ret}")
 
 
 def isRFC1123(string):
@@ -361,18 +349,18 @@ def isRFC1123(string):
     if regex.match(string) is not None and len(string) < 64:
         return string
     else:
-        print(
+        raise SystemExit(
             f"Error: '{string}' must consist of lower case alphanumeric characters or '-', must "
             + "start and end with an alphanumeric character, and must be at most 63 characters "
             + "(for example 'my-name' or '123-abc')."
         )
-        sys.exit(15)
 
 
 def dupeKeyError(key):
     """Print an error message if duplicate keys are used"""
-    print(f"Error: '{key}' should not be specified multiple times within a single --filterSet arg")
-    sys.exit(1)
+    raise SystemExit(
+        f"Error: '{key}' should not be specified multiple times within a single --filterSet arg"
+    )
 
 
 def createSetDict(setDict, filterStr, assets):
@@ -401,19 +389,17 @@ def createSetDict(setDict, filterStr, assets):
         elif "kind" in key:
             setDict["kind"] = val if not setDict.get("kind") else dupeKeyError("kind")
         else:
-            print(
+            raise SystemExit(
                 f"Error: '{key}' not one of ['namespace', 'name', 'label', 'group', 'version', "
                 "'kind']"
             )
-            sys.exit(1)
     # Validate the inputs are valid assets for this app
     for key in ["group", "version", "kind"]:
         if setDict.get(key) and setDict[key] not in [a["GVK"][key] for a in assets["items"]]:
-            print(
+            raise SystemExit(
                 f"Error: '{setDict[key]}' is not a valid '{key}' for this application, please run "
                 f"'list assets {assets['metadata']['appID']}' to view possible '{key}' choices"
             )
-            sys.exit(1)
     # Validate the inputs are valid GVK combinations
     for key1 in ["group", "version", "kind"]:
         for key2 in ["group", "version", "kind"]:
@@ -423,12 +409,11 @@ def createSetDict(setDict, filterStr, assets):
                 if setDict[key1] not in [
                     a["GVK"][key1] for a in assets["items"] if a["GVK"][key2] == setDict[key2]
                 ]:
-                    print(
+                    raise SystemExit(
                         f"Error: '{key1}={setDict[key1]}' does not match with "
                         f"'{key2}={setDict[key2]}', please run 'list assets "
                         f"{assets['metadata']['appID']}' to view valid GVK combinations"
                     )
-                    sys.exit(1)
 
 
 def createFilterSet(selection, filters, assets):

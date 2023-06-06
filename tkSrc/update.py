@@ -17,14 +17,13 @@
 
 import base64
 import json
-import sys
 import yaml
 
 
 import astraSDK
 
 
-def exec(args, parser, ard):
+def main(args, parser, ard):
     if args.objectType == "bucket":
         # Validate that both credentialID and accessKey/accessSecret were not specified
         if args.credentialID is not None and (
@@ -59,15 +58,13 @@ def exec(args, parser, ard):
             if crc:
                 args.credentialID = crc["id"]
             else:
-                print("astraSDK.credentials.createCredential() failed")
-                sys.exit(1)
+                raise SystemExit("astraSDK.credentials.createCredential() failed")
         # Call updateBucket class
         rc = astraSDK.buckets.updateBucket(quiet=args.quiet, verbose=args.verbose).main(
             args.bucketID, credentialID=args.credentialID
         )
         if rc is False:
-            print("astraSDK.buckets.updateBucket() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.buckets.updateBucket() failed")
     elif args.objectType == "cloud":
         if args.credentialPath:
             with open(args.credentialPath, encoding="utf8") as f:
@@ -91,8 +88,7 @@ def exec(args, parser, ard):
             if rc:
                 args.credentialID = rc["id"]
             else:
-                print("astraSDK.credentials.createCredential() failed")
-                sys.exit(1)
+                raise SystemExit("astraSDK.credentials.createCredential() failed")
         # Next update the cloud
         rc = astraSDK.clouds.updateCloud(quiet=args.quiet, verbose=args.verbose).main(
             args.cloudID,
@@ -100,9 +96,7 @@ def exec(args, parser, ard):
             defaultBucketID=args.defaultBucketID,
         )
         if rc is False:
-            print(rc.error)
-            print("astraSDK.clouds.updateCloud() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.clouds.updateCloud() failed")
     elif args.objectType == "cluster":
         # Get the cluster information based on the clusterID input
         if ard.needsattr("clusters"):
@@ -124,8 +118,7 @@ def exec(args, parser, ard):
                 keyStore={"base64": encodedStr},
             )
             if rc is False:
-                print("astraSDK.credentials.updateCredential() failed")
-                sys.exit(1)
+                raise SystemExit("astraSDK.credentials.updateCredential() failed")
     elif args.objectType == "replication":
         # Gather replication data
         if ard.needsattr("replications"):
@@ -206,8 +199,7 @@ def exec(args, parser, ard):
         if rc:
             print(f"Replication {args.operation} initiated")
         else:
-            print("astraSDK.replications.updateReplicationpolicy() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.replications.updateReplicationpolicy() failed")
     elif args.objectType == "script":
         with open(args.filePath, encoding="utf8") as f:
             encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
@@ -215,4 +207,4 @@ def exec(args, parser, ard):
             args.scriptID, source=encodedStr
         )
         if rc is False:
-            print("astraSDK.scripts.updateScript() failed")
+            raise SystemExit("astraSDK.scripts.updateScript() failed")

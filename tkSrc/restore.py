@@ -22,7 +22,7 @@ import astraSDK
 import tkSrc
 
 
-def exec(args, parser):
+def main(args, parser):
     if (args.filterSelection and not args.filterSet) or (
         args.filterSet and not args.filterSelection
     ):
@@ -56,9 +56,7 @@ def exec(args, parser):
                 print("Success!")
                 break
             elif state == "failed":
-                print("Failed!")
-                sys.exit(2)
+                raise SystemExit(f"Restore of app {args.appID} failed!")
             time.sleep(args.pollTimer)
     else:
-        print("Submitting restore job failed.")
-        sys.exit(3)
+        raise SystemExit("Submitting restore job failed.")

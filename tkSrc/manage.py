@@ -17,13 +17,12 @@
 
 import base64
 import json
-import sys
 
 import astraSDK
 import tkSrc
 
 
-def exec(args, parser):
+def main(args, parser):
     if args.objectType == "app":
         if args.additionalNamespace:
             args.additionalNamespace = tkSrc.helpers.createNamespaceList(args.additionalNamespace)
@@ -48,8 +47,7 @@ def exec(args, parser):
             clusterScopedResources=args.clusterScopedResource,
         )
         if rc is False:
-            print("astraSDK.apps.manageApp() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.apps.manageApp() failed")
     elif args.objectType == "bucket":
         # Validate that both credentialID and accessKey/accessSecret were not specified
         if args.credentialID is not None and (
@@ -66,7 +64,6 @@ def exec(args, parser):
                     "if a credentialID is not specified, both accessKey and "
                     + "accessSecret arguments must be provided."
                 )
-                sys.exit(1)
             encodedKey = base64.b64encode(args.accessKey.encode("utf-8")).decode("utf-8")
             encodedSecret = base64.b64encode(args.accessSecret.encode("utf-8")).decode("utf-8")
             crc = astraSDK.credentials.createCredential(
@@ -80,8 +77,7 @@ def exec(args, parser):
             if crc:
                 args.credentialID = crc["id"]
             else:
-                print("astraSDK.credentials.createCredential() failed")
-                sys.exit(1)
+                raise SystemExit("astraSDK.credentials.createCredential() failed")
         # Validate serverURL and storageAccount args depending upon provider type
         if args.serverURL is None and args.provider in [
             "aws",
@@ -106,15 +102,13 @@ def exec(args, parser):
             args.bucketName, args.credentialID, args.provider, bucketParameters
         )
         if rc is False:
-            print("astraSDK.buckets.manageBucket() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.buckets.manageBucket() failed")
     elif args.objectType == "cluster":
         rc = astraSDK.clusters.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
             args.clusterID, args.defaultStorageClassID
         )
         if rc is False:
-            print("astraSDK.clusters.manageCluster() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.clusters.manageCluster() failed")
     elif args.objectType == "cloud":
         credentialID = None
         # First create the credential
@@ -136,8 +130,7 @@ def exec(args, parser):
             if rc:
                 credentialID = rc["id"]
             else:
-                print("astraSDK.credentials.createCredential() failed")
-                sys.exit(1)
+                raise SystemExit("astraSDK.credentials.createCredential() failed")
         # Next manage the cloud
         rc = astraSDK.clouds.manageCloud(quiet=args.quiet, verbose=args.verbose).main(
             args.cloudName,
@@ -146,4 +139,4 @@ def exec(args, parser):
             defaultBucketID=args.defaultBucketID,
         )
         if rc is False:
-            print("astraSDK.clouds.manageCloud() failed")
+            raise SystemExit("astraSDK.clouds.manageCloud() failed")

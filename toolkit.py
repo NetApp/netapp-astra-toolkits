@@ -269,8 +269,9 @@ def main(argv=sys.argv):
                 elif argv[verbPosition + 1] == "replication" and len(argv) - verbPosition >= 3:
                     ard.replications = astraSDK.replications.getReplicationpolicies().main()
                     if not ard.replications:  # Gracefully handle ACS env
-                        print("Error: 'replication' commands are currently only supported in ACC.")
-                        sys.exit(1)
+                        raise SystemExit(
+                            "Error: 'replication' commands are currently only supported in ACC."
+                        )
                     acl.replications = ard.buildList("replications", "id")
                 elif argv[verbPosition + 1] == "snapshot" and len(argv) - verbPosition >= 3:
                     ard.apps = astraSDK.apps.getApps().main()
@@ -343,19 +344,19 @@ def main(argv=sys.argv):
                 elif argv[verbPosition + 1] == "replication":
                     ard.replications = astraSDK.replications.getReplicationpolicies().main()
                     if not ard.replications:  # Gracefully handle ACS env
-                        print("Error: 'replication' commands are currently only supported in ACC.")
-                        sys.exit(1)
+                        raise SystemExit(
+                            "Error: 'replication' commands are currently only supported in ACC."
+                        )
                     acl.replications = ard.buildList("replications", "id")
                 elif argv[verbPosition + 1] == "script":
                     ard.scripts = astraSDK.scripts.getScripts().main()
                     acl.scripts = ard.buildList("scripts", "id")
 
     else:
-        print(
+        raise SystemExit(
             f"{argv[0]}: error: please specify a subcommand. Run '{argv[0]} -h' for "
             "parser information."
         )
-        sys.exit(1)
 
     # Manually passing args into argparse via parse_args() shouldn't include the function name
     argv = argv[1:] if "toolkit" in argv[0] else argv
@@ -364,23 +365,23 @@ def main(argv=sys.argv):
     args = parser.parse_args(args=argv)
 
     if args.subcommand == "deploy":
-        tkSrc.deploy.exec(args)
-    elif args.subcommand == "list" or args.subcommand == "get":
-        tkSrc.list.exec(args)
-    elif args.subcommand == "create":
-        tkSrc.create.exec(args, parser, ard)
-    elif args.subcommand == "manage" or args.subcommand == "define":
-        tkSrc.manage.exec(args, parser)
-    elif args.subcommand == "destroy":
-        tkSrc.destroy.exec(args, parser, ard)
-    elif args.subcommand == "unmanage":
-        tkSrc.unmanage.exec(args, ard)
-    elif args.subcommand == "restore":
-        tkSrc.restore.exec(args, parser)
+        tkSrc.deploy.main(args)
     elif args.subcommand == "clone":
-        tkSrc.clone.exec(args, parser, ard)
+        tkSrc.clone.main(args, parser, ard)
+    elif args.subcommand == "restore":
+        tkSrc.restore.main(args, parser)
+    elif args.subcommand == "list" or args.subcommand == "get":
+        tkSrc.list.main(args)
+    elif args.subcommand == "create":
+        tkSrc.create.main(args, parser, ard)
+    elif args.subcommand == "manage" or args.subcommand == "define":
+        tkSrc.manage.main(args, parser)
+    elif args.subcommand == "destroy":
+        tkSrc.destroy.main(args, parser, ard)
+    elif args.subcommand == "unmanage":
+        tkSrc.unmanage.main(args, ard)
     elif args.subcommand == "update":
-        tkSrc.update.exec(args, parser, ard)
+        tkSrc.update.main(args, parser, ard)
 
 
 if __name__ == "__main__":

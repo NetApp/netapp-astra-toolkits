@@ -15,24 +15,20 @@
    limitations under the License.
 """
 
-import sys
-
 import astraSDK
 
 
-def exec(args, ard):
+def main(args, ard):
     if args.objectType == "app":
         rc = astraSDK.apps.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(args.appID)
         if rc is False:
-            print("astraSDK.apps.unmanageApp() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.apps.unmanageApp() failed")
     elif args.objectType == "bucket":
         rc = astraSDK.buckets.unmanageBucket(quiet=args.quiet, verbose=args.verbose).main(
             args.bucketID
         )
         if rc is False:
-            print("astraSDK.buckets.unmanageBucket() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.buckets.unmanageBucket() failed")
     elif args.objectType == "cluster":
         rc = astraSDK.clusters.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
             args.clusterID
@@ -56,14 +52,11 @@ def exec(args, ard):
                             ).main(cluster.get("credentialID")):
                                 print(f"Credential deleted")
                             else:
-                                print("astraSDK.credentials.destroyCredential() failed")
-                                sys.exit(1)
+                                raise SystemExit("astraSDK.credentials.destroyCredential() failed")
                         else:
-                            print("astraSDK.clusters.deleteCluster() failed")
-                            sys.exit(1)
+                            raise SystemExit("astraSDK.clusters.deleteCluster() failed")
         else:
-            print("astraSDK.clusters.unmanageCluster() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.clusters.unmanageCluster() failed")
     elif args.objectType == "cloud":
         if ard.needsattr("cloud"):
             ard.clouds = astraSDK.clouds.getClouds().main()
@@ -80,8 +73,6 @@ def exec(args, ard):
                         ).main(cloud.get("credentialID")):
                             print(f"Credential deleted")
                         else:
-                            print("astraSDK.credentials.destroyCredential() failed")
-                            sys.exit(1)
+                            raise SystemExit("astraSDK.credentials.destroyCredential() failed")
         else:
-            print("astraSDK.clusters.unmanageCloud() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.clusters.unmanageCloud() failed")

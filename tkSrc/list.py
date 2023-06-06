@@ -16,56 +16,49 @@
 """
 
 import base64
-import sys
 
 import astraSDK
 
-def exec(args):
+
+def main(args):
     if args.objectType == "apiresources":
         rc = astraSDK.apiresources.getApiResources(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(cluster=args.cluster)
         if rc is False:
-            print("astraSDK.apiresources.getApiResources() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.apiresources.getApiResources() failed")
     elif args.objectType == "apps":
-        rc = astraSDK.apps.getApps(
-            quiet=args.quiet, verbose=args.verbose, output=args.output
-        ).main(
+        rc = astraSDK.apps.getApps(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
             namespace=args.namespace,
             nameFilter=args.nameFilter,
             cluster=args.cluster,
         )
         if rc is False:
-            print("astraSDK.apps.getApps() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.apps.getApps() failed")
     elif args.objectType == "assets":
         rc = astraSDK.apps.getAppAssets(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(args.appID)
         if rc is False:
-            print("astraSDK.apps.getAppAssets() failed")
+            raise SystemExit("astraSDK.apps.getAppAssets() failed")
     elif args.objectType == "backups":
         rc = astraSDK.backups.getBackups(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(appFilter=args.app)
         if rc is False:
-            print("astraSDK.backups.getBackups() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.backups.getBackups() failed")
     elif args.objectType == "buckets":
         rc = astraSDK.buckets.getBuckets(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(nameFilter=args.nameFilter, provider=args.provider)
         if rc is False:
-            print("astraSDK.buckets.getBuckets() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.buckets.getBuckets() failed")
     elif args.objectType == "clouds":
         rc = astraSDK.clouds.getClouds(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(cloudType=args.cloudType)
         if rc is False:
-            print("astraSDK.clouds.getClouds() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.clouds.getClouds() failed")
     elif args.objectType == "clusters":
         rc = astraSDK.clusters.getClusters(
             quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -75,36 +68,31 @@ def exec(args):
             nameFilter=args.nameFilter,
         )
         if rc is False:
-            print("astraSDK.clusters.getClusters() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.clusters.getClusters() failed")
     elif args.objectType == "credentials":
         rc = astraSDK.credentials.getCredentials(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(kubeconfigOnly=args.kubeconfigOnly)
         if rc is False:
-            print("astraSDK.credentials.getCredentials() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.credentials.getCredentials() failed")
     elif args.objectType == "hooks":
         rc = astraSDK.hooks.getHooks(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(appFilter=args.app)
         if rc is False:
-            print("astraSDK.hooks.getHooks() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.hooks.getHooks() failed")
     elif args.objectType == "protections":
         rc = astraSDK.protections.getProtectionpolicies(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(appFilter=args.app)
         if rc is False:
-            print("astraSDK.protections.getProtectionpolicies() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.protections.getProtectionpolicies() failed")
     elif args.objectType == "replications":
         rc = astraSDK.replications.getReplicationpolicies(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(appFilter=args.app)
         if rc is False:
-            print("astraSDK.replications.getReplicationpolicies() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.replications.getReplicationpolicies() failed")
     elif args.objectType == "namespaces":
         rc = astraSDK.namespaces.getNamespaces(
             quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -116,8 +104,7 @@ def exec(args):
             minuteFilter=args.minutes,
         )
         if rc is False:
-            print("astraSDK.namespaces.getNamespaces() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.namespaces.getNamespaces() failed")
     elif args.objectType == "notifications":
         rc = astraSDK.notifications.getNotifications(
             quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -128,15 +115,13 @@ def exec(args):
             severityFilter=args.severity,
         )
         if rc is False:
-            print("astraSDK.namespaces.getNotifications() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.namespaces.getNotifications() failed")
     elif args.objectType == "rolebindings":
         rc = astraSDK.rolebindings.getRolebindings(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(idFilter=args.idFilter)
         if rc is False:
-            print("astraSDK.rolebindings.getRolebindings() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.rolebindings.getRolebindings() failed")
     elif args.objectType == "scripts":
         if args.getScriptSource:
             args.quiet = True
@@ -145,8 +130,7 @@ def exec(args):
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(nameFilter=args.nameFilter)
         if rc is False:
-            print("astraSDK.scripts.getScripts() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.scripts.getScripts() failed")
         else:
             if args.getScriptSource:
                 if len(rc["items"]) == 0:
@@ -161,19 +145,16 @@ def exec(args):
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(appFilter=args.app)
         if rc is False:
-            print("astraSDK.snapshots.getSnaps() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.snapshots.getSnaps() failed")
     elif args.objectType == "storageclasses":
         rc = astraSDK.storageclasses.getStorageClasses(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(cloudType=args.cloudType)
         if rc is False:
-            print("astraSDK.storageclasses.getStorageClasses() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.storageclasses.getStorageClasses() failed")
     elif args.objectType == "users":
         rc = astraSDK.users.getUsers(
             quiet=args.quiet, verbose=args.verbose, output=args.output
         ).main(nameFilter=args.nameFilter)
         if rc is False:
-            print("astraSDK.users.getUsers() failed")
-            sys.exit(1)
+            raise SystemExit("astraSDK.users.getUsers() failed")

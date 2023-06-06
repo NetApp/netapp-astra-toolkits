@@ -20,7 +20,7 @@ import sys
 import astraSDK
 
 
-def exec(args, parser, ard):
+def main(args, parser, ard):
     if args.objectType == "backup":
         rc = astraSDK.backups.destroyBackup(quiet=args.quiet, verbose=args.verbose).main(
             args.appID, args.backupID
@@ -28,7 +28,7 @@ def exec(args, parser, ard):
         if rc:
             print(f"Backup {args.backupID} destroyed")
         else:
-            print(f"Failed destroying backup: {args.backupID}")
+            raise SystemExit(f"Failed destroying backup: {args.backupID}")
     elif args.objectType == "credential":
         rc = astraSDK.credentials.destroyCredential(quiet=args.quiet, verbose=args.verbose).main(
             args.credentialID
@@ -36,7 +36,7 @@ def exec(args, parser, ard):
         if rc:
             print(f"Credential {args.credentialID} destroyed")
         else:
-            print(f"Failed destroying credential: {args.credentialID}")
+            raise SystemExit(f"Failed destroying credential: {args.credentialID}")
     elif args.objectType == "hook":
         rc = astraSDK.hooks.destroyHook(quiet=args.quiet, verbose=args.verbose).main(
             args.appID, args.hookID
@@ -44,7 +44,7 @@ def exec(args, parser, ard):
         if rc:
             print(f"Hook {args.hookID} destroyed")
         else:
-            print(f"Failed destroying hook: {args.hookID}")
+            raise SystemExit(f"Failed destroying hook: {args.hookID}")
     elif args.objectType == "protection":
         rc = astraSDK.protections.destroyProtectiontionpolicy(
             quiet=args.quiet, verbose=args.verbose
@@ -52,7 +52,7 @@ def exec(args, parser, ard):
         if rc:
             print(f"Protection policy {args.protectionID} destroyed")
         else:
-            print(f"Failed destroying protection policy: {args.protectionID}")
+            raise SystemExit(f"Failed destroying protection policy: {args.protectionID}")
     elif args.objectType == "replication":
         if ard.needsattr("replications"):
             ard.replications = astraSDK.replications.getReplicationpolicies().main()
@@ -75,18 +75,15 @@ def exec(args, parser, ard):
                                 quiet=args.quiet, verbose=args.verbose
                             ).main(protection["appID"], protection["id"]):
                                 print(
-                                    "Underlying replication schedule "
-                                    + f"{protection['id']} destroyed"
+                                    f"Underlying replication schedule {protection['id']} destroyed"
                                 )
                             else:
-                                print(
+                                raise SystemExit(
                                     "Failed destroying underlying replication "
                                     + f"schedule: {protection['id']}"
                                 )
-                                sys.exit(1)
         else:
-            print(f"Failed destroying replication policy: {args.replicationID}")
-            sys.exit(1)
+            raise SystemExit(f"Failed destroying replication policy: {args.replicationID}")
     elif args.objectType == "script":
         rc = astraSDK.scripts.destroyScript(quiet=args.quiet, verbose=args.verbose).main(
             args.scriptID
@@ -94,7 +91,7 @@ def exec(args, parser, ard):
         if rc:
             print(f"Script {args.scriptID} destroyed")
         else:
-            print(f"Failed destroying script: {args.scriptID}")
+            raise SystemExit(f"Failed destroying script: {args.scriptID}")
     elif args.objectType == "snapshot":
         rc = astraSDK.snapshots.destroySnapshot(quiet=args.quiet, verbose=args.verbose).main(
             args.appID, args.snapshotID
@@ -102,7 +99,7 @@ def exec(args, parser, ard):
         if rc:
             print(f"Snapshot {args.snapshotID} destroyed")
         else:
-            print(f"Failed destroying snapshot: {args.snapshotID}")
+            raise SystemExit(f"Failed destroying snapshot: {args.snapshotID}")
     elif args.objectType == "user":
         userDestroyed = False
         roleBindings = astraSDK.rolebindings.getRolebindings().main()
@@ -115,8 +112,9 @@ def exec(args, parser, ard):
                     print(f"User {args.userID} / roleBinding {rb['id']} destroyed")
                     userDestroyed = True
                 else:
-                    print(f"Failed destroying user {args.userID} with roleBinding {rb['id']}")
-                    sys.exit(1)
+                    raise SystemExit(
+                        f"Failed destroying user {args.userID} with roleBinding {rb['id']}"
+                    )
         if not userDestroyed:
             # If we reached this point, it's due to plaidMode == True and bad userID
             parser.error(f"userID {args.userID} not found")
