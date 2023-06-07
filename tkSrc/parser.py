@@ -184,6 +184,10 @@ class ToolkitParser:
             "snapshots",
             help="list snapshots",
         )
+        self.subparserListStorageBackends = self.subparserList.add_parser(
+            "storagebackends",
+            help="list storagebackends",
+        )
         self.subparserListStorageClasses = self.subparserList.add_parser(
             "storageclasses",
             help="list storageclasses",

@@ -146,6 +146,12 @@ def main(args):
         ).main(appFilter=args.app)
         if rc is False:
             raise SystemExit("astraSDK.snapshots.getSnaps() failed")
+    elif args.objectType == "storagebackends":
+        rc = astraSDK.storagebackends.getStorageBackends(
+            quiet=args.quiet, verbose=args.verbose, output=args.output
+        ).main()
+        if rc is False:
+            raise SystemExit("astraSDK.backups.getBackends() failed")
     elif args.objectType == "storageclasses":
         rc = astraSDK.storageclasses.getStorageClasses(
             quiet=args.quiet, verbose=args.verbose, output=args.output

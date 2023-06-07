@@ -61,8 +61,8 @@ class getStorageBackends(SDKCommon):
                 dataReturn = yaml.dump(backends)
             elif self.output == "table":
                 dataReturn = self.basicTable(
-                    ["backendID", "backendName"],
-                    ["id", "backendName"],
+                    ["backendName", "backendID", "backendType", "healthState", "managedState"],
+                    ["backendName", "id", "backendType", "healthState", "managedState"],
                     backends,
                 )
             if not self.quiet:

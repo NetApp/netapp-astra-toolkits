@@ -15,5 +15,6 @@ from . import replications
 from . import rolebindings
 from . import scripts
 from . import snapshots
+from . import storagebackends
 from . import storageclasses
 from . import users

@@ -18,18 +18,21 @@ The `list` command shows various resources known to Astra.
 * [Rolebindings](#rolebindings)
 * [Scripts](#scripts)
 * [Snapshots](#snapshots)
+* [Storagebackends](#storagebackends)
 * [Storageclasses](#storageclasses)
 * [Users](#users)
 
 ```text
 $ ./toolkit.py list -h
-usage: toolkit.py list [-h] {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,notifications,protections,replications,rolebindings,scripts,snapshots,storageclasses,users} ...
+usage: actoolkit list [-h]
+                      {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,notifications,protections,replications,rolebindings,scripts,snapshots,storagebackends,storageclasses,users}
+                      ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,notifications,protections,replications,rolebindings,scripts,snapshots,storageclasses,users}
+  {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,notifications,protections,replications,rolebindings,scripts,snapshots,storagebackends,storageclasses,users}
     apiresources        list api resources
     apps                list apps
     assets              list app assets
@@ -46,6 +49,7 @@ objectType:
     rolebindings        list role bindings
     scripts             list scripts (hookSources)
     snapshots           list snapshots
+    storagebackends     list storagebackends
     storageclasses      list storageclasses
     users               list users
 ```
@@ -871,6 +875,25 @@ $ ./toolkit.py list snapshots --app wordpress-east
 +--------------------------------------+-----------------------------------+--------------------------------------+---------------+
 | 8f462cea-a166-438d-85b1-8aa5cfb0ad9f | wordpress-snapshot-20220520010028 | b586d51a-28b3-4dd2-aecf-057191c9fc77 | completed     |
 +--------------------------------------+-----------------------------------+--------------------------------------+---------------+
+```
+
+## Storagebackends
+
+`list storagebackends` lists the storage backends of the Astra Control environment.
+
+```text
+./toolkit.py list storagebackends
+```
+
+Sample output:
+
+```text
+$ ./toolkit.py list storagebackends
++---------------+--------------------------------------+---------------+---------------+----------------+
+| backendName   | backendID                            | backendType   | healthState   | managedState   |
++===============+======================================+===============+===============+================+
+| astra-ots-02  | 234b7b22-53e4-4ead-a683-cfd7b4b07b1c | ontap         | normal        | managed        |
++---------------+--------------------------------------+---------------+---------------+----------------+
 ```
 
 ## Storageclasses
