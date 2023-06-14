@@ -7,7 +7,7 @@ After cloning an application, it is recommended to [create a protection policy](
 The overall command usage is:
 
 ```text
-./toolkit.py clone [<optionalBackgroundArg>] --cloneAppName <cloneAppName> \
+actoolkit clone [<optionalBackgroundArg>] --cloneAppName <cloneAppName> \
     [--cloneNamespace <cloneNamespace>] --clusterID <destClusterID> \
     (--backupID <backupID> | --snapshotID <snapshotID> | --sourceAppID <sourceAppID>) \
     [--pollTimer <seconds>] [--filterSelection <include|exclude>] \
@@ -37,7 +37,7 @@ The overall command usage is:
 When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the clone operation every 5 seconds (which can be overridden by the `--pollTimer`/`-t` argument), and reports back once complete.
 
 ```text
-$ ./toolkit.py clone --cloneAppName myclonedapp --clusterID af0aecb9-9b18-473f-b417-54fb38e1e28d \
+$ actoolkit clone --cloneAppName myclonedapp --clusterID af0aecb9-9b18-473f-b417-54fb38e1e28d \
     --snapshotID 8e4fafc8-9175-4f47-94b9-181ea435f60c
 Submitting clone succeeded.
 Waiting for clone to become available..............................................................\
@@ -47,11 +47,11 @@ Waiting for clone to become available...........................................
 When the optional `--background`/`-b` argument **is** specified, the command simply initiates the clone task, and leaves it to the user to validate the clone operation completion.
 
 ```text
-$ ./toolkit.py clone -b --cloneAppName bgcloneapp --clusterID b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d \
+$ actoolkit clone -b --cloneAppName bgcloneapp --clusterID b81bdd8f-c2c7-40eb-a602-4af06d3c6e4d \
     --sourceAppID f24ac04c-e476-4089-9475-686848457587
 Submitting clone succeeded.
 Background clone flag selected, run 'list apps' to get status.
-$ ./toolkit.py list apps
+$ actoolkit list apps
 +------------+--------------------------------------+--------------------+-----------+--------------+
 | appName    | appID                                | clusterName        | namespace | state        |
 +============+======================================+====================+===========+==============+
@@ -66,7 +66,7 @@ $ ./toolkit.py list apps
 The `clone` argument also features an interactive wizard which promts the user for any arguments not specified in the original command (outside of one of `--backupID`, `--snapshotID`, or `--sourceAppID` being required):
 
 ```text
-$ ./toolkit.py clone -b --backupID e4436f2f-a973-4c5e-b235-f325c54926db
+$ actoolkit clone -b --backupID e4436f2f-a973-4c5e-b235-f325c54926db
 App name for the clone: prompt-clone
 Select destination cluster for the clone
 Index   ClusterID                               clusterName         clusterPlatform
@@ -75,7 +75,7 @@ Index   ClusterID                               clusterName         clusterPlatf
 Select a line (1-2): 1
 Submitting clone succeeded.
 Background clone flag selected, run 'list apps' to get status.
-$ ./toolkit.py list apps
+$ actoolkit list apps
 +--------------+--------------------------------------+--------------------+-----------+--------------+
 | appName      | appID                                | clusterName        | namespace | state        |
 +==============+======================================+====================+===========+==============+
@@ -94,12 +94,12 @@ $ ./toolkit.py list apps
 Per the examples above, omitting `--cloneNamespace` results in the clone being created in a namespace that matches the `--cloneAppName` value.  If a different namespace is desired, specify that value with `--cloneNamespace`:
 
 ```text
-$ ./toolkit.py clone -b --cloneAppName wordpress-clone --cloneNamespace wordpress-dr \
+$ actoolkit clone -b --cloneAppName wordpress-clone --cloneNamespace wordpress-dr \
     --clusterID 47dfb3d2-1b53-45e7-b26d-c0e51af5de5a \
     --sourceAppID 090019ce-6e54-4635-85d6-4727ee1fe125
 Submitting clone succeeded.
 Background clone flag selected, run 'list apps' to get status.
-$ ./toolkit.py list apps
+$ actoolkit list apps
 +-----------------+--------------------------------------+---------------+----------------------+---------+
 | appName         | appID                                | clusterName   | namespace            | state   |
 +=================+======================================+===============+======================+=========+
@@ -116,13 +116,13 @@ For multi-namespace apps, the `--multiNsMapping` argument **must** be provided. 
 Either separating the arguments with a space, or specifying multiple flags are both supported:
 
 ```text
-$ ./toolkit.py clone -b --cloneAppName example-clone \
+$ actoolkit clone -b --cloneAppName example-clone \
     --clusterID 47dfb3d2-1b53-45e7-b26d-c0e51af5de5a \
     --sourceAppID b94f474d-da0e-4f7e-b52b-9271fae78e0c \
     --multiNsMapping sourcens1=destns1 sourcens2=destns2
 Submitting clone succeeded.
 Background clone flag selected, run 'list apps' to get status.
-$ ./toolkit.py list apps
+$ actoolkit list apps
 +-----------------+--------------------------------------+---------------+----------------------+---------+
 | appName         | appID                                | clusterName   | namespace            | state   |
 +=================+======================================+===============+======================+=========+
@@ -133,14 +133,14 @@ $ ./toolkit.py list apps
 ```
 
 ```text
-$ ./toolkit.py clone -b --cloneAppName example-clone \
+$ actoolkit clone -b --cloneAppName example-clone \
     --clusterID 47dfb3d2-1b53-45e7-b26d-c0e51af5de5a \
     --sourceAppID b94f474d-da0e-4f7e-b52b-9271fae78e0c \
     --multiNsMapping sourcens1=destns1 --multiNsMapping sourcens2=destns2
 Submitting clone succeeded.
 Background clone flag selected, run 'list apps' to get status.
-$ ./toolkit.py list apps
-./toolkit.py list apps
+$ actoolkit list apps
+actoolkit list apps
 +-----------------+--------------------------------------+---------------+----------------------+---------+
 | appName         | appID                                | clusterName   | namespace            | state   |
 +=================+======================================+===============+======================+=========+
@@ -168,7 +168,7 @@ Within a single filter set, if specifying multiple `key=value` pairs (which are 
 To clone only the persistent volumes of an application:
 
 ```text
-$ ./toolkit.py clone -b --cloneAppName wordpress-clone \
+$ actoolkit clone -b --cloneAppName wordpress-clone \
     --snapshotID 294cc14e-2d39-4286-9fb9-f325963e3c53 --clusterID c5a86c5b-9dc8-4709-8897-61c20fdb8d8c \
     --filterSelection include --filterSet version=v1,kind=PersistentVolumeClaim
 {"type": "application/astra-app", "version": "2.2", "id": "3d60a9e5-d235-42ba-a7e6-147e4b3ec6c9", "name": "wordpress-clone", "namespaceScopedResources": [{"namespace": "wordpress-clone", "labelSelectors": []}], "state": "provisioning", "lastResourceCollectionTimestamp": "2023-04-25T19:49:24Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaces": [], "namespaceMapping": [{"source": "wordpress", "destination": "wordpress-clone"}], "clusterName": "gke-uscentral1-cluster", "clusterID": "c5a86c5b-9dc8-4709-8897-61c20fdb8d8c", "clusterType": "gke", "sourceClusterID": "c5a86c5b-9dc8-4709-8897-61c20fdb8d8c", "backupID": "146618ae-15f0-4474-8c0c-dc97b41b0fa1", "snapshotID": "294cc14e-2d39-4286-9fb9-f325963e3c53", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/appType", "value": "clone"}], "creationTimestamp": "2023-04-25T19:49:24Z", "modificationTimestamp": "2023-04-25T19:49:24Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}, "restoreFilter": {"resourceSelectionCriteria": "include", "GVKN": [{"kind": "PersistentVolumeClaim", "version": "v1"}]}, "links": [{"rel": "canonical", "href": "/accounts/fc018f3d-e807-4fa7-98d5-fbe43be9aaa0/topology/v2/managedClusters/c5a86c5b-9dc8-4709-8897-61c20fdb8d8c/apps/3d60a9e5-d235-42ba-a7e6-147e4b3ec6c9"}, {"rel": "collection", "href": "/accounts/fc018f3d-e807-4fa7-98d5-fbe43be9aaa0/topology/v1/clouds/0ec2e027-80bc-426a-b844-692de243b29e/clusters/c5a86c5b-9dc8-4709-8897-61c20fdb8d8c/namespaces/00000000-0000-0000-0000-000000000000/apps"}]}
@@ -179,7 +179,7 @@ Background clone flag selected, run 'list apps' to get status.
 To clone the entire application other than the secrets (perhaps an external secret manager is used):
 
 ```text
-$ ./toolkit.py clone --cloneAppName cassandra-clone \
+$ actoolkit clone --cloneAppName cassandra-clone \
     --snapshotID d4b3be8c-9b28-4cc3-ad0b-e58a67e132eb --clusterID c5a86c5b-9dc8-4709-8897-61c20fdb8d8c \
     --filterSelection exclude --filterSet version=v1 kind=Secret
 {"type": "application/astra-app", "version": "2.2", "id": "a6bb7e82-1275-4b79-a18f-1525ae2d3555", "name": "cassandra-clone", "namespaceScopedResources": [{"namespace": "cassandra-clone", "labelSelectors": []}], "state": "provisioning", "lastResourceCollectionTimestamp": "2023-04-25T21:11:23Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaces": [], "namespaceMapping": [{"source": "cassandra", "destination": "cassandra-clone"}], "clusterName": "gke-uscentral1-cluster", "clusterID": "c5a86c5b-9dc8-4709-8897-61c20fdb8d8c", "clusterType": "gke", "sourceClusterID": "c5a86c5b-9dc8-4709-8897-61c20fdb8d8c", "backupID": "80a61a95-a446-42be-9aac-4b073f60b5a3", "snapshotID": "d4b3be8c-9b28-4cc3-ad0b-e58a67e132eb", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/appType", "value": "clone"}], "creationTimestamp": "2023-04-25T21:11:23Z", "modificationTimestamp": "2023-04-25T21:11:23Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}, "restoreFilter": {"resourceSelectionCriteria": "exclude", "GVKN": [{"kind": "Secret", "version": "v1"}]}, "links": [{"rel": "canonical", "href": "/accounts/fc018f3d-e807-4fa7-98d5-fbe43be9aaa0/topology/v2/managedClusters/c5a86c5b-9dc8-4709-8897-61c20fdb8d8c/apps/a6bb7e82-1275-4b79-a18f-1525ae2d3555"}, {"rel": "collection", "href": "/accounts/fc018f3d-e807-4fa7-98d5-fbe43be9aaa0/topology/v1/clouds/0ec2e027-80bc-426a-b844-692de243b29e/clusters/c5a86c5b-9dc8-4709-8897-61c20fdb8d8c/namespaces/00000000-0000-0000-0000-000000000000/apps"}]}
@@ -190,7 +190,7 @@ Waiting for clone to become available.....Cloning operation complete.
 To clone any `pod` which also has the label `app.kubernetes.io/name=wordpress` (logical AND due to using a single `--filterSet` argument):
 
 ```text
-$ ./toolkit.py clone --cloneAppName wordpress-l-and \
+$ actoolkit clone --cloneAppName wordpress-l-and \
     --backupID 42a8431e-2e41-47a0-9912-e34843a47720 --clusterID c5a86c5b-9dc8-4709-8897-61c20fdb8d8c \
     --filterSelection include --filterSet version=v1,kind=Pod,label=app.kubernetes.io/name=wordpress
 {"type": "application/astra-app", "version": "2.2", "id": "2060ae94-c006-461b-9a2c-a9e16534fed5", "name": "wordpress-l-and", "namespaceScopedResources": [{"namespace": "wordpress-l-and", "labelSelectors": []}], "state": "provisioning", "lastResourceCollectionTimestamp": "2023-04-26T13:25:14Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaces": [], "namespaceMapping": [{"source": "wordpress", "destination": "wordpress-l-and"}], "clusterName": "gke-uscentral1-cluster", "clusterID": "c5a86c5b-9dc8-4709-8897-61c20fdb8d8c", "clusterType": "gke", "sourceClusterID": "c5a86c5b-9dc8-4709-8897-61c20fdb8d8c", "backupID": "42a8431e-2e41-47a0-9912-e34843a47720", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/appType", "value": "clone"}], "creationTimestamp": "2023-04-26T13:25:13Z", "modificationTimestamp": "2023-04-26T13:25:14Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}, "restoreFilter": {"resourceSelectionCriteria": "include", "GVKN": [{"kind": "Pod", "version": "v1", "labelSelectors": ["app.kubernetes.io/name=wordpress"]}]}, "links": [{"rel": "canonical", "href": "/accounts/fc018f3d-e807-4fa7-98d5-fbe43be9aaa0/topology/v2/managedClusters/c5a86c5b-9dc8-4709-8897-61c20fdb8d8c/apps/2060ae94-c006-461b-9a2c-a9e16534fed5"}, {"rel": "collection", "href": "/accounts/fc018f3d-e807-4fa7-98d5-fbe43be9aaa0/topology/v1/clouds/0ec2e027-80bc-426a-b844-692de243b29e/clusters/c5a86c5b-9dc8-4709-8897-61c20fdb8d8c/namespaces/00000000-0000-0000-0000-000000000000/apps"}]}
@@ -201,7 +201,7 @@ Waiting for clone to become available...........Cloning operation complete.
 To clone all `pods`, and any resource which has the label `app.kubernetes.io/name=wordpress` (logical OR due to using two `--filterSet` arguments):
 
 ```text
-$ ./toolkit.py clone --cloneAppName wordpress-l-or \
+$ actoolkit clone --cloneAppName wordpress-l-or \
     --backupID 42a8431e-2e41-47a0-9912-e34843a47720 --clusterID c5a86c5b-9dc8-4709-8897-61c20fdb8d8c \
     --filterSelection include --filterSet version=v1 kind=Pod --filterSet label=app.kubernetes.io/name=wordpress
 {"type": "application/astra-app", "version": "2.2", "id": "ba6ce35c-58f3-4873-b24d-ff656b507bd9", "name": "wordpress-l-or", "namespaceScopedResources": [{"namespace": "wordpress-l-or", "labelSelectors": []}], "state": "provisioning", "lastResourceCollectionTimestamp": "2023-04-26T13:39:50Z", "stateTransitions": [{"to": ["pending"]}, {"to": ["provisioning"]}, {"from": "pending", "to": ["discovering", "failed"]}, {"from": "discovering", "to": ["ready", "failed"]}, {"from": "ready", "to": ["discovering", "restoring", "unavailable", "failed"]}, {"from": "unavailable", "to": ["ready", "restoring"]}, {"from": "provisioning", "to": ["discovering", "failed"]}, {"from": "restoring", "to": ["discovering", "failed"]}], "stateDetails": [], "protectionState": "none", "protectionStateDetails": [], "namespaces": [], "namespaceMapping": [{"source": "wordpress", "destination": "wordpress-l-or"}], "clusterName": "gke-uscentral1-cluster", "clusterID": "c5a86c5b-9dc8-4709-8897-61c20fdb8d8c", "clusterType": "gke", "sourceClusterID": "c5a86c5b-9dc8-4709-8897-61c20fdb8d8c", "backupID": "42a8431e-2e41-47a0-9912-e34843a47720", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/appType", "value": "clone"}], "creationTimestamp": "2023-04-26T13:39:49Z", "modificationTimestamp": "2023-04-26T13:39:50Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}, "restoreFilter": {"resourceSelectionCriteria": "include", "GVKN": [{"kind": "Pod", "version": "v1"}, {"labelSelectors": ["app.kubernetes.io/name=wordpress"]}]}, "links": [{"rel": "canonical", "href": "/accounts/fc018f3d-e807-4fa7-98d5-fbe43be9aaa0/topology/v2/managedClusters/c5a86c5b-9dc8-4709-8897-61c20fdb8d8c/apps/ba6ce35c-58f3-4873-b24d-ff656b507bd9"}, {"rel": "collection", "href": "/accounts/fc018f3d-e807-4fa7-98d5-fbe43be9aaa0/topology/v1/clouds/0ec2e027-80bc-426a-b844-692de243b29e/clusters/c5a86c5b-9dc8-4709-8897-61c20fdb8d8c/namespaces/00000000-0000-0000-0000-000000000000/apps"}]}

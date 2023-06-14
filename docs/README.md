@@ -30,11 +30,11 @@ High level overview of the `astraSDK/` classes can be found in the following pag
 
 ## Toolkit Functions
 
-toolkit.py utilizes `argparse` to provide an interactive CLI.  To view the possible arguments, run `./toolkit.py -h`:
+actoolkit / toolkit.py utilizes `argparse` to provide an interactive CLI.  To view the possible arguments, run `actoolkit -h`:
 
 ```text
-$ ./toolkit.py -h
-usage: toolkit.py [-h] [-v] [-o {json,yaml,table}] [-q] [-f] {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage,update} ...
+$ actoolkit -h
+usage: actoolkit [-h] [-v] [-o {json,yaml,table}] [-q] [-f] {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage,update} ...
 
 positional arguments:
   {deploy,clone,restore,list,get,create,manage,define,destroy,unmanage,update}

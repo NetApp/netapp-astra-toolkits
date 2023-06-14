@@ -7,7 +7,7 @@ The `restore` argument allows you to perform an in-place restore of a [managed a
 The overall command usage is:
 
 ```text
-./toolkit.py restore [<optionalBackgroundArg>] <appID> \
+actoolkit restore [<optionalBackgroundArg>] <appID> \
     (--backupID <backupID> | --snapshotID <snapshotID>) \
     [--pollTimer <seconds>] [--filterSelection <include|exclude>] \
     [--filterSelection <key1=value1 key2=value2>] [--filterSelection <key3=value3>]
@@ -31,7 +31,7 @@ The overall command usage is:
 When the optional `--background`/`-b` argument is **not** specified, the command polls for the status of the restore operation every 5 seconds (which can be overridden by the `--pollTimer`/`-t` argument), and reports back once complete.
 
 ```text
-./toolkit.py restore a643b5dc-bfa0-4624-8bdd-5ad5325f20fd \
+actoolkit restore a643b5dc-bfa0-4624-8bdd-5ad5325f20fd \
     --snapshotID 136c0d8e-d4a7-4034-a846-021f0afc0b2b
 Restore job in progress.....................................Success!
 ```
@@ -39,11 +39,11 @@ Restore job in progress.....................................Success!
 When the optional `--background`/`-b` argument **is** specified, the command simply initiates the restore task, and leaves it to the user to validate the restore operation completion.
 
 ```text
-$ ./toolkit.py restore -b a643b5dc-bfa0-4624-8bdd-5ad5325f20fd \
+$ actoolkit restore -b a643b5dc-bfa0-4624-8bdd-5ad5325f20fd \
     --backupID 7be82451-7e89-43fb-8251-9a347ce513e0
 Restore job submitted successfully
 Background restore flag selected, run 'list apps' to get status
-$ ./toolkit.py list apps
+$ actoolkit list apps
 +-----------+--------------------------------------+-----------------+-------------+-----------+-----------+
 | appName   | appID                                | clusterName     | namespace   | state     | source    |
 +===========+======================================+=================+=============+===========+===========+
@@ -67,7 +67,7 @@ Within a single filter set, if specifying multiple `key=value` pairs (which are 
 To in-place restore only the persistent volumes of an application:
 
 ```text
-$ ./toolkit.py restore 5391204b-9974-4f51-a052-b83e685f04e5 \
+$ actoolkit restore 5391204b-9974-4f51-a052-b83e685f04e5 \
     --snapshotID 7a7f8293-7d32-427c-a896-7aae133c0603 --filterSelection include \
     --filterSet version=v1,kind=PersistentVolumeClaim
 Restore job in progress.......................Success!
@@ -76,7 +76,7 @@ Restore job in progress.......................Success!
 To in-place restore the entire application other than the secrets (perhaps an external secret manager is used):
 
 ```text
-$ ./toolkit.py restore 5391204b-9974-4f51-a052-b83e685f04e5
+$ actoolkit restore 5391204b-9974-4f51-a052-b83e685f04e5
     --snapshotID 7a7f8293-7d32-427c-a896-7aae133c0603 --filterSelection exclude \
     --filterSet version=v1 kind=Secret
 Restore job in progress......................Success!
@@ -85,7 +85,7 @@ Restore job in progress......................Success!
 To in-place restore any `pod` which also has the label `app.kubernetes.io/name=wordpress` (logical AND due to using a single `--filterSet` argument):
 
 ```text
-$ ./toolkit.py restore 5391204b-9974-4f51-a052-b83e685f04e5 \
+$ actoolkit restore 5391204b-9974-4f51-a052-b83e685f04e5 \
     --snapshotID 7a7f8293-7d32-427c-a896-7aae133c0603 --filterSelection include \
     --filterSet version=v1,kind=Pod,label=app.kubernetes.io/name=wordpress
 Restore job in progress.......................Success!
@@ -94,7 +94,7 @@ Restore job in progress.......................Success!
 To in-place restore all `pods`, and any resource which has the label `app.kubernetes.io/name=wordpress` (logical OR due to using two `--filterSet` arguments):
 
 ```text
-$ ./toolkit.py restore 5391204b-9974-4f51-a052-b83e685f04e5 \
+$ actoolkit restore 5391204b-9974-4f51-a052-b83e685f04e5 \
     --snapshotID 7a7f8293-7d32-427c-a896-7aae133c0603 --filterSelection include \
     --filterSet version=v1 kind=Pod --filterSet label=app.kubernetes.io/name=wordpress
 Restore job in progress......................Success!

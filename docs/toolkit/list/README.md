@@ -23,7 +23,7 @@ The `list` command shows various resources known to Astra.
 * [Users](#users)
 
 ```text
-$ ./toolkit.py list -h
+$ actoolkit list -h
 usage: actoolkit list [-h]
                       {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,notifications,protections,replications,rolebindings,scripts,snapshots,storagebackends,storageclasses,users}
                       ...
@@ -61,13 +61,13 @@ objectType:
 Command usage:
 
 ```text
-./toolkit.py list apiresources <optional-arguments>
+actoolkit list apiresources <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list apiresources
+$ actoolkit list apiresources
 +------------------------------+-----------+--------------------------------+--------------------------------------+
 | group                        | version   | kind                           | clusterID                            |
 +==============================+===========+================================+======================================+
@@ -90,7 +90,7 @@ $ ./toolkit.py list apiresources
 ```
 
 ```text
-$ ./toolkit.py list apiresources -c prod-cluster
+$ actoolkit list apiresources -c prod-cluster
 +------------------------------+-----------+--------------------------------+--------------------------------------+
 | group                        | version   | kind                           | clusterID                            |
 +==============================+===========+================================+======================================+
@@ -107,7 +107,7 @@ $ ./toolkit.py list apiresources -c prod-cluster
 ```
 
 ```text
-$ ./toolkit.py list apiresources --cluster c9456cae-b2d4-400b-ac53-60637d57da57
+$ actoolkit list apiresources --cluster c9456cae-b2d4-400b-ac53-60637d57da57
 +------------------------------+-----------+--------------------------------+--------------------------------------+
 | group                        | version   | kind                           | clusterID                            |
 +==============================+===========+================================+======================================+
@@ -126,13 +126,13 @@ $ ./toolkit.py list apiresources --cluster c9456cae-b2d4-400b-ac53-60637d57da57
 Command usage:
 
 ```text
-./toolkit.py list apps <optional-arguments>
+actoolkit list apps <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list apps
+$ actoolkit list apps
 +----------------+--------------------------------------+-----------------+----------------+--------------+
 | appName        | appID                                | clusterName     | namespace      | state        |
 +================+======================================+=================+================+==============+
@@ -145,7 +145,7 @@ $ ./toolkit.py list apps
 ```
 
 ```text
-$ ./toolkit.py list apps --cluster useast1-cluster
+$ actoolkit list apps --cluster useast1-cluster
 +----------------+--------------------------------------+-----------------+-------------+-------+
 | appName        | appID                                | clusterName     | namespace   | state |
 +================+======================================+=================+=============+=======+
@@ -154,7 +154,7 @@ $ ./toolkit.py list apps --cluster useast1-cluster
 ```
 
 ```text
-$ ./toolkit.py list apps --nameFilter word
+$ actoolkit list apps --nameFilter word
 +----------------+--------------------------------------+-----------------+----------------+-------+
 | appName        | appID                                | clusterName     | namespace      | state |
 +================+======================================+=================+================+=======+
@@ -165,7 +165,7 @@ $ ./toolkit.py list apps --nameFilter word
 ```
 
 ```text
-$ ./toolkit.py list apps --namespace wordpress-prod
+$ actoolkit list apps --namespace wordpress-prod
 +----------------+--------------------------------------+-----------------+----------------+-------+
 | appName        | appID                                | clusterName     | namespace      | state |
 +================+======================================+=================+================+=======+
@@ -180,13 +180,13 @@ $ ./toolkit.py list apps --namespace wordpress-prod
 Command usage:
 
 ```text
-./toolkit.py list assets <appID>
+actoolkit list assets <appID>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list assets fad776eb-f80f-4a2b-b297-c4d4ff255b14
+$ actoolkit list assets fad776eb-f80f-4a2b-b297-c4d4ff255b14
 +---------------------------------+---------+-----------+-----------------------+
 | assetName                       | group   | version   | kind                  |
 +=================================+=========+===========+=======================+
@@ -221,13 +221,13 @@ $ ./toolkit.py list assets fad776eb-f80f-4a2b-b297-c4d4ff255b14
 Command usage:
 
 ```text
-./toolkit.py list backups <optional-arguments>
+actoolkit list backups <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list backups
+$ actoolkit list backups
 +--------------------------------------+--------------------+--------------------------------------+-------------+
 | AppID                                | backupName         | backupID                             | backupState |
 +======================================+====================+======================================+=============+
@@ -242,7 +242,7 @@ $ ./toolkit.py list backups
 ```
 
 ```text
-$ ./toolkit.py list backups --app wordpress
+$ actoolkit list backups --app wordpress
 +--------------------------------------+--------------------+--------------------------------------+-------------+
 | AppID                                | backupName         | backupID                             | backupState |
 +======================================+====================+======================================+=============+
@@ -259,13 +259,13 @@ The `list buckets` command shows all the object storage buckets available to Ast
 Command usage:
 
 ```text
-./toolkit.py list buckets
+actoolkit list buckets
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list buckets
+$ actoolkit list buckets
 +--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
 | bucketID                             | name                            | credentialID                         | provider   | state     |
 +======================================+=================================+======================================+============+===========+
@@ -278,7 +278,7 @@ $ ./toolkit.py list buckets
 ```
 
 ```text
-$ ./toolkit.py list buckets --provider gcp
+$ actoolkit list buckets --provider gcp
 +--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
 | bucketID                             | name                            | credentialID                         | provider   | state     |
 +======================================+=================================+======================================+============+===========+
@@ -289,7 +289,7 @@ $ ./toolkit.py list buckets --provider gcp
 ```
 
 ```text
-$ ./toolkit.py list buckets --nameFilter backup
+$ actoolkit list buckets --nameFilter backup
 +--------------------------------------+---------------------------------+--------------------------------------+------------+-----------+
 | bucketID                             | name                            | credentialID                         | provider   | state     |
 +======================================+=================================+======================================+============+===========+
@@ -306,13 +306,13 @@ $ ./toolkit.py list buckets --nameFilter backup
 Command usage:
 
 ```text
-./toolkit.py list clouds
+actoolkit list clouds
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list clouds
+$ actoolkit list clouds
 +-------------+--------------------------------------+-----------+
 | cloudName   | cloudID                              | cloudType |
 +=============+======================================+===========+
@@ -325,7 +325,7 @@ $ ./toolkit.py list clouds
 ```
 
 ```text
-$ ./toolkit.py list clouds --cloudType GCP
+$ actoolkit list clouds --cloudType GCP
 +-------------+--------------------------------------+-----------+
 | cloudName   | cloudID                              | cloudType |
 +=============+======================================+===========+
@@ -340,13 +340,13 @@ $ ./toolkit.py list clouds --cloudType GCP
 Command usage:
 
 ```text
-./toolkit.py list clusters <optional-arguments>
+actoolkit list clusters <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list clusters
+$ actoolkit list clusters
 +--------------------+--------------------------------------+---------------+---------------+---------+---------------+---------------------+
 | clusterName        | clusterID                            | clusterType   | location      | state   | managedState  | tridentStateAllowed |
 +====================+======================================+===============+===============+=========+===============+=====================+
@@ -359,7 +359,7 @@ $ ./toolkit.py list clusters
 ```
 
 ```text
-$ ./toolkit.py list clusters --hideManaged
+$ actoolkit list clusters --hideManaged
 +--------------------+--------------------------------------+---------------+---------------+---------+---------------+---------------------+
 | clusterName        | clusterID                            | clusterType   | location      | state   | managedState  | tridentStateAllowed |
 +====================+======================================+===============+===============+=========+===============+=====================+
@@ -368,7 +368,7 @@ $ ./toolkit.py list clusters --hideManaged
 ```
 
 ```text
-$ ./toolkit.py list clusters --hideUnmanaged
+$ actoolkit list clusters --hideUnmanaged
 +--------------------+--------------------------------------+---------------+---------------+---------+---------------+---------------------+
 | clusterName        | clusterID                            | clusterType   | location      | state   | managedState  | tridentStateAllowed |
 +====================+======================================+===============+===============+=========+===============+=====================+
@@ -379,7 +379,7 @@ $ ./toolkit.py list clusters --hideUnmanaged
 ```
 
 ```text
-$ ./toolkit.py list clusters --nameFilter east
+$ actoolkit list clusters --nameFilter east
 +--------------------+--------------------------------------+---------------+---------------+---------+---------------+---------------------+
 | clusterName        | clusterID                            | clusterType   | location      | state   | managedState  | tridentStateAllowed |
 +====================+======================================+===============+===============+=========+===============+=====================+
@@ -392,13 +392,13 @@ $ ./toolkit.py list clusters --nameFilter east
 The `list credentials` command shows all credentials within Astra Control.  It can also be filtered to only show kubeconfigs.
 
 ```text
-./toolkit.py list credentials <optional-arguments>
+actoolkit list credentials <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list credentials
+$ actoolkit list credentials
 +------------------------+--------------------------------------+-----------------+-------------+---------------+
 | credName               | credID                               | credType        | cloudName   | clusterName   |
 +========================+======================================+=================+=============+===============+
@@ -413,7 +413,7 @@ $ ./toolkit.py list credentials
 ```
 
 ```text
-$ ./toolkit.py list credentials -k
+$ actoolkit list credentials -k
 +------------+--------------------------------------+------------+-------------+---------------+
 | credName   | credID                               | credType   | cloudName   | clusterName   |
 +============+======================================+============+=============+===============+
@@ -428,13 +428,13 @@ $ ./toolkit.py list credentials -k
 Command usage:
 
 ```text
-./toolkit.py list hooks <optional-arguments>
+actoolkit list hooks <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list hooks
+$ actoolkit list hooks
 +--------------------------------------+----------------------------+--------------------------------------+------------------------------------------------+
 | appID                                | hookName                   | hookID                               | matchingImages                                 |
 +======================================+============================+======================================+================================================+
@@ -447,7 +447,7 @@ $ ./toolkit.py list hooks
 ```
 
 ```text
-$ ./toolkit.py list hooks --app cassandra
+$ actoolkit list hooks --app cassandra
 +--------------------------------------+----------------------------+--------------------------------------+------------------------------------------------+
 | appID                                | hookName                   | hookID                               | matchingImages                                 |
 +======================================+============================+======================================+================================================+
@@ -470,13 +470,13 @@ $ ./toolkit.py list hooks --app cassandra
 Command usage:
 
 ```text
-./toolkit.py list namespaces <optional-arguments>
+actoolkit list namespaces <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list namespaces
+$ actoolkit list namespaces
 +-----------+--------------------------------------+----------------+----------------+--------------------------------------+
 | name      | namespaceID                          | namespaceState | associatedApps | clusterID                            |
 +===========+======================================+================+================+======================================+
@@ -491,7 +491,7 @@ $ ./toolkit.py list namespaces
 ```
 
 ```text
-$ ./toolkit.py list namespaces --clusterID af0aecb9-9b18-473f-b417-54fb38e1e28d
+$ actoolkit list namespaces --clusterID af0aecb9-9b18-473f-b417-54fb38e1e28d
 +-----------+--------------------------------------+----------------+----------------+--------------------------------------+
 | name      | namespaceID                          | namespaceState | associatedApps | clusterID                            |
 +===========+======================================+================+================+======================================+
@@ -502,7 +502,7 @@ $ ./toolkit.py list namespaces --clusterID af0aecb9-9b18-473f-b417-54fb38e1e28d
 ```
 
 ```text
-$ ./toolkit.py list namespaces --nameFilter word
+$ actoolkit list namespaces --nameFilter word
 +-----------+--------------------------------------+----------------+----------------+--------------------------------------+
 | name      | namespaceID                          | namespaceState | associatedApps | clusterID                            |
 +===========+======================================+================+================+======================================+
@@ -511,7 +511,7 @@ $ ./toolkit.py list namespaces --nameFilter word
 ```
 
 ```text
-$ ./toolkit.py list namespaces --showRemoved
+$ actoolkit list namespaces --showRemoved
 +----------------+--------------------------------------+----------------+----------------+--------------------------------------+
 | name           | namespaceID                          | namespaceState | associatedApps | clusterID                            |
 +================+======================================+================+================+======================================+
@@ -528,7 +528,7 @@ $ ./toolkit.py list namespaces --showRemoved
 ```
 
 ```text
-$ ./toolkit.py list namespaces --unassociated
+$ actoolkit list namespaces --unassociated
 +----------------+--------------------------------------+----------------+----------------+--------------------------------------+
 | name           | namespaceID                          | namespaceState | associatedApps | clusterID                            |
 +================+======================================+================+================+======================================+
@@ -537,7 +537,7 @@ $ ./toolkit.py list namespaces --unassociated
 ```
 
 ```text
-$ ./toolkit.py list namespaces --minutes 60
+$ actoolkit list namespaces --minutes 60
 +-----------+--------------------------------------+----------------+----------------+--------------------------------------+
 | name      | namespaceID                          | namespaceState | associatedApps | clusterID                            |
 +===========+======================================+================+================+======================================+
@@ -557,13 +557,13 @@ $ ./toolkit.py list namespaces --minutes 60
 Command usage:
 
 ```text
-./toolkit.py list notifications <optional-arguments>
+actoolkit list notifications <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list notifications
+$ actoolkit list notifications
 +--------------------------------------+--------------------------------------------------------------------+---------------+----------------------+
 | notificationID                       | summary                                                            | severity      | eventTime            |
 +======================================+====================================================================+===============+======================+
@@ -587,7 +587,7 @@ pre-filtered count: 648
 ```
 
 ```text
-$ ./toolkit.py list notifications -l 5
+$ actoolkit list notifications -l 5
 +--------------------------------------+---------------------------------+---------------+----------------------+
 | notificationID                       | summary                         | severity      | eventTime            |
 +======================================+=================================+===============+======================+
@@ -605,7 +605,7 @@ pre-filtered count: 648
 ```
 
 ```text
-$ ./toolkit.py list notifications -l 5 -o 5
+$ actoolkit list notifications -l 5 -o 5
 +--------------------------------------+---------------------------------+---------------+----------------------+
 | notificationID                       | summary                         | severity      | eventTime            |
 +======================================+=================================+===============+======================+
@@ -623,7 +623,7 @@ pre-filtered count: 648
 ```
 
 ```text
-$ ./toolkit.py list notifications -m 300
+$ actoolkit list notifications -m 300
 +--------------------------------------+---------------------------------+---------------+----------------------+
 | notificationID                       | summary                         | severity      | eventTime            |
 +======================================+=================================+===============+======================+
@@ -645,7 +645,7 @@ pre-filtered count: 648
 ```
 
 ```text
-$ ./toolkit.py list notifications -s critical
+$ actoolkit list notifications -s critical
 +--------------------------------------+--------------------+------------+----------------------+
 | notificationID                       | summary            | severity   | eventTime            |
 +======================================+====================+============+======================+
@@ -670,13 +670,13 @@ $ ./toolkit.py list notifications -s critical
 Command usage:
 
 ```text
-./toolkit.py list protections <optional-arguments>
+actoolkit list protections <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list protections
+$ actoolkit list protections
 +--------------------------------------+--------------------------------------+---------------+----------+--------+-------------+--------------+-----------------+-------------------+
 | appID                                | protectionID                         | granularity   |   minute | hour   | dayOfWeek   | dayOfMonth   |   snapRetention |   backupRetention |
 +======================================+======================================+===============+==========+========+=============+==============+=================+===================+
@@ -699,7 +699,7 @@ $ ./toolkit.py list protections
 ```
 
 ```text
-$ ./toolkit.py list protections -a 28efc6fa-324e-42fd-8cd8-e1aacd7ada2c
+$ actoolkit list protections -a 28efc6fa-324e-42fd-8cd8-e1aacd7ada2c
 +--------------------------------------+--------------------------------------+---------------+----------+--------+-------------+--------------+-----------------+-------------------+
 | appID                                | protectionID                         | granularity   |   minute | hour   | dayOfWeek   | dayOfMonth   |   snapRetention |   backupRetention |
 +======================================+======================================+===============+==========+========+=============+==============+=================+===================+
@@ -714,7 +714,7 @@ $ ./toolkit.py list protections -a 28efc6fa-324e-42fd-8cd8-e1aacd7ada2c
 ```
 
 ```text
-$ ./toolkit.py list protections -a cassandra
+$ actoolkit list protections -a cassandra
 +--------------------------------------+--------------------------------------+---------------+----------+--------+-------------+--------------+-----------------+-------------------+
 | appID                                | protectionID                         | granularity   |   minute | hour   | dayOfWeek   | dayOfMonth   |   snapRetention |   backupRetention |
 +======================================+======================================+===============+==========+========+=============+==============+=================+===================+
@@ -735,13 +735,13 @@ The `list replications` command shows all of the snap-mirror application replica
 Command usage:
 
 ```text
-./toolkit.py list replications <optional-arguments>
+actoolkit list replications <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list replications
+$ actoolkit list replications
 +--------------------------------------+--------------------------------------+-------------+-------------------+-----------------+
 | replicationID                        | sourceAppID                          | state       | sourceNamespace   | destNamespace   |
 +======================================+======================================+=============+===================+=================+
@@ -752,7 +752,7 @@ $ ./toolkit.py list replications
 ```
 
 ```text
-$ ./toolkit.py list replications -a wordpress
+$ actoolkit list replications -a wordpress
 +--------------------------------------+--------------------------------------+-------------+-------------------+-----------------+
 | replicationID                        | sourceAppID                          | state       | sourceNamespace   | destNamespace   |
 +======================================+======================================+=============+===================+=================+
@@ -761,7 +761,7 @@ $ ./toolkit.py list replications -a wordpress
 ```
 
 ```text
-$ ./toolkit.py list replications -a f0d5e243-5bfe-4aa5-9c98-f1d3da83110d
+$ actoolkit list replications -a f0d5e243-5bfe-4aa5-9c98-f1d3da83110d
 +--------------------------------------+--------------------------------------+-------------+-------------------+-----------------+
 | replicationID                        | sourceAppID                          | state       | sourceNamespace   | destNamespace   |
 +======================================+======================================+=============+===================+=================+
@@ -776,13 +776,13 @@ $ ./toolkit.py list replications -a f0d5e243-5bfe-4aa5-9c98-f1d3da83110d
 Command usage:
 
 ```text
-./toolkit.py list rolebindings <optional-arguments>
+actoolkit list rolebindings <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list rolebindings
+$ actoolkit list rolebindings
 +--------------------------------------+-----------------+--------------------------------------+--------+-----------------------------------------+
 | roleBindingID                        | principalType   | userID                               | role   | roleConstraints                         |
 +======================================+=================+======================================+========+=========================================+
@@ -797,7 +797,7 @@ $ ./toolkit.py list rolebindings
 ```
 
 ```text
-$ ./toolkit.py list rolebindings -i bb06c170-8dbd-40be-99aa-3b3114434705
+$ actoolkit list rolebindings -i bb06c170-8dbd-40be-99aa-3b3114434705
 +--------------------------------------+-----------------+--------------------------------------+--------+-------------------+
 | roleBindingID                        | principalType   | userID                               | role   | roleConstraints   |
 +======================================+=================+======================================+========+===================+
@@ -812,13 +812,13 @@ $ ./toolkit.py list rolebindings -i bb06c170-8dbd-40be-99aa-3b3114434705
 Command usage:
 
 ```text
-./toolkit.py list scripts <optional-arguments>
+actoolkit list scripts <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list scripts
+$ actoolkit list scripts
 +---------------+--------------------------------------+----------------------------------+
 | scriptName    | scriptID                             | description                      |
 +===============+======================================+==================================+
@@ -833,7 +833,7 @@ $ ./toolkit.py list scripts
 ```
 
 ```text
-$ ./toolkit.py list scripts -s -f exampleScript
+$ actoolkit list scripts -s -f exampleScript
 #####################
 ### exampleScript ###
 #####################
@@ -848,13 +848,13 @@ echo "this is just an example"
 Command usage:
 
 ```text
-./toolkit.py list snapshots <optional-arguments>
+actoolkit list snapshots <optional-arguments>
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list snapshots
+$ actoolkit list snapshots
 +--------------------------------------+-------------------------------------+--------------------------------------+---------------+
 | appID                                | snapshotName                        | snapshotID                           | snapshotState |
 +======================================+=====================================+======================================+===============+
@@ -867,7 +867,7 @@ $ ./toolkit.py list snapshots
 ```
 
 ```text
-$ ./toolkit.py list snapshots --app wordpress-east
+$ actoolkit list snapshots --app wordpress-east
 +--------------------------------------+-----------------------------------+--------------------------------------+---------------+
 | appID                                | snapshotName                      | snapshotID                           | snapshotState |
 +======================================+===================================+======================================+===============+
@@ -882,13 +882,13 @@ $ ./toolkit.py list snapshots --app wordpress-east
 `list storagebackends` lists the storage backends of the Astra Control environment.
 
 ```text
-./toolkit.py list storagebackends
+actoolkit list storagebackends
 ```
 
 Sample output:
 
 ```text
-$ ./toolkit.py list storagebackends
+$ actoolkit list storagebackends
 +---------------+--------------------------------------+---------------+---------------+----------------+
 | backendName   | backendID                            | backendType   | healthState   | managedState   |
 +===============+======================================+===============+===============+================+
@@ -903,13 +903,13 @@ $ ./toolkit.py list storagebackends
 Command usage:
 
 ```text
-./toolkit.py list storageclasses
+actoolkit list storageclasses
 ```
 
 Sample output:
 
 ```text
-./toolkit.py list storageclasses
+actoolkit list storageclasses
 +--------------------------+--------------------------------------+-------------+--------------------+--------------------------------------+-------------+
 | storageclassName         | storageclassID                       | isDefault   | clusterName        | clusterID                            | cloudType   |
 +==========================+======================================+=============+====================+======================================+=============+
@@ -946,7 +946,7 @@ Sample output:
 ```
 
 ```text
-./toolkit.py list storageclasses --cloudType GCP
+actoolkit list storageclasses --cloudType GCP
 +--------------------------+--------------------------------------+-------------+--------------------+--------------------------------------+-------------+
 | storageclassName         | storageclassID                       | isDefault   | clusterName        | clusterID                            | cloudType   |
 +==========================+======================================+=============+====================+======================================+=============+
@@ -969,13 +969,13 @@ The `list users` command lists all of the users within the Astra Control account
 Command usage:
 
 ```text
-./toolkit.py list users -f <optionalNameFilter>
+actoolkit list users -f <optionalNameFilter>
 ```
 
 Sample output:
 
 ```text
-./toolkit.py list users
+actoolkit list users
 +--------------------------------------+-------------+---------------------+----------------+---------+
 | userID                               | name        | email               | authProvider   | state   |
 +======================================+=============+=====================+================+=========+
@@ -986,7 +986,7 @@ Sample output:
 ```
 
 ```text
-./toolkit.py list users -f smith
+actoolkit list users -f smith
 +--------------------------------------+-------------+---------------------+----------------+---------+
 | userID                               | name        | email               | authProvider   | state   |
 +======================================+=============+=====================+================+=========+

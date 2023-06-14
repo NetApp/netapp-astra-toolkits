@@ -3,7 +3,7 @@
 The `deploy` command has the following command syntax:
 
 ```text
-./toolkit.py deploy <appname> <chartname> -n/--namespace <namespacename> \
+actoolkit deploy <appname> <chartname> -n/--namespace <namespacename> \
     -f/--values <values.yaml> --set <value1> --set <value2>
 ```
 
@@ -24,7 +24,7 @@ This command will carry out the following operations on your *current kubeconfig
 Sample output:
 
 ```text
-$ ./toolkit.py deploy cloudbees-core cloudbees/cloudbees-core \
+$ actoolkit deploy cloudbees-core cloudbees/cloudbees-core \
     -n cloudbees-core -f values.yaml \
     --set OperationsCenter.HostName=cloudbees-core.netapp.com \
     --set ingress-nginx.Enabled=true
