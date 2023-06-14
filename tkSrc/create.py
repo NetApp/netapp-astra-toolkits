@@ -32,7 +32,7 @@ def doProtectionTask(protectionType, appID, name, background, pollTimer, quiet, 
         protectionID = astraSDK.backups.takeBackup(quiet=quiet, verbose=verbose).main(appID, name)
     elif protectionType == "snapshot":
         protectionID = astraSDK.snapshots.takeSnap(quiet=quiet, verbose=verbose).main(appID, name)
-    if protectionID == False:
+    if protectionID is False:
         return False
 
     print(f"Starting {protectionType} of {appID}")

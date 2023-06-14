@@ -50,7 +50,7 @@ def main(args, ard):
                             if astraSDK.credentials.destroyCredential(
                                 quiet=args.quiet, verbose=args.verbose
                             ).main(cluster.get("credentialID")):
-                                print(f"Credential deleted")
+                                print("Credential deleted")
                             else:
                                 raise SystemExit("astraSDK.credentials.destroyCredential() failed")
                         else:
@@ -71,7 +71,7 @@ def main(args, ard):
                         if astraSDK.credentials.destroyCredential(
                             quiet=args.quiet, verbose=args.verbose
                         ).main(cloud.get("credentialID")):
-                            print(f"Credential deleted")
+                            print("Credential deleted")
                         else:
                             raise SystemExit("astraSDK.credentials.destroyCredential() failed")
         else:

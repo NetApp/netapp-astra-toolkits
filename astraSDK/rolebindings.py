@@ -100,7 +100,7 @@ class createRolebinding(SDKCommon):
         groupID=None,
         roleConstraints=None,
     ):
-        endpoint = f"core/v1/roleBindings"
+        endpoint = "core/v1/roleBindings"
         url = self.base + endpoint
         params = {}
         data = {

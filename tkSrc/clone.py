@@ -104,7 +104,7 @@ def doClone(
             sourceIngress["metadata"]["annotations"][
                 "meta.helm.sh/release-namespace"
             ] = cloneNamespace
-        except:
+        except kubernetes.client.rest.ApiException:
             # In the event the sourceCluster no longer exists or isn't in kubeconfig
             sourceIngress = {
                 "kind": "IngressClass",
@@ -189,7 +189,7 @@ def doClone(
     if cloneRet:
         print("Submitting clone succeeded.")
         if background:
-            print(f"Background clone flag selected, run 'list apps' to get status.")
+            print("Background clone flag selected, run 'list apps' to get status.")
             return True
         print("Waiting for clone to become available.", end="")
         sys.stdout.flush()
@@ -218,9 +218,7 @@ def main(args, parser, ard):
     if (args.filterSelection and not args.filterSet) or (
         args.filterSet and not args.filterSelection
     ):
-        parser.error(
-            f"either both or none of --filterSelection and --filterSet should be specified"
-        )
+        parser.error("either both or none of --filterSelection and --filterSet should be specified")
     if args.filterSet and args.sourceAppID:
         parser.error(
             "resource filters (--filterSet) may only be specified with --backupID "

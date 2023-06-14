@@ -145,7 +145,7 @@ class SDKCommon:
                     )
                 else:
                     print(
-                        f"API call to Astra Control failed: "
+                        "API call to Astra Control failed: "
                         + colored(f"{ret.status_code} - {ret.reason}", "red")
                     )
                     if ret.text.strip():

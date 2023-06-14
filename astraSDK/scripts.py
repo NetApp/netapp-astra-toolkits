@@ -99,7 +99,7 @@ class createScript(SDKCommon):
         source,
         description=None,
     ):
-        endpoint = f"core/v1/hookSources"
+        endpoint = "core/v1/hookSources"
         url = self.base + endpoint
         params = {}
         data = {

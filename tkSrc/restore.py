@@ -26,9 +26,7 @@ def main(args, parser):
     if (args.filterSelection and not args.filterSet) or (
         args.filterSet and not args.filterSelection
     ):
-        parser.error(
-            f"either both or none of --filterSelection and --filterSet should be specified"
-        )
+        parser.error("either both or none of --filterSelection and --filterSet should be specified")
     rc = astraSDK.apps.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
         args.appID,
         backupID=args.backupID,

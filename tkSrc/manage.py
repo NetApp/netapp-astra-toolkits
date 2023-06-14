@@ -54,7 +54,7 @@ def main(args, parser):
             args.accessKey is not None or args.accessSecret is not None
         ):
             parser.error(
-                f"if a credentialID is specified, neither accessKey nor accessSecret"
+                "if a credentialID is specified, neither accessKey nor accessSecret"
                 + " should be specified."
             )
         # Validate args and create credential if credentialID was not specified
