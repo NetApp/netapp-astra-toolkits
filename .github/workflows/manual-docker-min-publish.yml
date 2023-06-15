@@ -2,7 +2,7 @@
 # It's only meant to be manually invoked when the automated python-docker-publish.yml
 # file errors out and the image needs to be rebuilt.
 
-name: Manual Docker Build
+name: Manual Docker Min Build
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Docker Setup Buildx
-      uses: docker/setup-buildx-action@v2.5.0
+      uses: docker/setup-buildx-action@v2.7.0
     - name: Build and push the Docker image
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
