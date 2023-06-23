@@ -39,6 +39,7 @@ def main(args, parser):
         if args.background:
             print("Restore job submitted successfully")
             print("Background restore flag selected, run 'list apps' to get status")
+            return True
         print("Restore job in progress...", end="")
         sys.stdout.flush()
         while True:
