@@ -44,7 +44,7 @@ actoolkit create backup <optionalBackgroundArg> <optionalPollTimer> <appID> <bac
 
 Additional information on each argument is as follows:
 
-* `-b`/`--background: when specified, the terminal prompt is returned after initiating the backup.  If **not** specified (default behavior), the command polls for the status of the backup operation
+* `-b`/`--background`: when specified, the terminal prompt is returned after initiating the backup.  If **not** specified (default behavior), the command polls for the status of the backup operation
 * `-t`/`--pollTimer`: the frequency to check the status of the backup operation (default is 5 seconds)
 * `-u`/`--bucketID`: the [bucketID](../list/README.md#buckets) to store the backup, if not specified, the default bucket for the cloud is used
 * `-s`/`--snapshotID`: the [snapshotID](../list/README.md#snapshots) to create the backup from, if not specified, a new snapshot is created
