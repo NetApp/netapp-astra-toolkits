@@ -717,7 +717,7 @@ class ToolkitParser:
             "-t",
             "--cloudType",
             default=None,
-            choices=["GCP", "Azure", "AWS", "Private"],
+            choices=["GCP", "Azure", "AWS", "private"],
             help="Only show storageclasses of a single cloud type",
         )
 
@@ -783,6 +783,13 @@ class ToolkitParser:
             default=(self.acl.clouds[0] if len(self.acl.clouds) == 1 else None),
             required=(False if len(self.acl.clouds) == 1 else True),
             help="The cloudID to add the cluster to (only required if # of clouds > 1)",
+        )
+        self.subparserCreateCluster.add_argument(
+            "--privateRouteID",
+            default=None,
+            required=False,
+            help="The private route identifier for private clusters "
+            "(can obtained from the Astra Connector)",
         )
 
     def create_hook_args(self):

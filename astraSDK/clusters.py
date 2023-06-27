@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2022 NetApp, Inc
+   Copyright 2023 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -209,15 +209,17 @@ class addCluster(SDKCommon):
         self.headers["accept"] = "application/astra-cluster+json"
         self.headers["Content-Type"] = "application/astra-cluster+json"
 
-    def main(self, cloudID, credentialID):
+    def main(self, cloudID, credentialID, privateRouteID=None):
         endpoint = f"topology/v1/clouds/{cloudID}/clusters"
         url = self.base + endpoint
         params = {}
         data = {
             "type": "application/astra-cluster",
-            "version": "1.1",
+            "version": "1.5",
             "credentialID": credentialID,
         }
+        if privateRouteID:
+            data["privateRouteID"] = privateRouteID
 
         ret = super().apicall(
             "post",
