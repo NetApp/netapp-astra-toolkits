@@ -99,6 +99,7 @@ def main(args, parser, ard):
             rc = astraSDK.clusters.addCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.cloudID,
                 rc["id"],
+                privateRouteID=args.privateRouteID,
             )
             if rc is False:
                 raise SystemExit("astraSDK.clusters.createCluster() failed")

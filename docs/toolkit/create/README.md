@@ -100,13 +100,15 @@ Background backup flag selected, run 'list backups' to get status
 The `create cluster` command allows you to create non-public-cloud-managed Kubernetes clusters from a kubeconfig file.  After the cluster is "created" it **must** still be [managed](../manage/README.md#cluster) to be fully brought under Astra's control.  The command usage is:
 
 ```text
-actoolkit create cluster <kubeconfig-filePath> -c <optionalCloudIdArg>
+actoolkit create cluster <kubeconfig-filePath> -c <optionalCloudIdArg> \
+    <--privateRouteID optionalPrivateRouteID>
 ```
 
 Additional information on each argument is as follows:
 
 * `filePath` is the local filesystem path to the [kubeconfig](https://docs.netapp.com/us-en/astra-control-center/get-started/add-cluster-reqs.html#create-an-admin-role-kubeconfig) file which has an admin-role for the Kubernetes cluster
 * `-c`/`--cloudID` can be gathered from a [list clouds](../list/README.md#clouds) command, however it is only needed in the event there are multiple, **non-public** clouds on the system.  In the event there is only a single non-public cloud within Astra Control, then that cloudID is automatically used.
+* `--privateRouteID` is an optional value, only needed for managing private clusters that are not accessible from the internet. The Astra Connector must first be installed on the cluster in question, and then the private route ID can be gathered from the operator output. See the [main docs](https://docs.netapp.com/us-en/astra-control-service/get-started/manage-private-cluster.html) for more information.
 
 When running the `create cluster` command, you will notice two API responses, the first for creating the kubeconfig credential, the second for creating the cluster object which references the same credential.
 
@@ -114,6 +116,13 @@ When running the `create cluster` command, you will notice two API responses, th
 $ actoolkit create cluster ~/.kube/oc-tmecluster02-config.yaml
 {"type": "application/astra-credential", "version": "1.1", "id": "68af1e92-1b5a-439b-935c-b0605b7efd3a", "name": "openshift-tmecluster02", "keyType": "kubeconfig", "metadata": {"creationTimestamp": "2022-08-17T17:09:47Z", "modificationTimestamp": "2022-08-17T17:09:47Z", "createdBy": "79b66aad-aba6-4673-9cef-994fa91c8de6", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "kubeconfig"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "private"}]}}
 {"type": "application/astra-cluster", "version": "1.1", "id": "1fe9f33e-a560-41db-a72a-9544e2a4adcf", "name": "openshift-tmecluster02", "state": "running", "stateUnready": [], "managedState": "unmanaged", "managedStateUnready": [], "inUse": "false", "clusterType": "openshift", "namespaces": [], "defaultStorageClass": "5f71d427-bee2-44cf-9ce3-30649676f6d4", "cloudID": "bd976721-6d70-464b-8c84-fa70b5009b1e", "credentialID": "68af1e92-1b5a-439b-935c-b0605b7efd3a", "isMultizonal": "false", "tridentVersion": "22.01.0", "metadata": {"labels": [], "creationTimestamp": "2022-08-17T17:09:49Z", "modificationTimestamp": "2022-08-17T17:09:49Z", "createdBy": "79b66aad-aba6-4673-9cef-994fa91c8de6"}}
+```
+
+```text
+$ actoolkit create cluster ~/.kube/private-config \
+    --privateRouteID 863a3c08-34e6-463a-b479-1b1bdbdf7178
+{"type": "application/astra-credential", "version": "1.1", "id": "378fcfef-f9e0-4c25-ab67-91977f8188da", "name": "api-j0rpeqpa-westeurope-aroapp-io:6443", "keyType": "kubeconfig", "valid": "true", "metadata": {"creationTimestamp": "2023-06-27T18:03:23Z", "modificationTimestamp": "2023-06-27T18:03:23Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "kubeconfig"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "private"}]}}
+{"type": "application/astra-cluster", "version": "1.5", "id": "0aa6fd87-8534-41d7-bef4-4eaedfed4ffa", "name": "api-j0rpeqpa-westeurope-aroapp-io:6443", "state": "running", "stateUnready": [], "managedState": "unmanaged", "protectionState": "full", "protectionStateDetails": [], "managedStateUnready": [], "inUse": "false", "clusterType": "openshift", "connectorCapabilities": [], "namespaces": [], "defaultStorageClass": "e78e4b0f-1e4c-46ed-976f-6f6df5ea07e4", "cloudID": "91ef340d-6ce2-4d54-846a-cf9ba3a4f4ae", "credentialID": "378fcfef-f9e0-4c25-ab67-91977f8188da", "isMultizonal": "false", "tridentManagedStateAllowed": ["unmanaged"], "tridentVersion": "", "privateRouteID": "863a3c08-34e6-463a-b479-1b1bdbdf7178", "apiServiceID": "984888f5-f345-41a1-b207-3a9bd726368f", "metadata": {"labels": [], "creationTimestamp": "2023-06-27T18:03:31Z", "modificationTimestamp": "2023-06-27T18:03:31Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
 ```
 
 ## Hook
