@@ -26,7 +26,7 @@ jobs:
     - name: Build package
       run: python -m build --wheel
     - name: Publish package
-      uses: pypa/gh-action-pypi-publish@0bf742be3ebe032c25dd15117957dc15d0cfc38d
+      uses: pypa/gh-action-pypi-publish@a56da0b891b3dc519c7ee3284aff1fad93cc8598
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
@@ -43,7 +43,7 @@ jobs:
       run: sleep 300
     - name: Docker Setup Buildx
       uses: docker/setup-buildx-action@v2.7.0
-    - name: Build and push the Docker image
+    - name: Build and push the Docker images
       env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
@@ -52,4 +52,7 @@ jobs:
         docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
         docker buildx build . --push --file Dockerfile \
         --tag netapp/astra-toolkits:latest --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG \
+        --platform linux/amd64,linux/arm64
+        docker buildx build . --push --file Dockerfile.minimal \
+        --tag netapp/astra-toolkits:latest-minimal --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG-minimal \
         --platform linux/amd64,linux/arm64
