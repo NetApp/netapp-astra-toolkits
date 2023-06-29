@@ -155,7 +155,7 @@ def main(args):
     elif args.objectType == "storageclasses":
         rc = astraSDK.storageclasses.getStorageClasses(
             quiet=args.quiet, verbose=args.verbose, output=args.output
-        ).main(cloudType=args.cloudType)
+        ).main(cloudType=args.cloudType, clusterStr=args.cluster)
         if rc is False:
             raise SystemExit("astraSDK.storageclasses.getStorageClasses() failed")
     elif args.objectType == "users":

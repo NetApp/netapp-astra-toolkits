@@ -560,7 +560,7 @@ class ToolkitParser:
             "-t",
             "--cloudType",
             default=None,
-            choices=["GCP", "Azure", "AWS", "Private"],
+            choices=["GCP", "Azure", "AWS", "private"],
             help="Only show clouds of a single type",
         )
 
@@ -719,6 +719,9 @@ class ToolkitParser:
             default=None,
             choices=["GCP", "Azure", "AWS", "private"],
             help="Only show storageclasses of a single cloud type",
+        )
+        self.subparserListStorageClasses.add_argument(
+            "-c", "--cluster", default=None, help="Only show storageclasses from this cluster"
         )
 
     def list_users_args(self):

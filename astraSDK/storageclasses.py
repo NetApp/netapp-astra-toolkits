@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2022 NetApp, Inc
+   Copyright 2023 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ class getStorageClasses(SDKCommon):
         self.clouds = getClouds(quiet=True, verbose=verbose).main()
         self.clusters = getClusters(quiet=True, verbose=verbose).main() if self.clouds else False
 
-    def main(self, cloudType=None):
+    def main(self, cloudType=None, clusterStr=None):
         if self.clouds is False:
             print("getClouds().main() failed")
             return False
@@ -60,6 +60,10 @@ class getStorageClasses(SDKCommon):
                     cluster["cloudID"] != cloud["id"]
                     or cluster["managedState"] == "ineligible"
                     or (cloudType and cloud["cloudType"] != cloudType)
+                    or (
+                        clusterStr
+                        and not (cluster["id"] == clusterStr or cluster["name"] == clusterStr)
+                    )
                 ):
                     continue
                 endpoint = (
