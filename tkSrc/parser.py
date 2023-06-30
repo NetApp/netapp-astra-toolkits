@@ -399,6 +399,13 @@ class ToolkitParser:
             nargs="*",
             help="For multi-namespace apps, specify matching number of sourcens1=destns1 mappings",
         )
+        self.parserClone.add_argument(
+            "--cloneStorageClass",
+            choices=(None if self.plaidMode else self.acl.storageClasses),
+            required=False,
+            default=None,
+            help="Optionally specify a different storage class for the clone",
+        )
         sourceGroup = self.parserClone.add_mutually_exclusive_group(required=True)
         sourceGroup.add_argument(
             "--backupID",

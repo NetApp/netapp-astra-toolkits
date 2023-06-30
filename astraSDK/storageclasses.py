@@ -37,7 +37,7 @@ class getStorageClasses(SDKCommon):
         self.clouds = getClouds(quiet=True, verbose=verbose).main()
         self.clusters = getClusters(quiet=True, verbose=verbose).main() if self.clouds else False
 
-    def main(self, cloudType=None, clusterStr=None):
+    def main(self, cloudType=None, clusterStr=None, hideUnmanaged=False):
         if self.clouds is False:
             print("getClouds().main() failed")
             return False
@@ -64,6 +64,7 @@ class getStorageClasses(SDKCommon):
                         clusterStr
                         and not (cluster["id"] == clusterStr or cluster["name"] == clusterStr)
                     )
+                    or (hideUnmanaged and cluster["managedState"] == "unmanaged")
                 ):
                     continue
                 endpoint = (

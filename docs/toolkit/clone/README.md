@@ -8,7 +8,8 @@ The overall command usage is:
 
 ```text
 actoolkit clone [<optionalBackgroundArg>] --cloneAppName <cloneAppName> \
-    [--cloneNamespace <cloneNamespace>] --clusterID <destClusterID> \
+    --clusterID <destClusterID> [--cloneStorageClass <cloneStorageClass>] \
+    [--cloneNamespace <cloneNamespace> | --multiNsMapping <sourcens1=destns1, sourcens2=destns2>] \
     (--backupID <backupID> | --snapshotID <snapshotID> | --sourceAppID <sourceAppID>) \
     [--pollTimer <seconds>] [--filterSelection <include|exclude>] \
     [--filterSelection <key1=value1 key2=value2>] [--filterSelection <key3=value3>]
@@ -19,6 +20,7 @@ actoolkit clone [<optionalBackgroundArg>] --cloneAppName <cloneAppName> \
 * **Only one or zero** of the following arguments can be specified (if neither are specified, the single namespace is the same value as `cloneAppName`):
   * `--cloneNamespace`: for single-namespace apps, the name of the new namespace
   * `--multiNsMapping`: for multi-namespace apps, specify matching number of sourcens1=destns1 mappings (the number and name of namespace mappings must match the source app)
+* `--cloneStorageClass`: optionally provide a new storage class (must be available on the specified `clusterID`) for the new application
 * **Only one** of the following arguments must also be specified:
   * `--backupID`: the backupID to create the clone from
   * `--snapshotID`: the snapshotID to create the clone from

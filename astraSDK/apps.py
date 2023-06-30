@@ -316,6 +316,7 @@ class cloneApp(SDKCommon):
         clusterID,
         sourceClusterID,
         namespaceMapping=None,
+        cloneStorageClass=None,
         backupID=None,
         snapshotID=None,
         sourceAppID=None,
@@ -341,6 +342,8 @@ class cloneApp(SDKCommon):
             data["snapshotID"] = snapshotID
         if namespaceMapping:
             data["namespaceMapping"] = namespaceMapping
+        if cloneStorageClass:
+            data["storageClassMapping"] = [{"destination": cloneStorageClass, "source": "*"}]
         if resourceFilter:
             data["restoreFilter"] = resourceFilter
 

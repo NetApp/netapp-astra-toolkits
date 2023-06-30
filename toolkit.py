@@ -124,6 +124,17 @@ def main(argv=sys.argv):
                 acl.backups = ard.buildList("backups", "id")
                 ard.snapshots = astraSDK.snapshots.getSnaps().main()
                 acl.snapshots = ard.buildList("snapshots", "id")
+                # if the destination cluster has been specified, only show those storage classes
+                if (clusterID := list(set(argv) & set(acl.destClusters))) and len(clusterID) == 1:
+                    ard.storageClasses = astraSDK.storageclasses.getStorageClasses().main(
+                        clusterStr=clusterID[0], hideUnmanaged=True
+                    )
+                else:
+                    ard.storageClasses = astraSDK.storageclasses.getStorageClasses().main(
+                        hideUnmanaged=True
+                    )
+                acl.storageClasses = ard.buildList("storageClasses", "name")
+                acl.storageClasses = list(set(acl.storageClasses))
 
             elif verbs["restore"]:
                 ard.apps = astraSDK.apps.getApps().main()
