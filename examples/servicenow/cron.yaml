@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: astra-backup
+spec:
+  schedule: "0 23 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+            - name: astra-control-config
+              secret:
+                secretName: astra-control-config
+          containers:
+          - name: alpine-actoolkit
+            image: alpine:latest
+            imagePullPolicy: IfNotPresent
+            envFrom:
+            - secretRef:
+                name: servicenow-auth
+            env:
+              - name: ACTOOLKIT_VERSION
+                value: "2.6.6"
+              - name: APP_ID
+                value: "3baa9263-4cac-4168-9556-2bc290539c33"
+              - name: BACKUPS_TO_KEEP
+                value: "3"
+            command: ["/bin/sh"]
+            args:
+            - -c
+            - >
+              echo "Starting install" &&
+              apk add py3-pip curl jq &&
+              python3 -m pip install --upgrade pip &&
+              python3 -m pip install actoolkit==$ACTOOLKIT_VERSION &&
+              echo "Starting file download and execution" &&
+              curl -sLO https://raw.githubusercontent.com/NetApp/netapp-astra-toolkits/main/examples/servicenow/backup.sh &&
+              sh backup.sh $APP_ID $BACKUPS_TO_KEEP
+            volumeMounts:
+              - mountPath: /etc/astra-toolkits
+                name: astra-control-config
+                readOnly: true
+          restartPolicy: Never

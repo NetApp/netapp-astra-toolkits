@@ -1,0 +1,1067 @@
+<?xml version="1.0" encoding="UTF-8"?><unload unload_date="2023-07-14 17:35:40">
+<sys_remote_update_set action="INSERT_OR_UPDATE">
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<application_name>Astra Control</application_name>
+<application_scope>x_1067116_astra_co</application_scope>
+<application_version>1.0.0</application_version>
+<collisions/>
+<commit_date/>
+<deleted/>
+<description>Astra Control Notifications</description>
+<inserted/>
+<name>Astra Control</name>
+<origin_sys_id/>
+<parent display_value=""/>
+<release_date/>
+<remote_base_update_set display_value=""/>
+<remote_parent_id/>
+<remote_sys_id>c93662d99788f110a615337e6253aff9</remote_sys_id>
+<state>loaded</state>
+<summary/>
+<sys_class_name>sys_remote_update_set</sys_class_name>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>e556e6d99788f110a615337e6253afdf</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<update_set display_value=""/>
+<update_source display_value=""/>
+<updated/>
+</sys_remote_update_set>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_security_acl_0678a4f497403110a615337e6253af62</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_security_acl"><sys_security_acl action="INSERT_OR_UPDATE"><active>true</active><admin_overrides>true</admin_overrides><advanced>false</advanced><condition/><description>Default access control on x_1067116_astra_co_ac_notifications</description><name>x_1067116_astra_co_ac_notifications</name><operation display_value="create">create</operation><script/><sys_class_name>sys_security_acl</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:47</sys_created_on><sys_id>0678a4f497403110a615337e6253af62</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co_ac_notifications</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_security_acl_0678a4f497403110a615337e6253af62</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:47</sys_updated_on><type display_value="record">record</type></sys_security_acl></record_update>]]></payload>
+<payload_hash>2085813018</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>2156621d9788f110a615337e6253af77</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787bb30000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>x_1067116_astra_co_ac_notifications</target_name>
+<type>Access Control</type>
+<update_domain>global</update_domain>
+<update_guid>0a78e43849403110eefc9be3b6ce7540</update_guid>
+<update_guid_history>0a78e43849403110eefc9be3b6ce7540:2085813018</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_index_x_1067116_astra_co_ac_notifications_sequencecount</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_index"><sys_index action="INSERT_OR_UPDATE"><col_name_string>sequencecount</col_name_string><index_col_name element="sequencecount" name="x_1067116_astra_co_ac_notifications">a32e6cf897403110a615337e6253afd4</index_col_name><logical_table_name>x_1067116_astra_co_ac_notifications</logical_table_name><sys_class_name>sys_index</sys_class_name><sys_created_by>system</sys_created_by><sys_created_on>2023-07-12 19:50:18</sys_created_on><sys_id>d2f1387097803110a615337e6253af56</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co_ac_notifications</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_index_x_1067116_astra_co_ac_notifications_sequencecount</sys_update_name><sys_updated_by>system</sys_updated_by><sys_updated_on>2023-07-12 19:50:18</sys_updated_on><table display_value="AC-Notifications" name="x_1067116_astra_co_ac_notifications">107728f497403110a615337e6253af63</table><unique_index>true</unique_index></sys_index></record_update>]]></payload>
+<payload_hash>75906067</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>2156e6d99788f110a615337e6253afe2</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787c260000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>107728f497403110a615337e6253af63</table>
+<target_name>AC-Notifications: SequenceCount</target_name>
+<type>Indexes</type>
+<update_domain>global</update_domain>
+<update_guid>96f13870d9803110e888d5be00f3aa58</update_guid>
+<update_guid_history>96f13870d9803110e888d5be00f3aa58:75906067</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_scope_privilege_a82d75cd97c87110a615337e6253af07</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_scope_privilege"><sys_scope_privilege action="INSERT_OR_UPDATE"><operation>execute</operation><source_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</source_scope><status>allowed</status><sys_class_name>sys_scope_privilege</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 19:57:10</sys_created_on><sys_id>a82d75cd97c87110a615337e6253af07</sys_id><sys_mod_count>0</sys_mod_count><sys_name>ScriptableRESTResponse.getStatusCode</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_scope_privilege_a82d75cd97c87110a615337e6253af07</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 19:57:10</sys_updated_on><target_name>ScriptableRESTResponse.getStatusCode</target_name><target_scope display_value="Global">global</target_scope><target_type>scriptable</target_type></sys_scope_privilege></record_update>]]></payload>
+<payload_hash>-1758520417</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>2556621d9788f110a615337e6253af76</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787c9d0000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>ScriptableRESTResponse.getStatusCode</target_name>
+<type>Cross scope privilege</type>
+<update_domain>global</update_domain>
+<update_guid>2c2d75cdb2c8711073efac153ae01f08</update_guid>
+<update_guid_history>2c2d75cdb2c8711073efac153ae01f08:-1758520417</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_documentation_x_1067116_astra_co_ac_notifications_body_en</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update><sys_documentation element="body" label="Body" language="en" table="x_1067116_astra_co_ac_notifications"><sys_documentation action="INSERT_OR_UPDATE"><element>body</element><help/><hint/><label>Body</label><language>en</language><name>x_1067116_astra_co_ac_notifications</name><plural>Bodies</plural><sys_class_name>sys_documentation</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:24:24</sys_created_on><sys_id>760c6cf897403110a615337e6253afc5</sys_id><sys_mod_count>0</sys_mod_count><sys_name>Body</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_documentation_x_1067116_astra_co_ac_notifications_body_en</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:24:24</sys_updated_on><url/><url_target/></sys_documentation></sys_documentation></record_update>]]></payload>
+<payload_hash>-398086222</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>2556e6d99788f110a615337e6253afe1</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787bfb0000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>AC-Notifications.Body</target_name>
+<type>Field Label</type>
+<update_domain>global</update_domain>
+<update_guid>f60c6cf8b24031101fa862b55e0e9cce</update_guid>
+<update_guid_history>f60c6cf8b24031101fa862b55e0e9cce:-398086222</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_scope_privilege_855db9cd97c87110a615337e6253af8e</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_scope_privilege"><sys_scope_privilege action="INSERT_OR_UPDATE"><operation>execute</operation><source_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</source_scope><status>allowed</status><sys_class_name>sys_scope_privilege</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 19:58:01</sys_created_on><sys_id>855db9cd97c87110a615337e6253af8e</sys_id><sys_mod_count>0</sys_mod_count><sys_name>ScriptableRESTResponse.getErrorMessage</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_scope_privilege_855db9cd97c87110a615337e6253af8e</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 19:58:01</sys_updated_on><target_name>ScriptableRESTResponse.getErrorMessage</target_name><target_scope display_value="Global">global</target_scope><target_type>scriptable</target_type></sys_scope_privilege></record_update>]]></payload>
+<payload_hash>-2097899489</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>2956621d9788f110a615337e6253af75</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787cb00000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>ScriptableRESTResponse.getErrorMessage</target_name>
+<type>Cross scope privilege</type>
+<update_domain>global</update_domain>
+<update_guid>095db9cd34c87110deec00431913888f</update_guid>
+<update_guid_history>095db9cd34c87110deec00431913888f:-2097899489</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_user_role_c278a4f497403110a615337e6253af59</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_user_role"><sys_user_role action="INSERT_OR_UPDATE"><assignable_by/><can_delegate>true</can_delegate><description/><elevated_privilege>false</elevated_privilege><grantable>true</grantable><includes_roles/><name>x_1067116_astra_co.ac_notifications_user</name><requires_subscription>-1</requires_subscription><scoped_admin>false</scoped_admin><suffix>ac_notifications_user</suffix><sys_class_name>sys_user_role</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:47</sys_created_on><sys_id>c278a4f497403110a615337e6253af59</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co.ac_notifications_user</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_user_role_c278a4f497403110a615337e6253af59</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:47</sys_updated_on></sys_user_role></record_update>]]></payload>
+<payload_hash>-1129534796</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>2956621d9788f110a615337e6253af78</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787ba60000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>x_1067116_astra_co.ac_notifications_user</target_name>
+<type>Role</type>
+<update_domain>global</update_domain>
+<update_guid>0278a4f40b403110bb5e525ebf231a5e</update_guid>
+<update_guid_history>0278a4f40b403110bb5e525ebf231a5e:-1129534796</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_db_object_107728f497403110a615337e6253af63</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_db_object"><sys_db_object action="INSERT_OR_UPDATE"><access>public</access><actions_access>false</actions_access><alter_access>false</alter_access><caller_access/><client_scripts_access>false</client_scripts_access><configuration_access>false</configuration_access><create_access>false</create_access><create_access_controls>true</create_access_controls><delete_access>false</delete_access><is_extendable>false</is_extendable><label>AC-Notifications</label><live_feed_enabled>false</live_feed_enabled><name>x_1067116_astra_co_ac_notifications</name><number_ref/><provider_class/><read_access>true</read_access><scriptable_table>false</scriptable_table><super_class/><sys_class_name>sys_db_object</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:47</sys_created_on><sys_id>107728f497403110a615337e6253af63</sys_id><sys_mod_count>0</sys_mod_count><sys_name>AC-Notifications</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_db_object_107728f497403110a615337e6253af63</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:47</sys_updated_on><update_access>false</update_access><user_role display_value="x_1067116_astra_co.ac_notifications_user" name="x_1067116_astra_co.ac_notifications_user">c278a4f497403110a615337e6253af59</user_role><ws_access>true</ws_access></sys_db_object></record_update>]]></payload>
+<payload_hash>-1726168575</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>2956e6d99788f110a615337e6253afe0</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787b750000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>AC-Notifications</target_name>
+<type>Table</type>
+<update_domain>global</update_domain>
+<update_guid>1678e438b94031102012672386ec4a99</update_guid>
+<update_guid_history>1678e438b94031102012672386ec4a99:-1726168575</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_rest_message_headers_650131c997887110a615337e6253af48</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_rest_message_headers"><sys_rest_message_headers action="INSERT_OR_UPDATE"><name>Authorization</name><rest_message display_value="Astra Control - List Notifications">d9e334f097803110a615337e6253afd9</rest_message><sys_class_name>sys_rest_message_headers</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 20:04:43</sys_created_on><sys_id>650131c997887110a615337e6253af48</sys_id><sys_mod_count>0</sys_mod_count><sys_name>Authorization</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_rest_message_headers_650131c997887110a615337e6253af48</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 20:04:43</sys_updated_on><value>${API_Token}</value></sys_rest_message_headers></record_update>]]></payload>
+<payload_hash>-625298540</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>2d56621d9788f110a615337e6253af74</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787cbb0000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>Authorization</target_name>
+<type>HTTP Headers</type>
+<update_domain>global</update_domain>
+<update_guid>8bdeb9cd69c871109e622dfadbb5dab7</update_guid>
+<update_guid_history>8bdeb9cd69c871109e622dfadbb5dab7:-625298540</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_security_acl_role_0e78e43897403110a615337e6253af4d</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_security_acl_role"><sys_security_acl_role action="INSERT_OR_UPDATE"><sys_class_name>sys_security_acl_role</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:47</sys_created_on><sys_id>0e78e43897403110a615337e6253af4d</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co_ac_notifications.x_1067116_astra_co.ac_notifications_user</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_security_acl display_value="x_1067116_astra_co_ac_notifications">0278e43897403110a615337e6253af4b</sys_security_acl><sys_update_name>sys_security_acl_role_0e78e43897403110a615337e6253af4d</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:47</sys_updated_on><sys_user_role display_value="x_1067116_astra_co.ac_notifications_user" name="x_1067116_astra_co.ac_notifications_user">c278a4f497403110a615337e6253af59</sys_user_role><transaction_id/></sys_security_acl_role></record_update>]]></payload>
+<payload_hash>786463347</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>2d56621d9788f110a615337e6253af77</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787b800000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>x_1067116_astra_co_ac_notifications.x_1067116_astra_co.ac_notifications_user</target_name>
+<type>Access Roles</type>
+<update_domain>global</update_domain>
+<update_guid>c678e4382f4031100c4e8ec09d960f4f</update_guid>
+<update_guid_history>c678e4382f4031100c4e8ec09d960f4f:786463347</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_scope_privilege_925a798997c87110a615337e6253affd</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_scope_privilege"><sys_scope_privilege action="INSERT_OR_UPDATE"><operation>execute</operation><source_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</source_scope><status>allowed</status><sys_class_name>sys_scope_privilege</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 19:45:00</sys_created_on><sys_id>925a798997c87110a615337e6253affd</sys_id><sys_mod_count>0</sys_mod_count><sys_name>ScriptableRESTMessageClient.execute</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_scope_privilege_925a798997c87110a615337e6253affd</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 19:45:00</sys_updated_on><target_name>ScriptableRESTMessageClient.execute</target_name><target_scope display_value="Global">global</target_scope><target_type>scriptable</target_type></sys_scope_privilege></record_update>]]></payload>
+<payload_hash>1809666241</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>6156621d9788f110a615337e6253af76</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787c850000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>ScriptableRESTMessageClient.execute</target_name>
+<type>Cross scope privilege</type>
+<update_domain>global</update_domain>
+<update_guid>925ab98915c8711030545153d5163655</update_guid>
+<update_guid_history>925ab98915c8711030545153d5163655:1809666241</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_dictionary_x_1067116_astra_co_ac_notifications_sequencecount</name>
+<payload>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;record_update&gt;&lt;sys_dictionary action="INSERT_OR_UPDATE" element="sequencecount" table="x_1067116_astra_co_ac_notifications"&gt;&lt;active&gt;true&lt;/active&gt;&lt;array&gt;false&lt;/array&gt;&lt;attributes/&gt;&lt;audit&gt;false&lt;/audit&gt;&lt;calculation&gt;&lt;![CDATA[(function calculatedFieldValue(current) {
+
+	// Add your code here
+	return '';  // return the calculated value
+
+})(current);]]&gt;&lt;/calculation&gt;&lt;choice/&gt;&lt;choice_field/&gt;&lt;choice_table/&gt;&lt;column_label&gt;SequenceCount&lt;/column_label&gt;&lt;comments/&gt;&lt;create_roles/&gt;&lt;default_value/&gt;&lt;defaultsort/&gt;&lt;delete_roles/&gt;&lt;dependent/&gt;&lt;dependent_on_field/&gt;&lt;display&gt;false&lt;/display&gt;&lt;dynamic_creation&gt;false&lt;/dynamic_creation&gt;&lt;dynamic_creation_script/&gt;&lt;dynamic_default_value/&gt;&lt;dynamic_ref_qual/&gt;&lt;element&gt;sequencecount&lt;/element&gt;&lt;element_reference&gt;false&lt;/element_reference&gt;&lt;foreign_database/&gt;&lt;formula/&gt;&lt;function_definition/&gt;&lt;function_field&gt;false&lt;/function_field&gt;&lt;internal_type display_value="Integer"&gt;integer&lt;/internal_type&gt;&lt;mandatory&gt;false&lt;/mandatory&gt;&lt;max_length&gt;40&lt;/max_length&gt;&lt;name&gt;x_1067116_astra_co_ac_notifications&lt;/name&gt;&lt;next_element/&gt;&lt;primary&gt;false&lt;/primary&gt;&lt;read_only&gt;false&lt;/read_only&gt;&lt;read_roles/&gt;&lt;reference/&gt;&lt;reference_cascade_rule/&gt;&lt;reference_floats&gt;false&lt;/reference_floats&gt;&lt;reference_key/&gt;&lt;reference_qual/&gt;&lt;reference_qual_condition/&gt;&lt;reference_type/&gt;&lt;spell_check&gt;false&lt;/spell_check&gt;&lt;staged&gt;false&lt;/staged&gt;&lt;sys_class_name&gt;sys_dictionary&lt;/sys_class_name&gt;&lt;sys_created_by&gt;admin&lt;/sys_created_by&gt;&lt;sys_created_on&gt;2023-07-12 19:34:01&lt;/sys_created_on&gt;&lt;sys_id&gt;a32e6cf897403110a615337e6253afd4&lt;/sys_id&gt;&lt;sys_name&gt;SequenceCount&lt;/sys_name&gt;&lt;sys_package display_value="Astra Control" source="x_1067116_astra_co"&gt;d9b4283097403110a615337e6253afc4&lt;/sys_package&gt;&lt;sys_policy/&gt;&lt;sys_scope display_value="Astra Control"&gt;d9b4283097403110a615337e6253afc4&lt;/sys_scope&gt;&lt;sys_update_name&gt;sys_dictionary_x_1067116_astra_co_ac_notifications_sequencecount&lt;/sys_update_name&gt;&lt;sys_updated_by&gt;admin&lt;/sys_updated_by&gt;&lt;sys_updated_on&gt;2023-07-12 19:34:01&lt;/sys_updated_on&gt;&lt;table_reference&gt;false&lt;/table_reference&gt;&lt;text_index&gt;false&lt;/text_index&gt;&lt;unique&gt;false&lt;/unique&gt;&lt;use_dependent_field&gt;false&lt;/use_dependent_field&gt;&lt;use_dynamic_default&gt;false&lt;/use_dynamic_default&gt;&lt;use_reference_qualifier&gt;simple&lt;/use_reference_qualifier&gt;&lt;virtual&gt;false&lt;/virtual&gt;&lt;virtual_type&gt;script&lt;/virtual_type&gt;&lt;widget/&gt;&lt;write_roles/&gt;&lt;xml_view&gt;false&lt;/xml_view&gt;&lt;/sys_dictionary&gt;&lt;/record_update&gt;</payload>
+<payload_hash>209549866</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>6156e6d99788f110a615337e6253afe1</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787c140000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>AC-Notifications.SequenceCount</target_name>
+<type>Dictionary</type>
+<update_domain>global</update_domain>
+<update_guid>3f3e283c194031100733aa00c9e0cfbc</update_guid>
+<update_guid_history>3f3e283c194031100733aa00c9e0cfbc:209549866</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_scope_privilege_46314285970c7110a615337e6253af7a</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_scope_privilege"><sys_scope_privilege action="INSERT_OR_UPDATE"><operation>execute</operation><source_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</source_scope><status>allowed</status><sys_class_name>sys_scope_privilege</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 20:15:01</sys_created_on><sys_id>46314285970c7110a615337e6253af7a</sys_id><sys_mod_count>0</sys_mod_count><sys_name>GlideRecord.insert</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_scope_privilege_46314285970c7110a615337e6253af7a</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 20:15:01</sys_updated_on><target_name>GlideRecord.insert</target_name><target_scope display_value="Global">global</target_scope><target_type>scriptable</target_type></sys_scope_privilege></record_update>]]></payload>
+<payload_hash>-358325633</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>6556621d9788f110a615337e6253af75</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787ced0000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>GlideRecord.insert</target_name>
+<type>Cross scope privilege</type>
+<update_domain>global</update_domain>
+<update_guid>063142856f0c71101cb898ae922e437b</update_guid>
+<update_guid_history>063142856f0c71101cb898ae922e437b:-358325633</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_ui_list_x_1067116_astra_co_ac_notifications_null</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update><sys_ui_list parent="" relationship="" sys_domain="global" table="x_1067116_astra_co_ac_notifications" version="2" view=""><sys_ui_list_element action="INSERT_OR_UPDATE"><average_value>false</average_value><element>body</element><list_id display_value="x_1067116_astra_co_ac_notifications" element="NULL" name="x_1067116_astra_co_ac_notifications" parent="NULL" relationship="NULL" sys_domain="global" view="Default view">dfb9794997c87110a615337e6253af93</list_id><max_value>false</max_value><min_value>false</min_value><position>0</position><sum>false</sum><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 19:42:20</sys_created_on><sys_id>9bb9794997c87110a615337e6253af95</sys_id><sys_mod_count>0</sys_mod_count><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 19:42:20</sys_updated_on></sys_ui_list_element><sys_ui_list_element action="INSERT_OR_UPDATE"><average_value>false</average_value><element>sequencecount</element><list_id display_value="x_1067116_astra_co_ac_notifications" element="NULL" name="x_1067116_astra_co_ac_notifications" parent="NULL" relationship="NULL" sys_domain="global" view="Default view">dfb9794997c87110a615337e6253af93</list_id><max_value>false</max_value><min_value>false</min_value><position>1</position><sum>false</sum><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 19:42:20</sys_created_on><sys_id>13b9794997c87110a615337e6253af96</sys_id><sys_mod_count>0</sys_mod_count><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 19:42:20</sys_updated_on></sys_ui_list_element><sys_ui_list action="INSERT_OR_UPDATE"><average_value>false</average_value><element/><max_value>false</max_value><min_value>false</min_value><name>x_1067116_astra_co_ac_notifications</name><parent/><position/><relationship/><sum>false</sum><sys_class_name>sys_ui_list</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 19:42:20</sys_created_on><sys_domain>global</sys_domain><sys_domain_path>/</sys_domain_path><sys_id>dfb9794997c87110a615337e6253af93</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co_ac_notifications</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_ui_list_x_1067116_astra_co_ac_notifications_null</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 19:42:20</sys_updated_on><sys_user/><view display_value="Default view" name="NULL">Default view</view><view_name/></sys_ui_list></sys_ui_list></record_update>]]></payload>
+<payload_hash>1042946288</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>6556621d9788f110a615337e6253af78</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787c6e0000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>AC-Notifications</target_name>
+<type>List Layout</type>
+<update_domain>global</update_domain>
+<update_guid>53b9794931c8711057d514d73df30b98</update_guid>
+<update_guid_history>53b9794931c8711057d514d73df30b98:1042946288</update_guid_history>
+<update_set display_value=""/>
+<view>Default view</view>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_app_d9b4283097403110a615337e6253afc4</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_app"><sys_app action="INSERT_OR_UPDATE"><active>true</active><can_edit_in_studio>true</can_edit_in_studio><enforce_license>log</enforce_license><guided_setup_guid/><hide_on_ui>false</hide_on_ui><installed_as_dependency>false</installed_as_dependency><js_level>es_latest</js_level><licensable>true</licensable><license/><license_category>none</license_category><license_definition/><license_model>none</license_model><logo>edb4e07097403110a615337e6253af68</logo><menu/><name>Astra Control</name><private>false</private><restrict_table_access>false</restrict_table_access><runtime_access_tracking>permissive</runtime_access_tracking><scope>x_1067116_astra_co</scope><scoped_administration>false</scoped_administration><short_description>Astra Control Notifications</short_description><source>x_1067116_astra_co</source><store_correlation_id/><store_url/><sys_class_name>sys_app</sys_class_name><sys_code/><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 18:52:21</sys_created_on><sys_id>d9b4283097403110a615337e6253afc4</sys_id><sys_mod_count>2</sys_mod_count><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 18:52:22</sys_updated_on><template/><trackable>true</trackable><uninstall_blocked>false</uninstall_blocked><user_role/><vendor/><vendor_prefix/><version>1.0.0</version></sys_app><sys_translated_text action="delete_multiple" query="documentkey=d9b4283097403110a615337e6253afc4"/><sys_attachment action="INSERT_OR_UPDATE"><average_image_color/><chunk_size_bytes>700000</chunk_size_bytes><compressed>true</compressed><content_type>image/png</content_type><file_name>NetApp-Astra-ship-graphic-RGB-blue.png</file_name><hash>c947ab1123a945711b25c9b3236268fad903c46b530108bec0972c8169b2c9de</hash><image_height/><image_width/><size_bytes>38829</size_bytes><size_compressed>37129</size_compressed><state>available</state><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 18:52:22</sys_created_on><sys_id>edb4e07097403110a615337e6253af68</sys_id><sys_mod_count>1</sys_mod_count><sys_updated_by>system</sys_updated_by><sys_updated_on>2023-07-12 18:52:22</sys_updated_on><table_name>sys_app</table_name><table_sys_id>d9b4283097403110a615337e6253afc4</table_sys_id></sys_attachment><sys_attachment_doc action="INSERT_OR_UPDATE"><data>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</data><length>45136</length><position>0</position><sys_attachment display_value="NetApp-Astra-ship-graphic-RGB-blue.png" sys_id="edb4e07097403110a615337e6253af68">edb4e07097403110a615337e6253af68</sys_attachment><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 18:52:22</sys_created_on><sys_id>21b4e07097403110a615337e6253af69</sys_id></sys_attachment_doc><sys_attachment_doc action="INSERT_OR_UPDATE"><data>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</data><length>4372</length><position>1</position><sys_attachment display_value="NetApp-Astra-ship-graphic-RGB-blue.png" sys_id="edb4e07097403110a615337e6253af68">edb4e07097403110a615337e6253af68</sys_attachment><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 18:52:22</sys_created_on><sys_id>a1b4e07097403110a615337e6253af69</sys_id></sys_attachment_doc></record_update>]]></payload>
+<payload_hash>-1982904078</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>6556e6d99788f110a615337e6253afe0</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787b320000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>Astra Control</target_name>
+<type>Custom Application</type>
+<update_domain>global</update_domain>
+<update_guid>25b4ec342c40311068268f25c6f54994</update_guid>
+<update_guid_history>25b4ec342c40311068268f25c6f54994:1833858558,61b4e07038403110be248176034ab36b:-699702497,1db4ec3427403110774f372f43f81685:297057893</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_security_acl_role_0e78e43897403110a615337e6253af41</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_security_acl_role"><sys_security_acl_role action="INSERT_OR_UPDATE"><sys_class_name>sys_security_acl_role</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:47</sys_created_on><sys_id>0e78e43897403110a615337e6253af41</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co_ac_notifications.x_1067116_astra_co.ac_notifications_user</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_security_acl display_value="x_1067116_astra_co_ac_notifications">0678a4f497403110a615337e6253af62</sys_security_acl><sys_update_name>sys_security_acl_role_0e78e43897403110a615337e6253af41</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:47</sys_updated_on><sys_user_role display_value="x_1067116_astra_co.ac_notifications_user" name="x_1067116_astra_co.ac_notifications_user">c278a4f497403110a615337e6253af59</sys_user_role><transaction_id/></sys_security_acl_role></record_update>]]></payload>
+<payload_hash>2099568562</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>6956621d9788f110a615337e6253af77</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787b900000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>x_1067116_astra_co_ac_notifications.x_1067116_astra_co.ac_notifications_user</target_name>
+<type>Access Roles</type>
+<update_domain>global</update_domain>
+<update_guid>8278e4387e403110f3716791a6d6c344</update_guid>
+<update_guid_history>8278e4387e403110f3716791a6d6c344:2099568562</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_security_acl_0278e43897403110a615337e6253af4b</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_security_acl"><sys_security_acl action="INSERT_OR_UPDATE"><active>true</active><admin_overrides>true</admin_overrides><advanced>false</advanced><condition/><description>Default access control on x_1067116_astra_co_ac_notifications</description><name>x_1067116_astra_co_ac_notifications</name><operation display_value="write">write</operation><script/><sys_class_name>sys_security_acl</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:47</sys_created_on><sys_id>0278e43897403110a615337e6253af4b</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co_ac_notifications</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_security_acl_0278e43897403110a615337e6253af4b</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:47</sys_updated_on><type display_value="record">record</type></sys_security_acl></record_update>]]></payload>
+<payload_hash>1097284138</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>6d56621d9788f110a615337e6253af76</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787b470000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>x_1067116_astra_co_ac_notifications</target_name>
+<type>Access Control</type>
+<update_domain>global</update_domain>
+<update_guid>4a78e438d940311022abc41d9b886b4c</update_guid>
+<update_guid_history>4a78e438d940311022abc41d9b886b4c:1097284138</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_embedded_help_role_0a78a4f497403110a615337e6253af5c</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_embedded_help_role"><sys_embedded_help_role action="INSERT_OR_UPDATE"><order>1000</order><role display_value="x_1067116_astra_co.ac_notifications_user" name="x_1067116_astra_co.ac_notifications_user">c278a4f497403110a615337e6253af59</role><sys_class_name>sys_embedded_help_role</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:47</sys_created_on><sys_id>0a78a4f497403110a615337e6253af5c</sys_id><sys_mod_count>0</sys_mod_count><sys_name>c278a4f497403110a615337e6253af59</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_embedded_help_role_0a78a4f497403110a615337e6253af5c</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:47</sys_updated_on></sys_embedded_help_role></record_update>]]></payload>
+<payload_hash>-449189257</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>6d56e6d99788f110a615337e6253afe1</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787b990000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>c278a4f497403110a615337e6253af59</target_name>
+<type>Embedded Help Role Priority</type>
+<update_domain>global</update_domain>
+<update_guid/>
+<update_guid_history/>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_scope_privilege_42314285970c7110a615337e6253af78</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_scope_privilege"><sys_scope_privilege action="INSERT_OR_UPDATE"><operation>execute</operation><source_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</source_scope><status>allowed</status><sys_class_name>sys_scope_privilege</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 20:15:01</sys_created_on><sys_id>42314285970c7110a615337e6253af78</sys_id><sys_mod_count>0</sys_mod_count><sys_name>Glide API: event management</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_scope_privilege_42314285970c7110a615337e6253af78</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 20:15:01</sys_updated_on><target_name>Glide API: event management</target_name><target_scope display_value="Global">global</target_scope><target_type>scriptable</target_type></sys_scope_privilege></record_update>]]></payload>
+<payload_hash>-1700801535</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>a156621d9788f110a615337e6253af75</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787ce30000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>Glide API: event management</target_name>
+<type>Cross scope privilege</type>
+<update_domain>global</update_domain>
+<update_guid>02314285900c71102b9a51aa51fab279</update_guid>
+<update_guid_history>02314285900c71102b9a51aa51fab279:-1700801535</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_security_acl_role_8678e43897403110a615337e6253af53</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_security_acl_role"><sys_security_acl_role action="INSERT_OR_UPDATE"><sys_class_name>sys_security_acl_role</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:47</sys_created_on><sys_id>8678e43897403110a615337e6253af53</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co_ac_notifications.x_1067116_astra_co.ac_notifications_user</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_security_acl display_value="x_1067116_astra_co_ac_notifications">8a78e43897403110a615337e6253af50</sys_security_acl><sys_update_name>sys_security_acl_role_8678e43897403110a615337e6253af53</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:47</sys_updated_on><sys_user_role display_value="x_1067116_astra_co.ac_notifications_user" name="x_1067116_astra_co.ac_notifications_user">c278a4f497403110a615337e6253af59</sys_user_role><transaction_id/></sys_security_acl_role></record_update>]]></payload>
+<payload_hash>-2014618809</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>a156621d9788f110a615337e6253af78</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787b5f0000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>x_1067116_astra_co_ac_notifications.x_1067116_astra_co.ac_notifications_user</target_name>
+<type>Access Roles</type>
+<update_domain>global</update_domain>
+<update_guid>4278e4384d403110d610b98b0b5d8455</update_guid>
+<update_guid_history>4278e4384d403110d610b98b0b5d8455:-2014618809</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sysevent_register_225bd98597087110a615337e6253affa</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sysevent_register"><sysevent_register action="INSERT_OR_UPDATE"><caller_access/><description>This event is fired for each Astra Control Notification</description><event_name>x_1067116_astra_co.AstraControlEventNoti</event_name><fired_by>Scheduled Script Execution - Astra Control List Notifications Cron</fired_by><queue/><suffix>AstraControlEventNotification</suffix><sys_class_name>sysevent_register</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 17:33:21</sys_created_on><sys_id>225bd98597087110a615337e6253affa</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co.AstraControlEventNoti</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sysevent_register_225bd98597087110a615337e6253affa</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 17:33:21</sys_updated_on><table>x_1067116_astra_co_ac_notifications</table></sysevent_register></record_update>]]></payload>
+<payload_hash>1709955396</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>a156e6d99788f110a615337e6253afe0</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787c520000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>x_1067116_astra_co.AstraControlEventNoti</target_name>
+<type>Event Registration</type>
+<update_domain>global</update_domain>
+<update_guid>713c1945d6087110679cba76e34029ea</update_guid>
+<update_guid_history>713c1945d6087110679cba76e34029ea:1709955396</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_security_acl_8a78e43897403110a615337e6253af50</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_security_acl"><sys_security_acl action="INSERT_OR_UPDATE"><active>true</active><admin_overrides>true</admin_overrides><advanced>false</advanced><condition/><description>Default access control on x_1067116_astra_co_ac_notifications</description><name>x_1067116_astra_co_ac_notifications</name><operation display_value="delete">delete</operation><script/><sys_class_name>sys_security_acl</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:47</sys_created_on><sys_id>8a78e43897403110a615337e6253af50</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co_ac_notifications</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_security_acl_8a78e43897403110a615337e6253af50</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:47</sys_updated_on><type display_value="record">record</type></sys_security_acl></record_update>]]></payload>
+<payload_hash>-1808838276</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>a556621d9788f110a615337e6253af77</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787b690000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>x_1067116_astra_co_ac_notifications</target_name>
+<type>Access Control</type>
+<update_domain>global</update_domain>
+<update_guid>c278e4387640311063103bac6d7b1352</update_guid>
+<update_guid_history>c278e4387640311063103bac6d7b1352:-1808838276</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_rest_message_fn_83f43cbc97403110a615337e6253afe8</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_rest_message_fn"><sys_rest_message_fn action="INSERT_OR_UPDATE"><authentication_type>inherit_from_parent</authentication_type><basic_auth_password/><basic_auth_profile/><basic_auth_user/><content/><function_name>Default GET</function_name><http_method>get</http_method><lock>false</lock><oauth2_profile/><protocol_name/><qualified_name>Astra Control - List Notifications [ Default GET ]</qualified_name><rest_endpoint>https://${AstraFQDN}/accounts/${AccountID}/core/v1/notifications?orderBy=eventTime%20desc</rest_endpoint><rest_message display_value="Astra Control - List Notifications">d9e334f097803110a615337e6253afd9</rest_message><sys_class_name>sys_rest_message_fn</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 20:03:27</sys_created_on><sys_id>83f43cbc97403110a615337e6253afe8</sys_id><sys_mod_count>1</sys_mod_count><sys_name>Default GET</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_rest_message_fn_83f43cbc97403110a615337e6253afe8</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 20:11:30</sys_updated_on><use_basic_auth>false</use_basic_auth><use_mid_server/><use_mutual_auth>false</use_mutual_auth></sys_rest_message_fn></record_update>]]></payload>
+<payload_hash>-1842512592</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>a556e6d99788f110a615337e6253afe2</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787c420000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>Default GET</target_name>
+<type>HTTP Method</type>
+<update_domain>global</update_domain>
+<update_guid>f4d67c7412803110fe029c035006b584</update_guid>
+<update_guid_history>f4d67c7412803110fe029c035006b584:-1842512592,07f43cbcd9403110e14114c9c0cf4eea:377285056</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_scope_privilege_d25a798997c87110a615337e6253affa</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_scope_privilege"><sys_scope_privilege action="INSERT_OR_UPDATE"><operation>execute</operation><source_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</source_scope><status>allowed</status><sys_class_name>sys_scope_privilege</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 19:45:00</sys_created_on><sys_id>d25a798997c87110a615337e6253affa</sys_id><sys_mod_count>0</sys_mod_count><sys_name>ScriptableRESTMessageClient.setStringParameterNoEscape</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_scope_privilege_d25a798997c87110a615337e6253affa</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 19:45:00</sys_updated_on><target_name>ScriptableRESTMessageClient.setStringParameterNoEscape</target_name><target_scope display_value="Global">global</target_scope><target_type>scriptable</target_type></sys_scope_privilege></record_update>]]></payload>
+<payload_hash>940988871</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>a956621d9788f110a615337e6253af76</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787c7b0000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>ScriptableRESTMessageClient.setStringParameterNoEscape</target_name>
+<type>Cross scope privilege</type>
+<update_domain>global</update_domain>
+<update_guid>de5a798996c87110cdc1545c0c4d99fb</update_guid>
+<update_guid_history>de5a798996c87110cdc1545c0c4d99fb:940988871</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_documentation_x_1067116_astra_co_ac_notifications__en</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update><sys_documentation element="" label="AC-Notifications" language="en" table="x_1067116_astra_co_ac_notifications"><sys_documentation action="INSERT_OR_UPDATE"><element/><help/><hint/><label>AC-Notifications</label><language>en</language><name>x_1067116_astra_co_ac_notifications</name><plural>AC-Notifications</plural><sys_class_name>sys_documentation</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:48</sys_created_on><sys_id>5e78e43897403110a615337e6253af5d</sys_id><sys_mod_count>0</sys_mod_count><sys_name>AC-Notifications</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_documentation_x_1067116_astra_co_ac_notifications__en</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:48</sys_updated_on><url/><url_target/></sys_documentation></sys_documentation></record_update>]]></payload>
+<payload_hash>1649060532</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>a956e6d99788f110a615337e6253afe1</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787bce0000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>AC-Notifications</target_name>
+<type>Field Label</type>
+<update_domain>global</update_domain>
+<update_guid>9a78e4384640311040f1e43bd0bf5f97</update_guid>
+<update_guid_history>9a78e4384640311040f1e43bd0bf5f97:1649060532</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_scope_privilege_86314285970c7110a615337e6253af7c</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_scope_privilege"><sys_scope_privilege action="INSERT_OR_UPDATE"><operation>create</operation><source_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</source_scope><status>allowed</status><sys_class_name>sys_scope_privilege</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 20:15:01</sys_created_on><sys_id>86314285970c7110a615337e6253af7c</sys_id><sys_mod_count>0</sys_mod_count><sys_name>incident</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_scope_privilege_86314285970c7110a615337e6253af7c</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 20:15:01</sys_updated_on><target_name>incident</target_name><target_scope display_value="Global">global</target_scope><target_type>sys_db_object</target_type></sys_scope_privilege></record_update>]]></payload>
+<payload_hash>1356317455</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>ad56621d9788f110a615337e6253af75</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787cc50000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>incident</target_name>
+<type>Cross scope privilege</type>
+<update_domain>global</update_domain>
+<update_guid>46314285af0c7110fb20c6d096232e7d</update_guid>
+<update_guid_history>46314285af0c7110fb20c6d096232e7d:1356317455</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_dictionary_x_1067116_astra_co_ac_notifications_null</name>
+<payload>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;record_update&gt;&lt;sys_dictionary action="INSERT_OR_UPDATE" element="" table="x_1067116_astra_co_ac_notifications"&gt;&lt;active&gt;true&lt;/active&gt;&lt;array&gt;false&lt;/array&gt;&lt;attributes/&gt;&lt;audit&gt;false&lt;/audit&gt;&lt;calculation&gt;&lt;![CDATA[(function calculatedFieldValue(current) {
+
+	// Add your code here
+	return '';  // return the calculated value
+
+})(current);]]&gt;&lt;/calculation&gt;&lt;choice/&gt;&lt;choice_field/&gt;&lt;choice_table/&gt;&lt;column_label/&gt;&lt;comments/&gt;&lt;create_roles/&gt;&lt;default_value/&gt;&lt;defaultsort/&gt;&lt;delete_roles/&gt;&lt;dependent/&gt;&lt;dependent_on_field/&gt;&lt;display&gt;false&lt;/display&gt;&lt;dynamic_creation&gt;false&lt;/dynamic_creation&gt;&lt;dynamic_creation_script/&gt;&lt;dynamic_default_value/&gt;&lt;dynamic_ref_qual/&gt;&lt;element/&gt;&lt;element_reference&gt;false&lt;/element_reference&gt;&lt;foreign_database/&gt;&lt;formula/&gt;&lt;function_definition/&gt;&lt;function_field&gt;false&lt;/function_field&gt;&lt;internal_type display_value="Collection"&gt;collection&lt;/internal_type&gt;&lt;mandatory&gt;false&lt;/mandatory&gt;&lt;max_length&gt;40&lt;/max_length&gt;&lt;name&gt;x_1067116_astra_co_ac_notifications&lt;/name&gt;&lt;next_element/&gt;&lt;primary&gt;false&lt;/primary&gt;&lt;read_only&gt;false&lt;/read_only&gt;&lt;read_roles/&gt;&lt;reference/&gt;&lt;reference_cascade_rule/&gt;&lt;reference_floats&gt;false&lt;/reference_floats&gt;&lt;reference_key/&gt;&lt;reference_qual/&gt;&lt;reference_qual_condition/&gt;&lt;reference_type/&gt;&lt;spell_check&gt;false&lt;/spell_check&gt;&lt;staged&gt;false&lt;/staged&gt;&lt;sys_class_name&gt;sys_dictionary&lt;/sys_class_name&gt;&lt;sys_created_by&gt;admin&lt;/sys_created_by&gt;&lt;sys_created_on&gt;2023-07-12 19:08:47&lt;/sys_created_on&gt;&lt;sys_id&gt;0678e43897403110a615337e6253af56&lt;/sys_id&gt;&lt;sys_name&gt;x_1067116_astra_co_ac_notifications&lt;/sys_name&gt;&lt;sys_package display_value="Astra Control" source="x_1067116_astra_co"&gt;d9b4283097403110a615337e6253afc4&lt;/sys_package&gt;&lt;sys_policy/&gt;&lt;sys_scope display_value="Astra Control"&gt;d9b4283097403110a615337e6253afc4&lt;/sys_scope&gt;&lt;sys_update_name&gt;sys_dictionary_x_1067116_astra_co_ac_notifications_null&lt;/sys_update_name&gt;&lt;sys_updated_by&gt;system&lt;/sys_updated_by&gt;&lt;sys_updated_on&gt;2023-07-14 10:35:14&lt;/sys_updated_on&gt;&lt;table_reference&gt;false&lt;/table_reference&gt;&lt;text_index&gt;false&lt;/text_index&gt;&lt;unique&gt;false&lt;/unique&gt;&lt;use_dependent_field&gt;false&lt;/use_dependent_field&gt;&lt;use_dynamic_default&gt;false&lt;/use_dynamic_default&gt;&lt;use_reference_qualifier&gt;simple&lt;/use_reference_qualifier&gt;&lt;virtual&gt;false&lt;/virtual&gt;&lt;virtual_type&gt;script&lt;/virtual_type&gt;&lt;widget/&gt;&lt;write_roles/&gt;&lt;xml_view&gt;false&lt;/xml_view&gt;&lt;/sys_dictionary&gt;&lt;/record_update&gt;</payload>
+<payload_hash>-1160129015</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>ad56e6d99788f110a615337e6253afe0</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787d010000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>AC-Notifications</target_name>
+<type>Dictionary</type>
+<update_domain>global</update_domain>
+<update_guid>de78e4382c403110e074b549d1ae2195</update_guid>
+<update_guid_history>de78e4382c403110e074b549d1ae2195:-1160129015</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_security_acl_8678e43897403110a615337e6253af45</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_security_acl"><sys_security_acl action="INSERT_OR_UPDATE"><active>true</active><admin_overrides>true</admin_overrides><advanced>false</advanced><condition/><description>Default access control on x_1067116_astra_co_ac_notifications</description><name>x_1067116_astra_co_ac_notifications</name><operation display_value="read">read</operation><script/><sys_class_name>sys_security_acl</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:47</sys_created_on><sys_id>8678e43897403110a615337e6253af45</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co_ac_notifications</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_security_acl_8678e43897403110a615337e6253af45</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:47</sys_updated_on><type display_value="record">record</type></sys_security_acl></record_update>]]></payload>
+<payload_hash>1387234278</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>e156621d9788f110a615337e6253af77</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787b530000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>x_1067116_astra_co_ac_notifications</target_name>
+<type>Access Control</type>
+<update_domain>global</update_domain>
+<update_guid>ce78e4382a40311039be4feae39c5646</update_guid>
+<update_guid_history>ce78e4382a40311039be4feae39c5646:1387234278</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_rest_message_d9e334f097803110a615337e6253afd9</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_rest_message"><sys_rest_message action="INSERT_OR_UPDATE"><access>package_private</access><authentication_type>no_authentication</authentication_type><basic_auth_password/><basic_auth_profile/><basic_auth_user/><description>Astra Control - List Notifications REST call.&#13;
+endpoint = "core/v1/notifications"</description><name>Astra Control - List Notifications</name><oauth2_profile/><protocol_name/><rest_endpoint>https://${AstraFQDN}/accounts/${AccountID}/core/v1/notifications</rest_endpoint><sys_class_name>sys_rest_message</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 20:03:27</sys_created_on><sys_id>d9e334f097803110a615337e6253afd9</sys_id><sys_mod_count>0</sys_mod_count><sys_name>Astra Control - List Notifications</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_rest_message_d9e334f097803110a615337e6253afd9</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 20:03:27</sys_updated_on><use_basic_auth>false</use_basic_auth><use_mutual_auth>false</use_mutual_auth></sys_rest_message></record_update>]]></payload>
+<payload_hash>-91133346</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>e156e6d99788f110a615337e6253afe2</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787c330000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>Astra Control - List Notifications</target_name>
+<type>REST Message</type>
+<update_domain>global</update_domain>
+<update_guid>4ff43cbc094031105575e45cb4148deb</update_guid>
+<update_guid_history>4ff43cbc094031105575e45cb4148deb:-91133346</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_scope_privilege_c2314285970c7110a615337e6253af73</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_scope_privilege"><sys_scope_privilege action="INSERT_OR_UPDATE"><operation>execute</operation><source_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</source_scope><status>allowed</status><sys_class_name>sys_scope_privilege</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 20:15:01</sys_created_on><sys_id>c2314285970c7110a615337e6253af73</sys_id><sys_mod_count>0</sys_mod_count><sys_name>GlideRecord.setValue</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_scope_privilege_c2314285970c7110a615337e6253af73</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 20:15:01</sys_updated_on><target_name>GlideRecord.setValue</target_name><target_scope display_value="Global">global</target_scope><target_type>scriptable</target_type></sys_scope_privilege></record_update>]]></payload>
+<payload_hash>172805587</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>e556621d9788f110a615337e6253af76</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787cd90000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>GlideRecord.setValue</target_name>
+<type>Cross scope privilege</type>
+<update_domain>global</update_domain>
+<update_guid>46314285de0c711013c14417d0089074</update_guid>
+<update_guid_history>46314285de0c711013c14417d0089074:172805587</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_documentation_x_1067116_astra_co_ac_notifications_sequencecount_en</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update><sys_documentation element="sequencecount" label="SequenceCount" language="en" table="x_1067116_astra_co_ac_notifications"><sys_documentation action="INSERT_OR_UPDATE"><element>sequencecount</element><help/><hint/><label>SequenceCount</label><language>en</language><name>x_1067116_astra_co_ac_notifications</name><plural>SequenceCounts</plural><sys_class_name>sys_documentation</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:34:01</sys_created_on><sys_id>bb3e283c97403110a615337e6253afb5</sys_id><sys_mod_count>0</sys_mod_count><sys_name>SequenceCount</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_documentation_x_1067116_astra_co_ac_notifications_sequencecount_en</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:34:01</sys_updated_on><url/><url_target/></sys_documentation></sys_documentation></record_update>]]></payload>
+<payload_hash>-1921516243</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>e556e6d99788f110a615337e6253afe1</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787c060000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>AC-Notifications.SequenceCount</target_name>
+<type>Field Label</type>
+<update_domain>global</update_domain>
+<update_guid>3b3eac7cc04031109750c17e38fde8d9</update_guid>
+<update_guid_history>3b3eac7cc04031109750c17e38fde8d9:-1921516243</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_scope_privilege_86314285970c7110a615337e6253af75</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_scope_privilege"><sys_scope_privilege action="INSERT_OR_UPDATE"><operation>execute</operation><source_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</source_scope><status>allowed</status><sys_class_name>sys_scope_privilege</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 20:15:01</sys_created_on><sys_id>86314285970c7110a615337e6253af75</sys_id><sys_mod_count>0</sys_mod_count><sys_name>GlideRecord.update</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_scope_privilege_86314285970c7110a615337e6253af75</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 20:15:01</sys_updated_on><target_name>GlideRecord.update</target_name><target_scope display_value="Global">global</target_scope><target_type>scriptable</target_type></sys_scope_privilege></record_update>]]></payload>
+<payload_hash>-488940961</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>e956621d9788f110a615337e6253af75</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787ccf0000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>GlideRecord.update</target_name>
+<type>Cross scope privilege</type>
+<update_domain>global</update_domain>
+<update_guid>46314285400c7110df0dd2ff552fcd76</update_guid>
+<update_guid_history>46314285400c7110df0dd2ff552fcd76:-488940961</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>ua_table_licensing_config_1278e43897403110a615337e6253af94</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="ua_table_licensing_config"><ua_table_licensing_config action="INSERT_OR_UPDATE"><is_fulfillment>false</is_fulfillment><license_condition/><license_model>none</license_model><license_roles/><name>x_1067116_astra_co_ac_notifications</name><op_delete>true</op_delete><op_insert>true</op_insert><op_update>true</op_update><owner_condition/><sys_class_name>ua_table_licensing_config</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:48</sys_created_on><sys_id>1278e43897403110a615337e6253af94</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co_ac_notifications</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>ua_table_licensing_config_1278e43897403110a615337e6253af94</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:48</sys_updated_on></ua_table_licensing_config></record_update>]]></payload>
+<payload_hash>-1705321008</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>e956621d9788f110a615337e6253af78</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787bda0000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>x_1067116_astra_co_ac_notifications</target_name>
+<type>Table Subscription Configuration</type>
+<update_domain>global</update_domain>
+<update_guid/>
+<update_guid_history/>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sysauto_script_659d61cd97487110a615337e6253af11</name>
+<payload>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;record_update table="sysauto_script"&gt;&lt;sysauto_script action="INSERT_OR_UPDATE"&gt;&lt;active&gt;true&lt;/active&gt;&lt;business_calendar/&gt;&lt;condition/&gt;&lt;conditional&gt;false&lt;/conditional&gt;&lt;entered_time&gt;1970-01-01 00:00:00&lt;/entered_time&gt;&lt;max_drift/&gt;&lt;name&gt;List Notifications Cron&lt;/name&gt;&lt;offset/&gt;&lt;offset_type&gt;0&lt;/offset_type&gt;&lt;run_as display_value="System Administrator"&gt;6816f79cc0a8016401c5a33be04be441&lt;/run_as&gt;&lt;run_as_tz/&gt;&lt;run_dayofmonth&gt;1&lt;/run_dayofmonth&gt;&lt;run_dayofweek&gt;1&lt;/run_dayofweek&gt;&lt;run_period&gt;1970-01-01 00:15:00&lt;/run_period&gt;&lt;run_start&gt;2023-07-01 19:00:00&lt;/run_start&gt;&lt;run_time&gt;1970-01-01 08:00:00&lt;/run_time&gt;&lt;run_type&gt;periodically&lt;/run_type&gt;&lt;script&gt;&lt;![CDATA[TABLE_NAME = "x_1067116_astra_co_ac_notifications";
+REST_NAME = "x_1067116_astra_co.Astra Control - List Notifications";
+EVENTQ_NAME = "x_1067116_astra_co.AstraControlEventNoti";
+
+// Performs a GET API call against the notifications endpoint in Astra Control
+function makeApiCall() {
+    var r = new sn_ws.RESTMessageV2(REST_NAME, "Default GET");
+    r.setStringParameterNoEscape("AstraFQDN", "astra.netapp.io");
+    r.setStringParameterNoEscape("AccountID", "12345678-abcd-4efg-1234-567890abcdef");
+    r.setStringParameterNoEscape("API_Token", "Bearer thisIsJustAnExample_token-replaceWithYours==");
+    var response = r.execute();
+    var responseBody = response.getBody();
+    return JSON.parse(responseBody);
+}
+
+// Finds and returns the largest sequencecount value from the database
+function getSequenceCount() {
+    var lastSequenceCount = 0;
+    var target = new GlideRecord(TABLE_NAME);
+    target.query(); 
+    while(target.next()) {
+        if (Number(target.sequencecount) &gt; lastSequenceCount) {
+            lastSequenceCount = Number(target.sequencecount);
+        }
+    }
+    gs.info("last sequencecount in DB: " + lastSequenceCount);
+    return lastSequenceCount;
+}
+
+// Adds a new notification object to the database
+function addToDB(jObject) {
+    gs.info("Adding notificationID " + JSON.stringify(jObject.id) + " with sequenceCount " + sequenceCount + " to DB");
+    var rinsert = new GlideRecord(TABLE_NAME);
+    rinsert.initialize();
+    rinsert.setValue("sequencecount", sequenceCount);
+    rinsert.setValue("body", JSON.stringify(jObject));
+    rinsert.update();
+    return rinsert;
+}
+
+// Opens an incident based on a notification json
+function openIncident(jObject) {
+    gs.info("Opening case for notificationID " + jObject.id + " with summary: " + jObject.summary);
+    var inc = new GlideRecord("incident");
+    inc.initialize();
+    inc.short_description = "Astra Control: " + jObject.summary;
+    inc.description = jObject.description;
+    inc.description += "\n\n" + JSON.stringify(jObject, null, 4);
+    inc.impact = 2;
+    inc.urgency = 2;
+    inc.insert();
+}
+
+// Creates an event
+function createEvent(jObject, glideRecordObject) {
+    gs.info("Creating event for notificationID " + jObject.id + " with summary: " + jObject.summary);
+    var summary = "Astra Control: " + jObject.summary;
+    var description = JSON.stringify(jObject, null, 4);
+    gs.eventQueue(EVENTQ_NAME, glideRecordObject, summary, description);
+}
+
+try {
+    var lastSequenceCount = getSequenceCount();
+    var rjson = makeApiCall();
+    // Loop through the notifications response
+    for (var i = 0; i &lt; rjson.items.length; i++) {
+        var sequenceCount = Number(JSON.stringify(rjson.items[i].sequenceCount));
+        // If true, then it's a new notification
+        if (sequenceCount &gt; lastSequenceCount) {
+            var glideRecordObject = addToDB(rjson.items[i]);
+            // Create an event for all notification types
+            createEvent(rjson.items[i], glideRecordObject);
+
+            // Optionally uncomment if you prefer to directly open a case
+            //var severity = JSON.stringify(rjson.items[i].severity);
+            //if (severity.contains("warning") || severity.contains("critical")) {
+                //openIncident(rjson.items[i]);
+            //}
+        }
+    }
+}
+catch(ex) {
+    gs.error(ex.message);
+}]]&gt;&lt;/script&gt;&lt;sys_class_name&gt;sysauto_script&lt;/sys_class_name&gt;&lt;sys_created_by&gt;admin&lt;/sys_created_by&gt;&lt;sys_created_on&gt;2023-07-13 18:53:39&lt;/sys_created_on&gt;&lt;sys_id&gt;659d61cd97487110a615337e6253af11&lt;/sys_id&gt;&lt;sys_mod_count&gt;8&lt;/sys_mod_count&gt;&lt;sys_name&gt;List Notifications Cron&lt;/sys_name&gt;&lt;sys_package display_value="Astra Control" source="x_1067116_astra_co"&gt;d9b4283097403110a615337e6253afc4&lt;/sys_package&gt;&lt;sys_policy/&gt;&lt;sys_scope display_value="Astra Control"&gt;d9b4283097403110a615337e6253afc4&lt;/sys_scope&gt;&lt;sys_update_name&gt;sysauto_script_659d61cd97487110a615337e6253af11&lt;/sys_update_name&gt;&lt;sys_updated_by&gt;admin&lt;/sys_updated_by&gt;&lt;sys_updated_on&gt;2023-07-14 17:31:50&lt;/sys_updated_on&gt;&lt;time_zone/&gt;&lt;upgrade_safe&gt;false&lt;/upgrade_safe&gt;&lt;/sysauto_script&gt;&lt;/record_update&gt;</payload>
+<payload_hash>525570292</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>e956e6d99788f110a615337e6253afdf</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787d180000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>List Notifications Cron</target_name>
+<type>Scheduled Script Execution</type>
+<update_domain>global</update_domain>
+<update_guid/>
+<update_guid_history/>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_dictionary_x_1067116_astra_co_ac_notifications_body</name>
+<payload>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;record_update&gt;&lt;sys_dictionary action="INSERT_OR_UPDATE" element="body" table="x_1067116_astra_co_ac_notifications"&gt;&lt;active&gt;true&lt;/active&gt;&lt;array&gt;false&lt;/array&gt;&lt;attributes/&gt;&lt;audit&gt;false&lt;/audit&gt;&lt;calculation&gt;&lt;![CDATA[(function calculatedFieldValue(current) {
+
+	// Add your code here
+	return '';  // return the calculated value
+
+})(current);]]&gt;&lt;/calculation&gt;&lt;choice/&gt;&lt;choice_field/&gt;&lt;choice_table/&gt;&lt;column_label&gt;Body&lt;/column_label&gt;&lt;comments/&gt;&lt;create_roles/&gt;&lt;default_value/&gt;&lt;defaultsort/&gt;&lt;delete_roles/&gt;&lt;dependent/&gt;&lt;dependent_on_field/&gt;&lt;display&gt;false&lt;/display&gt;&lt;dynamic_creation&gt;false&lt;/dynamic_creation&gt;&lt;dynamic_creation_script/&gt;&lt;dynamic_default_value/&gt;&lt;dynamic_ref_qual/&gt;&lt;element&gt;body&lt;/element&gt;&lt;element_reference&gt;false&lt;/element_reference&gt;&lt;foreign_database/&gt;&lt;formula/&gt;&lt;function_definition/&gt;&lt;function_field&gt;false&lt;/function_field&gt;&lt;internal_type display_value="String"&gt;string&lt;/internal_type&gt;&lt;mandatory&gt;false&lt;/mandatory&gt;&lt;max_length&gt;255&lt;/max_length&gt;&lt;name&gt;x_1067116_astra_co_ac_notifications&lt;/name&gt;&lt;next_element/&gt;&lt;primary&gt;false&lt;/primary&gt;&lt;read_only&gt;false&lt;/read_only&gt;&lt;read_roles/&gt;&lt;reference/&gt;&lt;reference_cascade_rule/&gt;&lt;reference_floats&gt;false&lt;/reference_floats&gt;&lt;reference_key/&gt;&lt;reference_qual/&gt;&lt;reference_qual_condition/&gt;&lt;reference_type/&gt;&lt;spell_check&gt;false&lt;/spell_check&gt;&lt;staged&gt;false&lt;/staged&gt;&lt;sys_class_name&gt;sys_dictionary&lt;/sys_class_name&gt;&lt;sys_created_by&gt;admin&lt;/sys_created_by&gt;&lt;sys_created_on&gt;2023-07-12 19:24:24&lt;/sys_created_on&gt;&lt;sys_id&gt;eb69e8f097403110a615337e6253afe1&lt;/sys_id&gt;&lt;sys_name&gt;Body&lt;/sys_name&gt;&lt;sys_package display_value="Astra Control" source="x_1067116_astra_co"&gt;d9b4283097403110a615337e6253afc4&lt;/sys_package&gt;&lt;sys_policy/&gt;&lt;sys_scope display_value="Astra Control"&gt;d9b4283097403110a615337e6253afc4&lt;/sys_scope&gt;&lt;sys_update_name&gt;sys_dictionary_x_1067116_astra_co_ac_notifications_body&lt;/sys_update_name&gt;&lt;sys_updated_by&gt;admin&lt;/sys_updated_by&gt;&lt;sys_updated_on&gt;2023-07-12 19:24:24&lt;/sys_updated_on&gt;&lt;table_reference&gt;false&lt;/table_reference&gt;&lt;text_index&gt;false&lt;/text_index&gt;&lt;unique&gt;false&lt;/unique&gt;&lt;use_dependent_field&gt;false&lt;/use_dependent_field&gt;&lt;use_dynamic_default&gt;false&lt;/use_dynamic_default&gt;&lt;use_reference_qualifier&gt;simple&lt;/use_reference_qualifier&gt;&lt;virtual&gt;false&lt;/virtual&gt;&lt;virtual_type&gt;script&lt;/virtual_type&gt;&lt;widget/&gt;&lt;write_roles/&gt;&lt;xml_view&gt;false&lt;/xml_view&gt;&lt;/sys_dictionary&gt;&lt;/record_update&gt;</payload>
+<payload_hash>-391103914</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>e956e6d99788f110a615337e6253afe0</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787bee0000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>AC-Notifications.Body</target_name>
+<type>Dictionary</type>
+<update_domain>global</update_domain>
+<update_guid>3e0c6cf8954031104f73734ee0ab82cc</update_guid>
+<update_guid_history>3e0c6cf8954031104f73734ee0ab82cc:-391103914</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_scope_privilege_365ab98997c87110a615337e6253af56</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_scope_privilege"><sys_scope_privilege action="INSERT_OR_UPDATE"><operation>execute</operation><source_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</source_scope><status>allowed</status><sys_class_name>sys_scope_privilege</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-13 19:45:02</sys_created_on><sys_id>365ab98997c87110a615337e6253af56</sys_id><sys_mod_count>0</sys_mod_count><sys_name>ScriptableRESTResponse.getBody</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_update_name>sys_scope_privilege_365ab98997c87110a615337e6253af56</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-13 19:45:02</sys_updated_on><target_name>ScriptableRESTResponse.getBody</target_name><target_scope display_value="Global">global</target_scope><target_type>scriptable</target_type></sys_scope_privilege></record_update>]]></payload>
+<payload_hash>-1858966311</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>ed56621d9788f110a615337e6253af74</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787c920000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table/>
+<target_name>ScriptableRESTResponse.getBody</target_name>
+<type>Cross scope privilege</type>
+<update_domain>global</update_domain>
+<update_guid>f25ab98946c87110a3bf5463a4c10b57</update_guid>
+<update_guid_history>f25ab98946c87110a3bf5463a4c10b57:-1858966311</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+<sys_update_xml action="INSERT_OR_UPDATE">
+<action>INSERT_OR_UPDATE</action>
+<application display_value="Astra Control">d9b4283097403110a615337e6253afc4</application>
+<category>customer</category>
+<comments/>
+<name>sys_security_acl_role_8278e43897403110a615337e6253af48</name>
+<payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_security_acl_role"><sys_security_acl_role action="INSERT_OR_UPDATE"><sys_class_name>sys_security_acl_role</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2023-07-12 19:08:47</sys_created_on><sys_id>8278e43897403110a615337e6253af48</sys_id><sys_mod_count>0</sys_mod_count><sys_name>x_1067116_astra_co_ac_notifications.x_1067116_astra_co.ac_notifications_user</sys_name><sys_package display_value="Astra Control" source="x_1067116_astra_co">d9b4283097403110a615337e6253afc4</sys_package><sys_policy/><sys_scope display_value="Astra Control">d9b4283097403110a615337e6253afc4</sys_scope><sys_security_acl display_value="x_1067116_astra_co_ac_notifications">8678e43897403110a615337e6253af45</sys_security_acl><sys_update_name>sys_security_acl_role_8278e43897403110a615337e6253af48</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2023-07-12 19:08:47</sys_updated_on><sys_user_role display_value="x_1067116_astra_co.ac_notifications_user" name="x_1067116_astra_co.ac_notifications_user">c278a4f497403110a615337e6253af59</sys_user_role><transaction_id/></sys_security_acl_role></record_update>]]></payload>
+<payload_hash>40614082</payload_hash>
+<remote_update_set display_value="Astra Control">e556e6d99788f110a615337e6253afdf</remote_update_set>
+<replace_on_upgrade>false</replace_on_upgrade>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2023-07-14 17:35:40</sys_created_on>
+<sys_id>ed56621d9788f110a615337e6253af77</sys_id>
+<sys_mod_count>0</sys_mod_count>
+<sys_recorded_at>18955787bc30000001</sys_recorded_at>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2023-07-14 17:35:40</sys_updated_on>
+<table>x_1067116_astra_co_ac_notifications</table>
+<target_name>x_1067116_astra_co_ac_notifications.x_1067116_astra_co.ac_notifications_user</target_name>
+<type>Access Roles</type>
+<update_domain>global</update_domain>
+<update_guid>4e78e438ec4031101ca28ab81349aa49</update_guid>
+<update_guid_history>4e78e438ec4031101ca28ab81349aa49:40614082</update_guid_history>
+<update_set display_value=""/>
+<view/>
+</sys_update_xml>
+</unload>
