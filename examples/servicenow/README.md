@@ -1,8 +1,17 @@
 # Astra Control - ServiceNow Integration
 
-This repo details utilizing Kubernetes CronJobs to initiate Astra Control application backups, with the purpose of any backup failures automatically creating a ServiceNow incident or event.
+This repo details two methods for integrating Astra Control with ServiceNow:
 
-## actoolkit Secret Creation
+* Creating an application within ServiceNow which queries the `notifications` endpoint of Astra Control
+* Utilizing Kubernetes CronJobs to initiate Astra Control application backups, with the purpose of any backup failures automatically creating a ServiceNow incident or event
+
+## ServiceNow Application
+
+Either utilize the [update set](./sys_remote_update_set_e556e6d99788f110a615337e6253afdf.xml) contained within this repo, or manually build the application as detailed in a to-be-linked blog.
+
+## Kubernetes CronJob
+
+### actoolkit Secret Creation
 
 In order to initiate application backups against Astra Control, our Kubernetes CronJob must have an appropriate access information and privileges mounted to the pod.  This example makes use of the [Astra Control SDK](https://github.com/NetApp/netapp-astra-toolkits), so a `config.yaml` file is needed which contains several components.
 
@@ -37,7 +46,7 @@ NAMESPACE=wordpress
 kubectl -n $NAMESPACE create secret generic astra-control-config --from-file=config.yaml
 ```
 
-## ServiceNow Secret Creation
+### ServiceNow Secret Creation
 
 If the Astra Control backup fails, a ServiceNow incident or event can be automatically created via the CronJob script. For this functionality, ServiceNow authentication information (which has the ability to open an incident via an API call), must be stored as a secret within the Kubernetes namespace.
 
@@ -51,7 +60,7 @@ kubectl -n $NAMESPACE create secret generic servicenow-auth \
     --from-literal=snow_password='thisIsNotARealPassword'
 ```
 
-## CronJob Creation
+### CronJob Creation
 
 To apply the Kubernetes CronJob, run the following command:
 
@@ -59,7 +68,7 @@ To apply the Kubernetes CronJob, run the following command:
 kubectl -n $NAMESPACE apply -f cron.yaml
 ```
 
-## CronJob Verification
+### CronJob Verification
 
 To view the status of the CronJob, run the following command:
 
@@ -86,16 +95,15 @@ astra-backup   */10 * * * *   False     0        3m57s           86m
 We can also check for the status of the pods, and view the logs to ensure everything completed successfully:
 
 ```text
-$ kubectl -n wordpress get pods
+$ kubectl -n $NAMESPACE get pods
 NAME                          READY   STATUS      RESTARTS   AGE
-astra-backup-27903980-vfgbg   0/1     Completed   0          14m
 astra-backup-27903990-d2w82   0/1     Completed   0          4m10s
 wordpress-597fbbf884-pxk58    1/1     Running     0          24h
 wordpress-mariadb-0           1/1     Running     0          24h
 ```
 
 ```text
-$ kubectl -n wordpress logs astra-backup-27903990-d2w82 | tail
+$ kubectl -n $NAMESPACE logs astra-backup-27903990-d2w82 | tail
 Starting file download and execution
 --> creating astra control backup
 {"type": "application/astra-appBackup", "version": "1.1", "id": "af6ac8e9-ee14-4ea7-a5c3-a75984fe4c67", "name": "cron-20230120183019", "bucketID": "361aa1e0-60bc-4f1b-ba3b-bdaa890b5bac", "state": "pending", "stateUnready": [], "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/triggerType", "value": "backup"}], "creationTimestamp": "2023-01-20T18:30:25Z", "modificationTimestamp": "2023-01-20T18:30:25Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
