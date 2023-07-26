@@ -821,7 +821,7 @@ class ToolkitParser:
         self.subparserCreateHook.add_argument(
             "-o",
             "--operation",
-            choices=["pre-snapshot", "post-snapshot", "pre-backup", "post-backup", "post-restore"],
+            choices=["pre-snapshot", "post-snapshot", "pre-backup", "post-backup", "post-restore", "post-failover"],
             required=True,
             type=str.lower,
             help="The operation type for the execution hook",
