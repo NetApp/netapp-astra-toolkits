@@ -136,7 +136,7 @@ class createHook(SDKCommon):
         params = {}
         data = {
             "type": "application/astra-executionHook",
-            "version": "1.2",
+            "version": "1.3",
             "name": name,
             "hookType": "custom",
             "action": action,
