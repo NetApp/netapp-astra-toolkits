@@ -7,7 +7,7 @@ This repo details two methods for integrating Astra Control with ServiceNow:
 
 ## ServiceNow Application
 
-Either utilize the [update set](./sys_remote_update_set_e556e6d99788f110a615337e6253afdf.xml) contained within this repo, or manually build the application as detailed in a to-be-linked blog.
+Either utilize the [update set](./sys_remote_update_set_e556e6d99788f110a615337e6253afdf.xml) contained within this repo, or manually build the application as detailed [here](https://community.netapp.com/t5/Tech-ONTAP-Blogs/Integrating-ServiceNow-with-Astra-Control-for-IT-operations-management/ba-p/446419).
 
 ## Kubernetes CronJob
 
