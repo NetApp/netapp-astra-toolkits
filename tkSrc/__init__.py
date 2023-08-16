@@ -16,6 +16,7 @@
 
 from . import classes
 from . import clone
+from . import copy
 from . import create
 from . import deploy
 from . import destroy

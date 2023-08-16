@@ -75,6 +75,10 @@ class ToolkitParser:
             aliases=["get"],
             help="List all items in a class",
         )
+        self.parserCopy = self.subparsers.add_parser(
+            "copy",
+            help="Copy resources from one app to another app",
+        )
         self.parserCreate = self.subparsers.add_parser(
             "create",
             help="Create an object",
@@ -101,6 +105,9 @@ class ToolkitParser:
         """'list', 'create', 'manage', 'destroy', 'unmanage', and 'update' all have
         subcommands, for example, 'list apps' or 'manage cluster'."""
         self.subparserList = self.parserList.add_subparsers(
+            title="objectType", dest="objectType", required=True
+        )
+        self.subparserCopy = self.parserCopy.add_subparsers(
             title="objectType", dest="objectType", required=True
         )
         self.subparserCreate = self.parserCreate.add_subparsers(
@@ -195,6 +202,15 @@ class ToolkitParser:
         self.subparserListUsers = self.subparserList.add_parser(
             "users",
             help="list users",
+        )
+
+    def sub_copy_commands(self):
+        """copy 'X'"""
+        self.subparserCopyHooks = self.subparserCopy.add_parser(
+            "hooks", help="copy hooks (executionHooks) from one app to another"
+        )
+        self.subparserCopyProtections = self.subparserCopy.add_parser(
+            "protections", help="copy protections from one app to another"
         )
 
     def sub_create_commands(self):
@@ -740,6 +756,32 @@ class ToolkitParser:
             help="Filter users by this value to minimize output (partial match)",
         )
 
+    def copy_hooks_args(self):
+        """copy hooks args and flags"""
+        self.subparserCopyHooks.add_argument(
+            "sourceApp",
+            choices=(None if self.plaidMode else self.acl.apps),
+            help="the app to source the hooks from",
+        )
+        self.subparserCopyHooks.add_argument(
+            "destinationApp",
+            choices=(None if self.plaidMode else self.acl.destApps),
+            help="the app to copy the hooks into",
+        )
+
+    def copy_protections_args(self):
+        """copy protections args and flags"""
+        self.subparserCopyProtections.add_argument(
+            "sourceApp",
+            choices=(None if self.plaidMode else self.acl.apps),
+            help="the app to source the protections from",
+        )
+        self.subparserCopyProtections.add_argument(
+            "destinationApp",
+            choices=(None if self.plaidMode else self.acl.destApps),
+            help="the app to copy the protections into",
+        )
+
     def create_backup_args(self):
         """create backups args and flags"""
         self.subparserCreateBackup.add_argument(
@@ -821,7 +863,14 @@ class ToolkitParser:
         self.subparserCreateHook.add_argument(
             "-o",
             "--operation",
-            choices=["pre-snapshot", "post-snapshot", "pre-backup", "post-backup", "post-restore", "post-failover"],
+            choices=[
+                "pre-snapshot",
+                "post-snapshot",
+                "pre-backup",
+                "post-backup",
+                "post-restore",
+                "post-failover",
+            ],
             required=True,
             type=str.lower,
             help="The operation type for the execution hook",
@@ -1431,6 +1480,7 @@ class ToolkitParser:
 
         # Of those top-level commands with sub-commands, create those sub-command parsers
         self.sub_list_commands()
+        self.sub_copy_commands()
         self.sub_create_commands()
         self.sub_manage_commands()
         self.sub_destroy_commands()
@@ -1460,6 +1510,9 @@ class ToolkitParser:
         self.list_snapshots_args()
         self.list_storageclasses_args()
         self.list_users_args()
+
+        self.copy_hooks_args()
+        self.copy_protections_args()
 
         self.create_backup_args()
         self.create_cluster_args()

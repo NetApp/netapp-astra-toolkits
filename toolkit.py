@@ -40,6 +40,7 @@ def main(argv=sys.argv):
             "list": False,
             "get": False,
             "create": False,
+            "copy": False,
             "manage": False,
             "define": False,
             "destroy": False,
@@ -149,6 +150,7 @@ def main(argv=sys.argv):
                     for a in argv[verbPosition + 1 :]:
                         acl.backups += ard.buildList("backups", "id", "appID", a)
                         acl.snapshots += ard.buildList("snapshots", "id", "appID", a)
+
             elif (
                 verbs["create"]
                 and len(argv) - verbPosition >= 2
@@ -211,6 +213,14 @@ def main(argv=sys.argv):
                                 labelString += "=" + label["value"]
                             acl.labels.append(labelString)
                 acl.labels = list(set(acl.labels))
+
+            elif verbs["copy"]:
+                ard.apps = astraSDK.apps.getApps().main()
+                acl.apps = ard.buildList("apps", "id")
+                if len(argv) - verbPosition > 2 and argv[verbPosition + 2] in acl.apps:
+                    acl.destApps = [x for x in acl.apps if x != argv[verbPosition + 2]]
+                else:
+                    acl.destApps = [x for x in acl.apps]
 
             elif (
                 verbs["list"]
@@ -383,6 +393,8 @@ def main(argv=sys.argv):
         tkSrc.restore.main(args, parser)
     elif args.subcommand == "list" or args.subcommand == "get":
         tkSrc.list.main(args)
+    elif args.subcommand == "copy":
+        tkSrc.copy.main(args)
     elif args.subcommand == "create":
         tkSrc.create.main(args, parser, ard)
     elif args.subcommand == "manage" or args.subcommand == "define":
