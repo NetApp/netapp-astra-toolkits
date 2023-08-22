@@ -35,9 +35,8 @@ For the **developer** use case or to [manually install](#3-manual-installation) 
 
 * Python 3.8+
 * Pip 21.1.2+
-* Virtualenv 20.4.7+
 * Git 2.30.2+
-* Kubectl 1.17+
+* Kubectl 1.23+
 * Azure CLI (`az`) 2.25.0+ or Google Cloud SDK (`gcloud`) 345.0.0+ or AWS CLI (`aws`) 1.22.0+
 * Helm 3.2.1+
 
@@ -158,7 +157,7 @@ cd netapp-astra-toolkits
 Run the following commands to add the required Python elements:
 
 ```text
-virtualenv toolkit
+python3 -m venv toolkit
 source toolkit/bin/activate
 pip install -r requirements.txt
 ```
