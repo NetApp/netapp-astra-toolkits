@@ -23,7 +23,7 @@ objectType:
 The `copy hooks` command allows you to copy all execution hooks from a source app to a destination app.  The command usage is:
 
 ```text
-actoolkit copy hook <sourceAppID> <destinationAppID>
+actoolkit copy hooks <sourceAppID> <destinationAppID>
 ```
 
 Example output:
