@@ -238,18 +238,25 @@ def main(argv=sys.argv):
                     acl.clusters = list(set(acl.clusters))
                 elif argv[verbPosition + 1] == "bucket":
                     ard.credentials = astraSDK.credentials.getCredentials().main()
-                    for credential in ard.credentials["items"]:
-                        if credential["metadata"].get("labels"):
-                            credID = None
-                            if credential.get("keyType") == "s3":
-                                credID = credential["id"]
-                            else:
-                                for label in credential["metadata"]["labels"]:
-                                    if label["name"] == "astra.netapp.io/labels/read-only/credType":
-                                        if label["value"] in ["AzureContainer", "service-account"]:
-                                            credID = credential["id"]
-                            if credID:
-                                acl.credentials.append(credential["id"])
+                    if ard.credentials:
+                        for credential in ard.credentials["items"]:
+                            if credential["metadata"].get("labels"):
+                                credID = None
+                                if credential.get("keyType") == "s3":
+                                    credID = credential["id"]
+                                else:
+                                    for label in credential["metadata"]["labels"]:
+                                        if (
+                                            label["name"]
+                                            == "astra.netapp.io/labels/read-only/credType"
+                                        ):
+                                            if label["value"] in [
+                                                "AzureContainer",
+                                                "service-account",
+                                            ]:
+                                                credID = credential["id"]
+                                if credID:
+                                    acl.credentials.append(credential["id"])
                 elif argv[verbPosition + 1] == "cluster":
                     ard.clusters = astraSDK.clusters.getClusters().main()
                     acl.clusters = ard.buildList(
