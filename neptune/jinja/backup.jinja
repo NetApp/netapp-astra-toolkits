@@ -1,0 +1,14 @@
+apiVersion: management.astra.netapp.io/v1alpha1
+kind: Backup
+metadata:
+  name: {{ name }}
+  namespace: neptune-system
+spec:
+  applicationRef: {{ appName }}
+  appVaultRef: {{ appVaultName }}
+{%- if snapshotName %}
+  snapshotRef: {{ snapshotName }}
+{%- endif %}
+{%- if reclaimPolicy %}
+  reclaimPolicy: {{ reclaimPolicy }}
+{%- endif %}

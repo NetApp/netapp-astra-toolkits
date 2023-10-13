@@ -1,0 +1,17 @@
+apiVersion: management.astra.netapp.io/v1alpha1
+kind: Snapshot
+metadata:
+  name: {{ name }}
+  namespace: neptune-system
+spec:
+  applicationRef: {{ appName }}
+  appVaultRef: {{ appVaultName }}
+{%- if reclaimPolicy %}
+  reclaimPolicy: {{ reclaimPolicy }}
+{%- endif %}
+{%- if createdTimeout %}
+  volumeSnapshotsCreatedTimeout: {{ createdTimeout }}m
+{%- endif %}
+{%- if readyToUseTimeout %}
+  volumeSnapshotsReadyToUseTimeout: {{ readyToUseTimeout }}m
+{%- endif %}
