@@ -186,7 +186,7 @@ class SDKCommon:
 
     def recursiveGet(self, k, item):
         """Recursion function which is just a wrapper around dict.get(key), to handle cases
-        where there's a dict within a dict. A '.' in the key name ('metadata.creationTimestamp)
+        where there's a dict within a dict. A '.' in the key name ('metadata.creationTimestamp')
         is used for identification purposes."""
         if len(k.split(".")) > 1:
             return self.recursiveGet(k.split(".", 1)[1], item[k.split(".")[0]])

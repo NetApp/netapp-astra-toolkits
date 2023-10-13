@@ -30,6 +30,7 @@ def main(argv=sys.argv):
     acl = tkSrc.classes.ArgparseChoicesLists()
     ard = tkSrc.classes.AstraResourceDicts()
     plaidMode = False
+    neptune = False
 
     if len(argv) > 1:
         # verbs must manually be kept in sync with top_level_commands() in tkSrc/parser.py
@@ -105,10 +106,12 @@ def main(argv=sys.argv):
                 main(argv=argv)
             sys.exit(0)
 
-        # Turn off verification to speed things up if true
+        # Handle plaidMode (-f/--fast) and neptune (-n/--neptune) use-cases
         for counter, item in enumerate(argv):
             if verbPosition and counter < verbPosition and (item == "-f" or item == "--fast"):
                 plaidMode = True
+            if verbPosition and counter < verbPosition and (item == "-n" or item == "--neptune"):
+                neptune = True
 
         if not plaidMode:
             # It isn't intuitive, however only one key in verbs can be True
@@ -163,16 +166,31 @@ def main(argv=sys.argv):
                     or argv[verbPosition + 1] == "snapshot"
                 )
             ):
-                ard.apps = astraSDK.apps.getApps().main()
-                acl.apps = ard.buildList("apps", "id")
-                if argv[verbPosition + 1] == "backup":
-                    ard.buckets = astraSDK.buckets.getBuckets(quiet=True).main()
-                    acl.buckets = ard.buildList("buckets", "id")
-                    # Generate acl.snapshots if an appID was provided
-                    for a in argv[verbPosition + 1 :]:
-                        if a in acl.apps:
-                            ard.snapshots = astraSDK.snapshots.getSnaps().main(appFilter=a)
-                            acl.snapshots = ard.buildList("snapshots", "id")
+                if neptune:
+                    ard.apps = astraSDK.neptune.getResources().main("applications")
+                    acl.apps = ard.buildList("apps", "metadata.name")
+                else:
+                    ard.apps = astraSDK.apps.getApps().main()
+                    acl.apps = ard.buildList("apps", "id")
+                if argv[verbPosition + 1] == "backup" or argv[verbPosition + 1] == "snapshot":
+                    if neptune:
+                        ard.buckets = astraSDK.neptune.getResources().main("appvaults")
+                        acl.buckets = ard.buildList("buckets", "metadata.name")
+                    else:
+                        ard.buckets = astraSDK.buckets.getBuckets(quiet=True).main()
+                        acl.buckets = ard.buildList("buckets", "id")
+                    # Generate acl.snapshots if an app was provided
+                    if argv[verbPosition + 1] == "backup":
+                        for a in argv[verbPosition + 1 :]:
+                            if a in acl.apps:
+                                if neptune:
+                                    ard.snapshots = astraSDK.neptune.getResources().main(
+                                        "snapshots", keyFilter="spec.applicationRef", valFilter=a
+                                    )
+                                    acl.snapshots = ard.buildList("snapshots", "metadata.name")
+                                else:
+                                    ard.snapshots = astraSDK.snapshots.getSnaps().main(appFilter=a)
+                                    acl.snapshots = ard.buildList("snapshots", "id")
                 if argv[verbPosition + 1] == "hook":
                     ard.scripts = astraSDK.scripts.getScripts().main()
                     acl.scripts = ard.buildList("scripts", "id")
@@ -232,10 +250,14 @@ def main(argv=sys.argv):
 
             elif (verbs["manage"] or verbs["define"]) and len(argv) - verbPosition >= 2:
                 if argv[verbPosition + 1] == "app":
-                    ard.namespaces = astraSDK.namespaces.getNamespaces().main()
-                    acl.namespaces = ard.buildList("namespaces", "name")
-                    acl.clusters = ard.buildList("namespaces", "clusterID")
-                    acl.clusters = list(set(acl.clusters))
+                    if neptune:
+                        ard.namespaces = astraSDK.neptune.getNamespaces().main()
+                        acl.namespaces = ard.buildList("namespaces", "metadata.name")
+                    else:
+                        ard.namespaces = astraSDK.namespaces.getNamespaces().main()
+                        acl.namespaces = ard.buildList("namespaces", "name")
+                        acl.clusters = ard.buildList("namespaces", "clusterID")
+                        acl.clusters = list(set(acl.clusters))
                 elif argv[verbPosition + 1] == "bucket":
                     ard.credentials = astraSDK.credentials.getCredentials().main()
                     if ard.credentials:
@@ -388,9 +410,19 @@ def main(argv=sys.argv):
 
     # Manually passing args into argparse via parse_args() shouldn't include the function name
     argv = argv[1:] if "toolkit" in argv[0] else argv
-    tkParser = tkSrc.parser.ToolkitParser(acl, plaidMode=plaidMode)
+    tkParser = tkSrc.parser.ToolkitParser(acl, plaidMode=plaidMode, neptune=neptune)
     parser = tkParser.main()
     args = parser.parse_args(args=argv)
+    if args.neptune:
+        tkSrc.helpers.checkNeptuneSupport(
+            args,
+            parser,
+            {
+                "create": ["backup", "snapshot"],
+                "define": ["app", "bucket", "appVault"],
+                "manage": ["app", "bucket", "appVault"],
+            },
+        )
 
     if args.subcommand == "deploy":
         tkSrc.deploy.main(args)
@@ -405,7 +437,7 @@ def main(argv=sys.argv):
     elif args.subcommand == "create":
         tkSrc.create.main(args, parser, ard)
     elif args.subcommand == "manage" or args.subcommand == "define":
-        tkSrc.manage.main(args, parser)
+        tkSrc.manage.main(args, parser, ard)
     elif args.subcommand == "destroy":
         tkSrc.destroy.main(args, parser, ard)
     elif args.subcommand == "unmanage":

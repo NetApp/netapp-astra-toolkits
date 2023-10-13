@@ -25,13 +25,8 @@ import astraSDK
 import tkSrc
 
 
-def doProtectionTask(protectionType, appID, name, background, pollTimer, quiet, verbose):
-    """Take a snapshot/backup of appID giving it name <name>
-    Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
-    if protectionType == "backup":
-        protectionID = astraSDK.backups.takeBackup(quiet=quiet, verbose=verbose).main(appID, name)
-    elif protectionType == "snapshot":
-        protectionID = astraSDK.snapshots.takeSnap(quiet=quiet, verbose=verbose).main(appID, name)
+def monitorProtectionTask(protectionID, protectionType, appID, background, pollTimer):
+    """Ensure backup/snapshot task was created successfully, then monitor"""
     if protectionID is False:
         return False
 
@@ -72,17 +67,36 @@ def doProtectionTask(protectionType, appID, name, background, pollTimer, quiet, 
 
 def main(args, parser, ard):
     if args.objectType == "backup":
-        rc = doProtectionTask(
-            args.objectType,
-            args.appID,
-            tkSrc.helpers.isRFC1123(args.name),
-            args.background,
-            args.pollTimer,
-            args.quiet,
-            args.verbose,
-        )
-        if rc is False:
-            raise SystemExit("doProtectionTask() failed")
+        if args.neptune:
+            template = tkSrc.helpers.setupJinja(args.objectType)
+            if ard.needsattr("apps"):
+                ard.apps = astraSDK.apps.getApps().main()
+            print(
+                template.render(
+                    name=tkSrc.helpers.isRFC1123(args.name),
+                    appName=args.app,
+                    appVaultName=args.bucket,
+                    snapshotName=args.snapshot,
+                    reclaimPolicy=args.reclaimPolicy,
+                    # TODO: add snapshot ref after Neptune bug is fixed
+                )
+            )
+        else:
+            protectionID = astraSDK.backups.takeBackup(quiet=args.quiet, verbose=args.verbose).main(
+                args.app,
+                tkSrc.helpers.isRFC1123(args.name),
+                bucketID=args.bucket,
+                snapshotID=args.snapshot,
+            )
+            rc = monitorProtectionTask(
+                protectionID,
+                args.objectType,
+                args.app,
+                args.background,
+                args.pollTimer,
+            )
+            if rc is False:
+                raise SystemExit("doProtectionTask() failed")
     elif args.objectType == "cluster":
         with open(args.filePath, encoding="utf8") as f:
             kubeconfigDict = yaml.load(f.read().rstrip(), Loader=yaml.SafeLoader)
@@ -232,17 +246,36 @@ def main(args, parser, ard):
         if rc is False:
             raise SystemExit("astraSDK.scripts.createScript() failed")
     elif args.objectType == "snapshot":
-        rc = doProtectionTask(
-            args.objectType,
-            args.appID,
-            tkSrc.helpers.isRFC1123(args.name),
-            args.background,
-            args.pollTimer,
-            args.quiet,
-            args.verbose,
-        )
-        if rc is False:
-            raise SystemExit("doProtectionTask() failed")
+        if args.neptune:
+            template = tkSrc.helpers.setupJinja(args.objectType)
+            if ard.needsattr("apps"):
+                ard.apps = astraSDK.apps.getApps().main()
+            print(
+                template.render(
+                    name=tkSrc.helpers.isRFC1123(args.name),
+                    appName=args.app,
+                    appVaultName=args.bucket,
+                    reclaimPolicy=args.reclaimPolicy,
+                    createdTimeout=(None if not args.createdTimeout else str(args.createdTimeout)),
+                    readyToUseTimeout=(
+                        None if not args.readyToUseTimeout else str(args.readyToUseTimeout)
+                    ),
+                )
+            )
+        else:
+            protectionID = astraSDK.snapshots.takeSnap(quiet=args.quiet, verbose=args.verbose).main(
+                args.app,
+                tkSrc.helpers.isRFC1123(args.name),
+            )
+            rc = monitorProtectionTask(
+                protectionID,
+                args.objectType,
+                args.app,
+                args.background,
+                args.pollTimer,
+            )
+            if rc is False:
+                raise SystemExit("doProtectionTask() failed")
     elif args.objectType == "user":
         # First create the user
         urc = astraSDK.users.createUser(quiet=args.quiet, verbose=args.verbose).main(

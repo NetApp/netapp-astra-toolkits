@@ -21,7 +21,7 @@ import argparse
 class ToolkitParser:
     """Creates and returns an argparse parser for use in toolkit.py"""
 
-    def __init__(self, acl, plaidMode=False):
+    def __init__(self, acl, plaidMode=False, neptune=False):
         """Creates the parser object and global arguments"""
         self.parser = argparse.ArgumentParser(allow_abbrev=True, prog="actoolkit")
         self.parser.add_argument(
@@ -49,8 +49,16 @@ class ToolkitParser:
             help="prioritize speed over validation (using this will not validate arguments, which "
             + "may have unintended consequences)",
         )
+        self.parser.add_argument(
+            "-n",
+            "--neptune",
+            default=False,
+            action="store_true",
+            help="print neptune YAML to manually apply via kubectl",
+        )
         self.acl = acl
         self.plaidMode = plaidMode
+        self.neptune = neptune
 
     def top_level_commands(self):
         """Creates the top level arguments, such as list, create, destroy, etc.
@@ -256,7 +264,8 @@ class ToolkitParser:
         )
         self.subparserManageBucket = self.subparserManage.add_parser(
             "bucket",
-            help="manage bucket",
+            aliases=["appVault"],
+            help="manage bucket (appVault in neptune context)",
         )
         self.subparserManageCloud = self.subparserManage.add_parser(
             "cloud",
@@ -785,9 +794,9 @@ class ToolkitParser:
     def create_backup_args(self):
         """create backups args and flags"""
         self.subparserCreateBackup.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID to backup",
+            help="app to backup",
         )
         self.subparserCreateBackup.add_argument(
             "name",
@@ -795,18 +804,29 @@ class ToolkitParser:
         )
         self.subparserCreateBackup.add_argument(
             "-u",
-            "--bucketID",
+            "--appVault" if self.neptune else "--bucketID",
+            dest="bucket",
             default=None,
+            required=(True if self.neptune else False),
             choices=(None if self.plaidMode else self.acl.buckets),
-            help="Optionally specify which bucket to store the backup",
+            help="Specify which bucket to store the backup",
         )
         self.subparserCreateBackup.add_argument(
             "-s",
-            "--snapshotID",
+            "--snapshot" if self.neptune else "--snapshotID",
+            dest="snapshot",
             default=None,
             choices=(None if self.plaidMode else self.acl.snapshots),
             help="Optionally specify an existing snapshot as the source of the backup",
         )
+        if self.neptune:
+            self.subparserCreateBackup.add_argument(
+                "-r",
+                "--reclaimPolicy",
+                default=None,
+                choices=["Delete", "Retain"],
+                help="Define how to handle the snapshot data when the snapshot CR is deleted",
+            )
         self.subparserCreateBackup.add_argument(
             "-b",
             "--background",
@@ -1057,14 +1077,47 @@ class ToolkitParser:
     def create_snapshot_args(self):
         """create snapshot args and flags"""
         self.subparserCreateSnapshot.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID to snapshot",
+            help="app to snapshot",
         )
         self.subparserCreateSnapshot.add_argument(
             "name",
             help="Name of snapshot to be taken",
         )
+        if self.neptune:
+            self.subparserCreateSnapshot.add_argument(
+                "-u",
+                "--appVault",
+                dest="bucket",
+                default=None,
+                required=True,
+                choices=(None if self.plaidMode else self.acl.buckets),
+                help="Specify which appVault to store snapshot metadata",
+            )
+            self.subparserCreateSnapshot.add_argument(
+                "-r",
+                "--reclaimPolicy",
+                default=None,
+                choices=["Delete", "Retain"],
+                help="Define how to handle the snapshot data when the snapshot CR is deleted",
+            )
+            self.subparserCreateSnapshot.add_argument(
+                "-c",
+                "--createdTimeout",
+                type=int,
+                default=None,
+                help="The time (in minutes) to wait for the snapshot CreationTime to be set before "
+                "returning timeout error (default: 5)",
+            )
+            self.subparserCreateSnapshot.add_argument(
+                "-e",
+                "--readyToUseTimeout",
+                type=int,
+                default=None,
+                help="The time (in minutes) to wait for Snapshot CR to complete before returning "
+                "timeout error (default: 30)",
+            )
         self.subparserCreateSnapshot.add_argument(
             "-b",
             "--background",
@@ -1130,11 +1183,12 @@ class ToolkitParser:
             choices=(None if self.plaidMode else self.acl.namespaces),
             help="The namespace to move from undefined (aka unmanaged) to defined (aka managed)",
         )
-        self.subparserManageApp.add_argument(
-            "clusterID",
-            choices=(None if self.plaidMode else self.acl.clusters),
-            help="The clusterID hosting the newly defined app",
-        )
+        if not self.neptune:
+            self.subparserManageApp.add_argument(
+                "clusterID",
+                choices=(None if self.plaidMode else self.acl.clusters),
+                help="The clusterID hosting the newly defined app",
+            )
         self.subparserManageApp.add_argument(
             "-l",
             "--labelSelectors",

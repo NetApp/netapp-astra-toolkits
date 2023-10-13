@@ -61,13 +61,37 @@ class AstraResourceDicts:
         if not getattr(self, name, False):
             return True
 
+    def recursiveGet(self, k, item):
+        """Recursion function which is just a wrapper around dict.get(key), to handle cases
+        where there's a dict within a dict. A '.' in the key name ('metadata.name')
+        is used for identification purposes."""
+        if len(k.split(".")) > 1:
+            return self.recursiveGet(k.split(".", 1)[1], item[k.split(".")[0]])
+        else:
+            return item.get(k)
+
     def buildList(self, name, key, fKey=None, fVal=None):
         """Generates a list for use in argparse choices"""
         try:
             # return a list of resource values based on 'key'
             if not fKey or not fVal:
-                return [x[key] for x in getattr(self, name)["items"]]
+                return [self.recursiveGet(key, x) for x in getattr(self, name)["items"]]
             # return a list of resource values based on 'key' only if some other 'fKey' == 'fVal'
-            return [x[key] for x in (y for y in getattr(self, name)["items"] if y[fKey] == fVal)]
+            return [
+                self.recursiveGet(key, x)
+                for x in (y for y in getattr(self, name)["items"] if y[fKey] == fVal)
+            ]
         except TypeError:
             return []
+
+    def getSingleDict(self, name, key, value, parser):
+        """Returns a single dict within the "items" list of the main resource dict, based on a
+        matching key/value pair"""
+        try:
+            return next(
+                x for x in getattr(self, name)["items"] if self.recursiveGet(key, x) == value
+            )
+        except StopIteration:
+            parser.error(
+                f"A resource with a '{key}:{value}' pair in the '{name}' dict was not found"
+            )

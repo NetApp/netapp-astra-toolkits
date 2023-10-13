@@ -22,32 +22,67 @@ import astraSDK
 import tkSrc
 
 
-def main(args, parser):
+def main(args, parser, ard):
     if args.objectType == "app":
         if args.additionalNamespace:
-            args.additionalNamespace = tkSrc.helpers.createNamespaceList(args.additionalNamespace)
+            args.additionalNamespace = tkSrc.helpers.createNamespaceList(
+                args.additionalNamespace, neptune=args.neptune
+            )
         if args.clusterScopedResource:
-            apiResourcesDict = astraSDK.apiresources.getApiResources().main(cluster=args.clusterID)
+            if args.neptune:
+                # If we're running a neptune command, we don't have the clusterID arg populated by
+                # the end user, so gather the Connector information which contains the cluster
+                # name, which can be used in place of the cluster ID
+                ard.connectors = astraSDK.neptune.getResources().main(
+                    "astraconnectors", version="v1", group="astra.netapp.io"
+                )
+                ard.getSingleDict(
+                    "connectors",
+                    "spec.astra.accountId",
+                    astraSDK.common.getConfig().conf["uid"],
+                    parser,
+                )
+                args.clusterID = ard.getSingleDict(
+                    "connectors",
+                    "spec.astra.accountId",
+                    astraSDK.common.getConfig().conf["uid"],
+                    None,
+                )["spec"]["astra"]["clusterName"]
+            ard.apiresources = astraSDK.apiresources.getApiResources().main(cluster=args.clusterID)
             # Validate input as argparse+choices is unable to only validate the first input
             for csr in args.clusterScopedResource:
-                if csr[0] not in (apiRes := [a["kind"] for a in apiResourcesDict["items"]]):
+                if csr[0] not in (apiRes := [a["kind"] for a in ard.apiresources["items"]]):
                     parser.error(
                         f"argument -c/--clusterScopedResource: invalid choice: '{csr[0]}' "
                         f"(choose from {', '.join(apiRes)})"
                     )
             args.clusterScopedResource = tkSrc.helpers.createCsrList(
-                args.clusterScopedResource, apiResourcesDict
+                args.clusterScopedResource, ard.apiresources, neptune=args.neptune
             )
-        rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
-            tkSrc.helpers.isRFC1123(args.appName),
-            args.namespace,
-            args.clusterID,
-            args.labelSelectors,
-            addNamespaces=args.additionalNamespace,
-            clusterScopedResources=args.clusterScopedResource,
-        )
-        if rc is False:
-            raise SystemExit("astraSDK.apps.manageApp() failed")
+        if args.neptune:
+            template = tkSrc.helpers.setupJinja(args.objectType)
+            print(
+                template.render(
+                    appName=tkSrc.helpers.isRFC1123(args.appName),
+                    namespace=args.namespace,
+                    labelSelectors=args.labelSelectors,
+                    addNamespaces=tkSrc.helpers.prependDump(args.additionalNamespace, prepend=4),
+                    clusterScopedResources=tkSrc.helpers.prependDump(
+                        args.clusterScopedResource, prepend=4
+                    ),
+                )
+            )
+        else:
+            rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
+                tkSrc.helpers.isRFC1123(args.appName),
+                args.namespace,
+                args.clusterID,
+                args.labelSelectors,
+                addNamespaces=args.additionalNamespace,
+                clusterScopedResources=args.clusterScopedResource,
+            )
+            if rc is False:
+                raise SystemExit("astraSDK.apps.manageApp() failed")
     elif args.objectType == "bucket":
         # Validate that both credentialID and accessKey/accessSecret were not specified
         if args.credentialID is not None and (

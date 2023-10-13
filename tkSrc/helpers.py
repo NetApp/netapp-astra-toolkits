@@ -22,6 +22,8 @@ import subprocess
 import tempfile
 import yaml
 
+from jinja2 import Environment, FileSystemLoader
+
 
 def subKeys(subObject, key):
     """Short recursion function for when the userSelect dict object has another
@@ -185,14 +187,17 @@ def createNamespaceMapping(app, singleNs, multiNsMapping):
         raise SystemExit("Unknown Error")
 
 
-def createNamespaceList(namespaceArguments):
+def createNamespaceList(namespaceArguments, neptune=False):
     """Create a list of dictionaries of namespace key/value and (optionally) labelSelectors
     key/value(list) for managing an app, as nargs="*" can provide a variety of input."""
     returnList = []
     for mapping in namespaceArguments:
         returnList.append({"namespace": mapping[0]})
         if len(mapping) == 2:
-            returnList[-1]["labelSelectors"] = [mapping[1]]
+            if neptune:
+                returnList[-1]["labelSelector"] = mapping[1]
+            else:
+                returnList[-1]["labelSelectors"] = [mapping[1]]
         elif len(mapping) > 2:
             raise SystemExit(
                 "Error: --additionalNamespace should have at most two arguments per flag:\n"
@@ -202,24 +207,27 @@ def createNamespaceList(namespaceArguments):
     return returnList
 
 
-def createCsrList(CSRs, apiResourcesDict):
+def createCsrList(CSRs, apiResourcesDict, neptune=False):
     """Create a list of dictionaries of clusterScopedResources and (optionally) labelSelectors
     key/value(list) for managing an app, as nargs="*" can provide a variety of input."""
     returnList = []
     for csr in CSRs:
         for resource in apiResourcesDict["items"]:
             if csr[0] == resource["kind"]:
-                returnList.append(
-                    {
-                        "GVK": {
-                            "group": resource["apiVersion"].split("/")[0],
-                            "kind": resource["kind"],
-                            "version": resource["apiVersion"].split("/")[1],
-                        }
-                    }
-                )
+                gvk_dict = {
+                    "group": resource["apiVersion"].split("/")[0],
+                    "kind": resource["kind"],
+                    "version": resource["apiVersion"].split("/")[1],
+                }
+                if neptune:
+                    returnList.append({"groupVersionKind": gvk_dict})
+                else:
+                    returnList.append({"GVK": gvk_dict})
                 if len(csr) == 2:
-                    returnList[-1]["labelSelectors"] = [csr[1]]
+                    if neptune:
+                        returnList[-1]["labelSelector"] = csr[1]
+                    else:
+                        returnList[-1]["labelSelectors"] = [csr[1]]
                 elif len(csr) > 2:
                     raise SystemExit(
                         "Error: --clusterScopedResource should have at most two arguments per "
@@ -452,3 +460,27 @@ def createFilterSet(selection, filters, assets):
             createSetDict(setDict, fil, assets)
         rFilter["GVKN"].append(setDict)
     return rFilter
+
+
+def prependDump(obj, prepend, indent=2):
+    """Function to prepend a certain amount of spaces in a yaml.dump(obj) to properly
+    align in nested yaml"""
+    if obj is not None:
+        arr = [(" " * prepend + i) for i in yaml.dump(obj, indent=indent).split("\n")]
+        return "\n".join(arr).rstrip()
+    return None
+
+
+def checkNeptuneSupport(args, parser, supportedDict):
+    """Function to ensure a neptune-specific actoolkit command is currently supported by neptune"""
+    if supportedList := supportedDict.get(args.subcommand):
+        if args.objectType in supportedList:
+            return True
+    parser.error(
+        f"'{args.subcommand} {args.objectType}' is not currently a supported --neptune command"
+    )
+
+
+def setupJinja(objectType, filesystem="neptune/jinja"):
+    env = Environment(loader=FileSystemLoader(filesystem))
+    return env.get_template(f"{objectType}.jinja")
