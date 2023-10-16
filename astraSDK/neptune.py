@@ -20,8 +20,10 @@ import json
 import kubernetes
 import yaml
 
+from .common import NeptuneCommon
 
-class getResources:
+
+class getResources(NeptuneCommon):
     def __init__(self, quiet=True, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
@@ -29,15 +31,6 @@ class getResources:
         self.quiet = quiet
         self.output = output
         super().__init__()
-
-    def recursiveGet(self, k, item):
-        """Recursion function which is just a wrapper around dict.get(key), to handle cases
-        where there's a dict within a dict. A '.' in the key name ('metadata.name')
-        is used for identification purposes."""
-        if len(k.split(".")) > 1:
-            return self.recursiveGet(k.split(".", 1)[1], item[k.split(".")[0]])
-        else:
-            return item.get(k)
 
     def main(
         self,
@@ -47,28 +40,33 @@ class getResources:
         keyFilter=None,
         valFilter=None,
     ):
-        kubernetes.config.load_kube_config()
-        resp = kubernetes.client.CustomObjectsApi().list_cluster_custom_object(
-            group=group,
-            version=version,
-            plural=plural,
-        )
+        with kubernetes.client.ApiClient(self.configuration) as api_client:
+            api_instance = kubernetes.client.CustomObjectsApi(api_client)
+            try:
+                resp = api_instance.list_cluster_custom_object(
+                    group=group,
+                    version=version,
+                    plural=plural,
+                )
+                if keyFilter and valFilter:
+                    filterCopy = copy.deepcopy(resp)
+                    for counter, r in enumerate(filterCopy.get("items")):
+                        if self.recursiveGet(keyFilter, r) != valFilter:
+                            resp["items"].remove(filterCopy["items"][counter])
 
-        if keyFilter and valFilter:
-            filterCopy = copy.deepcopy(resp)
-            for counter, r in enumerate(filterCopy.get("items")):
-                if self.recursiveGet(keyFilter, r) != valFilter:
-                    resp["items"].remove(filterCopy["items"][counter])
+                if self.output == "yaml":
+                    resp = yaml.dump(resp)
 
-        if self.output == "yaml":
-            resp = yaml.dump(resp)
+                if not self.quiet:
+                    print(json.dumps(resp) if type(resp) is dict else resp)
+                return resp
 
-        if not self.quiet:
-            print(json.dumps(resp) if type(resp) is dict else resp)
-        return resp
+            except kubernetes.client.rest.ApiException as e:
+                self.printError(e)
+                raise SystemExit(e)
 
 
-class getNamespaces:
+class getNamespaces(NeptuneCommon):
     def __init__(self, quiet=True, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
@@ -78,25 +76,30 @@ class getNamespaces:
         super().__init__()
 
     def main(self):
-        kubernetes.config.load_kube_config()
-        resp = kubernetes.client.CoreV1Api().list_namespace().to_dict()
+        with kubernetes.client.ApiClient(self.configuration) as api_client:
+            api_instance = kubernetes.client.CoreV1Api(api_client)
+            try:
+                resp = api_instance.list_namespace().to_dict()
+                systemNS = [
+                    "astra-connector-operator",
+                    "kube-node-lease",
+                    "kube-public",
+                    "kube-system",
+                    "neptune-system",
+                    "trident",
+                ]
+                namespaces = copy.deepcopy(resp)
+                for counter, ns in enumerate(namespaces.get("items")):
+                    if ns.get("metadata").get("name") in systemNS:
+                        resp["items"].remove(namespaces["items"][counter])
 
-        systemNS = [
-            "astra-connector-operator",
-            "kube-node-lease",
-            "kube-public",
-            "kube-system",
-            "neptune-system",
-            "trident",
-        ]
-        namespaces = copy.deepcopy(resp)
-        for counter, ns in enumerate(resp.get("items")):
-            if ns.get("metadata").get("name") in systemNS:
-                namespaces["items"].remove(resp["items"][counter])
+                if self.output == "yaml":
+                    resp = yaml.dump(resp)
 
-        if self.output == "yaml":
-            namespaces = yaml.dump(namespaces)
+                if not self.quiet:
+                    print(json.dumps(resp) if type(resp) is dict else resp)
+                return resp
 
-        if not self.quiet:
-            print(json.dumps(namespaces) if type(namespaces) is dict else namespaces)
-        return namespaces
+            except kubernetes.client.rest.ApiException as e:
+                self.printError(e)
+                raise SystemExit(e)
