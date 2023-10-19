@@ -462,6 +462,49 @@ def createFilterSet(selection, filters, assets):
     return rFilter
 
 
+def createSingleSecretKeyDict(credKeyPair, ard, parser):
+    """Given a credKeyPair list like ['s3-creds', 'accessKeyID']
+
+    Return a dict with the following format:
+    {
+    "valueFromSecret":
+      {
+        "name": "s3-creds",
+        "key": "accessKeyID",
+      },
+    }
+
+    Also validate that a given key exists in the corresponding secret"""
+    # argparse ensures len(args.credential) is 2, but can't ensure a valid name/key pair
+    if credKeyPair[0] in [x["metadata"]["name"] for x in ard.credentials["items"]]:
+        cred, key = credKeyPair
+    else:
+        key, cred = credKeyPair
+    credDict = ard.getSingleDict("credentials", "metadata.name", cred, parser)
+    if key not in credDict["data"].keys():
+        parser.error(
+            f"'{credKeyPair[1]}' not found in '{credKeyPair[0]}' data keys: "
+            f"{', '.join(credDict['data'].keys())}"
+        )
+    return {"valueFromSecret": {"name": cred, "key": key}}
+
+
+def createSecretKeyDict(keyNameList, args, ard, parser):
+    """Use keyNameList to ensure number of credential arguments inputted is correct,
+    and build the full providerCredentials dictionary"""
+    # Ensure correct args.credentials length matches keyNameList length
+    if len(args.credential) != len(keyNameList):
+        parser.error(
+            f"-s/--credential must be specified {len(keyNameList)} time(s) for "
+            f"'{args.provider}' provider"
+        )
+    # argparse ensures len(args.credential) is 2, but can't ensure a valid name/key pair
+    providerCredentials = {}
+    for i, credKeyPair in enumerate(args.credential):
+        providerCredentials[keyNameList[i]] = createSingleSecretKeyDict(credKeyPair, ard, parser)
+    return providerCredentials
+
+
 def prependDump(obj, prepend, indent=2):
     """Function to prepend a certain amount of spaces in a yaml.dump(obj) to properly
     align in nested yaml"""

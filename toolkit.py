@@ -113,6 +113,10 @@ def main(argv=sys.argv):
             if verbPosition and counter < verbPosition and (item == "-n" or item == "--neptune"):
                 neptune = True
 
+        # Argparse cares about capitalization, kubectl does not, so transparently fix appvault
+        if argv[verbPosition + 1] == "appvault":
+            argv[verbPosition + 1] = "appVault"
+
         if not plaidMode:
             # It isn't intuitive, however only one key in verbs can be True
             if verbs["deploy"]:
@@ -258,27 +262,41 @@ def main(argv=sys.argv):
                         acl.namespaces = ard.buildList("namespaces", "name")
                         acl.clusters = ard.buildList("namespaces", "clusterID")
                         acl.clusters = list(set(acl.clusters))
-                elif argv[verbPosition + 1] == "bucket":
-                    ard.credentials = astraSDK.credentials.getCredentials().main()
-                    if ard.credentials:
-                        for credential in ard.credentials["items"]:
-                            if credential["metadata"].get("labels"):
-                                credID = None
-                                if credential.get("keyType") == "s3":
-                                    credID = credential["id"]
-                                else:
-                                    for label in credential["metadata"]["labels"]:
-                                        if (
-                                            label["name"]
-                                            == "astra.netapp.io/labels/read-only/credType"
-                                        ):
-                                            if label["value"] in [
-                                                "AzureContainer",
-                                                "service-account",
-                                            ]:
-                                                credID = credential["id"]
-                                if credID:
-                                    acl.credentials.append(credential["id"])
+                elif argv[verbPosition + 1] == "bucket" or argv[verbPosition + 1] == "appVault":
+                    if neptune:
+                        ard.credentials = astraSDK.neptune.getSecrets().main()
+                        acl.credentials = ard.buildList("credentials", "metadata.name")
+                        for c in argv[verbPosition + 1 :]:
+                            if c in acl.credentials:
+                                for l in ard.buildList(
+                                    "credentials", "data", fKey="metadata.name", fVal=c
+                                ):
+                                    for i in l:
+                                        acl.keys.append(i)
+                        if not acl.keys:
+                            acl.keys = [i for l in ard.buildList("credentials", "data") for i in l]
+                        acl.keys = list(set(acl.keys))
+                    else:
+                        ard.credentials = astraSDK.credentials.getCredentials().main()
+                        if ard.credentials:
+                            for credential in ard.credentials["items"]:
+                                if credential["metadata"].get("labels"):
+                                    credID = None
+                                    if credential.get("keyType") == "s3":
+                                        credID = credential["id"]
+                                    else:
+                                        for label in credential["metadata"]["labels"]:
+                                            if (
+                                                label.get("name")
+                                                == "astra.netapp.io/labels/read-only/credType"
+                                            ):
+                                                if label.get("value") in [
+                                                    "AzureContainer",
+                                                    "service-account",
+                                                ]:
+                                                    credID = credential["id"]
+                                    if credID:
+                                        acl.credentials.append(credential["id"])
                 elif argv[verbPosition + 1] == "cluster":
                     ard.clusters = astraSDK.clusters.getClusters().main()
                     acl.clusters = ard.buildList(

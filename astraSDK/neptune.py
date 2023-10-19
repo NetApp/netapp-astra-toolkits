@@ -103,3 +103,30 @@ class getNamespaces(NeptuneCommon):
             except kubernetes.client.rest.ApiException as e:
                 self.printError(e)
                 raise SystemExit(e)
+
+
+class getSecrets(NeptuneCommon):
+    def __init__(self, quiet=True, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        output: json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.output = output
+        super().__init__()
+
+    def main(self, namespace="neptune-system"):
+        with kubernetes.client.ApiClient(self.configuration) as api_client:
+            api_instance = kubernetes.client.CoreV1Api(api_client)
+            try:
+                resp = api_instance.list_namespaced_secret(namespace).to_dict()
+
+                if self.output == "yaml":
+                    resp = yaml.dump(resp)
+
+                if not self.quiet:
+                    print(json.dumps(resp) if type(resp) is dict else resp)
+                return resp
+
+            except kubernetes.client.rest.ApiException as e:
+                self.printError(e)
+                raise SystemExit(e)

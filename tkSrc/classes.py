@@ -34,6 +34,7 @@ class ArgparseChoicesLists:
             "destApps": [],
             "destClusters": [],
             "hooks": [],
+            "keys": [],
             "labels": [],
             "namespaces": [],
             "protections": [],
@@ -79,7 +80,9 @@ class AstraResourceDicts:
             # return a list of resource values based on 'key' only if some other 'fKey' == 'fVal'
             return [
                 self.recursiveGet(key, x)
-                for x in (y for y in getattr(self, name)["items"] if y[fKey] == fVal)
+                for x in (
+                    y for y in getattr(self, name)["items"] if self.recursiveGet(fKey, y) == fVal
+                )
             ]
         except TypeError:
             return []

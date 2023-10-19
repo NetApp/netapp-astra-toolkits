@@ -1229,27 +1229,6 @@ class ToolkitParser:
             "bucketName",
             help="The existing bucket name",
         )
-        credGroup = self.subparserManageBucket.add_argument_group(
-            "credentialGroup",
-            "Either an (existing credentialID) OR (accessKey AND accessSecret)",
-        )
-        credGroup.add_argument(
-            "-c",
-            "--credentialID",
-            choices=(None if self.plaidMode else self.acl.credentials),
-            help="The ID of the credentials used to access the bucket",
-            default=None,
-        )
-        credGroup.add_argument(
-            "--accessKey",
-            help="The access key of the bucket",
-            default=None,
-        )
-        credGroup.add_argument(
-            "--accessSecret",
-            help="The access secret of the bucket",
-            default=None,
-        )
         self.subparserManageBucket.add_argument(
             "-u",
             "--serverURL",
@@ -1263,6 +1242,60 @@ class ToolkitParser:
             help="The  Azure storage account name (only needed for 'Azure')",
             default=None,
         )
+        if self.neptune:
+            self.subparserManageBucket.add_argument(
+                "-c",
+                "--secret",
+                dest="credential",
+                required=False,
+                default=None,
+                nargs=2,
+                action="append",
+                choices=(None if self.plaidMode else self.acl.credentials + self.acl.keys),
+                help=(
+                    "The Kubernetes secret name and corresponding key name storing the credential"
+                    " (-c gcp-credential credentials.json), if specifying S3 accessKey and "
+                    "secretKey, accessKey *must* be specified first (-c s3-creds accessKeyID -c "
+                    "-c s3-creds secretAccessKey)"
+                ),
+            )
+            self.subparserManageBucket.add_argument(
+                "--http",
+                action="store_true",
+                default=False,
+                help="Optionally use http instead of https to connect to the bucket",
+            )
+            self.subparserManageBucket.add_argument(
+                "--skipCertValidation",
+                action="store_true",
+                default=False,
+                help="Optionally skip TLS certificate validation",
+            )
+
+        else:
+            credGroup = self.subparserManageBucket.add_argument_group(
+                "credentialGroup",
+                "Either an (existing credential) OR (accessKey AND accessSecret)",
+            )
+            credGroup.add_argument(
+                "-c",
+                "--credentialID",
+                dest="credential",
+                required=False,
+                default=None,
+                choices=(None if self.plaidMode else self.acl.credentials),
+                help="The ID of the credentials used to access the bucket",
+            )
+            credGroup.add_argument(
+                "--accessKey",
+                help="The access key of the bucket",
+                default=None,
+            )
+            credGroup.add_argument(
+                "--accessSecret",
+                help="The access secret of the bucket",
+                default=None,
+            )
 
     def manage_cluster_args(self):
         """manage cluster args and flags"""

@@ -83,36 +83,8 @@ def main(args, parser, ard):
             )
             if rc is False:
                 raise SystemExit("astraSDK.apps.manageApp() failed")
-    elif args.objectType == "bucket":
-        # Validate that both credentialID and accessKey/accessSecret were not specified
-        if args.credentialID is not None and (
-            args.accessKey is not None or args.accessSecret is not None
-        ):
-            parser.error(
-                "if a credentialID is specified, neither accessKey nor accessSecret"
-                + " should be specified."
-            )
-        # Validate args and create credential if credentialID was not specified
-        if args.credentialID is None:
-            if args.accessKey is None or args.accessSecret is None:
-                parser.error(
-                    "if a credentialID is not specified, both accessKey and "
-                    + "accessSecret arguments must be provided."
-                )
-            encodedKey = base64.b64encode(args.accessKey.encode("utf-8")).decode("utf-8")
-            encodedSecret = base64.b64encode(args.accessSecret.encode("utf-8")).decode("utf-8")
-            crc = astraSDK.credentials.createCredential(
-                quiet=args.quiet, verbose=args.verbose
-            ).main(
-                args.bucketName,
-                "s3",
-                {"accessKey": encodedKey, "accessSecret": encodedSecret},
-                cloudName="s3",
-            )
-            if crc:
-                args.credentialID = crc["id"]
-            else:
-                raise SystemExit("astraSDK.credentials.createCredential() failed")
+
+    elif args.objectType == "bucket" or args.objectType == "appVault":
         # Validate serverURL and storageAccount args depending upon provider type
         if args.serverURL is None and args.provider in [
             "aws",
@@ -123,27 +95,86 @@ def main(args, parser, ard):
             parser.error(f"--serverURL must be provided for '{args.provider}' provider.")
         if args.storageAccount is None and args.provider == "azure":
             parser.error("--storageAccount must be provided for 'azure' provider.")
-        # Create bucket parameters based on provider and optional arguments
-        if args.provider == "azure":
-            bucketParameters = {
-                "azure": {"bucketName": args.bucketName, "storageAccount": args.storageAccount}
-            }
-        elif args.provider == "gcp":
-            bucketParameters = {"gcp": {"bucketName": args.bucketName}}
+
+        if args.neptune:
+            if ard.needsattr("credentials"):
+                ard.credentials = astraSDK.neptune.getSecrets().main()
+            # Create providerCredentials based on args.provider input
+            if args.provider == "azure":
+                keyNameList = ["accountKey"]
+            elif args.provider == "gcp":
+                keyNameList = ["credentials"]
+            else:
+                keyNameList = ["accessKeyID", "secretAccessKey"]
+            template = tkSrc.helpers.setupJinja(args.objectType)
+            print(
+                template.render(
+                    bucketName=tkSrc.helpers.isRFC1123(args.bucketName),
+                    providerType=args.provider,
+                    accountName=args.storageAccount,
+                    endpoint=args.serverURL,
+                    secure=("false" if args.http else None),
+                    providerCredentials=tkSrc.helpers.prependDump(
+                        tkSrc.helpers.createSecretKeyDict(keyNameList, args, ard, parser), prepend=4
+                    ),
+                )
+            )
+
         else:
-            bucketParameters = {"s3": {"bucketName": args.bucketName, "serverURL": args.serverURL}}
-        # Call manageBucket class
-        rc = astraSDK.buckets.manageBucket(quiet=args.quiet, verbose=args.verbose).main(
-            args.bucketName, args.credentialID, args.provider, bucketParameters
-        )
-        if rc is False:
-            raise SystemExit("astraSDK.buckets.manageBucket() failed")
+            # Validate that both credentialID and accessKey/accessSecret were not specified
+            if args.credential is not None and (
+                args.accessKey is not None or args.accessSecret is not None
+            ):
+                parser.error(
+                    "if a credential is specified, neither accessKey nor accessSecret"
+                    + " should be specified."
+                )
+            # Validate args and create credential if credential was not specified
+            if args.credential is None:
+                if args.accessKey is None or args.accessSecret is None:
+                    parser.error(
+                        "if a credential is not specified, both accessKey and "
+                        + "accessSecret arguments must be provided."
+                    )
+                encodedKey = base64.b64encode(args.accessKey.encode("utf-8")).decode("utf-8")
+                encodedSecret = base64.b64encode(args.accessSecret.encode("utf-8")).decode("utf-8")
+                crc = astraSDK.credentials.createCredential(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(
+                    args.bucketName,
+                    "s3",
+                    {"accessKey": encodedKey, "accessSecret": encodedSecret},
+                    cloudName="s3",
+                )
+                if crc:
+                    args.credential = crc["id"]
+                else:
+                    raise SystemExit("astraSDK.credentials.createCredential() failed")
+            # Create bucket parameters based on provider and optional arguments
+            if args.provider == "azure":
+                bucketParameters = {
+                    "azure": {"bucketName": args.bucketName, "storageAccount": args.storageAccount}
+                }
+            elif args.provider == "gcp":
+                bucketParameters = {"gcp": {"bucketName": args.bucketName}}
+            else:
+                bucketParameters = {
+                    "s3": {"bucketName": args.bucketName, "serverURL": args.serverURL}
+                }
+            # Call manageBucket class
+            rc = astraSDK.buckets.manageBucket(quiet=args.quiet, verbose=args.verbose).main(
+                args.bucketName, args.credential, args.provider, bucketParameters
+            )
+            if rc is False:
+                raise SystemExit("astraSDK.buckets.manageBucket() failed")
+
     elif args.objectType == "cluster":
         rc = astraSDK.clusters.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
             args.clusterID, args.defaultStorageClassID
         )
         if rc is False:
             raise SystemExit("astraSDK.clusters.manageCluster() failed")
+
     elif args.objectType == "cloud":
         credentialID = None
         # First create the credential
