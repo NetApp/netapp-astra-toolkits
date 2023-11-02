@@ -135,8 +135,8 @@ class ToolkitParser:
             "acp",
             help="deploy ACP (Astra Control Provisioner)",
         )
-        self.subparserDeployHelm = self.subparserDeploy.add_parser(
-            "helm",
+        self.subparserDeployChart = self.subparserDeploy.add_parser(
+            "chart",
             help="deploy a Helm chart",
         )
 
@@ -524,24 +524,24 @@ class ToolkitParser:
             "(defaults to cr.<astra-control-fqdn>)",
         )
 
-    def deploy_helm_args(self):
+    def deploy_chart_args(self):
         """deploy helm chart args and flags"""
-        self.subparserDeployHelm.add_argument(
+        self.subparserDeployChart.add_argument(
             "app",
             help="name of app",
         )
-        self.subparserDeployHelm.add_argument(
+        self.subparserDeployChart.add_argument(
             "chart",
             choices=(None if self.plaidMode else self.acl.charts),
             help="chart to deploy",
         )
-        self.subparserDeployHelm.add_argument(
+        self.subparserDeployChart.add_argument(
             "-n",
             "--namespace",
             required=True,
             help="Namespace to deploy into (must not already exist)",
         )
-        self.subparserDeployHelm.add_argument(
+        self.subparserDeployChart.add_argument(
             "-f",
             "--values",
             required=False,
@@ -549,7 +549,7 @@ class ToolkitParser:
             nargs="*",
             help="Specify Helm values in a YAML file",
         )
-        self.subparserDeployHelm.add_argument(
+        self.subparserDeployChart.add_argument(
             "--set",
             required=False,
             action="append",
@@ -1523,7 +1523,7 @@ class ToolkitParser:
         self.restore_args()
 
         self.deploy_acp_args()
-        self.deploy_helm_args()
+        self.deploy_chart_args()
 
         self.list_apiresources_args()
         self.list_apps_args()

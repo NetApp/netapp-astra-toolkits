@@ -201,7 +201,7 @@ def main(args, parser, ard):
             group="trident.netapp.io",
         )
         print(f"tridentorchestrator.trident.netapp.io/{torc_name} edited")
-    elif args.objectType == "helm":
+    elif args.objectType == "chart":
         deployHelm(
             args.chart,
             tkSrc.helpers.isRFC1123(args.app),

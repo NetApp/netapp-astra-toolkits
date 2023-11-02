@@ -115,11 +115,11 @@ def main(argv=sys.argv):
             if (
                 verbs["deploy"]
                 and len(argv) - verbPosition >= 2
-                and argv[verbPosition + 1] == "helm"
+                and argv[verbPosition + 1] == "chart"
             ):
                 ard.charts = tkSrc.helpers.updateHelm()
                 acl.charts = ard.buildList("charts", "name")
-            if (
+            elif (
                 verbs["deploy"]
                 and len(argv) - verbPosition >= 2
                 and argv[verbPosition + 1] == "acp"
