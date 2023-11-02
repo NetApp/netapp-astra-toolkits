@@ -16,6 +16,7 @@
 """
 
 import json
+import kubernetes
 import os
 import sys
 import yaml
@@ -69,15 +70,11 @@ class getConfig:
                 raise SystemExit(f"{item} is a required field in {configFile}")
 
         if "." in self.conf.get("astra_project"):
-            self.base = "https://%s/accounts/%s/" % (
-                self.conf.get("astra_project"),
-                self.conf.get("uid"),
-            )
+            self.domain = self.conf.get("astra_project")
         else:
-            self.base = "https://%s.astra.netapp.io/accounts/%s/" % (
-                self.conf.get("astra_project"),
-                self.conf.get("uid"),
-            )
+            self.domain = "%s.astra.netapp.io" % (self.conf.get("astra_project"))
+        self.account_id = self.conf.get("uid")
+        self.base = "https://%s/accounts/%s/" % (self.domain, self.account_id)
         self.headers = self.conf.get("headers")
 
         if self.conf.get("verifySSL") is False:
@@ -91,11 +88,50 @@ class getConfig:
             "base": self.base,
             "headers": self.headers,
             "verifySSL": self.verifySSL,
+            "domain": self.domain,
+            "account_id": self.account_id,
         }
 
 
-class SDKCommon:
+class BaseCommon:
     def __init__(self):
+        pass
+
+    def printError(self, ret):
+        """Function to print relevant error information when a call fails"""
+        try:
+            sys.stderr.write(colored(json.dumps(json.loads(ret.text), indent=2), "red") + "\n")
+        except json.decoder.JSONDecodeError:
+            sys.stderr.write(colored(ret.text, "red"))
+        except AttributeError:
+            sys.stderr.write(colored(ret, "red"))
+
+    def recursiveGet(self, k, item):
+        """Recursion function which is just a wrapper around dict.get(key), to handle cases
+        where there's a dict within a dict. A '.' in the key name ('metadata.creationTimestamp')
+        is used for identification purposes."""
+        if len(k.split(".")) > 1:
+            return self.recursiveGet(k.split(".", 1)[1], item[k.split(".")[0]])
+        else:
+            return item.get(k)
+
+    def basicTable(self, tabHeader, tabKeys, dataDict):
+        """Function to create a basic tabulate table for terminal printing"""
+        tabData = []
+        for item in dataDict["items"]:
+            # Generate a table row based on the keys list
+            row = [self.recursiveGet(k, item) for k in tabKeys]
+            # Handle cases where table row has a nested list
+            for c, r in enumerate(row):
+                if type(r) is list:
+                    row[c] = ", ".join(r)
+            tabData.append(row)
+        return tabulate(tabData, tabHeader, tablefmt="grid")
+
+
+class SDKCommon(BaseCommon):
+    def __init__(self):
+        super().__init__()
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
@@ -175,33 +211,8 @@ class SDKCommon:
         print(colored(f"API data: {data}", "green"))
         print(colored(f"API params: {params}", "green"))
 
-    def printError(self, ret):
-        """Function to print relevant error information when a call fails"""
-        try:
-            sys.stderr.write(colored(json.dumps(json.loads(ret.text), indent=2), "red") + "\n")
-        except json.decoder.JSONDecodeError:
-            sys.stderr.write(colored(ret.text, "red"))
-        except AttributeError:
-            sys.stderr.write(colored(f"SDKCommon().printError: Unknown error: {ret}", "red"))
 
-    def recursiveGet(self, k, item):
-        """Recursion function which is just a wrapper around dict.get(key), to handle cases
-        where there's a dict within a dict. A '.' in the key name ('metadata.creationTimestamp)
-        is used for identification purposes."""
-        if len(k.split(".")) > 1:
-            return self.recursiveGet(k.split(".", 1)[1], item[k.split(".")[0]])
-        else:
-            return item.get(k)
-
-    def basicTable(self, tabHeader, tabKeys, dataDict):
-        """Function to create a basic tabulate table for terminal printing"""
-        tabData = []
-        for item in dataDict["items"]:
-            # Generate a table row based on the keys list
-            row = [self.recursiveGet(k, item) for k in tabKeys]
-            # Handle cases where table row has a nested list
-            for c, r in enumerate(row):
-                if type(r) is list:
-                    row[c] = ", ".join(r)
-            tabData.append(row)
-        return tabulate(tabData, tabHeader, tablefmt="grid")
+class KubeCommon(BaseCommon):
+    def __init__(self):
+        super().__init__()
+        self.kube_config = kubernetes.config.load_kube_config()

@@ -112,9 +112,20 @@ def main(argv=sys.argv):
 
         if not plaidMode:
             # It isn't intuitive, however only one key in verbs can be True
-            if verbs["deploy"]:
+            if (
+                verbs["deploy"]
+                and len(argv) - verbPosition >= 2
+                and argv[verbPosition + 1] == "helm"
+            ):
                 ard.charts = tkSrc.helpers.updateHelm()
                 acl.charts = ard.buildList("charts", "name")
+            if (
+                verbs["deploy"]
+                and len(argv) - verbPosition >= 2
+                and argv[verbPosition + 1] == "acp"
+            ):
+                ard.credentials = astraSDK.k8s.getSecrets().main(namespace="trident")
+                acl.credentials = ard.buildList("credentials", "metadata.name")
 
             elif verbs["clone"]:
                 ard.apps = astraSDK.apps.getApps().main()
@@ -393,7 +404,7 @@ def main(argv=sys.argv):
     args = parser.parse_args(args=argv)
 
     if args.subcommand == "deploy":
-        tkSrc.deploy.main(args)
+        tkSrc.deploy.main(args, parser, ard)
     elif args.subcommand == "clone":
         tkSrc.clone.main(args, parser, ard)
     elif args.subcommand == "restore":

@@ -60,7 +60,7 @@ class ToolkitParser:
         )
         self.parserDeploy = self.subparsers.add_parser(
             "deploy",
-            help="Deploy a helm chart",
+            help="Deploy kubernetes resources into current context",
         )
         self.parserClone = self.subparsers.add_parser(
             "clone",
@@ -102,8 +102,11 @@ class ToolkitParser:
         )
 
     def sub_commands(self):
-        """'list', 'create', 'manage', 'destroy', 'unmanage', and 'update' all have
-        subcommands, for example, 'list apps' or 'manage cluster'."""
+        """'deploy', 'list', 'create', 'manage', 'destroy', 'unmanage', and 'update'
+        all have subcommands, for example, 'list apps' or 'manage cluster'."""
+        self.subparserDeploy = self.parserDeploy.add_subparsers(
+            title="objectType", dest="objectType", required=True
+        )
         self.subparserList = self.parserList.add_subparsers(
             title="objectType", dest="objectType", required=True
         )
@@ -124,6 +127,17 @@ class ToolkitParser:
         )
         self.subparserUpdate = self.parserUpdate.add_subparsers(
             title="objectType", dest="objectType", required=True
+        )
+
+    def sub_deploy_commands(self):
+        """deploy 'X'"""
+        self.subparserDeployAcp = self.subparserDeploy.add_parser(
+            "acp",
+            help="deploy ACP (Astra Control Provisioner)",
+        )
+        self.subparserDeployHelm = self.subparserDeploy.add_parser(
+            "helm",
+            help="deploy a Helm chart",
         )
 
     def sub_list_commands(self):
@@ -344,39 +358,6 @@ class ToolkitParser:
             help="update script",
         )
 
-    def deploy_args(self):
-        """deploy args and flags"""
-        self.parserDeploy.add_argument(
-            "app",
-            help="name of app",
-        )
-        self.parserDeploy.add_argument(
-            "chart",
-            choices=(None if self.plaidMode else self.acl.charts),
-            help="chart to deploy",
-        )
-        self.parserDeploy.add_argument(
-            "-n",
-            "--namespace",
-            required=True,
-            help="Namespace to deploy into (must not already exist)",
-        )
-        self.parserDeploy.add_argument(
-            "-f",
-            "--values",
-            required=False,
-            action="append",
-            nargs="*",
-            help="Specify Helm values in a YAML file",
-        )
-        self.parserDeploy.add_argument(
-            "--set",
-            required=False,
-            action="append",
-            nargs="*",
-            help="Individual helm chart parameters",
-        )
-
     def clone_args(self):
         """clone args and flags"""
         self.parserClone.add_argument(
@@ -525,6 +506,55 @@ class ToolkitParser:
             "['namespace', 'name', 'label', 'group', 'version', 'kind']. This argument can be "
             "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
             "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
+        )
+
+    def deploy_acp_args(self):
+        """deploy ACP args and flags"""
+        self.subparserDeployAcp.add_argument(
+            "--regCred",
+            choices=(None if self.plaidMode else self.acl.credentials),
+            default=None,
+            help="optionally specify the name of the existing registry credential "
+            "(rather than automatically creating a new secret)",
+        )
+        self.subparserDeployAcp.add_argument(
+            "--registry",
+            default=None,
+            help="optionally specify the FQDN of the ACP image source registry "
+            "(defaults to cr.<astra-control-fqdn>)",
+        )
+
+    def deploy_helm_args(self):
+        """deploy helm chart args and flags"""
+        self.subparserDeployHelm.add_argument(
+            "app",
+            help="name of app",
+        )
+        self.subparserDeployHelm.add_argument(
+            "chart",
+            choices=(None if self.plaidMode else self.acl.charts),
+            help="chart to deploy",
+        )
+        self.subparserDeployHelm.add_argument(
+            "-n",
+            "--namespace",
+            required=True,
+            help="Namespace to deploy into (must not already exist)",
+        )
+        self.subparserDeployHelm.add_argument(
+            "-f",
+            "--values",
+            required=False,
+            action="append",
+            nargs="*",
+            help="Specify Helm values in a YAML file",
+        )
+        self.subparserDeployHelm.add_argument(
+            "--set",
+            required=False,
+            action="append",
+            nargs="*",
+            help="Individual helm chart parameters",
         )
 
     def list_apiresources_args(self):
@@ -1479,6 +1509,7 @@ class ToolkitParser:
         self.sub_commands()
 
         # Of those top-level commands with sub-commands, create those sub-command parsers
+        self.sub_deploy_commands()
         self.sub_list_commands()
         self.sub_copy_commands()
         self.sub_create_commands()
@@ -1488,9 +1519,11 @@ class ToolkitParser:
         self.sub_update_commands()
 
         # Create arguments for all commands
-        self.deploy_args()
         self.clone_args()
         self.restore_args()
+
+        self.deploy_acp_args()
+        self.deploy_helm_args()
 
         self.list_apiresources_args()
         self.list_apps_args()
