@@ -43,7 +43,8 @@ class getSnaps(SDKCommon):
 
     def main(self, appFilter=None):
         if self.apps is False:
-            print("Call to getApps() failed")
+            if not self.quiet:
+                super().printError("Call to getApps() failed")
             return False
 
         snaps = {}
