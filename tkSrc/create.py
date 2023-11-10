@@ -25,15 +25,16 @@ import astraSDK
 import tkSrc
 
 
-def doProtectionTask(protectionType, appID, name, background, pollTimer, quiet, verbose):
-    """Take a snapshot/backup of appID giving it name <name>
-    Return the snapshotID/backupID of the backup taken or False if the protection task fails"""
-    if protectionType == "backup":
-        protectionID = astraSDK.backups.takeBackup(quiet=quiet, verbose=verbose).main(appID, name)
-    elif protectionType == "snapshot":
-        protectionID = astraSDK.snapshots.takeSnap(quiet=quiet, verbose=verbose).main(appID, name)
+def monitorProtectionTask(protectionID, protectionType, appID, background, pollTimer, parser):
+    """Ensure backup/snapshot task was created successfully, then monitor"""
     if protectionID is False:
         return False
+    if protectionType == "backup":
+        protection_class = astraSDK.backups.getBackups()
+    elif protectionType == "snapshot":
+        protection_class = astraSDK.snapshots.getSnaps()
+    else:
+        parser.error(f"unknown protection type: {protectionType}")
 
     print(f"Starting {protectionType} of {appID}")
     if background:
@@ -44,42 +45,50 @@ def doProtectionTask(protectionType, appID, name, background, pollTimer, quiet, 
 
     print(f"Waiting for {protectionType} to complete.", end="")
     sys.stdout.flush()
-    while True:
-        if protectionType == "backup":
-            objects = astraSDK.backups.getBackups().main()
-        elif protectionType == "snapshot":
-            objects = astraSDK.snapshots.getSnaps().main()
-        if not objects:
-            # This isn't technically true.  Trying to list the backups/snapshots after taking
-            # the protection job failed.  The protection job itself may eventually succeed.
-            print(f"Taking {protectionType} failed")
-            return False
-        for obj in objects["items"]:
-            # Just because the API call to create a backup/snapshot succeeded, that doesn't
-            # mean the actual backup will succeed. So loop to show completed or failed.
-            if obj["id"] == protectionID:
-                if obj["state"] == "completed":
-                    print("complete!")
-                    sys.stdout.flush()
-                    return protectionID
-                elif obj["state"] == "failed":
-                    print(f"{protectionType} job failed")
-                    return False
-        time.sleep(pollTimer)
-        print(".", end="")
-        sys.stdout.flush()
+    err_counter = []
+    while len(err_counter) < 3:
+        try:
+            objects = protection_class.main(appFilter=appID)
+            if not objects:
+                raise Exception(f"astraSDK.{protectionType}s.get{protectionType}s().main() failed")
+            protection_found = False
+            for obj in objects["items"]:
+                if obj["id"] == protectionID:
+                    protection_found = True
+                    if obj["state"] == "completed":
+                        print("complete!")
+                        sys.stdout.flush()
+                        return protectionID
+                    elif obj["state"] == "failed":
+                        print(f"{protectionType} job failed")
+                        return False
+            if not protection_found:
+                raise Exception(f"Protection ID {protectionID} not found")
+            time.sleep(pollTimer)
+            print(".", end="")
+            sys.stdout.flush()
+        except Exception as err:
+            err_counter.append(err)
+    for err in set([str(e) for e in err_counter]):
+        protection_class.printError(err + "\n")
+    return False
 
 
 def main(args, parser, ard):
     if args.objectType == "backup":
-        rc = doProtectionTask(
-            args.objectType,
+        protectionID = astraSDK.backups.takeBackup(quiet=args.quiet, verbose=args.verbose).main(
             args.appID,
             tkSrc.helpers.isRFC1123(args.name),
+            bucketID=args.bucketID,
+            snapshotID=args.snapshotID,
+        )
+        rc = monitorProtectionTask(
+            protectionID,
+            args.objectType,
+            args.appID,
             args.background,
             args.pollTimer,
-            args.quiet,
-            args.verbose,
+            parser,
         )
         if rc is False:
             raise SystemExit("doProtectionTask() failed")
@@ -232,14 +241,17 @@ def main(args, parser, ard):
         if rc is False:
             raise SystemExit("astraSDK.scripts.createScript() failed")
     elif args.objectType == "snapshot":
-        rc = doProtectionTask(
-            args.objectType,
+        protectionID = astraSDK.snapshots.takeSnap(quiet=args.quiet, verbose=args.verbose).main(
             args.appID,
             tkSrc.helpers.isRFC1123(args.name),
+        )
+        rc = monitorProtectionTask(
+            protectionID,
+            args.objectType,
+            args.appID,
             args.background,
             args.pollTimer,
-            args.quiet,
-            args.verbose,
+            parser,
         )
         if rc is False:
             raise SystemExit("doProtectionTask() failed")

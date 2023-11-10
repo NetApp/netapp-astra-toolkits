@@ -1,9 +1,33 @@
 # Deploy
 
-The `deploy` command has the following command syntax:
+The `deploy` command allows you to deploy Kubernetes-based resources onto your *current context*, including:
+
+* [Astra Control Provisioner](#acp)
+* [Helm Chart](#chart)
 
 ```text
-actoolkit deploy <appname> <chartname> -n/--namespace <namespacename> \
+$ actoolkit deploy -h
+usage: actoolkit deploy [-h] {acp,chart} ...
+
+options:
+  -h, --help   show this help message and exit
+
+objectType:
+  {acp,chart}
+    acp        deploy ACP (Astra Control Provisioner)
+    chart      deploy a Helm chart
+```
+
+## ACP
+
+The `deploy acp` command allows you to install Astra Control Provisioner. Additional documentation upcoming.
+
+## Chart
+
+The `deploy chart` command allows you to deploy a helm chart with the following syntax:
+
+```text
+actoolkit deploy chart <appname> <chartname> -n/--namespace <namespacename> \
     -f/--values <values.yaml> --set <value1> --set <value2>
 ```
 

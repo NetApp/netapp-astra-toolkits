@@ -69,8 +69,8 @@ class getBuckets(SDKCommon):
                 dataReturn = yaml.dump(bucketsCooked)
             elif self.output == "table":
                 dataReturn = self.basicTable(
-                    ["bucketID", "name", "credentialID", "provider", "state"],
-                    ["id", "name", "credentialID", "provider", "state"],
+                    ["bucketID", "name", "credentialID", "provider", "state", "retentionTime"],
+                    ["id", "name", "credentialID", "provider", "state", "retentionTime"],
                     bucketsCooked,
                 )
             if not self.quiet:

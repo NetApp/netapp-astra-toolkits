@@ -24,6 +24,7 @@ from . import credentials
 from . import common
 from . import entitlements
 from . import hooks
+from . import k8s
 from . import namespaces
 from . import notifications
 from . import protections
