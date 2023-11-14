@@ -215,4 +215,14 @@ class SDKCommon(BaseCommon):
 class KubeCommon(BaseCommon):
     def __init__(self):
         super().__init__()
-        self.kube_config = kubernetes.config.load_kube_config()
+        try:
+            self.kube_config = kubernetes.config.load_kube_config()
+        except kubernetes.config.config_exception.ConfigException as err:
+            self.printError(f"{err}\n")
+            raise SystemExit()
+        except Exception as err:
+            self.printError(
+                "Error loading kubeconfig, please check kubeconfig file to ensure it is valid\n"
+            )
+            self.printError(f"{err}\n")
+            raise SystemExit()
