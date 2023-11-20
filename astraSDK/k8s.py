@@ -15,15 +15,16 @@
    limitations under the License.
 """
 
+import base64
 import copy
 import json
 import kubernetes
 import yaml
 
-from .common import NeptuneCommon
+from .common import KubeCommon, SDKCommon
 
 
-class getResources(NeptuneCommon):
+class getResources(KubeCommon):
     def __init__(self, quiet=True, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
@@ -35,12 +36,12 @@ class getResources(NeptuneCommon):
     def main(
         self,
         plural,
-        version="v1alpha1",
-        group="management.astra.netapp.io",
+        version="v1",
+        group="trident.netapp.io",
         keyFilter=None,
         valFilter=None,
     ):
-        with kubernetes.client.ApiClient(self.configuration) as api_client:
+        with kubernetes.client.ApiClient(self.kube_config) as api_client:
             api_instance = kubernetes.client.CustomObjectsApi(api_client)
             try:
                 resp = api_instance.list_cluster_custom_object(
@@ -63,10 +64,36 @@ class getResources(NeptuneCommon):
 
             except kubernetes.client.rest.ApiException as e:
                 self.printError(e)
-                raise SystemExit(e)
 
 
-class getNamespaces(NeptuneCommon):
+class updateResource(KubeCommon):
+    def __init__(self, quiet=True):
+        """quiet: Will there be CLI output or just return (datastructure)"""
+        self.quiet = quiet
+        super().__init__()
+
+    def main(
+        self,
+        plural,
+        name,
+        body,
+        version="v1",
+        group="trident.netapp.io",
+    ):
+        with kubernetes.client.ApiClient(self.kube_config) as api_client:
+            api_instance = kubernetes.client.CustomObjectsApi(api_client)
+            try:
+                resp = api_instance.patch_cluster_custom_object(group, version, plural, name, body)
+
+                if not self.quiet:
+                    print(json.dumps(resp) if type(resp) is dict else resp)
+                return resp
+
+            except kubernetes.client.rest.ApiException as e:
+                self.printError(e)
+
+
+class getNamespaces(KubeCommon):
     def __init__(self, quiet=True, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
@@ -76,7 +103,7 @@ class getNamespaces(NeptuneCommon):
         super().__init__()
 
     def main(self):
-        with kubernetes.client.ApiClient(self.configuration) as api_client:
+        with kubernetes.client.ApiClient(self.kube_config) as api_client:
             api_instance = kubernetes.client.CoreV1Api(api_client)
             try:
                 resp = api_instance.list_namespace().to_dict()
@@ -97,15 +124,14 @@ class getNamespaces(NeptuneCommon):
                     resp = yaml.dump(resp)
 
                 if not self.quiet:
-                    print(json.dumps(resp) if type(resp) is dict else resp)
+                    print(json.dumps(resp, default=str) if type(resp) is dict else resp)
                 return resp
 
             except kubernetes.client.rest.ApiException as e:
                 self.printError(e)
-                raise SystemExit(e)
 
 
-class getSecrets(NeptuneCommon):
+class getSecrets(KubeCommon):
     def __init__(self, quiet=True, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
@@ -114,8 +140,8 @@ class getSecrets(NeptuneCommon):
         self.output = output
         super().__init__()
 
-    def main(self, namespace="neptune-system"):
-        with kubernetes.client.ApiClient(self.configuration) as api_client:
+    def main(self, namespace="trident"):
+        with kubernetes.client.ApiClient(self.kube_config) as api_client:
             api_instance = kubernetes.client.CoreV1Api(api_client)
             try:
                 resp = api_instance.list_namespaced_secret(namespace).to_dict()
@@ -124,9 +150,66 @@ class getSecrets(NeptuneCommon):
                     resp = yaml.dump(resp)
 
                 if not self.quiet:
-                    print(json.dumps(resp) if type(resp) is dict else resp)
+                    print(json.dumps(resp, default=str) if type(resp) is dict else resp)
                 return resp
 
             except kubernetes.client.rest.ApiException as e:
                 self.printError(e)
-                raise SystemExit(e)
+
+
+class createRegCred(KubeCommon, SDKCommon):
+    def __init__(self, quiet=True):
+        """quiet: Will there be CLI output or just return (datastructure)"""
+        self.quiet = quiet
+        super().__init__()
+
+    def main(self, name=None, registry=None, username=None, password=None, namespace="trident"):
+        if (not username and password) or (username and not password):
+            raise SystemExit(
+                "Either both or neither of (username and password) should be specified"
+            )
+        if not registry:
+            registry = f"cr.{self.conf['domain']}"
+        if not username and not password:
+            username = self.conf["account_id"]
+            password = self.conf["headers"].get("Authorization").split(" ")[-1]
+
+        regCred = {
+            "auths": {
+                registry: {
+                    "username": username,
+                    "password": password,
+                    "auth": base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
+                        "utf-8"
+                    ),
+                }
+            }
+        }
+        regCredSecret = kubernetes.client.V1Secret(
+            metadata=(
+                kubernetes.client.V1ObjectMeta(name=name)
+                if name
+                else kubernetes.client.V1ObjectMeta(
+                    generate_name="-".join(registry.split(".")) + "-"
+                )
+            ),
+            type="kubernetes.io/dockerconfigjson",
+            data={
+                ".dockerconfigjson": base64.b64encode(json.dumps(regCred).encode("utf-8")).decode(
+                    "utf-8"
+                )
+            },
+        )
+
+        with kubernetes.client.ApiClient(self.kube_config) as api_client:
+            api_instance = kubernetes.client.CoreV1Api(api_client)
+            try:
+                resp = api_instance.create_namespaced_secret(
+                    namespace=namespace,
+                    body=regCredSecret,
+                ).to_dict()
+                if not self.quiet:
+                    print(json.dumps(resp, default=str) if type(resp) is dict else resp)
+                return resp
+            except kubernetes.client.rest.ApiException as e:
+                self.printError(e)

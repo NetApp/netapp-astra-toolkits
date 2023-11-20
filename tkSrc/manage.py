@@ -33,7 +33,7 @@ def main(args, parser, ard):
                 # If we're running a neptune command, we don't have the clusterID arg populated by
                 # the end user, so gather the Connector information which contains the cluster
                 # name, which can be used in place of the cluster ID
-                ard.connectors = astraSDK.neptune.getResources().main(
+                ard.connectors = astraSDK.k8s.getResources().main(
                     "astraconnectors", version="v1", group="astra.netapp.io"
                 )
                 ard.getSingleDict(
@@ -98,7 +98,7 @@ def main(args, parser, ard):
 
         if args.neptune:
             if ard.needsattr("credentials"):
-                ard.credentials = astraSDK.neptune.getSecrets().main()
+                ard.credentials = astraSDK.k8s.getSecrets().main(namespace="neptune-system")
             # Create providerCredentials based on args.provider input
             if args.provider == "azure":
                 keyNameList = ["accountKey"]

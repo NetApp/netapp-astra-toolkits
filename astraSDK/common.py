@@ -70,15 +70,11 @@ class getConfig:
                 raise SystemExit(f"{item} is a required field in {configFile}")
 
         if "." in self.conf.get("astra_project"):
-            self.base = "https://%s/accounts/%s/" % (
-                self.conf.get("astra_project"),
-                self.conf.get("uid"),
-            )
+            self.domain = self.conf.get("astra_project")
         else:
-            self.base = "https://%s.astra.netapp.io/accounts/%s/" % (
-                self.conf.get("astra_project"),
-                self.conf.get("uid"),
-            )
+            self.domain = "%s.astra.netapp.io" % (self.conf.get("astra_project"))
+        self.account_id = self.conf.get("uid")
+        self.base = "https://%s/accounts/%s/" % (self.domain, self.account_id)
         self.headers = self.conf.get("headers")
 
         if self.conf.get("verifySSL") is False:
@@ -92,6 +88,8 @@ class getConfig:
             "base": self.base,
             "headers": self.headers,
             "verifySSL": self.verifySSL,
+            "domain": self.domain,
+            "account_id": self.account_id,
         }
 
 
@@ -106,7 +104,7 @@ class BaseCommon:
         except json.decoder.JSONDecodeError:
             sys.stderr.write(colored(ret.text, "red"))
         except AttributeError:
-            sys.stderr.write(colored(f"SDKCommon().printError: Unknown error: {ret}", "red"))
+            sys.stderr.write(colored(ret, "red"))
 
     def recursiveGet(self, k, item):
         """Recursion function which is just a wrapper around dict.get(key), to handle cases
@@ -133,6 +131,7 @@ class BaseCommon:
 
 class SDKCommon(BaseCommon):
     def __init__(self):
+        super().__init__()
         self.conf = getConfig().main()
         self.base = self.conf.get("base")
         self.headers = self.conf.get("headers")
@@ -213,6 +212,17 @@ class SDKCommon(BaseCommon):
         print(colored(f"API params: {params}", "green"))
 
 
-class NeptuneCommon(BaseCommon):
+class KubeCommon(BaseCommon):
     def __init__(self):
-        self.configuration = kubernetes.config.load_kube_config()
+        super().__init__()
+        try:
+            self.kube_config = kubernetes.config.load_kube_config()
+        except kubernetes.config.config_exception.ConfigException as err:
+            self.printError(f"{err}\n")
+            raise SystemExit()
+        except Exception as err:
+            self.printError(
+                "Error loading kubeconfig, please check kubeconfig file to ensure it is valid\n"
+            )
+            self.printError(f"{err}\n")
+            raise SystemExit()

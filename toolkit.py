@@ -171,14 +171,22 @@ def main(argv=sys.argv):
                 )
             ):
                 if neptune:
-                    ard.apps = astraSDK.neptune.getResources().main("applications")
+                    ard.apps = astraSDK.k8s.getResources().main(
+                        "applications",
+                        version="v1alpha1",
+                        group="management.astra.netapp.io",
+                    )
                     acl.apps = ard.buildList("apps", "metadata.name")
                 else:
                     ard.apps = astraSDK.apps.getApps().main()
                     acl.apps = ard.buildList("apps", "id")
                 if argv[verbPosition + 1] == "backup" or argv[verbPosition + 1] == "snapshot":
                     if neptune:
-                        ard.buckets = astraSDK.neptune.getResources().main("appvaults")
+                        ard.buckets = astraSDK.k8s.getResources().main(
+                            "appvaults",
+                            version="v1alpha1",
+                            group="management.astra.netapp.io",
+                        )
                         acl.buckets = ard.buildList("buckets", "metadata.name")
                     else:
                         ard.buckets = astraSDK.buckets.getBuckets(quiet=True).main()
@@ -188,8 +196,12 @@ def main(argv=sys.argv):
                         for a in argv[verbPosition + 1 :]:
                             if a in acl.apps:
                                 if neptune:
-                                    ard.snapshots = astraSDK.neptune.getResources().main(
-                                        "snapshots", keyFilter="spec.applicationRef", valFilter=a
+                                    ard.snapshots = astraSDK.k8s.getResources().main(
+                                        "snapshots",
+                                        version="v1alpha1",
+                                        group="management.astra.netapp.io",
+                                        keyFilter="spec.applicationRef",
+                                        valFilter=a,
                                     )
                                     acl.snapshots = ard.buildList("snapshots", "metadata.name")
                                 else:
@@ -255,7 +267,7 @@ def main(argv=sys.argv):
             elif (verbs["manage"] or verbs["define"]) and len(argv) - verbPosition >= 2:
                 if argv[verbPosition + 1] == "app":
                     if neptune:
-                        ard.namespaces = astraSDK.neptune.getNamespaces().main()
+                        ard.namespaces = astraSDK.k8s.getNamespaces().main()
                         acl.namespaces = ard.buildList("namespaces", "metadata.name")
                     else:
                         ard.namespaces = astraSDK.namespaces.getNamespaces().main()
@@ -264,7 +276,7 @@ def main(argv=sys.argv):
                         acl.clusters = list(set(acl.clusters))
                 elif argv[verbPosition + 1] == "bucket" or argv[verbPosition + 1] == "appVault":
                     if neptune:
-                        ard.credentials = astraSDK.neptune.getSecrets().main()
+                        ard.credentials = astraSDK.k8s.getSecrets().main(namespace="neptune-system")
                         acl.credentials = ard.buildList("credentials", "metadata.name")
                         for c in argv[verbPosition + 1 :]:
                             if c in acl.credentials:

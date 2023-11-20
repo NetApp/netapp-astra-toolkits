@@ -24,9 +24,9 @@ from . import credentials
 from . import common
 from . import entitlements
 from . import hooks
+from . import k8s
 from . import namespaces
 from . import notifications
-from . import neptune
 from . import protections
 from . import replications
 from . import rolebindings

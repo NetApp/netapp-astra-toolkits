@@ -827,20 +827,21 @@ class ToolkitParser:
                 choices=["Delete", "Retain"],
                 help="Define how to handle the snapshot data when the snapshot CR is deleted",
             )
-        self.subparserCreateBackup.add_argument(
-            "-b",
-            "--background",
-            default=False,
-            action="store_true",
-            help="Run backup operation in the background",
-        )
-        self.subparserCreateBackup.add_argument(
-            "-t",
-            "--pollTimer",
-            type=int,
-            default=5,
-            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
-        )
+        else:
+            self.subparserCreateBackup.add_argument(
+                "-b",
+                "--background",
+                default=False,
+                action="store_true",
+                help="Run backup operation in the background",
+            )
+            self.subparserCreateBackup.add_argument(
+                "-t",
+                "--pollTimer",
+                type=int,
+                default=5,
+                help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+            )
 
     def create_cluster_args(self):
         """create cluster args and flags"""
@@ -1118,20 +1119,21 @@ class ToolkitParser:
                 help="The time (in minutes) to wait for Snapshot CR to complete before returning "
                 "timeout error (default: 30)",
             )
-        self.subparserCreateSnapshot.add_argument(
-            "-b",
-            "--background",
-            default=False,
-            action="store_true",
-            help="Run snapshot operation in the background",
-        )
-        self.subparserCreateSnapshot.add_argument(
-            "-t",
-            "--pollTimer",
-            type=int,
-            default=5,
-            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
-        )
+        else:
+            self.subparserCreateSnapshot.add_argument(
+                "-b",
+                "--background",
+                default=False,
+                action="store_true",
+                help="Run snapshot operation in the background",
+            )
+            self.subparserCreateSnapshot.add_argument(
+                "-t",
+                "--pollTimer",
+                type=int,
+                default=5,
+                help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+            )
 
     def create_user_args(self):
         """create user args and flags"""
@@ -1247,8 +1249,7 @@ class ToolkitParser:
                 "-c",
                 "--secret",
                 dest="credential",
-                required=False,
-                default=None,
+                required=True,
                 nargs=2,
                 action="append",
                 choices=(None if self.plaidMode else self.acl.credentials + self.acl.keys),
