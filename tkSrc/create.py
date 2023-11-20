@@ -25,10 +25,16 @@ import astraSDK
 import tkSrc
 
 
-def monitorProtectionTask(protectionID, protectionType, appID, background, pollTimer):
+def monitorProtectionTask(protectionID, protectionType, appID, background, pollTimer, parser):
     """Ensure backup/snapshot task was created successfully, then monitor"""
     if protectionID is False:
         return False
+    if protectionType == "backup":
+        protection_class = astraSDK.backups.getBackups()
+    elif protectionType == "snapshot":
+        protection_class = astraSDK.snapshots.getSnaps()
+    else:
+        parser.error(f"unknown protection type: {protectionType}")
 
     print(f"Starting {protectionType} of {appID}")
     if background:
@@ -39,30 +45,33 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
 
     print(f"Waiting for {protectionType} to complete.", end="")
     sys.stdout.flush()
-    while True:
-        if protectionType == "backup":
-            objects = astraSDK.backups.getBackups().main()
-        elif protectionType == "snapshot":
-            objects = astraSDK.snapshots.getSnaps().main()
-        if not objects:
-            # This isn't technically true.  Trying to list the backups/snapshots after taking
-            # the protection job failed.  The protection job itself may eventually succeed.
-            print(f"Taking {protectionType} failed")
-            return False
-        for obj in objects["items"]:
-            # Just because the API call to create a backup/snapshot succeeded, that doesn't
-            # mean the actual backup will succeed. So loop to show completed or failed.
-            if obj["id"] == protectionID:
-                if obj["state"] == "completed":
-                    print("complete!")
-                    sys.stdout.flush()
-                    return protectionID
-                elif obj["state"] == "failed":
-                    print(f"{protectionType} job failed")
-                    return False
-        time.sleep(pollTimer)
-        print(".", end="")
-        sys.stdout.flush()
+    err_counter = []
+    while len(err_counter) < 3:
+        try:
+            objects = protection_class.main(appFilter=appID)
+            if not objects:
+                raise Exception(f"astraSDK.{protectionType}s.get{protectionType}s().main() failed")
+            protection_found = False
+            for obj in objects["items"]:
+                if obj["id"] == protectionID:
+                    protection_found = True
+                    if obj["state"] == "completed":
+                        print("complete!")
+                        sys.stdout.flush()
+                        return protectionID
+                    elif obj["state"] == "failed":
+                        print(f"{protectionType} job failed")
+                        return False
+            if not protection_found:
+                raise Exception(f"Protection ID {protectionID} not found")
+            time.sleep(pollTimer)
+            print(".", end="")
+            sys.stdout.flush()
+        except Exception as err:
+            err_counter.append(err)
+    for err in set([str(e) for e in err_counter]):
+        protection_class.printError(err + "\n")
+    return False
 
 
 def main(args, parser, ard):
@@ -94,9 +103,10 @@ def main(args, parser, ard):
                 args.app,
                 args.background,
                 args.pollTimer,
+                parser,
             )
             if rc is False:
-                raise SystemExit("doProtectionTask() failed")
+                raise SystemExit("monitorProtectionTask() failed")
     elif args.objectType == "cluster":
         with open(args.filePath, encoding="utf8") as f:
             kubeconfigDict = yaml.load(f.read().rstrip(), Loader=yaml.SafeLoader)
@@ -273,9 +283,10 @@ def main(args, parser, ard):
                 args.app,
                 args.background,
                 args.pollTimer,
+                parser,
             )
             if rc is False:
-                raise SystemExit("doProtectionTask() failed")
+                raise SystemExit("monitorProtectionTask() failed")
     elif args.objectType == "user":
         # First create the user
         urc = astraSDK.users.createUser(quiet=args.quiet, verbose=args.verbose).main(
