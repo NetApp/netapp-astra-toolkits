@@ -43,7 +43,8 @@ class getBackups(SDKCommon):
 
     def main(self, appFilter=None):
         if self.apps is False:
-            print("Call to getApps().main() failed")
+            if not self.quiet:
+                super().printError("Call to getApps() failed")
             return False
 
         """self.apps = {"items":[{"appDefnSource":"namespace","appLabels":[],
