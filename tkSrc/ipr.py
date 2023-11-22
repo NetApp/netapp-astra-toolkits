@@ -28,25 +28,25 @@ def main(args, parser):
     ):
         parser.error("either both or none of --filterSelection and --filterSet should be specified")
     rc = astraSDK.apps.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
-        args.appID,
-        backupID=args.backupID,
-        snapshotID=args.snapshotID,
+        args.app,
+        backupID=args.backup,
+        snapshotID=args.snapshot,
         resourceFilter=tkSrc.helpers.createFilterSet(
-            args.filterSelection, args.filterSet, astraSDK.apps.getAppAssets().main(args.appID)
+            args.filterSelection, args.filterSet, astraSDK.apps.getAppAssets().main(args.app)
         ),
     )
     if rc:
         if args.background:
-            print("Restore job submitted successfully")
-            print("Background restore flag selected, run 'list apps' to get status")
+            print("In-Place-Restore job submitted successfully")
+            print("Background flag selected, run 'list apps' to get status")
             return True
-        print("Restore job in progress...", end="")
+        print("In-Place-Restore job in progress", end="")
         sys.stdout.flush()
         while True:
             restoreApps = astraSDK.apps.getApps().main()
             state = None
             for restoreApp in restoreApps["items"]:
-                if restoreApp["id"] == args.appID:
+                if restoreApp["id"] == args.app:
                     state = restoreApp["state"]
             if state == "restoring":
                 print(".", end="")
@@ -55,7 +55,7 @@ def main(args, parser):
                 print("Success!")
                 break
             elif state == "failed":
-                raise SystemExit(f"Restore of app {args.appID} failed!")
+                raise SystemExit(f"Restore of app {args.app} failed!")
             time.sleep(args.pollTimer)
     else:
         raise SystemExit("Submitting restore job failed.")

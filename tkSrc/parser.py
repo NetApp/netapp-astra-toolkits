@@ -72,11 +72,11 @@ class ToolkitParser:
         )
         self.parserClone = self.subparsers.add_parser(
             "clone",
-            help="Clone an app from a backup, snapshot, or running app (live clone)",
+            help="Live clone a running app",
         )
-        self.parserRestore = self.subparsers.add_parser(
-            "restore",
-            help="In-Place Restore (IPR) an app from a backup or snapshot",
+        self.parserIPR = self.subparsers.add_parser(
+            "ipr",
+            help="In-Place Restore an app (destructive action for app) from a backup or snapshot",
         )
         self.parserList = self.subparsers.add_parser(
             "list",
@@ -461,44 +461,45 @@ class ToolkitParser:
             "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
         )
 
-    def restore_args(self):
-        """restore args and flags"""
-        self.parserRestore.add_argument(
+    def IPR_args(self):
+        """IPR args and flags"""
+        self.parserIPR.add_argument(
             "-b",
             "--background",
             default=False,
             action="store_true",
-            help="Run restore operation in the background",
+            help="Run IPR operation in the background",
         )
-        self.parserRestore.add_argument(
-            "appID",
+        self.parserIPR.add_argument(
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID to restore",
+            help="app to in-place-restore",
         )
-        group = self.parserRestore.add_mutually_exclusive_group(required=True)
+        group = self.parserIPR.add_mutually_exclusive_group(required=True)
         group.add_argument(
-            "--backupID",
+            "--backup",
             choices=(None if self.plaidMode else self.acl.backups),
             required=False,
             default=None,
-            help="Source backup to restore from",
+            help="Source backup to in-place-restore from",
         )
         group.add_argument(
-            "--snapshotID",
+            "--snapshot",
             choices=(None if self.plaidMode else self.acl.snapshots),
             required=False,
             default=None,
-            help="Source snapshot to restore from",
+            help="Source snapshot to in-place-restore from",
         )
-        self.parserRestore.add_argument(
+        self.parserIPR.add_argument(
             "-t",
             "--pollTimer",
             type=int,
             default=5,
             help="The frequency (seconds) to poll the operation status (default: %(default)s)",
         )
-        filterGroup = self.parserRestore.add_argument_group(
-            title="filter group", description="optionally restore a subset of resources via filters"
+        filterGroup = self.parserIPR.add_argument_group(
+            title="filter group",
+            description="optionally in-place-restore a subset of resources via filters",
         )
         filterGroup.add_argument(
             "--filterSelection",
@@ -1608,7 +1609,7 @@ class ToolkitParser:
 
         # Create arguments for all commands
         self.clone_args()
-        self.restore_args()
+        self.IPR_args()
 
         self.deploy_acp_args()
         self.deploy_chart_args()

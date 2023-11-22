@@ -37,7 +37,7 @@ def main(argv=sys.argv):
         verbs = {
             "deploy": False,
             "clone": False,
-            "restore": False,
+            "ipr": False,
             "list": False,
             "get": False,
             "create": False,
@@ -114,7 +114,7 @@ def main(argv=sys.argv):
                 neptune = True
 
         # Argparse cares about capitalization, kubectl does not, so transparently fix appvault
-        if argv[verbPosition + 1] == "appvault":
+        if verbPosition and len(argv) - verbPosition >= 2 and argv[verbPosition + 1] == "appvault":
             argv[verbPosition + 1] = "appVault"
 
         if not plaidMode:
@@ -155,13 +155,13 @@ def main(argv=sys.argv):
                 acl.storageClasses = ard.buildList("storageClasses", "name")
                 acl.storageClasses = list(set(acl.storageClasses))
 
-            elif verbs["restore"]:
+            elif verbs["ipr"]:
                 ard.apps = astraSDK.apps.getApps().main()
                 acl.apps = ard.buildList("apps", "id")
 
                 # This expression translates to "Is there an arg after the verb we found?"
                 if len(argv) - verbPosition >= 2:
-                    # If that arg after the verb "restore" matches an appID then
+                    # If that arg after the verb "ipr" matches an appID then
                     # populate the lists of backups and snapshots for that appID
                     ard.backups = astraSDK.backups.getBackups().main()
                     ard.snapshots = astraSDK.snapshots.getSnaps().main()
@@ -469,8 +469,8 @@ def main(argv=sys.argv):
         tkSrc.deploy.main(args, parser, ard)
     elif args.subcommand == "clone":
         tkSrc.clone.main(args, parser, ard)
-    elif args.subcommand == "restore":
-        tkSrc.restore.main(args, parser)
+    elif args.subcommand == "ipr":
+        tkSrc.ipr.main(args, parser)
     elif args.subcommand == "list" or args.subcommand == "get":
         tkSrc.list.main(args)
     elif args.subcommand == "copy":
