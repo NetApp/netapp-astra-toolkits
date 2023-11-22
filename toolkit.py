@@ -37,6 +37,7 @@ def main(argv=sys.argv):
         verbs = {
             "deploy": False,
             "clone": False,
+            "restore": False,
             "ipr": False,
             "list": False,
             "get": False,
@@ -134,15 +135,16 @@ def main(argv=sys.argv):
                 ard.credentials = astraSDK.k8s.getSecrets().main(namespace="trident")
                 acl.credentials = ard.buildList("credentials", "metadata.name")
 
-            elif verbs["clone"]:
+            elif verbs["clone"] or verbs["restore"]:
                 ard.apps = astraSDK.apps.getApps().main()
                 acl.apps = ard.buildList("apps", "id")
                 ard.destClusters = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
                 acl.destClusters = ard.buildList("destClusters", "id")
-                ard.backups = astraSDK.backups.getBackups().main()
-                acl.backups = ard.buildList("backups", "id")
-                ard.snapshots = astraSDK.snapshots.getSnaps().main()
-                acl.snapshots = ard.buildList("snapshots", "id")
+                if verbs["restore"]:
+                    ard.backups = astraSDK.backups.getBackups().main()
+                    acl.backups = ard.buildList("backups", "id")
+                    ard.snapshots = astraSDK.snapshots.getSnaps().main()
+                    acl.snapshots = ard.buildList("snapshots", "id")
                 # if the destination cluster has been specified, only show those storage classes
                 if (clusterID := list(set(argv) & set(acl.destClusters))) and len(clusterID) == 1:
                     ard.storageClasses = astraSDK.storageclasses.getStorageClasses().main(
@@ -467,7 +469,7 @@ def main(argv=sys.argv):
 
     if args.subcommand == "deploy":
         tkSrc.deploy.main(args, parser, ard)
-    elif args.subcommand == "clone":
+    elif args.subcommand == "clone" or args.subcommand == "restore":
         tkSrc.clone.main(args, parser, ard)
     elif args.subcommand == "ipr":
         tkSrc.ipr.main(args, parser)

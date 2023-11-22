@@ -217,63 +217,63 @@ def doClone(
 
 
 def main(args, parser, ard):
-    if (args.filterSelection and not args.filterSet) or (
-        args.filterSet and not args.filterSelection
-    ):
-        parser.error("either both or none of --filterSelection and --filterSet should be specified")
-    if args.filterSet and args.sourceAppID:
-        parser.error(
-            "resource filters (--filterSet) may only be specified with --backupID "
-            "or --snapshotID arguments, not --sourceAppID"
-        )
-    if not args.cloneAppName:
-        args.cloneAppName = input("App name for the clone: ")
-    if not args.clusterID:
-        if ard.needsattr("clusters"):
-            ard.clusters = astraSDK.clusters.getClusters().main()
-        print("Select destination cluster for the clone")
-        print("Index\tClusterID\t\t\t\tclusterName\tclusterPlatform")
-        args.clusterID = tkSrc.helpers.userSelect(ard.clusters, ["id", "name", "clusterType"])
-    # Get the original app dictionary based on args.sourceAppID/args.backupID/args.snapshotID,
-    # as the app dict contains sourceClusterID and namespaceScopedResources which we need
-    oApp = {}
+    # Ensure proper use of resource filters
+    if args.subcommand == "restore":
+        if (args.filterSelection and not args.filterSet) or (
+            args.filterSet and not args.filterSelection
+        ):
+            parser.error(
+                "either both or none of --filterSelection and --filterSet should be specified"
+            )
     # Handle -f/--fast/plaidMode cases
     if ard.needsattr("apps"):
         ard.apps = astraSDK.apps.getApps().main()
-    if args.sourceAppID:
+    # Get the original app dictionary based on args.sourceApp/args.backup/args.snapshot,
+    # as the app dict contains sourceCluster and namespaceScopedResources which we need
+    oApp = {}
+    if args.subcommand == "clone":
+        # There are certain args that aren't available for live clones, set those to None
+        args.backup = None
+        args.snapshot = None
+        args.filterSelection = None
+        args.filterSet = None
         for app in ard.apps["items"]:
-            if app["id"] == args.sourceAppID:
+            if app["id"] == args.sourceApp:
                 oApp = app
-    elif args.backupID:
+    elif args.backup:
         if ard.needsattr("backups"):
             ard.backups = astraSDK.backups.getBackups().main()
+        args.sourceApp = None
         for app in ard.apps["items"]:
             for backup in ard.backups["items"]:
-                if app["id"] == backup["appID"] and backup["id"] == args.backupID:
+                if app["id"] == backup["appID"] and backup["id"] == args.backup:
                     oApp = app
-    elif args.snapshotID:
+    elif args.snapshot:
         if ard.needsattr("snapshots"):
             ard.snapshots = astraSDK.snapshots.getSnaps().main()
+        args.sourceApp = None
         for app in ard.apps["items"]:
             for snapshot in ard.snapshots["items"]:
-                if app["id"] == snapshot["appID"] and snapshot["id"] == args.snapshotID:
+                if app["id"] == snapshot["appID"] and snapshot["id"] == args.snapshot:
                     oApp = app
     # Ensure appIDstr is not equal to "", if so bad values were passed in with plaidMode
     if not oApp:
         parser.error(
-            "the corresponding appID was not found in the system, please check "
+            "the corresponding app was not found in the system, please check "
             + "your inputs and try again."
         )
 
     doClone(
-        tkSrc.helpers.isRFC1123(args.cloneAppName),
-        args.clusterID,
+        tkSrc.helpers.isRFC1123(args.appName),
+        args.cluster,
         oApp,
-        tkSrc.helpers.createNamespaceMapping(oApp, args.cloneNamespace, args.multiNsMapping),
+        tkSrc.helpers.createNamespaceMapping(
+            oApp, args.cloneNamespace, args.multiNsMapping, parser
+        ),
         args.cloneStorageClass,
-        args.backupID,
-        args.snapshotID,
-        args.sourceAppID,
+        args.backup,
+        args.snapshot,
+        args.sourceApp,
         args.background,
         args.pollTimer,
         tkSrc.helpers.createFilterSet(

@@ -72,7 +72,11 @@ class ToolkitParser:
         )
         self.parserClone = self.subparsers.add_parser(
             "clone",
-            help="Live clone a running app",
+            help="Live clone a running app to a new namespace",
+        )
+        self.parserRestore = self.subparsers.add_parser(
+            "restore",
+            help="Restore an app from a backup or snapshot to a new namespace",
         )
         self.parserIPR = self.subparsers.add_parser(
             "ipr",
@@ -368,36 +372,31 @@ class ToolkitParser:
         )
 
     def clone_args(self):
-        """clone args and flags"""
+        """live clone args and flags"""
         self.parserClone.add_argument(
-            "-b",
-            "--background",
-            default=False,
-            action="store_true",
-            help="Run clone operation in the background",
+            "sourceApp",
+            choices=(None if self.plaidMode else self.acl.apps),
+            help="Source app to live clone",
         )
+        self.parserClone.add_argument("appName", help="The logical name of the new app")
         self.parserClone.add_argument(
-            "--cloneAppName",
-            required=False,
-            default=None,
-            help="Clone app name",
-        )
-        self.parserClone.add_argument(
-            "--clusterID",
+            "cluster",
             choices=(None if self.plaidMode else self.acl.destClusters),
-            required=False,
-            default=None,
             help="Cluster to clone into (can be same as source)",
         )
-        nsGroup = self.parserClone.add_mutually_exclusive_group()
-        nsGroup.add_argument(
+        namespaceGroup = self.parserClone.add_argument_group(
+            title="new namespace group",
+            description="the namespace(s) to restore the app into (mutually exclusive)",
+        )
+        namespaceME = namespaceGroup.add_mutually_exclusive_group()
+        namespaceME.add_argument(
             "--cloneNamespace",
             required=False,
             default=None,
             help="For single-namespace apps, specify the clone namespace name (if not"
             + " specified cloneAppName is used)",
         )
-        nsGroup.add_argument(
+        namespaceME.add_argument(
             "--multiNsMapping",
             required=False,
             default=None,
@@ -412,36 +411,79 @@ class ToolkitParser:
             default=None,
             help="Optionally specify a different storage class for the clone",
         )
-        sourceGroup = self.parserClone.add_mutually_exclusive_group(required=True)
-        sourceGroup.add_argument(
-            "--backupID",
-            choices=(None if self.plaidMode else self.acl.backups),
-            required=False,
-            default=None,
-            help="Source backup to clone from",
+        pollingGroup = self.parserClone.add_argument_group(
+            title="polling group", description="optionally modify default polling mechanism"
         )
-        sourceGroup.add_argument(
-            "--snapshotID",
-            choices=(None if self.plaidMode else self.acl.snapshots),
-            required=False,
-            default=None,
-            help="Source snapshot to clone from",
+        pollingGroup.add_argument(
+            "-b",
+            "--background",
+            default=False,
+            action="store_true",
+            help="Run clone operation in the background instead of polling",
         )
-        sourceGroup.add_argument(
-            "--sourceAppID",
-            choices=(None if self.plaidMode else self.acl.apps),
-            required=False,
-            default=None,
-            help="Source app to live clone",
-        )
-        self.parserClone.add_argument(
+        pollingGroup.add_argument(
             "-t",
             "--pollTimer",
             type=int,
             default=5,
             help="The frequency (seconds) to poll the operation status (default: %(default)s)",
         )
-        filterGroup = self.parserClone.add_argument_group(
+
+    def restore_args(self):
+        """restore args and flags"""
+        self.parserRestore.add_argument("appName", help="The logical name of the newly defined app")
+        self.parserRestore.add_argument(
+            "cluster",
+            choices=(None if self.plaidMode else self.acl.destClusters),
+            help="Cluster to clone into (can be same as source)",
+        )
+        sourceGroup = self.parserRestore.add_argument_group(
+            title="restore source group (must specify one)",
+            description="source to restore the app from (mutually exclusive)",
+        )
+        sourceME = sourceGroup.add_mutually_exclusive_group(required=True)
+        sourceME.add_argument(
+            "--backup",
+            choices=(None if self.plaidMode else self.acl.backups),
+            required=False,
+            default=None,
+            help="Source backup to clone from",
+        )
+        sourceME.add_argument(
+            "--snapshot",
+            choices=(None if self.plaidMode else self.acl.snapshots),
+            required=False,
+            default=None,
+            help="Source snapshot to clone from",
+        )
+        namespaceGroup = self.parserRestore.add_argument_group(
+            title="new namespace group",
+            description="the namespace(s) to restore the app into (mutually exclusive)",
+        )
+        namespaceME = namespaceGroup.add_mutually_exclusive_group()
+        namespaceME.add_argument(
+            "--cloneNamespace",
+            required=False,
+            default=None,
+            help="For single-namespace apps, specify the clone namespace name (if not"
+            + " specified cloneAppName is used)",
+        )
+        namespaceME.add_argument(
+            "--multiNsMapping",
+            required=False,
+            default=None,
+            action="append",
+            nargs="*",
+            help="For multi-namespace apps, specify matching number of sourcens1=destns1 mappings",
+        )
+        self.parserRestore.add_argument(
+            "--cloneStorageClass",
+            choices=(None if self.plaidMode else self.acl.storageClasses),
+            required=False,
+            default=None,
+            help="Optionally specify a different storage class for the clone",
+        )
+        filterGroup = self.parserRestore.add_argument_group(
             title="filter group", description="optionally clone a subset of resources via filters"
         )
         filterGroup.add_argument(
@@ -459,6 +501,23 @@ class ToolkitParser:
             "['namespace', 'name', 'label', 'group', 'version', 'kind']. This argument can be "
             "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
             "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
+        )
+        pollingGroup = self.parserRestore.add_argument_group(
+            title="polling group", description="optionally modify default polling mechanism"
+        )
+        pollingGroup.add_argument(
+            "-b",
+            "--background",
+            default=False,
+            action="store_true",
+            help="Run clone operation in the background instead of polling",
+        )
+        pollingGroup.add_argument(
+            "-t",
+            "--pollTimer",
+            type=int,
+            default=5,
+            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
         )
 
     def IPR_args(self):
@@ -1609,6 +1668,7 @@ class ToolkitParser:
 
         # Create arguments for all commands
         self.clone_args()
+        self.restore_args()
         self.IPR_args()
 
         self.deploy_acp_args()

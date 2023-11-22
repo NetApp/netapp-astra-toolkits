@@ -134,14 +134,14 @@ def createCriteriaList(images, namespaces, pods, labels, names):
     )
 
 
-def createNamespaceMapping(app, singleNs, multiNsMapping):
+def createNamespaceMapping(app, singleNs, multiNsMapping, parser):
     """Create a list of dictionaries of source and destination namespaces for cloning an
     application, as the user can provide a variety of input.  Return object format:
     [ { "source": "sourcens1", "destination": "destns1" },
       { "source": "sourcens2", "destination": "destns2" } ]"""
     # Ensure that multiNsMapping was used for multi-namespace apps
     if multiNsMapping is None and len(app["namespaceScopedResources"]) > 1:
-        raise SystemExit("Error: for multi-namespace apps, --multiNsMapping must be used.")
+        parser.error("for multi-namespace apps, --multiNsMapping must be used.")
     # For single-namespace apps, the namespace mapping is **not** a required field
     elif singleNs is None and multiNsMapping is None:
         return None
