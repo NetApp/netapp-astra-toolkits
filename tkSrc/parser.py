@@ -509,13 +509,6 @@ class ToolkitParser:
     def IPR_args(self):
         """IPR args and flags"""
         self.parserIPR.add_argument(
-            "-b",
-            "--background",
-            default=False,
-            action="store_true",
-            help="Run IPR operation in the background",
-        )
-        self.parserIPR.add_argument(
             "app",
             choices=(None if self.plaidMode else self.acl.apps),
             help="app to in-place-restore",
@@ -534,13 +527,6 @@ class ToolkitParser:
             required=False,
             default=None,
             help="Source snapshot to in-place-restore from",
-        )
-        self.parserIPR.add_argument(
-            "-t",
-            "--pollTimer",
-            type=int,
-            default=5,
-            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
         )
         filterGroup = self.parserIPR.add_argument_group(
             title="filter group",
@@ -561,6 +547,23 @@ class ToolkitParser:
             "['namespace', 'name', 'label', 'group', 'version', 'kind']. This argument can be "
             "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
             "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
+        )
+        pollingGroup = self.parserIPR.add_argument_group(
+            title="polling group", description="optionally modify default polling mechanism"
+        )
+        pollingGroup.add_argument(
+            "-b",
+            "--background",
+            default=False,
+            action="store_true",
+            help="Run restore operation in the background instead of polling",
+        )
+        pollingGroup.add_argument(
+            "-t",
+            "--pollTimer",
+            type=int,
+            default=5,
+            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
         )
 
     def deploy_acp_args(self):

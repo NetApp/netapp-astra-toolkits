@@ -12,7 +12,7 @@ The overall command usage is:
 actoolkit restore <restoreSource> <appName> <cluster> \
     [--newStorageClass <newStorageClass>] \
     [--newNamespace <newNamespace> | --multiNsMapping <sourcens1=destns1, sourcens2=destns2>] \
-    [--filterSelection <include|exclude> --filterSelection <key1=value1 key2=value2>] --filterSelection <key3=value3>] \
+    [--filterSelection <include|exclude> --filterSelection <key1=val1 key2=val2>] --filterSelection <key3=val3>] \
     [--background | --pollTimer <integer>]
 ```
 
