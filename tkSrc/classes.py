@@ -31,6 +31,7 @@ class ArgparseChoicesLists:
             "clouds": [],
             "clusters": [],
             "credentials": [],
+            "dataProtections": [],
             "destApps": [],
             "destClusters": [],
             "hooks": [],

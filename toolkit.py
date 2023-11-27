@@ -142,9 +142,10 @@ def main(argv=sys.argv):
                 acl.destClusters = ard.buildList("destClusters", "id")
                 if verbs["restore"]:
                     ard.backups = astraSDK.backups.getBackups().main()
-                    acl.backups = ard.buildList("backups", "id")
                     ard.snapshots = astraSDK.snapshots.getSnaps().main()
-                    acl.snapshots = ard.buildList("snapshots", "id")
+                    acl.dataProtections = ard.buildList("backups", "id") + ard.buildList(
+                        "snapshots", "id"
+                    )
                 # if the destination cluster has been specified, only show those storage classes
                 if (clusterID := list(set(argv) & set(acl.destClusters))) and len(clusterID) == 1:
                     ard.storageClasses = astraSDK.storageclasses.getStorageClasses().main(

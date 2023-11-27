@@ -26,21 +26,22 @@ import tkSrc
 
 
 def doClone(
-    cloneAppName,
+    newAppName,
     clusterID,
     oApp,
     namespaceMapping,
-    cloneStorageClass,
+    newStorageClass,
     backupID,
     snapshotID,
     sourceAppID,
-    background,
-    pollTimer,
     resourceFilter,
-    verbose,
-    quiet,
+    pollTimer=5,
+    background=False,
+    verb="restore",
+    verbose=False,
+    quiet=False,
 ):
-    """Create a clone."""
+    """Create a clone/restore."""
     # Check to see if cluster-level resources are needed to be manually created
     needsIngressclass = False
     appAssets = astraSDK.apps.getAppAssets(verbose=verbose).main(oApp["id"])
@@ -178,22 +179,22 @@ def doClone(
                 raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
 
     cloneRet = astraSDK.apps.cloneApp(verbose=verbose, quiet=quiet).main(
-        cloneAppName,
+        newAppName,
         clusterID,
         oApp["clusterID"],
         namespaceMapping=namespaceMapping,
-        cloneStorageClass=cloneStorageClass,
+        cloneStorageClass=newStorageClass,
         backupID=backupID,
         snapshotID=snapshotID,
         sourceAppID=sourceAppID,
         resourceFilter=resourceFilter,
     )
     if cloneRet:
-        print("Submitting clone succeeded.")
+        print(f"Submitting {verb} succeeded.")
         if background:
-            print("Background clone flag selected, run 'list apps' to get status.")
+            print(f"Background {verb} flag selected, run 'list apps' to get status.")
             return True
-        print("Waiting for clone to become available.", end="")
+        print(f"Waiting for {verb} to become available", end="")
         sys.stdout.flush()
         appID = cloneRet.get("id")
         state = cloneRet.get("state")
@@ -203,17 +204,17 @@ def doClone(
                 if app["id"] == appID:
                     if app["state"] == "ready":
                         state = app["state"]
-                        print("Cloning operation complete.")
+                        print(f"{verb[:-1]}ing operation complete.")
                         sys.stdout.flush()
                     elif app["state"] == "failed":
                         sys.stdout.flush()
                         raise SystemExit(f"Error: \"{app['name']}\" in a failed state")
                     else:
+                        time.sleep(pollTimer)
                         print(".", end="")
                         sys.stdout.flush()
-                        time.sleep(pollTimer)
     else:
-        raise SystemExit("Submitting clone failed.")
+        raise SystemExit(f"Submitting {verb} failed.")
 
 
 def main(args, parser, ard):
@@ -228,33 +229,37 @@ def main(args, parser, ard):
     # Handle -f/--fast/plaidMode cases
     if ard.needsattr("apps"):
         ard.apps = astraSDK.apps.getApps().main()
-    # Get the original app dictionary based on args.sourceApp/args.backup/args.snapshot,
+    # Get the original app dictionary based on args.sourceApp/args.restoreSource,
     # as the app dict contains sourceCluster and namespaceScopedResources which we need
     oApp = {}
+    backup = None
+    snapshot = None
     if args.subcommand == "clone":
         # There are certain args that aren't available for live clones, set those to None
-        args.backup = None
-        args.snapshot = None
         args.filterSelection = None
         args.filterSet = None
         for app in ard.apps["items"]:
             if app["id"] == args.sourceApp:
                 oApp = app
-    elif args.backup:
+    elif args.subcommand == "restore":
+        args.sourceApp = None
         if ard.needsattr("backups"):
             ard.backups = astraSDK.backups.getBackups().main()
-        args.sourceApp = None
-        for app in ard.apps["items"]:
-            for backup in ard.backups["items"]:
-                if app["id"] == backup["appID"] and backup["id"] == args.backup:
-                    oApp = app
-    elif args.snapshot:
         if ard.needsattr("snapshots"):
             ard.snapshots = astraSDK.snapshots.getSnaps().main()
-        args.sourceApp = None
+        if args.restoreSource in ard.buildList("backups", "id"):
+            dataProtections = ard.backups
+            backup = args.restoreSource
+        elif args.restoreSource in ard.buildList("snapshots", "id"):
+            dataProtections = ard.snapshots
+            snapshot = args.restoreSource
+        else:
+            parser.error(
+                f"the restoreSource '{args.restoreSource}' is not a valid backup or snapshot"
+            )
         for app in ard.apps["items"]:
-            for snapshot in ard.snapshots["items"]:
-                if app["id"] == snapshot["appID"] and snapshot["id"] == args.snapshot:
+            for dp in dataProtections["items"]:
+                if app["id"] == dp["appID"] and dp["id"] == args.restoreSource:
                     oApp = app
     # Ensure appIDstr is not equal to "", if so bad values were passed in with plaidMode
     if not oApp:
@@ -267,18 +272,17 @@ def main(args, parser, ard):
         tkSrc.helpers.isRFC1123(args.appName),
         args.cluster,
         oApp,
-        tkSrc.helpers.createNamespaceMapping(
-            oApp, args.cloneNamespace, args.multiNsMapping, parser
-        ),
-        args.cloneStorageClass,
-        args.backup,
-        args.snapshot,
+        tkSrc.helpers.createNamespaceMapping(oApp, args.newNamespace, args.multiNsMapping, parser),
+        args.newStorageClass,
+        backup,
+        snapshot,
         args.sourceApp,
-        args.background,
-        args.pollTimer,
         tkSrc.helpers.createFilterSet(
             args.filterSelection, args.filterSet, astraSDK.apps.getAppAssets().main(oApp["id"])
         ),
-        args.verbose,
-        args.quiet,
+        pollTimer=args.pollTimer,
+        background=args.background,
+        verb=args.subcommand,
+        verbose=args.verbose,
+        quiet=args.quiet,
     )
