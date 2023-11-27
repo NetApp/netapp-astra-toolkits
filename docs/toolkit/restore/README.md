@@ -12,15 +12,14 @@ The overall command usage is:
 actoolkit restore <restoreSource> <appName> <cluster> \
     [--newStorageClass <newStorageClass>] \
     [--newNamespace <newNamespace> | --multiNsMapping <sourcens1=destns1, sourcens2=destns2>] \
-    [--filterSelection <include|exclude>] \
-    [--filterSelection <key1=value1 key2=value2>] [--filterSelection <key3=value3>] \
+    [--filterSelection <include|exclude> --filterSelection <key1=value1 key2=value2>] --filterSelection <key3=value3>] \
     [--background | --pollTimer <integer>]
 ```
 
 * `restoreSource`: the backup or snapshot to use as the source for the new app
 * `appName`: the name of the new application
 * `cluster`: the destination cluster (it can be any cluster manged by Astra Control)
-* `--newStorageClass`: optionally provide a new storage class (must be available on the specified `clusterID`) for the new application
+* `--newStorageClass`: optionally provide a new storage class (must be available on the specified `cluster`) for the new application
 * **Only one or zero** of the following arguments can be specified (if neither are specified, the single namespace is the same value as `appName`):
   * `--newNamespace`: for single-namespace apps, the name of the new namespace
   * `--multiNsMapping`: for multi-namespace apps, specify matching number of sourcens1=destns1 mappings (the number and name of namespace mappings must match the source app)

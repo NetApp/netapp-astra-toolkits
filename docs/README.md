@@ -34,14 +34,15 @@ actoolkit / toolkit.py utilizes `argparse` to provide an interactive CLI.  To vi
 
 ```text
 $ actoolkit -h
-usage: actoolkit [-h] [-v] [-o {json,yaml,table}] [-q] [-f] {deploy,clone,restore,list,get,copy,create,manage,define,destroy,unmanage,update} ...
+usage: actoolkit [-h] [-v] [-o {json,yaml,table}] [-q] [-f] [-n] {deploy,clone,restore,ipr,list,get,copy,create,manage,define,destroy,unmanage,update} ...
 
 positional arguments:
-  {deploy,clone,restore,list,get,copy,create,manage,define,destroy,unmanage,update}
+  {deploy,clone,restore,ipr,list,get,copy,create,manage,define,destroy,unmanage,update}
                         subcommand help
-    deploy              Deploy a helm chart
-    clone               Clone an app from a backup, snapshot, or running app (live clone)
-    restore             In-Place Restore (IPR) an app from a backup or snapshot
+    deploy              Deploy kubernetes resources into current context
+    clone               Live clone a running app to a new namespace
+    restore             Restore an app from a backup or snapshot to a new namespace
+    ipr                 In-Place Restore an app (destructive action for app) from a backup or snapshot
     list (get)          List all items in a class
     copy                Copy resources from one app to another app
     create              Create an object
@@ -57,6 +58,7 @@ options:
                         command output format
   -q, --quiet           supress output
   -f, --fast            prioritize speed over validation (using this will not validate arguments, which may have unintended consequences)
+  -n, --neptune         print neptune YAML to manually apply via kubectl
 ```
 
 For more information on the positional arguments, see the following pages:
@@ -64,6 +66,7 @@ For more information on the positional arguments, see the following pages:
 * [Deploy](toolkit/deploy/README.md)
 * [Clone](toolkit/clone/README.md)
 * [Restore](toolkit/restore/README.md)
+* [IPR (In-Place-Restore)](toolkit/ipr/README.md)
 * [List](toolkit/list/README.md)
 * [Copy](toolkit/copy/README.md)
 * [Create](toolkit/create/README.md)
