@@ -117,7 +117,7 @@ The `update cluster` command allows you to update a [cluster](../create/README.m
 actoolkit update cluster <clusterID> <updateArg>
 ```
 
-The \<clusterID\> argument can be gathered from a [list clusters](../list/README.md#clusters) command.  The only current \<updateArg\> available is:
+The \<clusterID\> argument can be gathered from a [list clusters](../list/README.md#clusters) command.  The available \<updateArg\> values are currently `--credentialPath` and `--defaultBucketID`, as detailed below.
 
 ### Credential Path
 
@@ -130,6 +130,21 @@ actoolkit update cluster <clusterID> --credentialPath path/to/kubeconfig
 ```text
 $ actoolkit update cluster 2d37cc47-f543-46a6-8895-2504b1a50ce2 --credentialPath ~/.kube/config
 {"type": "application/astra-credential", "version": "1.1", "id": "f1bfe212-fb48-4f1f-9637-138efc04e788", "name": "aks-eastus-cluster", "keyType": "kubeconfig", "valid": "true", "metadata": {"creationTimestamp": "2023-03-07T20:17:21Z", "modificationTimestamp": "2023-03-07T20:26:48Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "kubeconfig"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "private"}, {"name": "astra.netapp.io/labels/read-only/clusterID", "value": "2d37cc47-f543-46a6-8895-2504b1a50ce2"}, {"name": "astra.netapp.io/labels/read-only/clusterName", "value": "aks-eastus-cluster"}]}}
+```
+
+### Default Bucket
+
+To change or add a cluster's default bucket for backups and appVaults, run the following command:
+
+```text
+actoolkit update cluster <clusterID> --defaultBucketID <bucketID>
+```
+
+The \<bucketID\> argument can be gathered from a [list buckets](../list/README.md#buckets) command.
+
+```text
+$ actoolkit update cluster d0e0767b-1d77-478d-8640-13272efe1e23 --defaultBucketID 78263925-c3b3-48af-97c9-32bc5bde3273
+{"type": "application/astra-managedCluster", "version": "1.6", "id": "d0e0767b-1d77-478d-8640-13272efe1e23", "name": "uscentral1", "state": "running", "stateUnready": [], "managedState": "managed", "protectionState": "full", "protectionStateDetails": [], "restoreTargetSupported": "true", "snapshotSupported": "true", "managedStateUnready": [], "managedTimestamp": "2023-11-28T14:30:42Z", "inUse": "true", "clusterType": "gke", "clusterVersion": "1.27", "clusterVersionString": "v1.27.3-gke.100", "connectorCapabilities": ["relayV1", "watcherV1", "neptuneV1"], "namespaces": [], "defaultStorageClass": "274562c4-9fff-4051-b16b-9db6db60651b", "cloudID": "d1c502e6-d410-46fc-8c15-f67c5b63dea2", "credentialID": "dcf1c466-d0fe-4bdf-b3ba-6e0e6e0ae066", "isMultizonal": "false", "tridentManagedStateAllowed": ["unmanaged"], "tridentVersion": "23.10.0-test.6d2477dfad063cd2277395663d5b06d198365c9e+6d2477dfad063cd2277395663d5b06d198365c9e", "acpVersion": "23.10.0-test.6d2477dfad063cd2277395663d5b06d198365c9e+3670363ff598b0105b8b2735323d3c0ae3ccabb8", "privateRouteID": "b68aa04d-a787-483f-9d9e-7c2930981534", "apiServiceID": "727422d9-abca-45d6-876e-3a6c62ef5664", "defaultBucketID": "", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/cloudName", "value": "private"}], "creationTimestamp": "2023-11-28T14:30:42Z", "modificationTimestamp": "2023-11-28T15:41:36Z", "createdBy": "45347ae2-6a07-41b0-a544-674ac4317b87"}}
 ```
 
 ## Replication

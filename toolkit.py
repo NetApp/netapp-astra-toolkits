@@ -433,8 +433,16 @@ def main(argv=sys.argv):
                             if credID:
                                 acl.credentials.append(credential["id"])
                 elif argv[verbPosition + 1] == "cluster":
+                    ard.buckets = astraSDK.buckets.getBuckets().main()
+                    acl.buckets = ard.buildList("buckets", "id")
                     ard.clusters = astraSDK.clusters.getClusters().main()
-                    acl.clusters = ard.buildList("clusters", "id")
+                    # If we're updating a default bucket, only allow managed clusters
+                    if len(set(argv[verbPosition + 2 :]).intersection(set(acl.buckets))) > 0:
+                        acl.clusters = ard.buildList(
+                            "clusters", "id", fKey="managedState", fVal="managed"
+                        )
+                    else:
+                        acl.clusters = ard.buildList("clusters", "id")
                 elif argv[verbPosition + 1] == "replication":
                     ard.replications = astraSDK.replications.getReplicationpolicies().main()
                     if not ard.replications:  # Gracefully handle ACS env

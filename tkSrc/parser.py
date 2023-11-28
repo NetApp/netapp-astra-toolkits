@@ -1603,8 +1603,14 @@ class ToolkitParser:
             "-p",
             "--credentialPath",
             default=None,
-            required=True,  # Delete / set to False once additional updateCluster args are added
             help="the local filesystem path to the new cluster credential",
+        )
+        self.subparserUpdateCluster.add_argument(
+            "-b",
+            "--defaultBucketID",
+            choices=(None if self.plaidMode else self.acl.buckets),
+            default=None,
+            help="the new default bucket / appVault for the cluster",
         )
 
     def update_replication_args(self):
