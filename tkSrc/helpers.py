@@ -516,8 +516,10 @@ def prependDump(obj, prepend, indent=2):
 
 def checkNeptuneSupport(args, parser, supportedDict):
     """Function to ensure a neptune-specific actoolkit command is currently supported by neptune"""
-    if supportedList := supportedDict.get(args.subcommand):
-        if args.objectType in supportedList:
+    if supported := supportedDict.get(args.subcommand):
+        if supported is True:
+            return True
+        elif args.objectType in supported:
             return True
     parser.error(
         f"'{args.subcommand} {args.objectType}' is not currently a supported --neptune command"
