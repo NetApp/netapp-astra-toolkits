@@ -15,6 +15,7 @@
    limitations under the License.
 """
 
+import copy
 import json
 import kubernetes
 import sys
@@ -226,63 +227,127 @@ def main(args, parser, ard):
             parser.error(
                 "either both or none of --filterSelection and --filterSet should be specified"
             )
-    # Handle -f/--fast/plaidMode cases
-    if ard.needsattr("apps"):
-        ard.apps = astraSDK.apps.getApps().main()
-    # Get the original app dictionary based on args.sourceApp/args.restoreSource,
-    # as the app dict contains sourceCluster and namespaceScopedResources which we need
-    oApp = {}
-    backup = None
-    snapshot = None
-    if args.subcommand == "clone":
-        # There are certain args that aren't available for live clones, set those to None
-        args.filterSelection = None
-        args.filterSet = None
-        for app in ard.apps["items"]:
-            if app["id"] == args.sourceApp:
-                oApp = app
-    elif args.subcommand == "restore":
-        args.sourceApp = None
-        if ard.needsattr("backups"):
-            ard.backups = astraSDK.backups.getBackups().main()
-        if ard.needsattr("snapshots"):
-            ard.snapshots = astraSDK.snapshots.getSnaps().main()
-        if args.restoreSource in ard.buildList("backups", "id"):
-            dataProtections = ard.backups
-            backup = args.restoreSource
-        elif args.restoreSource in ard.buildList("snapshots", "id"):
-            dataProtections = ard.snapshots
-            snapshot = args.restoreSource
-        else:
-            parser.error(
-                f"the restoreSource '{args.restoreSource}' is not a valid backup or snapshot"
+
+    if args.neptune:
+        # args.newNamespace is not required, but we do need it set for proper YAML generation
+        if args.newNamespace is None and args.multiNsMapping is None:
+            args.newNamespace = args.appName
+        # Handle -f/--fast/plaidMode cases
+        if ard.needsattr("apps"):
+            ard.apps = astraSDK.k8s.getResources().main(
+                "applications", version="v1alpha1", group="management.astra.netapp.io"
             )
-        for app in ard.apps["items"]:
-            for dp in dataProtections["items"]:
-                if app["id"] == dp["appID"] and dp["id"] == args.restoreSource:
-                    oApp = app
-    # Ensure appIDstr is not equal to "", if so bad values were passed in with plaidMode
-    if not oApp:
-        parser.error(
-            "the corresponding app was not found in the system, please check "
-            + "your inputs and try again."
+        if args.subcommand == "clone":
+            pass
+        elif args.subcommand == "restore":
+            if ard.needsattr("backups"):
+                ard.backups = astraSDK.k8s.getResources().main(
+                    "backups", version="v1alpha1", group="management.astra.netapp.io"
+                )
+            if ard.needsattr("snapshots"):
+                ard.snapshots = astraSDK.k8s.getResources().main(
+                    "snapshots", version="v1alpha1", group="management.astra.netapp.io"
+                )
+                ard.snapshots = astraSDK.snapshots.getSnaps().main()
+            if args.restoreSource in ard.buildList("backups", "metadata.name"):
+                restoreSourceDict = ard.getSingleDict(
+                    "backups", "metadata.name", args.restoreSource, parser
+                )
+            elif args.restoreSource in ard.buildList("snapshots", "metadata.name"):
+                restoreSourceDict = ard.getSingleDict(
+                    "snapshots", "metadata.name", args.restoreSource, parser
+                )
+            else:
+                parser.error(
+                    f"the restoreSource '{args.restoreSource}' is not a valid backup or snapshot"
+                )
+        oApp = ard.getSingleDict(
+            "apps", "metadata.name", restoreSourceDict["spec"]["applicationRef"], parser
+        )
+        namespaceMapping = tkSrc.helpers.createNamespaceMapping(
+            oApp["spec"]["includedNamespaces"],
+            args.newNamespace,
+            args.multiNsMapping,
+            parser,
+            neptune=True,
         )
 
-    doClone(
-        tkSrc.helpers.isRFC1123(args.appName),
-        args.cluster,
-        oApp,
-        tkSrc.helpers.createNamespaceMapping(oApp, args.newNamespace, args.multiNsMapping, parser),
-        args.newStorageClass,
-        backup,
-        snapshot,
-        args.sourceApp,
-        tkSrc.helpers.createFilterSet(
-            args.filterSelection, args.filterSet, astraSDK.apps.getAppAssets().main(oApp["id"])
-        ),
-        pollTimer=args.pollTimer,
-        background=args.background,
-        verb=args.subcommand,
-        verbose=args.verbose,
-        quiet=args.quiet,
-    )
+        template = tkSrc.helpers.setupJinja(args.subcommand)
+        print(
+            template.render(
+                restoreName=tkSrc.helpers.isRFC1123(f"{args.appName}-{args.restoreSource}"),
+                appArchivePath=restoreSourceDict["status"]["appArchivePath"],
+                appVaultRef=restoreSourceDict["spec"]["appVaultRef"],
+                namespaceMapping=tkSrc.helpers.prependDump(namespaceMapping, prepend=4),
+                appName=args.appName,
+                appSpec=tkSrc.helpers.prependDump(
+                    tkSrc.helpers.updateNamespaceSpec(
+                        namespaceMapping, copy.deepcopy(oApp["spec"])
+                    ),
+                    prepend=2,
+                ),
+            )
+        )
+
+    else:
+        if ard.needsattr("apps"):
+            ard.apps = astraSDK.apps.getApps().main()
+        # Get the original app dictionary based on args.sourceApp/args.restoreSource,
+        # as the app dict contains sourceCluster and namespaceScopedResources which we need
+        oApp = {}
+        backup = None
+        snapshot = None
+        if args.subcommand == "clone":
+            # There are certain args that aren't available for live clones, set those to None
+            args.filterSelection = None
+            args.filterSet = None
+            for app in ard.apps["items"]:
+                if app["id"] == args.sourceApp:
+                    oApp = app
+        elif args.subcommand == "restore":
+            args.sourceApp = None
+            if ard.needsattr("backups"):
+                ard.backups = astraSDK.backups.getBackups().main()
+            if ard.needsattr("snapshots"):
+                ard.snapshots = astraSDK.snapshots.getSnaps().main()
+            if args.restoreSource in ard.buildList("backups", "id"):
+                dataProtections = ard.backups
+                backup = args.restoreSource
+            elif args.restoreSource in ard.buildList("snapshots", "id"):
+                dataProtections = ard.snapshots
+                snapshot = args.restoreSource
+            else:
+                parser.error(
+                    f"the restoreSource '{args.restoreSource}' is not a valid backup or snapshot"
+                )
+            for app in ard.apps["items"]:
+                for dp in dataProtections["items"]:
+                    if app["id"] == dp["appID"] and dp["id"] == args.restoreSource:
+                        oApp = app
+        # Ensure appIDstr is not equal to "", if so bad values were passed in with plaidMode
+        if not oApp:
+            parser.error(
+                "the corresponding app was not found in the system, please check "
+                + "your inputs and try again."
+            )
+
+        doClone(
+            tkSrc.helpers.isRFC1123(args.appName),
+            args.cluster,
+            oApp,
+            tkSrc.helpers.createNamespaceMapping(
+                oApp["namespaceScopedResources"], args.newNamespace, args.multiNsMapping, parser
+            ),
+            args.newStorageClass,
+            backup,
+            snapshot,
+            args.sourceApp,
+            tkSrc.helpers.createFilterSet(
+                args.filterSelection, args.filterSet, astraSDK.apps.getAppAssets().main(oApp["id"])
+            ),
+            pollTimer=args.pollTimer,
+            background=args.background,
+            verb=args.subcommand,
+            verbose=args.verbose,
+            quiet=args.quiet,
+        )

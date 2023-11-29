@@ -157,6 +157,32 @@ class getSecrets(KubeCommon):
                 self.printError(e)
 
 
+class getStorageClasses(KubeCommon):
+    def __init__(self, quiet=True, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        output: json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.output = output
+        super().__init__()
+
+    def main(self):
+        with kubernetes.client.ApiClient(self.kube_config) as api_client:
+            api_instance = kubernetes.client.StorageV1Api(api_client)
+            try:
+                resp = api_instance.list_storage_class().to_dict()
+
+                if self.output == "yaml":
+                    resp = yaml.dump(resp)
+
+                if not self.quiet:
+                    print(json.dumps(resp, default=str) if type(resp) is dict else resp)
+                return resp
+
+            except kubernetes.client.rest.ApiException as e:
+                self.printError(e)
+
+
 class createRegCred(KubeCommon, SDKCommon):
     def __init__(self, quiet=True):
         """quiet: Will there be CLI output or just return (datastructure)"""

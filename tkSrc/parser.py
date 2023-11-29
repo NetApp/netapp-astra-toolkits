@@ -379,11 +379,12 @@ class ToolkitParser:
             help="Source app to live clone",
         )
         self.parserClone.add_argument("appName", help="The logical name of the new app")
-        self.parserClone.add_argument(
-            "cluster",
-            choices=(None if self.plaidMode else self.acl.destClusters),
-            help="Cluster to clone into (can be same as source)",
-        )
+        if not self.neptune:
+            self.parserClone.add_argument(
+                "cluster",
+                choices=(None if self.plaidMode else self.acl.destClusters),
+                help="Cluster to clone into (can be same as source)",
+            )
         namespaceGroup = self.parserClone.add_argument_group(
             title="new namespace group",
             description="the namespace(s) to clone the app into (mutually exclusive)",
@@ -437,11 +438,12 @@ class ToolkitParser:
             help="Source backup or snapshot to restore the app from",
         )
         self.parserRestore.add_argument("appName", help="The logical name of the newly defined app")
-        self.parserRestore.add_argument(
-            "cluster",
-            choices=(None if self.plaidMode else self.acl.destClusters),
-            help="Cluster to restore into (can be same as source)",
-        )
+        if not self.neptune:
+            self.parserRestore.add_argument(
+                "cluster",
+                choices=(None if self.plaidMode else self.acl.destClusters),
+                help="Cluster to restore into (can be same as source)",
+            )
         namespaceGroup = self.parserRestore.add_argument_group(
             title="new namespace group",
             description="the namespace(s) to restore the app into (mutually exclusive)",

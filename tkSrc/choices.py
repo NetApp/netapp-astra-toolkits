@@ -20,6 +20,11 @@ import tkSrc
 
 
 def main(argv, verbs, verbPosition, ard, acl, neptune):
+    """This function builds the argparse choices lists. To build these lists, a variety of external
+    calls need to be made. The results of these calls are stored in ard (an instantiation of
+    AstraResourceDicts) so the same call doesn't have to be made again later. The choices lists are
+    stored in acl (an instantiation of ArgparseChoicesLists)"""
+
     if verbs["deploy"]:
         # This expression translates to "Is there an arg after the verb we found?"
         if len(argv) - verbPosition >= 2:
@@ -31,25 +36,44 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
                 acl.credentials = ard.buildList("credentials", "metadata.name")
 
     elif verbs["clone"] or verbs["restore"]:
-        ard.apps = astraSDK.apps.getApps().main()
-        acl.apps = ard.buildList("apps", "id")
-        ard.destClusters = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
-        acl.destClusters = ard.buildList("destClusters", "id")
-        if verbs["restore"]:
-            ard.backups = astraSDK.backups.getBackups().main()
-            ard.snapshots = astraSDK.snapshots.getSnaps().main()
-            acl.dataProtections = ard.buildList("backups", "id") + ard.buildList("snapshots", "id")
-        # if the destination cluster has been specified, only show those storage classes
-        if (clusterID := list(set(argv) & set(acl.destClusters))) and len(clusterID) == 1:
-            ard.storageClasses = astraSDK.storageclasses.getStorageClasses().main(
-                clusterStr=clusterID[0], hideUnmanaged=True
+        if neptune:
+            ard.apps = astraSDK.k8s.getResources().main(
+                "applications", version="v1alpha1", group="management.astra.netapp.io"
             )
+            acl.apps = ard.buildList("apps", "metadata.name")
+            if verbs["restore"]:
+                ard.backups = astraSDK.k8s.getResources().main(
+                    "backups", version="v1alpha1", group="management.astra.netapp.io"
+                )
+                ard.snapshots = astraSDK.k8s.getResources().main(
+                    "snapshots", version="v1alpha1", group="management.astra.netapp.io"
+                )
+                acl.dataProtections = ard.buildList("backups", "metadata.name") + ard.buildList(
+                    "snapshots", "metadata.name"
+                )
+            ard.storageClasses = astraSDK.k8s.getStorageClasses().main()
+            acl.storageClasses = ard.buildList("storageClasses", "metadata.name")
         else:
-            ard.storageClasses = astraSDK.storageclasses.getStorageClasses().main(
-                hideUnmanaged=True
-            )
-        acl.storageClasses = ard.buildList("storageClasses", "name")
-        acl.storageClasses = list(set(acl.storageClasses))
+            ard.apps = astraSDK.apps.getApps().main()
+            acl.apps = ard.buildList("apps", "id")
+            ard.destClusters = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
+            acl.destClusters = ard.buildList("destClusters", "id")
+            if verbs["restore"]:
+                ard.backups = astraSDK.backups.getBackups().main()
+                ard.snapshots = astraSDK.snapshots.getSnaps().main()
+                acl.dataProtections = ard.buildList("backups", "id") + ard.buildList(
+                    "snapshots", "id"
+                )
+            # if the destination cluster has been specified, only show those storage classes
+            if (clusterID := list(set(argv) & set(acl.destClusters))) and len(clusterID) == 1:
+                ard.storageClasses = astraSDK.storageclasses.getStorageClasses().main(
+                    clusterStr=clusterID[0], hideUnmanaged=True
+                )
+            else:
+                ard.storageClasses = astraSDK.storageclasses.getStorageClasses().main(
+                    hideUnmanaged=True
+                )
+            acl.storageClasses = list(set(ard.buildList("storageClasses", "name")))
 
     elif verbs["ipr"]:
         ard.apps = astraSDK.apps.getApps().main()

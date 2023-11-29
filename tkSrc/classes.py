@@ -17,10 +17,9 @@
 
 
 class ArgparseChoicesLists:
-    """This Class defines a set of Lists which are used in the "choices" section
-    of the Argparse parser. An empty list is perfectly valid, so all possible
-    lists are pre-defined. These lists are added to by toolkit.py, and then used
-    in tkSrc/parser.py"""
+    """This Class defines a set of Lists which are used in the "choices" section of the Argparse
+    parser. An empty list is perfectly valid, so all possible lists are pre-defined. These lists
+    are added to by tkSrc/choices.py, and then used in tkSrc/parser.py"""
 
     def __init__(self):
         resources = {
@@ -50,11 +49,11 @@ class ArgparseChoicesLists:
 
 
 class AstraResourceDicts:
-    """This Class defines a set of astraSDK resource Dictionaries. In the sys.argv
-    inspection that happens in toolkit.py, many astraSDK "get" methods are called
-    to generate various argparse options. Later when an actual action is carried out
-    within tkSrc/callers.py, we do not want to have to make the same API call again,
-    so an instantiation of this class is used to pass the data."""
+    """This Class defines a set of astraSDK resource Dictionaries. In the sys.argv inspection that
+    happens in toolkit.py and tkSrc/choices.py, many astraSDK "get" methods are called to generate
+    various argparse options. Later when an actual action is carried out within tkSrc/callers.py,
+    we do not want to have to make the same API call again, so an instantiation of this class is
+    used to pass the data."""
 
     def __init__(self):
         pass

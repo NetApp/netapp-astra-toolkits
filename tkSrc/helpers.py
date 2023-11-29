@@ -134,13 +134,14 @@ def createCriteriaList(images, namespaces, pods, labels, names):
     )
 
 
-def createNamespaceMapping(app, singleNs, multiNsMapping, parser):
+def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser, neptune=False):
     """Create a list of dictionaries of source and destination namespaces for cloning an
     application, as the user can provide a variety of input.  Return object format:
     [ { "source": "sourcens1", "destination": "destns1" },
       { "source": "sourcens2", "destination": "destns2" } ]"""
+    destKeyName = "target" if neptune else "destination"
     # Ensure that multiNsMapping was used for multi-namespace apps
-    if multiNsMapping is None and len(app["namespaceScopedResources"]) > 1:
+    if multiNsMapping is None and len(appNamespaces) > 1:
         parser.error("for multi-namespace apps, --multiNsMapping must be used.")
     # For single-namespace apps, the namespace mapping is **not** a required field
     elif singleNs is None and multiNsMapping is None:
@@ -149,8 +150,8 @@ def createNamespaceMapping(app, singleNs, multiNsMapping, parser):
     elif singleNs:
         return [
             {
-                "source": app["namespaceScopedResources"][0]["namespace"],
-                "destination": isRFC1123(singleNs),
+                "source": appNamespaces[0]["namespace"],
+                destKeyName: isRFC1123(singleNs),
             }
         ]
     # Handle multiNsMapping cases
@@ -169,7 +170,7 @@ def createNamespaceMapping(app, singleNs, multiNsMapping, parser):
                 raise SystemExit(f"Error: '{mapping}' does not conform to 'sourcens=destns' format")
         # Ensure that the user-provided source mapping equals the app namespaces
         sortedMappingSourceNs = sorted([i.split("=")[0] for i in mappingList])
-        sortedAppSourceNs = sorted([i["namespace"] for i in app["namespaceScopedResources"]])
+        sortedAppSourceNs = sorted([i["namespace"] for i in appNamespaces])
         if sortedMappingSourceNs != sortedAppSourceNs:
             raise SystemExit(
                 "Error: the source namespaces provided by --multiNsMapping do not match the "
@@ -180,7 +181,7 @@ def createNamespaceMapping(app, singleNs, multiNsMapping, parser):
         returnList = []
         for mapping in mappingList:
             returnList.append(
-                {"source": mapping.split("=")[0], "destination": isRFC1123(mapping.split("=")[1])}
+                {"source": mapping.split("=")[0], destKeyName: isRFC1123(mapping.split("=")[1])}
             )
         return returnList
     else:
@@ -527,5 +528,29 @@ def checkNeptuneSupport(args, parser, supportedDict):
 
 
 def setupJinja(objectType, filesystem="neptune/jinja"):
+    """Function to load a jinja template from the filesystem based on parser objectType"""
+    # TODO: put this under tkSrc/
     env = Environment(loader=FileSystemLoader(filesystem))
     return env.get_template(f"{objectType}.jinja")
+
+
+def updateNamespaceSpec(mapping, spec):
+    """Function which takes a mapping like:
+    [{'source': 'ns1', 'target': 'ns1-clone'},
+     {'source': 'ns2', 'target': 'ns2-clone'}]
+    And a spec like:
+    {'includedNamespaces': [
+        {'labelSelector': {}, 'namespace': 'ns1'},
+        {'labelSelector': {}, 'namespace': 'ns2'}
+    ]}
+    And returns a new spec like:
+    {'includedNamespaces': [
+        {'labelSelector': {}, 'namespace': 'ns1-clone'},
+        {'labelSelector': {}, 'namespace': 'ns2-clone'}
+    ]}
+    """
+    for m in mapping:
+        for ns in spec["includedNamespaces"]:
+            if m["source"] == ns["namespace"]:
+                ns["namespace"] = m["target"]
+    return spec
