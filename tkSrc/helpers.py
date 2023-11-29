@@ -527,7 +527,7 @@ def checkNeptuneSupport(args, parser, supportedDict):
     )
 
 
-def setupJinja(objectType, filesystem="neptune/jinja"):
+def setupJinja(objectType, filesystem="tkSrc/templates/jinja"):
     """Function to load a jinja template from the filesystem based on parser objectType"""
     # TODO: put this under tkSrc/
     env = Environment(loader=FileSystemLoader(filesystem))
