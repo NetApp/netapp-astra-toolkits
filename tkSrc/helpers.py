@@ -188,6 +188,28 @@ def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser, nept
         raise SystemExit("Unknown Error")
 
 
+def updateNamespaceSpec(mapping, spec):
+    """Function which takes a mapping like:
+    [{'source': 'ns1', 'target': 'ns1-clone'},
+     {'source': 'ns2', 'target': 'ns2-clone'}]
+    And a spec like:
+    {'includedNamespaces': [
+        {'labelSelector': {}, 'namespace': 'ns1'},
+        {'labelSelector': {}, 'namespace': 'ns2'}
+    ]}
+    And returns a new spec like:
+    {'includedNamespaces': [
+        {'labelSelector': {}, 'namespace': 'ns1-clone'},
+        {'labelSelector': {}, 'namespace': 'ns2-clone'}
+    ]}
+    """
+    for m in mapping:
+        for ns in spec["includedNamespaces"]:
+            if m["source"] == ns["namespace"]:
+                ns["namespace"] = m["target"]
+    return spec
+
+
 def createNamespaceList(namespaceArguments, neptune=False):
     """Create a list of dictionaries of namespace key/value and (optionally) labelSelectors
     key/value(list) for managing an app, as nargs="*" can provide a variety of input."""
@@ -532,25 +554,3 @@ def setupJinja(objectType, filesystem="tkSrc/templates/jinja"):
     # TODO: put this under tkSrc/
     env = Environment(loader=FileSystemLoader(filesystem))
     return env.get_template(f"{objectType}.jinja")
-
-
-def updateNamespaceSpec(mapping, spec):
-    """Function which takes a mapping like:
-    [{'source': 'ns1', 'target': 'ns1-clone'},
-     {'source': 'ns2', 'target': 'ns2-clone'}]
-    And a spec like:
-    {'includedNamespaces': [
-        {'labelSelector': {}, 'namespace': 'ns1'},
-        {'labelSelector': {}, 'namespace': 'ns2'}
-    ]}
-    And returns a new spec like:
-    {'includedNamespaces': [
-        {'labelSelector': {}, 'namespace': 'ns1-clone'},
-        {'labelSelector': {}, 'namespace': 'ns2-clone'}
-    ]}
-    """
-    for m in mapping:
-        for ns in spec["includedNamespaces"]:
-            if m["source"] == ns["namespace"]:
-                ns["namespace"] = m["target"]
-    return spec

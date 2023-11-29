@@ -275,6 +275,7 @@ def main(args, parser, ard):
         template = tkSrc.helpers.setupJinja(args.subcommand)
         print(
             template.render(
+                kind=restoreSourceDict["kind"],
                 restoreName=tkSrc.helpers.isRFC1123(f"{args.appName}-{args.restoreSource}"),
                 appArchivePath=restoreSourceDict["status"]["appArchivePath"],
                 appVaultRef=restoreSourceDict["spec"]["appVaultRef"],
