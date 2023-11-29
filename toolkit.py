@@ -137,6 +137,7 @@ def main(argv=sys.argv):
                 "create": ["backup", "snapshot"],
                 "define": ["app", "bucket", "appVault"],
                 "manage": ["app", "bucket", "appVault"],
+                "ipr": True,
                 "restore": True,
             },
         )
@@ -146,7 +147,7 @@ def main(argv=sys.argv):
     elif args.subcommand == "clone" or args.subcommand == "restore":
         tkSrc.clone.main(args, parser, ard)
     elif args.subcommand == "ipr":
-        tkSrc.ipr.main(args, parser)
+        tkSrc.ipr.main(args, parser, ard)
     elif args.subcommand == "list" or args.subcommand == "get":
         tkSrc.list.main(args)
     elif args.subcommand == "copy":

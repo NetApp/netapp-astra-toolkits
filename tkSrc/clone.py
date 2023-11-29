@@ -20,6 +20,7 @@ import json
 import kubernetes
 import sys
 import time
+import uuid
 
 
 import astraSDK
@@ -276,7 +277,7 @@ def main(args, parser, ard):
         print(
             template.render(
                 kind=restoreSourceDict["kind"],
-                restoreName=tkSrc.helpers.isRFC1123(f"{args.appName}-{args.restoreSource}"),
+                restoreName=f"{restoreSourceDict['kind'].lower()}restore-{uuid.uuid4()}",
                 appArchivePath=restoreSourceDict["status"]["appArchivePath"],
                 appVaultRef=restoreSourceDict["spec"]["appVaultRef"],
                 namespaceMapping=tkSrc.helpers.prependDump(namespaceMapping, prepend=4),

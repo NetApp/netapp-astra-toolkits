@@ -1,0 +1,8 @@
+apiVersion: management.astra.netapp.io/v1alpha1
+kind: {{ kind }}InplaceRestore
+metadata:
+  name: {{ iprName }}
+  namespace: neptune-system
+spec:
+  appArchivePath: {{ appArchivePath }}
+  appVaultRef: {{ appVaultRef }}

@@ -76,17 +76,34 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
             acl.storageClasses = list(set(ard.buildList("storageClasses", "name")))
 
     elif verbs["ipr"]:
-        ard.apps = astraSDK.apps.getApps().main()
-        acl.apps = ard.buildList("apps", "id")
-
-        if len(argv) - verbPosition >= 2:
-            # If that arg after the verb "ipr" matches an appID then
-            # populate the lists of backups and snapshots for that appID
-            ard.backups = astraSDK.backups.getBackups().main()
-            ard.snapshots = astraSDK.snapshots.getSnaps().main()
-            for a in argv[verbPosition + 1 :]:
-                acl.backups += ard.buildList("backups", "id", "appID", a)
-                acl.snapshots += ard.buildList("snapshots", "id", "appID", a)
+        if neptune:
+            ard.apps = astraSDK.k8s.getResources().main(
+                "applications", version="v1alpha1", group="management.astra.netapp.io"
+            )
+            acl.apps = ard.buildList("apps", "metadata.name")
+            if len(argv) - verbPosition >= 2:
+                ard.backups = astraSDK.k8s.getResources().main(
+                    "backups", version="v1alpha1", group="management.astra.netapp.io"
+                )
+                ard.snapshots = astraSDK.k8s.getResources().main(
+                    "snapshots", version="v1alpha1", group="management.astra.netapp.io"
+                )
+                for a in argv[verbPosition + 1 :]:
+                    acl.backups += ard.buildList(
+                        "backups", "metadata.name", "spec.applicationRef", a
+                    )
+                    acl.snapshots += ard.buildList(
+                        "snapshots", "metadata.name", "spec.applicationRef", a
+                    )
+        else:
+            ard.apps = astraSDK.apps.getApps().main()
+            acl.apps = ard.buildList("apps", "id")
+            if len(argv) - verbPosition >= 2:
+                ard.backups = astraSDK.backups.getBackups().main()
+                ard.snapshots = astraSDK.snapshots.getSnaps().main()
+                for a in argv[verbPosition + 1 :]:
+                    acl.backups += ard.buildList("backups", "id", "appID", a)
+                    acl.snapshots += ard.buildList("snapshots", "id", "appID", a)
 
     elif verbs["create"] and len(argv) - verbPosition >= 2:
         if (

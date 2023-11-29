@@ -490,23 +490,24 @@ class ToolkitParser:
             "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
             "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
         )
-        pollingGroup = self.parserRestore.add_argument_group(
-            title="polling group", description="optionally modify default polling mechanism"
-        )
-        pollingGroup.add_argument(
-            "-b",
-            "--background",
-            default=False,
-            action="store_true",
-            help="Run restore operation in the background instead of polling",
-        )
-        pollingGroup.add_argument(
-            "-t",
-            "--pollTimer",
-            type=int,
-            default=5,
-            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
-        )
+        if not self.neptune:
+            pollingGroup = self.parserRestore.add_argument_group(
+                title="polling group", description="optionally modify default polling mechanism"
+            )
+            pollingGroup.add_argument(
+                "-b",
+                "--background",
+                default=False,
+                action="store_true",
+                help="Run restore operation in the background instead of polling",
+            )
+            pollingGroup.add_argument(
+                "-t",
+                "--pollTimer",
+                type=int,
+                default=5,
+                help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+            )
 
     def IPR_args(self):
         """IPR args and flags"""
@@ -550,23 +551,24 @@ class ToolkitParser:
             "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
             "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
         )
-        pollingGroup = self.parserIPR.add_argument_group(
-            title="polling group", description="optionally modify default polling mechanism"
-        )
-        pollingGroup.add_argument(
-            "-b",
-            "--background",
-            default=False,
-            action="store_true",
-            help="Run restore operation in the background instead of polling",
-        )
-        pollingGroup.add_argument(
-            "-t",
-            "--pollTimer",
-            type=int,
-            default=5,
-            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
-        )
+        if not self.neptune:
+            pollingGroup = self.parserIPR.add_argument_group(
+                title="polling group", description="optionally modify default polling mechanism"
+            )
+            pollingGroup.add_argument(
+                "-b",
+                "--background",
+                default=False,
+                action="store_true",
+                help="Run restore operation in the background instead of polling",
+            )
+            pollingGroup.add_argument(
+                "-t",
+                "--pollTimer",
+                type=int,
+                default=5,
+                help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+            )
 
     def deploy_acp_args(self):
         """deploy ACP args and flags"""
