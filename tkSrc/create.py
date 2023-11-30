@@ -130,23 +130,52 @@ def main(args, parser, ard):
         else:
             raise SystemExit("astraSDK.credentials.createCredential() failed")
     elif args.objectType == "hook":
-        rc = astraSDK.hooks.createHook(quiet=args.quiet, verbose=args.verbose).main(
-            args.appID,
-            args.name,
-            args.scriptID,
-            args.operation.split("-")[0],
-            args.operation.split("-")[1],
-            tkSrc.helpers.createHookList(args.hookArguments),
-            matchingCriteria=tkSrc.helpers.createCriteriaList(
-                args.containerImage,
-                args.namespace,
-                args.podName,
-                args.label,
-                args.containerName,
-            ),
-        )
-        if rc is False:
-            raise SystemExit("astraSDK.hooks.createHook() failed")
+        if args.neptune:
+            with open(args.filePath, encoding="utf8") as f:
+                encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
+            template = tkSrc.helpers.setupJinja(args.objectType)
+            # if ard.needsattr("apps"):
+            #    ard.apps = astraSDK.apps.getApps().main()
+            print(
+                template.render(
+                    name=tkSrc.helpers.isRFC1123(args.name),
+                    action=args.operation.split("-")[1],
+                    appName=args.app,
+                    arguments=tkSrc.helpers.prependDump(
+                        tkSrc.helpers.createHookList(args.hookArguments), prepend=4
+                    ),
+                    hookSource=encodedStr,
+                    matchingCriteria=tkSrc.helpers.prependDump(
+                        tkSrc.helpers.createCriteriaList(
+                            args.containerImage,
+                            args.namespace,
+                            args.podName,
+                            args.label,
+                            args.containerName,
+                        ),
+                        prepend=4,
+                    ),
+                    stage=args.operation.split("-")[0],
+                )
+            )
+        else:
+            rc = astraSDK.hooks.createHook(quiet=args.quiet, verbose=args.verbose).main(
+                args.app,
+                args.name,
+                args.script,
+                args.operation.split("-")[0],
+                args.operation.split("-")[1],
+                tkSrc.helpers.createHookList(args.hookArguments),
+                matchingCriteria=tkSrc.helpers.createCriteriaList(
+                    args.containerImage,
+                    args.namespace,
+                    args.podName,
+                    args.label,
+                    args.containerName,
+                ),
+            )
+            if rc is False:
+                raise SystemExit("astraSDK.hooks.createHook() failed")
     elif args.objectType == "protection" or args.objectType == "protectionpolicy":
         if args.granularity == "hourly":
             if args.hour:

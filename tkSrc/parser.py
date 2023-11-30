@@ -951,19 +951,25 @@ class ToolkitParser:
     def create_hook_args(self):
         """create hooks args and flags"""
         self.subparserCreateHook.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID to create an execution hook for",
+            help="app to create an execution hook for",
         )
         self.subparserCreateHook.add_argument(
             "name",
             help="Name of the execution hook to be created",
         )
-        self.subparserCreateHook.add_argument(
-            "scriptID",
-            choices=(None if self.plaidMode else self.acl.scripts),
-            help="scriptID to use for the execution hook",
-        )
+        if self.neptune:
+            self.subparserCreateHook.add_argument(
+                "filePath",
+                help="the local filesystem path to the script",
+            )
+        else:
+            self.subparserCreateHook.add_argument(
+                "script",
+                choices=(None if self.plaidMode else self.acl.scripts),
+                help="script to use for the execution hook",
+            )
         self.subparserCreateHook.add_argument(
             "-o",
             "--operation",

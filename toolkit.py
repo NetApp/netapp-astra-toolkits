@@ -134,7 +134,7 @@ def main(argv=sys.argv):
             args,
             parser,
             {
-                "create": ["backup", "snapshot"],
+                "create": ["backup", "snapshot", "hook"],
                 "define": ["app", "bucket", "appVault"],
                 "manage": ["app", "bucket", "appVault"],
                 "ipr": True,
