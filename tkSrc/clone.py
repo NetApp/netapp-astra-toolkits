@@ -274,22 +274,28 @@ def main(args, parser, ard):
         )
 
         template = tkSrc.helpers.setupJinja(args.subcommand)
-        print(
-            template.render(
-                kind=restoreSourceDict["kind"],
-                restoreName=f"{restoreSourceDict['kind'].lower()}restore-{uuid.uuid4()}",
-                appArchivePath=restoreSourceDict["status"]["appArchivePath"],
-                appVaultRef=restoreSourceDict["spec"]["appVaultRef"],
-                namespaceMapping=tkSrc.helpers.prependDump(namespaceMapping, prepend=4),
-                appName=args.appName,
-                appSpec=tkSrc.helpers.prependDump(
-                    tkSrc.helpers.updateNamespaceSpec(
-                        namespaceMapping, copy.deepcopy(oApp["spec"])
+        try:
+            print(
+                template.render(
+                    kind=restoreSourceDict["kind"],
+                    restoreName=f"{restoreSourceDict['kind'].lower()}restore-{uuid.uuid4()}",
+                    appArchivePath=restoreSourceDict["status"]["appArchivePath"],
+                    appVaultRef=restoreSourceDict["spec"]["appVaultRef"],
+                    namespaceMapping=tkSrc.helpers.prependDump(namespaceMapping, prepend=4),
+                    appName=args.appName,
+                    appSpec=tkSrc.helpers.prependDump(
+                        tkSrc.helpers.updateNamespaceSpec(
+                            namespaceMapping, copy.deepcopy(oApp["spec"])
+                        ),
+                        prepend=2,
                     ),
-                    prepend=2,
-                ),
+                )
             )
-        )
+        except KeyError as err:
+            parser.error(
+                f"{err} key not found in '{args.restoreSource}' object, please ensure "
+                f"'{args.restoreSource}' is a valid backup/snapshot"
+            )
 
     else:
         if ard.needsattr("apps"):

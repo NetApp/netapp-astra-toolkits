@@ -45,14 +45,21 @@ def main(args, parser, ard):
             iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", args.snapshot, parser)
 
         template = tkSrc.helpers.setupJinja(args.subcommand)
-        print(
-            template.render(
-                kind=iprSourceDict["kind"],
-                iprName=f"{iprSourceDict['kind'].lower()}ipr-{uuid.uuid4()}",
-                appArchivePath=iprSourceDict["status"]["appArchivePath"],
-                appVaultRef=iprSourceDict["spec"]["appVaultRef"],
+        try:
+            print(
+                template.render(
+                    kind=iprSourceDict["kind"],
+                    iprName=f"{iprSourceDict['kind'].lower()}ipr-{uuid.uuid4()}",
+                    appArchivePath=iprSourceDict["status"]["appArchivePath"],
+                    appVaultRef=iprSourceDict["spec"]["appVaultRef"],
+                )
             )
-        )
+        except KeyError as err:
+            iprSourceName = args.backup if args.backup else args.snapshot
+            parser.error(
+                f"{err} key not found in '{iprSourceName}' object, please ensure "
+                f"'{iprSourceName}' is a valid backup/snapshot"
+            )
 
     else:
         rc = astraSDK.apps.restoreApp(quiet=args.quiet, verbose=args.verbose).main(

@@ -87,7 +87,6 @@ def main(args, parser, ard):
                     appVaultName=args.bucket,
                     snapshotName=args.snapshot,
                     reclaimPolicy=args.reclaimPolicy,
-                    # TODO: add snapshot ref after Neptune bug is fixed
                 )
             )
         else:
@@ -134,8 +133,6 @@ def main(args, parser, ard):
             with open(args.filePath, encoding="utf8") as f:
                 encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
             template = tkSrc.helpers.setupJinja(args.objectType)
-            # if ard.needsattr("apps"):
-            #    ard.apps = astraSDK.apps.getApps().main()
             print(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(args.name),
