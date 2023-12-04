@@ -102,19 +102,24 @@ class getNamespaces(KubeCommon):
         self.output = output
         super().__init__()
 
-    def main(self):
+    def main(self, systemNS=None):
+        """Default behavior (systemNS=None) is to remove typical system namespaces from the
+        response. However for certain workflows, you may want to return ALL namespaces (pass an
+        empty list: systemNS=[]), or remove a custom list (systemNS=["ns1-to-ignore",
+        "ns2-to-ignore", "ns3-to-ignore"])."""
         with kubernetes.client.ApiClient(self.kube_config) as api_client:
             api_instance = kubernetes.client.CoreV1Api(api_client)
             try:
                 resp = api_instance.list_namespace().to_dict()
-                systemNS = [
-                    "astra-connector-operator",
-                    "kube-node-lease",
-                    "kube-public",
-                    "kube-system",
-                    "neptune-system",
-                    "trident",
-                ]
+                if type(systemNS) is not list:
+                    systemNS = [
+                        "astra-connector-operator",
+                        "kube-node-lease",
+                        "kube-public",
+                        "kube-system",
+                        "neptune-system",
+                        "trident",
+                    ]
                 namespaces = copy.deepcopy(resp)
                 for counter, ns in enumerate(namespaces.get("items")):
                     if ns.get("metadata").get("name") in systemNS:
