@@ -216,10 +216,15 @@ class KubeCommon(BaseCommon):
     def __init__(self):
         super().__init__()
         try:
+            # First try loading from ~/.kube/config
             self.kube_config = kubernetes.config.load_kube_config()
         except kubernetes.config.config_exception.ConfigException as err:
-            self.printError(f"{err}\n")
-            raise SystemExit()
+            try:
+                # If that fails, try loading from incluster (a local pod)
+                self.kube_config = kubernetes.config.load_incluster_config()
+            except kubernetes.config.config_exception.ConfigException:
+                self.printError(f"{err}\n")
+                raise SystemExit()
         except Exception as err:
             self.printError(
                 "Error loading kubeconfig, please check kubeconfig file to ensure it is valid\n"

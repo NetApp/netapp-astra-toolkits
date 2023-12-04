@@ -41,7 +41,6 @@ def main(args, parser, ard):
                 ard.snapshots = astraSDK.k8s.getResources().main(
                     "snapshots", version="v1alpha1", group="management.astra.netapp.io"
                 )
-                ard.snapshots = astraSDK.snapshots.getSnaps().main()
             iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", args.snapshot, parser)
 
         template = tkSrc.helpers.setupJinja(args.subcommand)
