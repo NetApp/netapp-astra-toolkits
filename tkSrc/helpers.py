@@ -218,7 +218,9 @@ def createNamespaceList(namespaceArguments, neptune=False):
         returnList.append({"namespace": mapping[0]})
         if len(mapping) == 2:
             if neptune:
-                returnList[-1]["labelSelector"] = mapping[1]
+                returnList[-1]["labelSelector"] = {
+                    "matchLabels": {mapping[1].split("=")[0]: mapping[1].split("=")[1]}
+                }
             else:
                 returnList[-1]["labelSelectors"] = [mapping[1]]
         elif len(mapping) > 2:

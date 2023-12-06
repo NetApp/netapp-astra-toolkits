@@ -18,6 +18,7 @@
 import sys
 import time
 import uuid
+import yaml
 
 import astraSDK
 import tkSrc
@@ -45,7 +46,7 @@ def main(args, parser, ard):
 
         template = tkSrc.helpers.setupJinja(args.subcommand)
         try:
-            print(
+            neptune_dict = yaml.safe_load(
                 template.render(
                     kind=iprSourceDict["kind"],
                     iprName=f"{iprSourceDict['kind'].lower()}ipr-{uuid.uuid4()}",
@@ -53,6 +54,16 @@ def main(args, parser, ard):
                     appVaultRef=iprSourceDict["spec"]["appVaultRef"],
                 )
             )
+            if args.dry_run == "client":
+                print(yaml.dump(neptune_dict).rstrip("\n"))
+            else:
+                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                    f"{neptune_dict['kind'].lower()}s",
+                    neptune_dict["metadata"]["namespace"],
+                    neptune_dict,
+                    version="v1alpha1",
+                    group="management.astra.netapp.io",
+                )
         except KeyError as err:
             iprSourceName = args.backup if args.backup else args.snapshot
             parser.error(

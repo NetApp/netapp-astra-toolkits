@@ -36,8 +36,8 @@ class getResources(KubeCommon):
     def main(
         self,
         plural,
-        version="v1",
-        group="trident.netapp.io",
+        version="v1alpha1",
+        group="management.astra.netapp.io",
         keyFilter=None,
         valFilter=None,
     ):
@@ -66,6 +66,43 @@ class getResources(KubeCommon):
                 self.printError(e)
 
 
+class createResource(KubeCommon):
+    def __init__(self, quiet=True, dry_run=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        dry-run: False (default):       submit and persist the resource
+                 True or non-empty str: submit request without persisting the resource"""
+        self.quiet = quiet
+        self.dry_run = dry_run
+        super().__init__()
+
+    def main(
+        self,
+        plural,
+        namespace,
+        body,
+        version="v1alpha1",
+        group="management.astra.netapp.io",
+    ):
+        with kubernetes.client.ApiClient(self.kube_config) as api_client:
+            api_instance = kubernetes.client.CustomObjectsApi(api_client)
+            try:
+                resp = api_instance.create_namespaced_custom_object(
+                    group,
+                    version,
+                    namespace,
+                    plural,
+                    body,
+                    dry_run=("All" if self.dry_run else None),
+                )
+
+                if not self.quiet:
+                    print(json.dumps(resp) if type(resp) is dict else resp)
+                return resp
+
+            except kubernetes.client.rest.ApiException as e:
+                self.printError(e)
+
+
 class updateResource(KubeCommon):
     def __init__(self, quiet=True):
         """quiet: Will there be CLI output or just return (datastructure)"""
@@ -77,8 +114,8 @@ class updateResource(KubeCommon):
         plural,
         name,
         body,
-        version="v1",
-        group="trident.netapp.io",
+        version="v1alpha1",
+        group="management.astra.netapp.io",
     ):
         with kubernetes.client.ApiClient(self.kube_config) as api_client:
             api_instance = kubernetes.client.CustomObjectsApi(api_client)

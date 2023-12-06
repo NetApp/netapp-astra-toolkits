@@ -49,12 +49,23 @@ class ToolkitParser:
             help="prioritize speed over validation (using this will not validate arguments, which "
             + "may have unintended consequences)",
         )
-        self.parser.add_argument(
+        neptuneGroup = self.parser.add_argument_group(
+            title="neptune group",
+            description="use CR-driven Kubernetes workflows rather than the Astra Control API",
+        )
+        neptuneGroup.add_argument(
             "-n",
             "--neptune",
             default=False,
             action="store_true",
-            help="print neptune YAML to manually apply via kubectl",
+            help="create a Neptune CR directly on the Kubernetes cluster (requires kubeconfig)",
+        )
+        neptuneGroup.add_argument(
+            "--dry-run",
+            default=False,
+            choices=["client", "server"],
+            help="client: output YAML to standard out; server: submit request without persisting "
+            "the resource",
         )
         self.acl = acl
         self.plaidMode = plaidMode

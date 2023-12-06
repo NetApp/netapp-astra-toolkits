@@ -80,7 +80,7 @@ def main(args, parser, ard):
             template = tkSrc.helpers.setupJinja(args.objectType)
             if ard.needsattr("apps"):
                 ard.apps = astraSDK.apps.getApps().main()
-            print(
+            neptune_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(args.name),
                     appName=args.app,
@@ -89,6 +89,16 @@ def main(args, parser, ard):
                     reclaimPolicy=args.reclaimPolicy,
                 )
             )
+            if args.dry_run == "client":
+                print(yaml.dump(neptune_dict).rstrip("\n"))
+            else:
+                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                    f"{neptune_dict['kind'].lower()}s",
+                    neptune_dict["metadata"]["namespace"],
+                    neptune_dict,
+                    version="v1alpha1",
+                    group="management.astra.netapp.io",
+                )
         else:
             protectionID = astraSDK.backups.takeBackup(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,
@@ -133,7 +143,7 @@ def main(args, parser, ard):
             with open(args.filePath, encoding="utf8") as f:
                 encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
             template = tkSrc.helpers.setupJinja(args.objectType)
-            print(
+            neptune_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(args.name),
                     action=args.operation.split("-")[1],
@@ -155,6 +165,16 @@ def main(args, parser, ard):
                     stage=args.operation.split("-")[0],
                 )
             )
+            if args.dry_run == "client":
+                print(yaml.dump(neptune_dict).rstrip("\n"))
+            else:
+                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                    f"{neptune_dict['kind'].lower()}s",
+                    neptune_dict["metadata"]["namespace"],
+                    neptune_dict,
+                    version="v1alpha1",
+                    group="management.astra.netapp.io",
+                )
         else:
             rc = astraSDK.hooks.createHook(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,
@@ -286,7 +306,7 @@ def main(args, parser, ard):
             template = tkSrc.helpers.setupJinja(args.objectType)
             if ard.needsattr("apps"):
                 ard.apps = astraSDK.apps.getApps().main()
-            print(
+            neptune_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(args.name),
                     appName=args.app,
@@ -298,6 +318,16 @@ def main(args, parser, ard):
                     ),
                 )
             )
+            if args.dry_run == "client":
+                print(yaml.dump(neptune_dict).rstrip("\n"))
+            else:
+                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                    f"{neptune_dict['kind'].lower()}s",
+                    neptune_dict["metadata"]["namespace"],
+                    neptune_dict,
+                    version="v1alpha1",
+                    group="management.astra.netapp.io",
+                )
         else:
             protectionID = astraSDK.snapshots.takeSnap(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,

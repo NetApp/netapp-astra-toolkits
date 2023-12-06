@@ -17,6 +17,7 @@
 
 import base64
 import json
+import yaml
 
 import astraSDK
 import tkSrc
@@ -61,17 +62,31 @@ def main(args, parser, ard):
             )
         if args.neptune:
             template = tkSrc.helpers.setupJinja(args.objectType)
-            print(
+            neptune_dict = yaml.safe_load(
                 template.render(
                     appName=tkSrc.helpers.isRFC1123(args.appName),
                     namespace=args.namespace,
-                    labelSelectors=args.labelSelectors,
+                    labelSelectors=(
+                        f"{args.labelSelectors.split('=')[0]}: {args.labelSelectors.split('=')[1]}"
+                        if args.labelSelectors
+                        else None
+                    ),
                     addNamespaces=tkSrc.helpers.prependDump(args.additionalNamespace, prepend=4),
                     clusterScopedResources=tkSrc.helpers.prependDump(
                         args.clusterScopedResource, prepend=4
                     ),
-                )
+                ),
             )
+            if args.dry_run == "client":
+                print(yaml.dump(neptune_dict).rstrip("\n"))
+            else:
+                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                    f"{neptune_dict['kind'].lower()}s",
+                    neptune_dict["metadata"]["namespace"],
+                    neptune_dict,
+                    version="v1alpha1",
+                    group="management.astra.netapp.io",
+                )
         else:
             rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
                 tkSrc.helpers.isRFC1123(args.appName),
@@ -107,7 +122,7 @@ def main(args, parser, ard):
             else:
                 keyNameList = ["accessKeyID", "secretAccessKey"]
             template = tkSrc.helpers.setupJinja(args.objectType)
-            print(
+            neptune_dict = yaml.safe_load(
                 template.render(
                     bucketName=tkSrc.helpers.isRFC1123(args.bucketName),
                     providerType=args.provider,
@@ -119,6 +134,16 @@ def main(args, parser, ard):
                     ),
                 )
             )
+            if args.dry_run == "client":
+                print(yaml.dump(neptune_dict).rstrip("\n"))
+            else:
+                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                    f"{neptune_dict['kind'].lower()}s",
+                    neptune_dict["metadata"]["namespace"],
+                    neptune_dict,
+                    version="v1alpha1",
+                    group="management.astra.netapp.io",
+                )
 
         else:
             # Validate that both credentialID and accessKey/accessSecret were not specified

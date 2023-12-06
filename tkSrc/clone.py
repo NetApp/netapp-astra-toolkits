@@ -21,6 +21,7 @@ import kubernetes
 import sys
 import time
 import uuid
+import yaml
 
 
 import astraSDK
@@ -275,7 +276,7 @@ def main(args, parser, ard):
 
         template = tkSrc.helpers.setupJinja(args.subcommand)
         try:
-            print(
+            neptune_gen = yaml.safe_load_all(
                 template.render(
                     kind=restoreSourceDict["kind"],
                     restoreName=f"{restoreSourceDict['kind'].lower()}restore-{uuid.uuid4()}",
@@ -291,6 +292,17 @@ def main(args, parser, ard):
                     ),
                 )
             )
+            if args.dry_run == "client":
+                print(yaml.dump_all(neptune_gen).rstrip("\n"))
+            else:
+                for neptune_dict in neptune_gen:
+                    astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                        f"{neptune_dict['kind'].lower()}s",
+                        neptune_dict["metadata"]["namespace"],
+                        neptune_dict,
+                        version="v1alpha1",
+                        group="management.astra.netapp.io",
+                    )
         except KeyError as err:
             parser.error(
                 f"{err} key not found in '{args.restoreSource}' object, please ensure "
