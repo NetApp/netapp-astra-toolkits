@@ -157,7 +157,7 @@ def main(args, parser, ard):
         torc = astraSDK.k8s.getResources().main(
             "tridentorchestrators", version="v1", group="trident.netapp.io"
         )
-        if len(torc["items"]) == 0:
+        if torc is None or len(torc["items"]) == 0:
             parser.error("trident operator not found on current Kubernetes context")
         elif len(torc["items"]) > 1:
             parser.error("multiple trident operators found on current Kubernetes context")
