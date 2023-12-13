@@ -236,20 +236,14 @@ def main(args, parser, ard):
             args.newNamespace = args.appName
         # Handle -f/--fast/plaidMode cases
         if ard.needsattr("apps"):
-            ard.apps = astraSDK.k8s.getResources().main(
-                "applications", version="v1alpha1", group="management.astra.netapp.io"
-            )
+            ard.apps = astraSDK.k8s.getResources().main("applications")
         if args.subcommand == "clone":
             pass
         elif args.subcommand == "restore":
             if ard.needsattr("backups"):
-                ard.backups = astraSDK.k8s.getResources().main(
-                    "backups", version="v1alpha1", group="management.astra.netapp.io"
-                )
+                ard.backups = astraSDK.k8s.getResources().main("backups")
             if ard.needsattr("snapshots"):
-                ard.snapshots = astraSDK.k8s.getResources().main(
-                    "snapshots", version="v1alpha1", group="management.astra.netapp.io"
-                )
+                ard.snapshots = astraSDK.k8s.getResources().main("snapshots")
                 ard.snapshots = astraSDK.snapshots.getSnaps().main()
             if args.restoreSource in ard.buildList("backups", "metadata.name"):
                 restoreSourceDict = ard.getSingleDict(

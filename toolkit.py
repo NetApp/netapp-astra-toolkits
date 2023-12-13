@@ -135,10 +135,11 @@ def main(argv=sys.argv):
             parser,
             {
                 "create": ["backup", "snapshot", "hook"],
-                "define": ["app", "bucket", "appVault"],
-                "manage": ["app", "bucket", "appVault"],
+                "define": ["app", "bucket", "appVault", "cluster"],
                 "ipr": True,
+                "manage": ["app", "bucket", "appVault", "cluster"],
                 "restore": True,
+                "unmanage": ["cluster"],
             },
         )
 
@@ -159,7 +160,7 @@ def main(argv=sys.argv):
     elif args.subcommand == "destroy":
         tkSrc.destroy.main(args, parser, ard)
     elif args.subcommand == "unmanage":
-        tkSrc.unmanage.main(args, ard)
+        tkSrc.unmanage.main(args, parser, ard)
     elif args.subcommand == "update":
         tkSrc.update.main(args, parser, ard)
 

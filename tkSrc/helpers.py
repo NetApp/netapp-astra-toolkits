@@ -557,3 +557,14 @@ def setupJinja(
     """Function to load a jinja template from the filesystem based on parser objectType"""
     env = Environment(loader=FileSystemLoader(filesystem))
     return env.get_template(f"{objectType}.jinja")
+
+
+def getOperatorURL(version):
+    """Function to return the astraconnector_operator.yaml URL based on the version"""
+    base = "https://github.com/NetApp/astra-connector-operator/releases"
+    filename = "astraconnector_operator.yaml"
+    if version == "latest":
+        return f"{base}/{version}/download/{filename}"
+    elif "-main" in version:
+        return f"{base}/download/{version}/{filename}"
+    return f"{base}/download/{version}-main/{filename}"

@@ -37,17 +37,11 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
 
     elif verbs["clone"] or verbs["restore"]:
         if neptune:
-            ard.apps = astraSDK.k8s.getResources().main(
-                "applications", version="v1alpha1", group="management.astra.netapp.io"
-            )
+            ard.apps = astraSDK.k8s.getResources().main("applications")
             acl.apps = ard.buildList("apps", "metadata.name")
             if verbs["restore"]:
-                ard.backups = astraSDK.k8s.getResources().main(
-                    "backups", version="v1alpha1", group="management.astra.netapp.io"
-                )
-                ard.snapshots = astraSDK.k8s.getResources().main(
-                    "snapshots", version="v1alpha1", group="management.astra.netapp.io"
-                )
+                ard.backups = astraSDK.k8s.getResources().main("backups")
+                ard.snapshots = astraSDK.k8s.getResources().main("snapshots")
                 acl.dataProtections = ard.buildList("backups", "metadata.name") + ard.buildList(
                     "snapshots", "metadata.name"
                 )
@@ -77,17 +71,11 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
 
     elif verbs["ipr"]:
         if neptune:
-            ard.apps = astraSDK.k8s.getResources().main(
-                "applications", version="v1alpha1", group="management.astra.netapp.io"
-            )
+            ard.apps = astraSDK.k8s.getResources().main("applications")
             acl.apps = ard.buildList("apps", "metadata.name")
             if len(argv) - verbPosition >= 2:
-                ard.backups = astraSDK.k8s.getResources().main(
-                    "backups", version="v1alpha1", group="management.astra.netapp.io"
-                )
-                ard.snapshots = astraSDK.k8s.getResources().main(
-                    "snapshots", version="v1alpha1", group="management.astra.netapp.io"
-                )
+                ard.backups = astraSDK.k8s.getResources().main("backups")
+                ard.snapshots = astraSDK.k8s.getResources().main("snapshots")
                 for a in argv[verbPosition + 1 :]:
                     acl.backups += ard.buildList(
                         "backups", "metadata.name", "spec.applicationRef", a
@@ -115,22 +103,14 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
             or argv[verbPosition + 1] == "snapshot"
         ):
             if neptune:
-                ard.apps = astraSDK.k8s.getResources().main(
-                    "applications",
-                    version="v1alpha1",
-                    group="management.astra.netapp.io",
-                )
+                ard.apps = astraSDK.k8s.getResources().main("applications")
                 acl.apps = ard.buildList("apps", "metadata.name")
             else:
                 ard.apps = astraSDK.apps.getApps().main()
                 acl.apps = ard.buildList("apps", "id")
             if argv[verbPosition + 1] == "backup" or argv[verbPosition + 1] == "snapshot":
                 if neptune:
-                    ard.buckets = astraSDK.k8s.getResources().main(
-                        "appvaults",
-                        version="v1alpha1",
-                        group="management.astra.netapp.io",
-                    )
+                    ard.buckets = astraSDK.k8s.getResources().main("appvaults")
                     acl.buckets = ard.buildList("buckets", "metadata.name")
                 else:
                     ard.buckets = astraSDK.buckets.getBuckets(quiet=True).main()
@@ -142,8 +122,6 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
                             if neptune:
                                 ard.snapshots = astraSDK.k8s.getResources().main(
                                     "snapshots",
-                                    version="v1alpha1",
-                                    group="management.astra.netapp.io",
                                     keyFilter="spec.applicationRef",
                                     valFilter=a,
                                 )
@@ -239,11 +217,21 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
                             if credID:
                                 acl.credentials.append(credential["id"])
         elif argv[verbPosition + 1] == "cluster":
-            ard.clusters = astraSDK.clusters.getClusters().main()
-            acl.clusters = ard.buildList("clusters", "id", fKey="managedState", fVal="unmanaged")
-            ard.storageClasses = astraSDK.storageclasses.getStorageClasses().main()
-            for a in argv[verbPosition + 2 :]:
-                acl.storageClasses += ard.buildList("storageClasses", "id", "clusterID", a)
+            if neptune:
+                ard.clouds = astraSDK.clouds.getClouds().main()
+                for cloud in ard.clouds["items"]:
+                    if cloud["cloudType"] not in ["GCP", "Azure", "AWS"]:
+                        acl.clouds.append(cloud["id"])
+                ard.credentials = astraSDK.k8s.getSecrets().main(namespace="neptune-system")
+                acl.credentials = ard.buildList("credentials", "metadata.name")
+            else:
+                ard.clusters = astraSDK.clusters.getClusters().main()
+                acl.clusters = ard.buildList(
+                    "clusters", "id", fKey="managedState", fVal="unmanaged"
+                )
+                ard.storageClasses = astraSDK.storageclasses.getStorageClasses().main()
+                for a in argv[verbPosition + 2 :]:
+                    acl.storageClasses += ard.buildList("storageClasses", "id", "clusterID", a)
         elif argv[verbPosition + 1] == "cloud":
             ard.buckets = astraSDK.buckets.getBuckets().main()
             acl.buckets = ard.buildList("buckets", "id")
@@ -298,8 +286,16 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
             ard.buckets = astraSDK.buckets.getBuckets().main()
             acl.buckets = ard.buildList("buckets", "id")
         elif argv[verbPosition + 1] == "cluster":
-            ard.clusters = astraSDK.clusters.getClusters().main()
-            acl.clusters = ard.buildList("clusters", "id", fKey="managedState", fVal="managed")
+            if neptune:
+                ard.connectors = astraSDK.k8s.getResources(quiet=True).main(
+                    "astraconnectors", version="v1", group="astra.netapp.io"
+                )
+                acl.clusters = ard.buildList("connectors", "spec.astra.clusterId") + ard.buildList(
+                    "connectors", "spec.astra.clusterName"
+                )
+            else:
+                ard.clusters = astraSDK.clusters.getClusters().main()
+                acl.clusters = ard.buildList("clusters", "id", fKey="managedState", fVal="managed")
         elif argv[verbPosition + 1] == "cloud":
             ard.clouds = astraSDK.clouds.getClouds().main()
             acl.clouds = ard.buildList("clouds", "id")

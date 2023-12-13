@@ -33,15 +33,11 @@ def main(args, parser, ard):
     if args.neptune:
         if args.backup:
             if ard.needsattr("backups"):
-                ard.backups = astraSDK.k8s.getResources().main(
-                    "backups", version="v1alpha1", group="management.astra.netapp.io"
-                )
+                ard.backups = astraSDK.k8s.getResources().main("backups")
             iprSourceDict = ard.getSingleDict("backups", "metadata.name", args.backup, parser)
         elif args.snapshot:
             if ard.needsattr("snapshots"):
-                ard.snapshots = astraSDK.k8s.getResources().main(
-                    "snapshots", version="v1alpha1", group="management.astra.netapp.io"
-                )
+                ard.snapshots = astraSDK.k8s.getResources().main("snapshots")
             iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", args.snapshot, parser)
 
         template = tkSrc.helpers.setupJinja(args.subcommand)

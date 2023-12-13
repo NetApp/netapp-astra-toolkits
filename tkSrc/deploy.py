@@ -154,9 +154,7 @@ def deployHelm(chart, appName, namespace, setValues, fileValues, verbose, quiet)
 def main(args, parser, ard):
     if args.objectType == "acp":
         # Ensure the trident orchestrator is already running
-        torc = astraSDK.k8s.getResources().main(
-            "tridentorchestrators", version="v1", group="trident.netapp.io"
-        )
+        torc = astraSDK.k8s.getClusterResources().main("tridentorchestrators")
         if torc is None or len(torc["items"]) == 0:
             parser.error("trident operator not found on current Kubernetes context")
         elif len(torc["items"]) > 1:
@@ -193,14 +191,13 @@ def main(args, parser, ard):
         torc_spec["spec"]["acpImage"] = f"{args.registry}/astra/trident-acp:{torc_version}"
         torc_spec["spec"]["imagePullSecrets"] = [args.regCred]
         # Make the update
-        astraSDK.k8s.updateResource().main(
-            "tridentorchestrators",
-            torc_name,
-            torc_spec,
-            version="v1",
-            group="trident.netapp.io",
+        torc_update = astraSDK.k8s.updateClusterResource(quiet=args.quiet).main(
+            "tridentorchestrators", torc_name, torc_spec
         )
-        print(f"tridentorchestrator.trident.netapp.io/{torc_name} edited")
+        if torc_update:
+            print(f"tridentorchestrator.trident.netapp.io/{torc_name} edited")
+        else:
+            raise SystemExit("astraSDK.k8s.updateClusterResource() failed")
     elif args.objectType == "chart":
         deployHelm(
             args.chart,

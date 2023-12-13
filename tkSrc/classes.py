@@ -76,7 +76,11 @@ class AstraResourceDicts:
         try:
             # return a list of resource values based on 'key'
             if not fKey or not fVal:
-                return [self.recursiveGet(key, x) for x in getattr(self, name)["items"]]
+                return [
+                    self.recursiveGet(key, x)
+                    for x in getattr(self, name)["items"]
+                    if self.recursiveGet(key, x)
+                ]
             # return a list of resource values based on 'key' only if some other 'fKey' == 'fVal'
             return [
                 self.recursiveGet(key, x)

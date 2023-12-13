@@ -194,11 +194,41 @@ def main(args, parser, ard):
                 raise SystemExit("astraSDK.buckets.manageBucket() failed")
 
     elif args.objectType == "cluster":
-        rc = astraSDK.clusters.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
-            args.clusterID, args.defaultStorageClassID
-        )
-        if rc is False:
-            raise SystemExit("astraSDK.clusters.manageCluster() failed")
+        if args.neptune:
+            # Install the operator
+            tkSrc.helpers.run(
+                f"kubectl apply -f {tkSrc.helpers.getOperatorURL(args.operator_version)}"
+            )
+            # Create the astra API token secret
+            apiToken = astraSDK.k8s.createAstraApiToken(quiet=args.quiet).main()
+            # Handle the registry secret
+            if not args.regCred:
+                cred = astraSDK.k8s.createRegCred(quiet=args.quiet).main(
+                    registry=args.registry, namespace="neptune-system"
+                )
+                if not cred:
+                    raise SystemExit("astraSDK.k8s.createRegCred() failed")
+                args.regCred = cred["metadata"]["name"]
+            else:
+                if ard.needsattr("credentials"):
+                    ard.credentials = astraSDK.k8s.getSecrets().main(namespace="neptune-system")
+                cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
+            # Create the AstraConnector CR
+            connector = astraSDK.k8s.createAstraConnector(quiet=args.quiet).main(
+                args.clusterName,
+                args.cloudID,
+                apiToken["metadata"]["name"],
+                args.regCred,
+                registry=args.registry,
+            )
+            if not connector:
+                raise SystemExit("astraSDK.k8s.createAstraConnector() failed")
+        else:
+            rc = astraSDK.clusters.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
+                args.cluster, args.defaultStorageClassID
+            )
+            if rc is False:
+                raise SystemExit("astraSDK.clusters.manageCluster() failed")
 
     elif args.objectType == "cloud":
         credentialID = None

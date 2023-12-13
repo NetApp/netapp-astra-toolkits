@@ -18,7 +18,7 @@
 import astraSDK
 
 
-def main(args, ard):
+def main(args, parser, ard):
     if args.objectType == "app":
         rc = astraSDK.apps.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(args.appID)
         if rc is False:
@@ -30,33 +30,65 @@ def main(args, ard):
         if rc is False:
             raise SystemExit("astraSDK.buckets.unmanageBucket() failed")
     elif args.objectType == "cluster":
-        rc = astraSDK.clusters.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
-            args.clusterID
-        )
-        if rc:
-            # "Private" cloud clusters+credentials also should be deleted
-            if ard.needsattr("clusters"):
-                ard.clusters = astraSDK.clusters.getClusters().main()
-            for cluster in ard.clusters["items"]:
-                for label in cluster["metadata"]["labels"]:
-                    if (
-                        cluster["id"] == args.clusterID
-                        and label["name"] == "astra.netapp.io/labels/read-only/cloudName"
-                        and label["value"] == "private"
-                    ):
-                        if astraSDK.clusters.deleteCluster(
-                            quiet=args.quiet, verbose=args.verbose
-                        ).main(args.clusterID, cluster["cloudID"]):
-                            if astraSDK.credentials.destroyCredential(
-                                quiet=args.quiet, verbose=args.verbose
-                            ).main(cluster.get("credentialID")):
-                                print("Credential deleted")
-                            else:
-                                raise SystemExit("astraSDK.credentials.destroyCredential() failed")
-                        else:
-                            raise SystemExit("astraSDK.clusters.deleteCluster() failed")
+        # If this is a neptune-managed cluster, we need to destroy the AstraConnector CR, however
+        # we do not want to do that without first ensuring the clusterID the user inputted matches
+        # the current kubeconfig context
+        if args.neptune:
+            # Ensure we have an AstraConnector CR installed
+            if ard.needsattr("connectors"):
+                ard.connectors = astraSDK.k8s.getResources(quiet=True).main(
+                    "astraconnectors", version="v1", group="astra.netapp.io"
+                )
+            if ard.connectors is None or len(ard.connectors["items"]) == 0:
+                parser.error("AstraConnector operator not found on current Kubernetes context")
+            elif len(ard.connectors["items"]) > 1:
+                parser.error(
+                    "multiple AstraConnector operators found on current Kubernetes context"
+                )
+            connector = ard.connectors["items"][0]
+            # Destroy the AstraConnector CR and api token secret (TODO: regcred destruction?)
+            if astraSDK.k8s.destroyResource(quiet=args.quiet).main(
+                "astraconnectors",
+                connector["metadata"]["name"],
+                version="v1",
+                group="astra.netapp.io",
+            ):
+                astraSDK.k8s.destroySecret(quiet=args.quiet).main(
+                    connector["spec"]["astra"]["tokenRef"],
+                    namespace=connector["metadata"]["namespace"],
+                )
+            else:
+                raise SystemExit("astraSDK.k8s.destroyResource() failed")
         else:
-            raise SystemExit("astraSDK.clusters.unmanageCluster() failed")
+            rc = astraSDK.clusters.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
+                args.cluster
+            )
+            if rc:
+                # "Private" cloud clusters+credentials also should be deleted
+                if ard.needsattr("clusters"):
+                    ard.clusters = astraSDK.clusters.getClusters().main()
+                for cluster in ard.clusters["items"]:
+                    for label in cluster["metadata"]["labels"]:
+                        if (
+                            cluster["id"] == args.cluster
+                            and label["name"] == "astra.netapp.io/labels/read-only/cloudName"
+                            and label["value"] == "private"
+                        ):
+                            if astraSDK.clusters.deleteCluster(
+                                quiet=args.quiet, verbose=args.verbose
+                            ).main(args.cluster, cluster["cloudID"]):
+                                if astraSDK.credentials.destroyCredential(
+                                    quiet=args.quiet, verbose=args.verbose
+                                ).main(cluster.get("credentialID")):
+                                    print("Credential deleted")
+                                else:
+                                    raise SystemExit(
+                                        "astraSDK.credentials.destroyCredential() failed"
+                                    )
+                            else:
+                                raise SystemExit("astraSDK.clusters.deleteCluster() failed")
+            else:
+                raise SystemExit("astraSDK.clusters.unmanageCluster() failed")
     elif args.objectType == "cloud":
         if ard.needsattr("cloud"):
             ard.clouds = astraSDK.clouds.getClouds().main()

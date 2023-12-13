@@ -1400,18 +1400,53 @@ class ToolkitParser:
 
     def manage_cluster_args(self):
         """manage cluster args and flags"""
-        self.subparserManageCluster.add_argument(
-            "clusterID",
-            choices=(None if self.plaidMode else self.acl.clusters),
-            help="clusterID of the cluster to manage",
-        )
-        self.subparserManageCluster.add_argument(
-            "-s",
-            "--defaultStorageClassID",
-            choices=(None if self.plaidMode else self.acl.storageClasses),
-            default=None,
-            help="Optionally modify the default storage class",
-        )
+        if self.neptune:
+            self.subparserManageCluster.add_argument(
+                "clusterName",
+                help="The friendly name of the cluster",
+            )
+            self.subparserManageCluster.add_argument(
+                "-c",
+                "--cloudID",
+                choices=(None if self.plaidMode else self.acl.clouds),
+                default=(self.acl.clouds[0] if len(self.acl.clouds) == 1 else None),
+                required=(False if len(self.acl.clouds) == 1 else True),
+                help="The cloudID to add the cluster to (only required if # of clouds > 1)",
+            )
+            self.subparserManageCluster.add_argument(
+                "-v",
+                "--operator-version",
+                required=False,
+                default="latest",
+                help="Optionally specify the astra-connector-operator version "
+                "(default: %(default)s)",
+            )
+            self.subparserManageCluster.add_argument(
+                "--regCred",
+                choices=(None if self.plaidMode else self.acl.credentials),
+                default=None,
+                help="optionally specify the name of the existing registry credential "
+                "(rather than automatically creating a new secret)",
+            )
+            self.subparserManageCluster.add_argument(
+                "--registry",
+                default=None,
+                help="optionally specify the FQDN of the ACP image source registry "
+                "(defaults to cr.<astra-control-fqdn>)",
+            )
+        else:
+            self.subparserManageCluster.add_argument(
+                "cluster",
+                choices=(None if self.plaidMode else self.acl.clusters),
+                help="clusterID of the cluster to manage",
+            )
+            self.subparserManageCluster.add_argument(
+                "-s",
+                "--defaultStorageClassID",
+                choices=(None if self.plaidMode else self.acl.storageClasses),
+                default=None,
+                help="Optionally modify the default storage class",
+            )
 
     def manage_cloud_args(self):
         """manage cloud args and flags"""
@@ -1542,9 +1577,9 @@ class ToolkitParser:
     def unmanage_cluster_args(self):
         """unmanage cluster args and flags"""
         self.subparserUnmanageCluster.add_argument(
-            "clusterID",
+            "cluster",
             choices=(None if self.plaidMode else self.acl.clusters),
-            help="clusterID of the cluster to unmanage",
+            help="the cluster to unmanage",
         )
 
     def unmanage_cloud_args(self):

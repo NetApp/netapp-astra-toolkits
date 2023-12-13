@@ -25,6 +25,8 @@ from .common import KubeCommon, SDKCommon
 
 
 class getResources(KubeCommon):
+    """Get all namespace scoped resources of a specific CRD"""
+
     def __init__(self, quiet=True, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
@@ -36,8 +38,54 @@ class getResources(KubeCommon):
     def main(
         self,
         plural,
+        namespace="neptune-system",
         version="v1alpha1",
         group="management.astra.netapp.io",
+        keyFilter=None,
+        valFilter=None,
+    ):
+        with kubernetes.client.ApiClient(self.kube_config) as api_client:
+            api_instance = kubernetes.client.CustomObjectsApi(api_client)
+            try:
+                resp = api_instance.list_namespaced_custom_object(
+                    group=group,
+                    version=version,
+                    namespace=namespace,
+                    plural=plural,
+                )
+                if keyFilter and valFilter:
+                    filterCopy = copy.deepcopy(resp)
+                    for counter, r in enumerate(filterCopy.get("items")):
+                        if self.recursiveGet(keyFilter, r) != valFilter:
+                            resp["items"].remove(filterCopy["items"][counter])
+
+                if self.output == "yaml":
+                    resp = yaml.dump(resp)
+
+                if not self.quiet:
+                    print(json.dumps(resp) if type(resp) is dict else resp)
+                return resp
+
+            except kubernetes.client.rest.ApiException as e:
+                self.printError(e)
+
+
+class getClusterResources(KubeCommon):
+    """Get all cluster scoped resources of a specific CRD"""
+
+    def __init__(self, quiet=True, output="json"):
+        """quiet: Will there be CLI output or just return (datastructure)
+        output: json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.output = output
+        super().__init__()
+
+    def main(
+        self,
+        plural,
+        version="v1",
+        group="trident.netapp.io",
         keyFilter=None,
         valFilter=None,
     ):
@@ -103,7 +151,36 @@ class createResource(KubeCommon):
                 self.printError(e)
 
 
-class updateResource(KubeCommon):
+class destroyResource(KubeCommon):
+    def __init__(self, quiet=True):
+        """quiet: Will there be CLI output or just return (datastructure)"""
+        self.quiet = quiet
+        super().__init__()
+
+    def main(
+        self,
+        plural,
+        name,
+        namespace="neptune-system",
+        version="v1alpha1",
+        group="management.astra.netapp.io",
+    ):
+        with kubernetes.client.ApiClient(self.kube_config) as api_client:
+            api_instance = kubernetes.client.CustomObjectsApi(api_client)
+            try:
+                resp = api_instance.delete_namespaced_custom_object(
+                    group, version, namespace, plural, name
+                )
+
+                if not self.quiet:
+                    print(json.dumps(resp) if type(resp) is dict else resp)
+                return resp
+
+            except kubernetes.client.rest.ApiException as e:
+                self.printError(e)
+
+
+class updateClusterResource(KubeCommon):
     def __init__(self, quiet=True):
         """quiet: Will there be CLI output or just return (datastructure)"""
         self.quiet = quiet
@@ -114,8 +191,8 @@ class updateResource(KubeCommon):
         plural,
         name,
         body,
-        version="v1alpha1",
-        group="management.astra.netapp.io",
+        version="v1",
+        group="trident.netapp.io",
     ):
         with kubernetes.client.ApiClient(self.kube_config) as api_client:
             api_instance = kubernetes.client.CustomObjectsApi(api_client)
@@ -199,6 +276,25 @@ class getSecrets(KubeCommon):
                 self.printError(e)
 
 
+class destroySecret(KubeCommon):
+    def __init__(self, quiet=True):
+        """quiet: Will there be CLI output or just return (datastructure)"""
+        self.quiet = quiet
+        super().__init__()
+
+    def main(self, name, namespace="neptune-system"):
+        with kubernetes.client.ApiClient(self.kube_config) as api_client:
+            api_instance = kubernetes.client.CoreV1Api(api_client)
+            try:
+                resp = api_instance.delete_namespaced_secret(name, namespace).to_dict()
+                if not self.quiet:
+                    print(json.dumps(resp) if type(resp) is dict else resp)
+                return resp
+
+            except kubernetes.client.rest.ApiException as e:
+                self.printError(e)
+
+
 class getStorageClasses(KubeCommon):
     def __init__(self, quiet=True, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -226,6 +322,9 @@ class getStorageClasses(KubeCommon):
 
 
 class createRegCred(KubeCommon, SDKCommon):
+    """Creates a docker registry credential. By default it uses fields from config.yaml,
+    however any of these fields can be overridden by custom values."""
+
     def __init__(self, quiet=True):
         """quiet: Will there be CLI output or just return (datastructure)"""
         self.quiet = quiet
@@ -281,3 +380,83 @@ class createRegCred(KubeCommon, SDKCommon):
                 return resp
             except kubernetes.client.rest.ApiException as e:
                 self.printError(e)
+
+
+class createAstraApiToken(KubeCommon, SDKCommon):
+    """Creates an astra-api-token secret based on the contents of config.yaml"""
+
+    def __init__(self, quiet=True):
+        """quiet: Will there be CLI output or just return (datastructure)"""
+        self.quiet = quiet
+        super().__init__()
+
+    def main(self, name=None, namespace="neptune-system"):
+        token = self.conf["headers"].get("Authorization").split(" ")[-1]
+        secret = kubernetes.client.V1Secret(
+            metadata=(
+                kubernetes.client.V1ObjectMeta(name=name)
+                if name
+                else kubernetes.client.V1ObjectMeta(generate_name="astra-api-token-")
+            ),
+            type="Opaque",
+            data={"apiToken": base64.b64encode(token.encode("utf-8")).decode("utf-8")},
+        )
+
+        with kubernetes.client.ApiClient(self.kube_config) as api_client:
+            api_instance = kubernetes.client.CoreV1Api(api_client)
+            try:
+                resp = api_instance.create_namespaced_secret(
+                    namespace=namespace,
+                    body=secret,
+                ).to_dict()
+                if not self.quiet:
+                    print(json.dumps(resp, default=str) if type(resp) is dict else resp)
+                return resp
+            except kubernetes.client.rest.ApiException as e:
+                self.printError(e)
+
+
+class createAstraConnector(SDKCommon):
+    """Creates an AstraConnector custom resource"""
+
+    def __init__(self, quiet=True):
+        """quiet: Will there be CLI output or just return (datastructure)"""
+        self.quiet = quiet
+        super().__init__()
+
+    def main(
+        self,
+        clusterName,
+        cloudID,
+        apiToken,
+        regCred,
+        registry=None,
+        name="astra-connector",
+        namespace="neptune-system",
+    ):
+        body = {
+            "apiVersion": "astra.netapp.io/v1",
+            "kind": "AstraConnector",
+            "metadata": {"name": name, "namespace": namespace},
+            "spec": {
+                "astra": {
+                    "accountId": self.conf["account_id"],
+                    "cloudId": cloudID,
+                    "clusterName": clusterName,
+                    "skipTLSValidation": not self.conf["verifySSL"],
+                    "tokenRef": apiToken,
+                },
+                "natsSyncClient": {"cloudBridgeURL": f"https://{self.conf['domain']}"},
+                "imageRegistry": {
+                    "name": registry if registry else f"cr.{self.conf['domain']}",
+                    "secret": regCred,
+                },
+            },
+        }
+        return createResource(quiet=self.quiet).main(
+            body["kind"].lower() + "s",
+            namespace,
+            body,
+            version=body["apiVersion"].split("/")[1],
+            group=body["apiVersion"].split("/")[0],
+        )
