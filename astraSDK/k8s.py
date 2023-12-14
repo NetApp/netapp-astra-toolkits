@@ -115,6 +115,8 @@ class getClusterResources(KubeCommon):
 
 
 class createResource(KubeCommon):
+    """Creates a cluster scoped Custom Resource"""
+
     def __init__(self, quiet=True, dry_run=False):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
@@ -152,9 +154,14 @@ class createResource(KubeCommon):
 
 
 class destroyResource(KubeCommon):
-    def __init__(self, quiet=True):
-        """quiet: Will there be CLI output or just return (datastructure)"""
+    """Destroys a cluster scoped Custom Resource"""
+
+    def __init__(self, quiet=True, dry_run=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        dry-run: False (default):       submit and persist the resource
+                 True or non-empty str: submit request without persisting the resource"""
         self.quiet = quiet
+        self.dry_run = dry_run
         super().__init__()
 
     def main(
@@ -169,7 +176,12 @@ class destroyResource(KubeCommon):
             api_instance = kubernetes.client.CustomObjectsApi(api_client)
             try:
                 resp = api_instance.delete_namespaced_custom_object(
-                    group, version, namespace, plural, name
+                    group,
+                    version,
+                    namespace,
+                    plural,
+                    name,
+                    dry_run=("All" if self.dry_run else None),
                 )
 
                 if not self.quiet:
@@ -251,6 +263,8 @@ class getNamespaces(KubeCommon):
 
 
 class getSecrets(KubeCommon):
+    """Gets all kubernetes secrets in a specific namespace"""
+
     def __init__(self, quiet=True, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
@@ -277,16 +291,25 @@ class getSecrets(KubeCommon):
 
 
 class destroySecret(KubeCommon):
-    def __init__(self, quiet=True):
-        """quiet: Will there be CLI output or just return (datastructure)"""
+    """Destroys a kubernetes secret in a specific namespace"""
+
+    def __init__(self, quiet=True, dry_run=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        dry-run: False (default):       submit and persist the resource
+                 True or non-empty str: submit request without persisting the resource"""
         self.quiet = quiet
+        self.dry_run = dry_run
         super().__init__()
 
     def main(self, name, namespace="neptune-system"):
         with kubernetes.client.ApiClient(self.kube_config) as api_client:
             api_instance = kubernetes.client.CoreV1Api(api_client)
             try:
-                resp = api_instance.delete_namespaced_secret(name, namespace).to_dict()
+                resp = api_instance.delete_namespaced_secret(
+                    name,
+                    namespace,
+                    dry_run=("All" if self.dry_run else None),
+                ).to_dict()
                 if not self.quiet:
                     print(json.dumps(resp) if type(resp) is dict else resp)
                 return resp
@@ -325,9 +348,12 @@ class createRegCred(KubeCommon, SDKCommon):
     """Creates a docker registry credential. By default it uses fields from config.yaml,
     however any of these fields can be overridden by custom values."""
 
-    def __init__(self, quiet=True):
-        """quiet: Will there be CLI output or just return (datastructure)"""
+    def __init__(self, quiet=True, dry_run=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        dry-run: False (default):       submit and persist the resource
+                 True or non-empty str: submit request without persisting the resource"""
         self.quiet = quiet
+        self.dry_run = dry_run
         super().__init__()
 
     def main(self, name=None, registry=None, username=None, password=None, namespace="trident"):
@@ -374,6 +400,7 @@ class createRegCred(KubeCommon, SDKCommon):
                 resp = api_instance.create_namespaced_secret(
                     namespace=namespace,
                     body=regCredSecret,
+                    dry_run=("All" if self.dry_run else None),
                 ).to_dict()
                 if not self.quiet:
                     print(json.dumps(resp, default=str) if type(resp) is dict else resp)
@@ -385,9 +412,12 @@ class createRegCred(KubeCommon, SDKCommon):
 class createAstraApiToken(KubeCommon, SDKCommon):
     """Creates an astra-api-token secret based on the contents of config.yaml"""
 
-    def __init__(self, quiet=True):
-        """quiet: Will there be CLI output or just return (datastructure)"""
+    def __init__(self, quiet=True, dry_run=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        dry-run: False (default):       submit and persist the resource
+                 True or non-empty str: submit request without persisting the resource"""
         self.quiet = quiet
+        self.dry_run = dry_run
         super().__init__()
 
     def main(self, name=None, namespace="neptune-system"):
@@ -408,6 +438,7 @@ class createAstraApiToken(KubeCommon, SDKCommon):
                 resp = api_instance.create_namespaced_secret(
                     namespace=namespace,
                     body=secret,
+                    dry_run=("All" if self.dry_run else None),
                 ).to_dict()
                 if not self.quiet:
                     print(json.dumps(resp, default=str) if type(resp) is dict else resp)
@@ -419,9 +450,12 @@ class createAstraApiToken(KubeCommon, SDKCommon):
 class createAstraConnector(SDKCommon):
     """Creates an AstraConnector custom resource"""
 
-    def __init__(self, quiet=True):
-        """quiet: Will there be CLI output or just return (datastructure)"""
+    def __init__(self, quiet=True, dry_run=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        dry-run: False (default):       submit and persist the resource
+                 True or non-empty str: submit request without persisting the resource"""
         self.quiet = quiet
+        self.dry_run = dry_run
         super().__init__()
 
     def main(
@@ -453,7 +487,7 @@ class createAstraConnector(SDKCommon):
                 },
             },
         }
-        return createResource(quiet=self.quiet).main(
+        return createResource(quiet=self.quiet, dry_run=self.dry_run).main(
             body["kind"].lower() + "s",
             namespace,
             body,

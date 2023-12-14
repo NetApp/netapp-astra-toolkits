@@ -47,23 +47,23 @@ def main(args, parser, ard):
                 )
             connector = ard.connectors["items"][0]
             # Destroy the AstraConnector CR and api token secret (TODO: regcred destruction?)
-            if astraSDK.k8s.destroyResource(quiet=args.quiet).main(
+            if astraSDK.k8s.destroyResource(quiet=args.quiet, dry_run=args.dry_run).main(
                 "astraconnectors",
                 connector["metadata"]["name"],
                 version="v1",
                 group="astra.netapp.io",
             ):
-                astraSDK.k8s.destroySecret(quiet=args.quiet).main(
+                if not astraSDK.k8s.destroySecret(quiet=args.quiet, dry_run=args.dry_run).main(
                     connector["spec"]["astra"]["tokenRef"],
                     namespace=connector["metadata"]["namespace"],
-                )
+                ):
+                    raise SystemExit("astraSDK.k8s.destroySecret() failed")
             else:
                 raise SystemExit("astraSDK.k8s.destroyResource() failed")
         else:
-            rc = astraSDK.clusters.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
+            if astraSDK.clusters.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.cluster
-            )
-            if rc:
+            ):
                 # "Private" cloud clusters+credentials also should be deleted
                 if ard.needsattr("clusters"):
                     ard.clusters = astraSDK.clusters.getClusters().main()

@@ -197,13 +197,16 @@ def main(args, parser, ard):
         if args.neptune:
             # Install the operator
             tkSrc.helpers.run(
-                f"kubectl apply -f {tkSrc.helpers.getOperatorURL(args.operator_version)}"
+                f"kubectl apply --dry_run={args.dry_run if args.dry_run else 'none'} -f "
+                f"{tkSrc.helpers.getOperatorURL(args.operator_version)}"
             )
             # Create the astra API token secret
-            apiToken = astraSDK.k8s.createAstraApiToken(quiet=args.quiet).main()
+            apiToken = astraSDK.k8s.createAstraApiToken(
+                quiet=args.quiet, dry_run=args.dry_run
+            ).main()
             # Handle the registry secret
             if not args.regCred:
-                cred = astraSDK.k8s.createRegCred(quiet=args.quiet).main(
+                cred = astraSDK.k8s.createRegCred(quiet=args.quiet, dry_run=args.dry_run).main(
                     registry=args.registry, namespace="neptune-system"
                 )
                 if not cred:
@@ -214,7 +217,9 @@ def main(args, parser, ard):
                     ard.credentials = astraSDK.k8s.getSecrets().main(namespace="neptune-system")
                 cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
             # Create the AstraConnector CR
-            connector = astraSDK.k8s.createAstraConnector(quiet=args.quiet).main(
+            connector = astraSDK.k8s.createAstraConnector(
+                quiet=args.quiet, dry_run=args.dry_run
+            ).main(
                 args.clusterName,
                 args.cloudID,
                 apiToken["metadata"]["name"],
