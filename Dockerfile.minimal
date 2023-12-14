@@ -1,4 +1,4 @@
-FROM alpine:latest
-RUN apk add --no-cache py3-pip jq
-RUN python3 -m pip install actoolkit
+FROM python:3.10.13-alpine3.19
+RUN apk add --no-cache jq
+RUN pip install actoolkit
 CMD ["/bin/sh"]
