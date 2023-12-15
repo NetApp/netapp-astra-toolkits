@@ -24,7 +24,7 @@ import yaml
 from .common import KubeCommon, SDKCommon
 
 
-class getResources(KubeCommon):
+class getClusterResources(KubeCommon):
     def __init__(self, quiet=True, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON

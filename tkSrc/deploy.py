@@ -154,9 +154,7 @@ def deployHelm(chart, appName, namespace, setValues, fileValues, verbose, quiet)
 def main(args, parser, ard):
     if args.objectType == "acp":
         # Ensure the trident orchestrator is already running
-        torc = astraSDK.k8s.getResources().main(
-            "tridentorchestrators", version="v1", group="trident.netapp.io"
-        )
+        torc = astraSDK.k8s.getClusterResources().main("tridentorchestrators")
         if torc is None or len(torc["items"]) == 0:
             parser.error("trident operator not found on current Kubernetes context")
         elif len(torc["items"]) > 1:
