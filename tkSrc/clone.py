@@ -261,11 +261,7 @@ def main(args, parser, ard):
             "apps", "metadata.name", restoreSourceDict["spec"]["applicationRef"], parser
         )
         namespaceMapping = tkSrc.helpers.createNamespaceMapping(
-            oApp["spec"]["includedNamespaces"],
-            args.newNamespace,
-            args.multiNsMapping,
-            parser,
-            neptune=True,
+            oApp["spec"]["includedNamespaces"], args.newNamespace, args.multiNsMapping, parser
         )
 
         template = tkSrc.helpers.setupJinja(args.subcommand)
@@ -294,8 +290,8 @@ def main(args, parser, ard):
                         f"{neptune_dict['kind'].lower()}s",
                         neptune_dict["metadata"]["namespace"],
                         neptune_dict,
-                        version="v1alpha1",
-                        group="management.astra.netapp.io",
+                        version="v1",
+                        group="astra.netapp.io",
                     )
         except KeyError as err:
             parser.error(

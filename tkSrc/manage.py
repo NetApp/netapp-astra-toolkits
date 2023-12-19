@@ -84,8 +84,8 @@ def main(args, parser, ard):
                     f"{neptune_dict['kind'].lower()}s",
                     neptune_dict["metadata"]["namespace"],
                     neptune_dict,
-                    version="v1alpha1",
-                    group="management.astra.netapp.io",
+                    version="v1",
+                    group="astra.netapp.io",
                 )
         else:
             rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
@@ -141,8 +141,8 @@ def main(args, parser, ard):
                     f"{neptune_dict['kind'].lower()}s",
                     neptune_dict["metadata"]["namespace"],
                     neptune_dict,
-                    version="v1alpha1",
-                    group="management.astra.netapp.io",
+                    version="v1",
+                    group="astra.netapp.io",
                 )
 
         else:

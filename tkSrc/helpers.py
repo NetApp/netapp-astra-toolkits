@@ -134,12 +134,11 @@ def createCriteriaList(images, namespaces, pods, labels, names):
     )
 
 
-def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser, neptune=False):
+def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser):
     """Create a list of dictionaries of source and destination namespaces for cloning an
     application, as the user can provide a variety of input.  Return object format:
     [ { "source": "sourcens1", "destination": "destns1" },
       { "source": "sourcens2", "destination": "destns2" } ]"""
-    destKeyName = "target" if neptune else "destination"
     # Ensure that multiNsMapping was used for multi-namespace apps
     if multiNsMapping is None and len(appNamespaces) > 1:
         parser.error("for multi-namespace apps, --multiNsMapping must be used.")
@@ -151,7 +150,7 @@ def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser, nept
         return [
             {
                 "source": appNamespaces[0]["namespace"],
-                destKeyName: isRFC1123(singleNs),
+                "destination": isRFC1123(singleNs),
             }
         ]
     # Handle multiNsMapping cases
@@ -181,7 +180,7 @@ def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser, nept
         returnList = []
         for mapping in mappingList:
             returnList.append(
-                {"source": mapping.split("=")[0], destKeyName: isRFC1123(mapping.split("=")[1])}
+                {"source": mapping.split("=")[0], "destination": isRFC1123(mapping.split("=")[1])}
             )
         return returnList
     else:
@@ -190,8 +189,8 @@ def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser, nept
 
 def updateNamespaceSpec(mapping, spec):
     """Function which takes a mapping like:
-    [{'source': 'ns1', 'target': 'ns1-clone'},
-     {'source': 'ns2', 'target': 'ns2-clone'}]
+    [{'source': 'ns1', 'destination': 'ns1-clone'},
+     {'source': 'ns2', 'destination': 'ns2-clone'}]
     And a spec like:
     {'includedNamespaces': [
         {'labelSelector': {}, 'namespace': 'ns1'},
@@ -206,7 +205,7 @@ def updateNamespaceSpec(mapping, spec):
     for m in mapping:
         for ns in spec["includedNamespaces"]:
             if m["source"] == ns["namespace"]:
-                ns["namespace"] = m["target"]
+                ns["namespace"] = m["destination"]
     return spec
 
 

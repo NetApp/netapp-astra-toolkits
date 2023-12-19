@@ -57,8 +57,8 @@ def main(args, parser, ard):
                     f"{neptune_dict['kind'].lower()}s",
                     neptune_dict["metadata"]["namespace"],
                     neptune_dict,
-                    version="v1alpha1",
-                    group="management.astra.netapp.io",
+                    version="v1",
+                    group="astra.netapp.io",
                 )
         except KeyError as err:
             iprSourceName = args.backup if args.backup else args.snapshot

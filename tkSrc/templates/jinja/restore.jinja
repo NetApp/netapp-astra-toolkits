@@ -1,4 +1,4 @@
-apiVersion: management.astra.netapp.io/v1alpha1
+apiVersion: astra.netapp.io/v1
 kind: {{ kind }}Restore
 metadata:
   name: {{ restoreName }}
@@ -10,7 +10,7 @@ spec:
 {{ namespaceMapping }}
 ...
 ---
-apiVersion: management.astra.netapp.io/v1alpha1
+apiVersion: astra.netapp.io/v1
 kind: Application
 metadata:
   name: {{ appName }}

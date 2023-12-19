@@ -39,8 +39,8 @@ class getResources(KubeCommon):
         self,
         plural,
         namespace="neptune-system",
-        version="v1alpha1",
-        group="management.astra.netapp.io",
+        version="v1",
+        group="astra.netapp.io",
         keyFilter=None,
         valFilter=None,
     ):
@@ -130,8 +130,8 @@ class createResource(KubeCommon):
         plural,
         namespace,
         body,
-        version="v1alpha1",
-        group="management.astra.netapp.io",
+        version="v1",
+        group="astra.netapp.io",
     ):
         with kubernetes.client.ApiClient(self.kube_config) as api_client:
             api_instance = kubernetes.client.CustomObjectsApi(api_client)
@@ -169,8 +169,8 @@ class destroyResource(KubeCommon):
         plural,
         name,
         namespace="neptune-system",
-        version="v1alpha1",
-        group="management.astra.netapp.io",
+        version="v1",
+        group="astra.netapp.io",
     ):
         with kubernetes.client.ApiClient(self.kube_config) as api_client:
             api_instance = kubernetes.client.CustomObjectsApi(api_client)
