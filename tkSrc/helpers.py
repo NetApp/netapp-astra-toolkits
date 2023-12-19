@@ -78,7 +78,7 @@ def createHelmStr(flagName, values):
     returnStr = ""
     if values:
         for value in values:
-            if type(value) == list:
+            if isinstance(value, list):
                 for v in value:
                     returnStr += f" --{flagName} {v}"
             else:
@@ -100,7 +100,7 @@ def createHookList(hookArguments):
     returnList = []
     if hookArguments:
         for arg in hookArguments:
-            if type(arg) == list:
+            if isinstance(arg, list):
                 for a in arg:
                     returnList.append(a)
             else:
@@ -114,7 +114,7 @@ def createFilterTypeList(fType, valueList):
     the entire list"""
     returnList = []
     for value in valueList:
-        if type(value) == list:
+        if isinstance(value, list):
             for v in value:
                 returnList.append({"type": fType, "value": v})
         else:
@@ -158,7 +158,7 @@ def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser):
         # Create a single list of mappings (nargs can produce a variety of lists of lists)
         mappingList = []
         for NsMapping in multiNsMapping:
-            if type(NsMapping) == list:
+            if isinstance(NsMapping, list):
                 for mapping in NsMapping:
                     mappingList.append(mapping)
             else:
@@ -272,14 +272,14 @@ def createConstraintList(idList, labelList):
     returnList = []
     if idList:
         for arg in idList:
-            if type(arg) == list:
+            if isinstance(arg, list):
                 for a in arg:
                     returnList.append("namespaces:id='" + a + "'.*")
             else:
                 returnList.append("namespaces:id='" + arg + "'.*")
     if labelList:
         for arg in labelList:
-            if type(arg) == list:
+            if isinstance(arg, list):
                 for a in arg:
                     returnList.append("namespaces:kubernetesLabels='" + a + "'.*")
             else:
@@ -477,7 +477,7 @@ def createFilterSet(selection, filters, assets):
     rFilter = {"GVKN": [], "resourceSelectionCriteria": selection}
     for fil in filters:
         setDict = {}
-        if type(fil) == list:
+        if isinstance(fil, list):
             for f in fil:
                 createSetDict(setDict, f, assets)
         else:

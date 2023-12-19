@@ -189,11 +189,11 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
                 acl.credentials = ard.buildList("credentials", "metadata.name")
                 for c in argv[verbPosition + 1 :]:
                     if c in acl.credentials:
-                        for l in ard.buildList("credentials", "data", fKey="metadata.name", fVal=c):
-                            for i in l:
+                        for d in ard.buildList("credentials", "data", fKey="metadata.name", fVal=c):
+                            for i in d:
                                 acl.keys.append(i)
                 if not acl.keys:
-                    acl.keys = [i for l in ard.buildList("credentials", "data") for i in l]
+                    acl.keys = [i for d in ard.buildList("credentials", "data") for i in d]
                 acl.keys = list(set(acl.keys))
             else:
                 ard.credentials = astraSDK.credentials.getCredentials().main()

@@ -201,18 +201,18 @@ def main(args, parser, ard):
             args.dayOfWeek = "*"
             args.dayOfMonth = "*"
         elif args.granularity == "daily":
-            if type(args.hour) != int and not args.hour:
+            if not isinstance(args.hour, int) and not args.hour:
                 parser.error("'daily' granularity requires -H / --hour")
             args.dayOfWeek = "*"
             args.dayOfMonth = "*"
         elif args.granularity == "weekly":
-            if type(args.hour) != int and not args.hour:
+            if not isinstance(args.hour, int) and not args.hour:
                 parser.error("'weekly' granularity requires -H / --hour")
-            if type(args.dayOfWeek) != int and not args.dayOfWeek:
+            if not isinstance(args.dayOfWeek, int) and not args.dayOfWeek:
                 parser.error("'weekly' granularity requires -W / --dayOfWeek")
             args.dayOfMonth = "*"
         elif args.granularity == "monthly":
-            if type(args.hour) != int and not args.hour:
+            if not isinstance(args.hour, int) and not args.hour:
                 parser.error("'monthly' granularity requires -H / --hour")
             if args.dayOfWeek:
                 parser.error("'monthly' granularity must not specify -W / --dayOfWeek")
