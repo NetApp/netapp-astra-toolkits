@@ -236,14 +236,16 @@ def main(args, parser, ard):
             args.newNamespace = args.appName
         # Handle -f/--fast/plaidMode cases
         if ard.needsattr("apps"):
-            ard.apps = astraSDK.k8s.getResources().main("applications")
+            ard.apps = astraSDK.k8s.getResources(config_context=args.neptune).main("applications")
         if args.subcommand == "clone":
             pass
         elif args.subcommand == "restore":
             if ard.needsattr("backups"):
-                ard.backups = astraSDK.k8s.getResources().main("backups")
+                ard.backups = astraSDK.k8s.getResources(config_context=args.neptune).main("backups")
             if ard.needsattr("snapshots"):
-                ard.snapshots = astraSDK.k8s.getResources().main("snapshots")
+                ard.snapshots = astraSDK.k8s.getResources(config_context=args.neptune).main(
+                    "snapshots"
+                )
                 ard.snapshots = astraSDK.snapshots.getSnaps().main()
             if args.restoreSource in ard.buildList("backups", "metadata.name"):
                 restoreSourceDict = ard.getSingleDict(
@@ -286,7 +288,9 @@ def main(args, parser, ard):
                 print(yaml.dump_all(neptune_gen).rstrip("\n"))
             else:
                 for neptune_dict in neptune_gen:
-                    astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                    astraSDK.k8s.createResource(
+                        quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                    ).main(
                         f"{neptune_dict['kind'].lower()}s",
                         neptune_dict["metadata"]["namespace"],
                         neptune_dict,

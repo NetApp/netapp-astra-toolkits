@@ -29,6 +29,7 @@ class ArgparseChoicesLists:
             "charts": [],
             "clouds": [],
             "clusters": [],
+            "contexts": [],
             "credentials": [],
             "dataProtections": [],
             "destApps": [],

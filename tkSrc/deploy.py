@@ -154,20 +154,26 @@ def deployHelm(chart, appName, namespace, setValues, fileValues, verbose, quiet)
 def main(args, parser, ard):
     if args.objectType == "acp":
         # Ensure the trident orchestrator is already running
-        torc = astraSDK.k8s.getClusterResources().main("tridentorchestrators")
+        torc = astraSDK.k8s.getClusterResources(config_context=args.neptune).main(
+            "tridentorchestrators"
+        )
         if torc is None or len(torc["items"]) == 0:
             parser.error("trident operator not found on current Kubernetes context")
         elif len(torc["items"]) > 1:
             parser.error("multiple trident operators found on current Kubernetes context")
         # Handle the registry secret
         if not args.regCred:
-            cred = astraSDK.k8s.createRegCred(quiet=args.quiet).main(registry=args.registry)
+            cred = astraSDK.k8s.createRegCred(quiet=args.quiet, config_context=args.neptune).main(
+                registry=args.registry
+            )
             if not cred:
                 raise SystemExit("astraSDK.k8s.createRegCred() failed")
             args.regCred = cred["metadata"]["name"]
         else:
             if ard.needsattr("credentials"):
-                ard.credentials = astraSDK.k8s.getSecrets().main(namespace="trident")
+                ard.credentials = astraSDK.k8s.getSecrets(config_context=args.neptune).main(
+                    namespace="trident"
+                )
             cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
         # Handle default registry
         if not args.registry:
@@ -191,9 +197,9 @@ def main(args, parser, ard):
         torc_spec["spec"]["acpImage"] = f"{args.registry}/astra/trident-acp:{torc_version}"
         torc_spec["spec"]["imagePullSecrets"] = [args.regCred]
         # Make the update
-        torc_update = astraSDK.k8s.updateClusterResource(quiet=args.quiet).main(
-            "tridentorchestrators", torc_name, torc_spec
-        )
+        torc_update = astraSDK.k8s.updateClusterResource(
+            quiet=args.quiet, config_context=args.neptune
+        ).main("tridentorchestrators", torc_name, torc_spec)
         if torc_update:
             print(f"tridentorchestrator.trident.netapp.io/{torc_name} edited")
         else:

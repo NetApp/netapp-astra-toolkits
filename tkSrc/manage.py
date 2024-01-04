@@ -34,7 +34,7 @@ def main(args, parser, ard):
                 # If we're running a neptune command, we don't have the clusterID arg populated by
                 # the end user, so gather the Connector information which contains the cluster
                 # name, which can be used in place of the cluster ID
-                ard.connectors = astraSDK.k8s.getResources().main(
+                ard.connectors = astraSDK.k8s.getResources(config_context=args.neptune).main(
                     "astraconnectors", version="v1", group="astra.netapp.io"
                 )
                 ard.getSingleDict(
@@ -80,7 +80,9 @@ def main(args, parser, ard):
             if args.dry_run == "client":
                 print(yaml.dump(neptune_dict).rstrip("\n"))
             else:
-                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                astraSDK.k8s.createResource(
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                ).main(
                     f"{neptune_dict['kind'].lower()}s",
                     neptune_dict["metadata"]["namespace"],
                     neptune_dict,
@@ -113,7 +115,9 @@ def main(args, parser, ard):
 
         if args.neptune:
             if ard.needsattr("credentials"):
-                ard.credentials = astraSDK.k8s.getSecrets().main(namespace="neptune-system")
+                ard.credentials = astraSDK.k8s.getSecrets(config_context=args.neptune).main(
+                    namespace="neptune-system"
+                )
             # Create providerCredentials based on args.provider input
             if args.provider == "azure":
                 keyNameList = ["accountKey"]
@@ -137,7 +141,9 @@ def main(args, parser, ard):
             if args.dry_run == "client":
                 print(yaml.dump(neptune_dict).rstrip("\n"))
             else:
-                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                astraSDK.k8s.createResource(
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                ).main(
                     f"{neptune_dict['kind'].lower()}s",
                     neptune_dict["metadata"]["namespace"],
                     neptune_dict,
@@ -202,23 +208,25 @@ def main(args, parser, ard):
             )
             # Create the astra API token secret
             apiToken = astraSDK.k8s.createAstraApiToken(
-                quiet=args.quiet, dry_run=args.dry_run
+                quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
             ).main()
             # Handle the registry secret
             if not args.regCred:
-                cred = astraSDK.k8s.createRegCred(quiet=args.quiet, dry_run=args.dry_run).main(
-                    registry=args.registry, namespace="neptune-system"
-                )
+                cred = astraSDK.k8s.createRegCred(
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                ).main(registry=args.registry, namespace="neptune-system")
                 if not cred:
                     raise SystemExit("astraSDK.k8s.createRegCred() failed")
                 args.regCred = cred["metadata"]["name"]
             else:
                 if ard.needsattr("credentials"):
-                    ard.credentials = astraSDK.k8s.getSecrets().main(namespace="neptune-system")
+                    ard.credentials = astraSDK.k8s.getSecrets(config_context=args.neptune).main(
+                        namespace="neptune-system"
+                    )
                 cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
             # Create the AstraConnector CR
             connector = astraSDK.k8s.createAstraConnector(
-                quiet=args.quiet, dry_run=args.dry_run
+                quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
             ).main(
                 args.clusterName,
                 args.cloudID,

@@ -32,11 +32,11 @@ def main(args, parser, ard):
     elif args.objectType == "cluster":
         # If this is a neptune-managed cluster, we need to destroy the AstraConnector CR, however
         # we do not want to do that without first ensuring the clusterID the user inputted matches
-        # the current kubeconfig context
+        # the passed kubeconfig context
         if args.neptune:
             # Ensure we have an AstraConnector CR installed
             if ard.needsattr("connectors"):
-                ard.connectors = astraSDK.k8s.getResources(quiet=True).main(
+                ard.connectors = astraSDK.k8s.getResources(config_context=args.neptune).main(
                     "astraconnectors", version="v1", group="astra.netapp.io"
                 )
             if ard.connectors is None or len(ard.connectors["items"]) == 0:
@@ -47,13 +47,17 @@ def main(args, parser, ard):
                 )
             connector = ard.connectors["items"][0]
             # Destroy the AstraConnector CR and api token secret (TODO: regcred destruction?)
-            if astraSDK.k8s.destroyResource(quiet=args.quiet, dry_run=args.dry_run).main(
+            if astraSDK.k8s.destroyResource(
+                quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+            ).main(
                 "astraconnectors",
                 connector["metadata"]["name"],
                 version="v1",
                 group="astra.netapp.io",
             ):
-                if not astraSDK.k8s.destroySecret(quiet=args.quiet, dry_run=args.dry_run).main(
+                if not astraSDK.k8s.destroySecret(
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                ).main(
                     connector["spec"]["astra"]["tokenRef"],
                     namespace=connector["metadata"]["namespace"],
                 ):

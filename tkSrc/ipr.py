@@ -33,11 +33,13 @@ def main(args, parser, ard):
     if args.neptune:
         if args.backup:
             if ard.needsattr("backups"):
-                ard.backups = astraSDK.k8s.getResources().main("backups")
+                ard.backups = astraSDK.k8s.getResources(config_context=args.neptune).main("backups")
             iprSourceDict = ard.getSingleDict("backups", "metadata.name", args.backup, parser)
         elif args.snapshot:
             if ard.needsattr("snapshots"):
-                ard.snapshots = astraSDK.k8s.getResources().main("snapshots")
+                ard.snapshots = astraSDK.k8s.getResources(config_context=args.neptune).main(
+                    "snapshots"
+                )
             iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", args.snapshot, parser)
 
         template = tkSrc.helpers.setupJinja(args.subcommand)
@@ -53,7 +55,9 @@ def main(args, parser, ard):
             if args.dry_run == "client":
                 print(yaml.dump(neptune_dict).rstrip("\n"))
             else:
-                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                astraSDK.k8s.createResource(
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                ).main(
                     f"{neptune_dict['kind'].lower()}s",
                     neptune_dict["metadata"]["namespace"],
                     neptune_dict,

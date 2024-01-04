@@ -53,13 +53,26 @@ class ToolkitParser:
             title="neptune group",
             description="use CR-driven Kubernetes workflows rather than the Astra Control API",
         )
-        neptuneGroup.add_argument(
-            "-n",
-            "--neptune",
-            default=False,
-            action="store_true",
-            help="create a Neptune CR directly on the Kubernetes cluster (requires kubeconfig)",
-        )
+        if neptune:
+            neptuneGroup.add_argument(
+                "-n",
+                "--neptune",
+                action="store",
+                choices=(acl.contexts if neptune else None),
+                help="create a Neptune CR directly on the Kubernetes cluster (defaults to current "
+                "context, but optionally specify a different context, kubeconfig_file, or "
+                "kubeconfig_file:context mapping)",
+            )
+        else:
+            neptuneGroup.add_argument(
+                "-n",
+                "--neptune",
+                default=False,
+                action="store_true",
+                help="create a Neptune CR directly on the Kubernetes cluster (defaults to current "
+                "context, but optionally specify a different context, kubeconfig_file, or "
+                "kubeconfig_file:context mapping)",
+            )
         neptuneGroup.add_argument(
             "--dry-run",
             default=False,

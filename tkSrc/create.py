@@ -92,7 +92,9 @@ def main(args, parser, ard):
             if args.dry_run == "client":
                 print(yaml.dump(neptune_dict).rstrip("\n"))
             else:
-                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                astraSDK.k8s.createResource(
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                ).main(
                     f"{neptune_dict['kind'].lower()}s",
                     neptune_dict["metadata"]["namespace"],
                     neptune_dict,
@@ -168,7 +170,9 @@ def main(args, parser, ard):
             if args.dry_run == "client":
                 print(yaml.dump(neptune_dict).rstrip("\n"))
             else:
-                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                astraSDK.k8s.createResource(
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                ).main(
                     f"{neptune_dict['kind'].lower()}s",
                     neptune_dict["metadata"]["namespace"],
                     neptune_dict,
@@ -321,7 +325,9 @@ def main(args, parser, ard):
             if args.dry_run == "client":
                 print(yaml.dump(neptune_dict).rstrip("\n"))
             else:
-                astraSDK.k8s.createResource(quiet=args.quiet, dry_run=args.dry_run).main(
+                astraSDK.k8s.createResource(
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                ).main(
                     f"{neptune_dict['kind'].lower()}s",
                     neptune_dict["metadata"]["namespace"],
                     neptune_dict,

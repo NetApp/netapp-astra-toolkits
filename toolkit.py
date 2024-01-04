@@ -32,6 +32,20 @@ def main(argv=sys.argv):
     neptune = False
 
     if len(argv) > 1:
+        # global_args must manually be kept in sync with __init__() parser args in tkSrc/parser.py
+        global_args = [
+            "-v",
+            "--verbose",
+            "-o",
+            "--output",
+            "-q",
+            "--quiet",
+            "-f",
+            "--fast",
+            "-n",
+            "--neptune",
+            "--dry-run",
+        ]
         # verbs must manually be kept in sync with top_level_commands() in tkSrc/parser.py
         verbs = {
             "deploy": False,
@@ -107,12 +121,22 @@ def main(argv=sys.argv):
         for counter, item in enumerate(argv):
             if verbPosition and counter < verbPosition and (item == "-f" or item == "--fast"):
                 plaidMode = True
-            if verbPosition and counter < verbPosition and (item == "-n" or item == "--neptune"):
+            if ((verbPosition and counter < verbPosition) or (verbPosition is None)) and (
+                item == "-n" or item == "--neptune"
+            ):
                 neptune = True
+                neptunePosition = counter
 
         # Argparse cares about capitalization, kubectl does not, so transparently fix appvault
         if verbPosition and len(argv) - verbPosition >= 2 and argv[verbPosition + 1] == "appvault":
             argv[verbPosition + 1] = "appVault"
+
+        # If neptune, build the kubeconfig:context choices list (we want this outside of
+        # tkSrc.choices.main as it should be generated regardless of plaidMode)
+        if neptune:
+            neptune, verbPosition = tkSrc.choices.kube_config(
+                argv, acl, verbPosition, neptunePosition, global_args
+            )
 
         # As long as we're not --fast/plaidMode, build the argparse choices lists
         if not plaidMode:

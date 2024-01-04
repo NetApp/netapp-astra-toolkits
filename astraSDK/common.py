@@ -213,18 +213,38 @@ class SDKCommon(BaseCommon):
 
 
 class KubeCommon(BaseCommon):
-    def __init__(self):
+    def __init__(self, config_context=None):
         super().__init__()
+
+        # First try loading from incluster (a local pod)
         try:
-            # First try loading from ~/.kube/config
-            self.kube_config = kubernetes.config.load_kube_config()
+            self.api_client = kubernetes.client.ApiClient(
+                configuration=kubernetes.config.load_incluster_config()
+            )
+
+        # If that fails, then it's a "normal" kubeconfig+context environment
         except kubernetes.config.config_exception.ConfigException as err:
+            # Setup the config_file and context based on the config_context input
+            config_file, context = None, None
+            if config_context and ":" in config_context:
+                config_file, context = tuple(config_context.split(":"))
+                config_file = None if config_file == "None" else config_file
+            elif config_context:
+                config_file = config_context
             try:
-                # If that fails, try loading from incluster (a local pod)
-                self.kube_config = kubernetes.config.load_incluster_config()
+                # Create the api_client
+                self.api_client = kubernetes.config.new_client_from_config(
+                    config_file=config_file, context=context
+                )
             except kubernetes.config.config_exception.ConfigException:
                 self.printError(f"{err}\n")
+                self.printError(
+                    f"Please ensure '{config_file}:{context}' is the correct 'config_file:context'"
+                    " mapping, and you have network connectivity to the cluster.\n"
+                )
                 raise SystemExit()
+
+        # Catch other errors (like malformed files), print error message, and exit
         except Exception as err:
             self.printError(
                 "Error loading kubeconfig, please check kubeconfig file to ensure it is valid\n"
