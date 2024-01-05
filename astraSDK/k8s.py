@@ -455,7 +455,13 @@ class createAstraApiToken(KubeCommon, SDKCommon):
         super().__init__(config_context=config_context)
 
     def main(self, name=None, namespace="neptune-system"):
-        token = self.conf["headers"].get("Authorization").split(" ")[-1]
+        # Handle case sensitivity
+        authorization = (
+            self.conf["headers"].get("Authorization")
+            if self.conf["headers"].get("Authorization")
+            else self.conf["headers"].get("authorization")
+        )
+        token = authorization.split(" ")[-1]
         secret = kubernetes.client.V1Secret(
             metadata=(
                 kubernetes.client.V1ObjectMeta(name=name)
