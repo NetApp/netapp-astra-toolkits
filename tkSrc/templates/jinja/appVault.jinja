@@ -14,7 +14,10 @@ spec:
     endpoint: {{ endpoint }}
 {%- endif %}
 {%- if secure %}
-    secure: {{ secure }}
+    secure: "{{ secure }}"
+{%- endif %}
+{%- if skipCertValidation %}
+    skipCertValidation: "{{ skipCertValidation }}"
 {%- endif %}
   providerCredentials:
 {{ providerCredentials }}

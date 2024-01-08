@@ -1369,7 +1369,7 @@ class ToolkitParser:
                 help=(
                     "The Kubernetes secret name and corresponding key name storing the credential"
                     " (-c gcp-credential credentials.json), if specifying S3 accessKey and "
-                    "secretKey, accessKey *must* be specified first (-c s3-creds accessKeyID -c "
+                    "secretKey, accessKey *must* be specified first (-c s3-creds accessKeyID "
                     "-c s3-creds secretAccessKey)"
                 ),
             )

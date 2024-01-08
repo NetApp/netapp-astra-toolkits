@@ -133,6 +133,7 @@ def main(args, parser, ard):
                     accountName=args.storageAccount,
                     endpoint=args.serverURL,
                     secure=("false" if args.http else None),
+                    skipCertValidation=("true" if args.skipCertValidation else None),
                     providerCredentials=tkSrc.helpers.prependDump(
                         tkSrc.helpers.createSecretKeyDict(keyNameList, args, ard, parser), prepend=4
                     ),
