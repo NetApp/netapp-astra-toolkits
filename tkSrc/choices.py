@@ -235,6 +235,11 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
                 for cloud in ard.clouds["items"]:
                     if cloud["cloudType"] not in ["GCP", "Azure", "AWS"]:
                         acl.clouds.append(cloud["id"])
+                # Add a private cloud if it doesn't already exist
+                if len(acl.clouds) == 0:
+                    rc = astraSDK.clouds.manageCloud(quiet=True).main("private", "private")
+                    if rc:
+                        acl.clouds.append(rc["id"])
                 ard.credentials = astraSDK.k8s.getSecrets(config_context=neptune).main(
                     namespace="neptune-system"
                 )
