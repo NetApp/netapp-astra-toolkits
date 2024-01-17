@@ -104,7 +104,6 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
         if (
             argv[verbPosition + 1] == "backup"
             or argv[verbPosition + 1] == "hook"
-            or argv[verbPosition + 1] == "protectionpolicy"
             or argv[verbPosition + 1] == "protection"
             or argv[verbPosition + 1] == "replication"
             or argv[verbPosition + 1] == "snapshot"
@@ -143,6 +142,12 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
             if argv[verbPosition + 1] == "hook":
                 ard.scripts = astraSDK.scripts.getScripts().main()
                 acl.scripts = ard.buildList("scripts", "id")
+            if argv[verbPosition + 1] == "protection":
+                if neptune:
+                    ard.buckets = astraSDK.k8s.getResources(config_context=neptune).main(
+                        "appvaults"
+                    )
+                    acl.buckets = ard.buildList("buckets", "metadata.name")
             if argv[verbPosition + 1] == "replication":
                 ard.destClusters = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
                 acl.destClusters = ard.buildList("destClusters", "id")

@@ -131,6 +131,16 @@ def main(argv=sys.argv):
         if verbPosition and len(argv) - verbPosition >= 2 and argv[verbPosition + 1] == "appvault":
             argv[verbPosition + 1] = "appVault"
 
+        # Transparently change "protectionpolicy" to "protection" for backwards compatibility
+        if (
+            verbPosition
+            and len(argv) - verbPosition >= 2
+            and argv[verbPosition + 1] == "protectionpolicy"
+        ):
+            argv[verbPosition + 1] = "protection"
+            print("Hit the protectionpolicy change")
+            print(argv)
+
         # If neptune, build the kubeconfig:context choices list (we want this outside of
         # tkSrc.choices.main as it should be generated regardless of plaidMode)
         if neptune:
@@ -158,7 +168,7 @@ def main(argv=sys.argv):
             args,
             parser,
             {
-                "create": ["backup", "snapshot", "hook"],
+                "create": ["backup", "snapshot", "hook", "protection"],
                 "define": ["app", "bucket", "appVault", "cluster"],
                 "ipr": True,
                 "manage": ["app", "bucket", "appVault", "cluster"],

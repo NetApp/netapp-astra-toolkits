@@ -278,7 +278,6 @@ class ToolkitParser:
         )
         self.subparserCreateProtection = self.subparserCreate.add_parser(
             "protection",
-            aliases=["protectionpolicy"],
             help="create protection policy",
         )
         self.subparserCreateReplication = self.subparserCreate.add_parser(
@@ -1069,12 +1068,22 @@ class ToolkitParser:
         )
 
     def create_protection_args(self):
-        """create protectionpolicy args and flags"""
+        """create protection args and flags"""
         self.subparserCreateProtection.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of the application to create protection schedule for",
+            help="the application to create protection schedule for",
         )
+        if self.neptune:
+            self.subparserCreateProtection.add_argument(
+                "-u",
+                "--appVault",
+                dest="bucket",
+                default=None,
+                required=True,
+                choices=(None if self.plaidMode else self.acl.buckets),
+                help="Name of the AppVault to use as the target of the backup/snapshot",
+            )
         self.subparserCreateProtection.add_argument(
             "-g",
             "--granularity",

@@ -197,24 +197,25 @@ def main(args, parser, ard):
             )
             if rc is False:
                 raise SystemExit("astraSDK.hooks.createHook() failed")
-    elif args.objectType == "protection" or args.objectType == "protectionpolicy":
+    elif args.objectType == "protection":
+        naStr = "" if args.neptune else "*"
         if args.granularity == "hourly":
             if args.hour:
                 parser.error("'hourly' granularity must not specify -H / --hour")
-            args.hour = "*"
-            args.dayOfWeek = "*"
-            args.dayOfMonth = "*"
+            args.hour = naStr
+            args.dayOfWeek = naStr
+            args.dayOfMonth = naStr
         elif args.granularity == "daily":
             if not isinstance(args.hour, int) and not args.hour:
                 parser.error("'daily' granularity requires -H / --hour")
-            args.dayOfWeek = "*"
-            args.dayOfMonth = "*"
+            args.dayOfWeek = naStr
+            args.dayOfMonth = naStr
         elif args.granularity == "weekly":
             if not isinstance(args.hour, int) and not args.hour:
                 parser.error("'weekly' granularity requires -H / --hour")
             if not isinstance(args.dayOfWeek, int) and not args.dayOfWeek:
                 parser.error("'weekly' granularity requires -W / --dayOfWeek")
-            args.dayOfMonth = "*"
+            args.dayOfMonth = naStr
         elif args.granularity == "monthly":
             if not isinstance(args.hour, int) and not args.hour:
                 parser.error("'monthly' granularity requires -H / --hour")
@@ -222,21 +223,50 @@ def main(args, parser, ard):
                 parser.error("'monthly' granularity must not specify -W / --dayOfWeek")
             if not args.dayOfMonth:
                 parser.error("'monthly' granularity requires -M / --dayOfMonth")
-            args.dayOfWeek = "*"
-        rc = astraSDK.protections.createProtectionpolicy(
-            quiet=args.quiet, verbose=args.verbose
-        ).main(
-            args.granularity,
-            str(args.backupRetention),
-            str(args.snapshotRetention),
-            str(args.dayOfWeek),
-            str(args.dayOfMonth),
-            str(args.hour),
-            str(args.minute),
-            args.appID,
-        )
-        if rc is False:
-            raise SystemExit("astraSDK.protections.createProtectionpolicy() failed")
+            args.dayOfWeek = naStr
+        if args.neptune:
+            template = tkSrc.helpers.setupJinja(args.objectType)
+            neptune_dict = yaml.safe_load(
+                template.render(
+                    name=tkSrc.helpers.isRFC1123(f"{args.app}-{args.granularity}") + "-",
+                    appName=args.app,
+                    appVaultName=args.bucket,
+                    backupRetention=args.backupRetention,
+                    dayOfMonth=args.dayOfMonth,
+                    dayOfWeek=args.dayOfWeek,
+                    granularity=args.granularity,
+                    hour=args.hour,
+                    minute=args.minute,
+                    snapshotRetention=args.snapshotRetention,
+                )
+            )
+            if args.dry_run == "client":
+                print(yaml.dump(neptune_dict).rstrip("\n"))
+            else:
+                astraSDK.k8s.createResource(
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                ).main(
+                    f"{neptune_dict['kind'].lower()}s",
+                    neptune_dict["metadata"]["namespace"],
+                    neptune_dict,
+                    version="v1",
+                    group="astra.netapp.io",
+                )
+        else:
+            rc = astraSDK.protections.createProtectionpolicy(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(
+                args.granularity,
+                str(args.backupRetention),
+                str(args.snapshotRetention),
+                str(args.dayOfWeek),
+                str(args.dayOfMonth),
+                str(args.hour),
+                str(args.minute),
+                args.app,
+            )
+            if rc is False:
+                raise SystemExit("astraSDK.protections.createProtectionpolicy() failed")
     elif args.objectType == "replication":
         # Validate offset values and create DTSTART string
         if ":" in args.offset:
