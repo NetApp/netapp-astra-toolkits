@@ -1,7 +1,11 @@
 apiVersion: astra.netapp.io/v1
 kind: Snapshot
 metadata:
+{%- if name %}
   name: {{ name }}
+{%- elif generateName %}
+  generateName: {{ generateName }}
+{%- endif %}
   namespace: neptune-system
 spec:
   applicationRef: {{ appName }}

@@ -20,7 +20,6 @@ import json
 import kubernetes
 import sys
 import time
-import uuid
 import yaml
 
 
@@ -220,6 +219,25 @@ def doClone(
         raise SystemExit(f"Submitting {verb} failed.")
 
 
+def waitForAppArchivePath(dp_resp, neptune):
+    """Given a data protection creation response, wait for the 'status.appArchivePath' field
+    to be populated in a get of the dp dict, then return that dict"""
+    dp_name = dp_resp["metadata"]["name"]
+    dp_plural = f"{dp_resp['kind'].lower()}s"
+    get_K8s_obj = astraSDK.k8s.getResources(config_context=neptune)
+    dp_body = get_K8s_obj.main(dp_plural, keyFilter="metadata.name", valFilter=dp_name)["items"][0]
+    counter = 0
+    while not dp_body.get("status") or not dp_body["status"].get("appArchivePath"):
+        if counter > 20:
+            raise SystemExit(f"Could not get 'status.appArchivePath' from {dp_body=}")
+        time.sleep(1)
+        dp_body = get_K8s_obj.main(dp_plural, keyFilter="metadata.name", valFilter=dp_name)[
+            "items"
+        ][0]
+        counter += 1
+    return dp_body
+
+
 def main(args, parser, ard):
     # Ensure proper use of resource filters
     if args.subcommand == "restore":
@@ -237,8 +255,47 @@ def main(args, parser, ard):
         # Handle -f/--fast/plaidMode cases
         if ard.needsattr("apps"):
             ard.apps = astraSDK.k8s.getResources(config_context=args.neptune).main("applications")
+
+        # A live clone is just a snapshot (or backup for cross-cluster), and then the normal
+        # restore operation. So we'll take care of the data protection operation here first,
+        # then clone and restore will use the same operation after
         if args.subcommand == "clone":
-            pass
+            ard.buckets = astraSDK.k8s.getResources(config_context=args.neptune).main("appvaults")
+            bucketDict = ard.getSingleDict("buckets", "status.state", "available", parser)
+            kind = "Snapshot"  # TODO: change to if/else+Backup depending on dest cluster
+            appArchivePath = (
+                "placeholder/this-is-a-placeholder-field-which-must-be-replaced-with/"
+                + f"{kind}.status.appArchivePath"
+            )
+            template = tkSrc.helpers.setupJinja(kind.lower())
+            neptune_dp_dict = yaml.safe_load(
+                template.render(
+                    generateName=f"{args.sourceApp}-clone-{kind.lower()}-",
+                    appName=args.sourceApp,
+                    appVaultName=bucketDict["metadata"]["name"],
+                )
+            )
+            if args.dry_run == "client":
+                restoreSourceDict = neptune_dp_dict
+                print(yaml.dump(neptune_dp_dict).rstrip("\n"))
+                print("---")
+            else:
+                restoreSourceDict = astraSDK.k8s.createResource(
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                ).main(
+                    f"{neptune_dp_dict['kind'].lower()}s",
+                    neptune_dp_dict["metadata"]["namespace"],
+                    neptune_dp_dict,
+                    version="v1",
+                    group="astra.netapp.io",
+                )
+                if not args.dry_run:
+                    restoreSourceDict = waitForAppArchivePath(restoreSourceDict, args.neptune)
+            if args.dry_run:
+                restoreSourceDict["status"] = {}
+                restoreSourceDict["status"]["appArchivePath"] = appArchivePath
+
+        # For restore, we need to figure out if a backup or a snapshot source was provided
         elif args.subcommand == "restore":
             if ard.needsattr("backups"):
                 ard.backups = astraSDK.k8s.getResources(config_context=args.neptune).main("backups")
@@ -259,19 +316,20 @@ def main(args, parser, ard):
                 parser.error(
                     f"the restoreSource '{args.restoreSource}' is not a valid backup or snapshot"
                 )
+
+        # Now we're ready to create the {kind}Restore and Application CRs
         oApp = ard.getSingleDict(
             "apps", "metadata.name", restoreSourceDict["spec"]["applicationRef"], parser
         )
         namespaceMapping = tkSrc.helpers.createNamespaceMapping(
             oApp["spec"]["includedNamespaces"], args.newNamespace, args.multiNsMapping, parser
         )
-
-        template = tkSrc.helpers.setupJinja(args.subcommand)
+        template = tkSrc.helpers.setupJinja("restore")
         try:
             neptune_gen = yaml.safe_load_all(
                 template.render(
                     kind=restoreSourceDict["kind"],
-                    restoreName=f"{restoreSourceDict['kind'].lower()}restore-{uuid.uuid4()}",
+                    restoreName=f"{args.appName}-restore-",
                     appArchivePath=restoreSourceDict["status"]["appArchivePath"],
                     appVaultRef=restoreSourceDict["spec"]["appVaultRef"],
                     namespaceMapping=tkSrc.helpers.prependDump(namespaceMapping, prepend=4),

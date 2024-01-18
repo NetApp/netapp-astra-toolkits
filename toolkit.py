@@ -168,6 +168,7 @@ def main(argv=sys.argv):
             args,
             parser,
             {
+                "clone": True,
                 "create": ["backup", "snapshot", "hook", "protection"],
                 "define": ["app", "bucket", "appVault", "cluster"],
                 "ipr": True,
