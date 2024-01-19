@@ -406,7 +406,7 @@ def kube_config(argv, acl, verbPosition, neptunePosition, global_args):
     # First try to load the incluster_config (1)
     try:
         kubernetes.config.load_incluster_config()
-        contexts, desired_context = [{"name": "incluster"}], [{"name": "incluster"}]
+        contexts, desired_context = [{"name": "incluster"}], "incluster"
         config_file = None
 
     # If we hit this, it's a regular, non-incluster config (2-5)
