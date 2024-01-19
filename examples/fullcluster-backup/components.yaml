@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: astra-fullbackup
+  namespace: neptune-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: astra-fullbackup
+rules:
+  - apiGroups: ["management.astra.netapp.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: astra-fullbackup
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: astra-fullbackup
+subjects:
+  - kind: ServiceAccount
+    name: astra-fullbackup
+    namespace: neptune-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: astra-fullbackup
+  namespace: neptune-system
+  labels:
+    app: astra-fullbackup
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: astra-fullbackup
+  template:
+    metadata:
+      labels:
+        app: astra-fullbackup
+    spec:
+      serviceAccountName: astra-fullbackup
+      containers:
+        - name: alpine-astra-backup
+          image: python:3.10.13-alpine3.19
+          env:
+            - name: ACTOOLKIT_VERSION
+              value: "3.0.0a10"
+            - name: IGNORE_NAMESPACES
+              value: "astra-connector-operator,cattle-fleet-system,cattle-impersonation-system,cattle-system,gmp-public,gmp-system,ingress-nginx,kube-node-lease,kube-public,kube-system,local,metallb-system,neptune-system,netapp-acc-operator,pcloud,trident"
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - >
+              apk add curl &&
+              pip install --upgrade pip &&
+              pip install actoolkit==$ACTOOLKIT_VERSION &&
+              curl -sLO https://raw.githubusercontent.com/NetApp/netapp-astra-toolkits/neptune/examples/fullcluster-backup/protectCluster.py &&
+              trap : TERM INT; sleep infinity & wait
