@@ -9,7 +9,7 @@ kind: ClusterRole
 metadata:
   name: astra-fullbackup
 rules:
-  - apiGroups: ["management.astra.netapp.io"]
+  - apiGroups: ["astra.netapp.io"]
     resources: ["*"]
     verbs: ["*"]
   - apiGroups: [""]
@@ -55,6 +55,20 @@ spec:
               value: "3.0.0a10"
             - name: IGNORE_NAMESPACES
               value: "astra-connector-operator,cattle-fleet-system,cattle-impersonation-system,cattle-system,gmp-public,gmp-system,ingress-nginx,kube-node-lease,kube-public,kube-system,local,metallb-system,neptune-system,netapp-acc-operator,pcloud,trident"
+            - name: BUCKET
+              value: ""
+            - name: BACKUPS_TO_KEEP
+              value: "1"
+            - name: SNAPSHOTS_TO_KEEP
+              value: "2"
+            - name: MINUTE
+              value: "0"
+            - name: HOUR
+              value: "1"
+            - name: DAY_OF_WEEK
+              value: "1"
+            - name: DAY_OF_MONTH
+              value: "1"
           command: ["/bin/sh"]
           args:
             - -c
