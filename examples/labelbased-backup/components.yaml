@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: astra-labelbackup
+  namespace: neptune-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: astra-labelbackup
+rules:
+  - apiGroups: ["astra.netapp.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: astra-labelbackup
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: astra-labelbackup
+subjects:
+  - kind: ServiceAccount
+    name: astra-labelbackup
+    namespace: neptune-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: astra-labelbackup
+  namespace: neptune-system
+  labels:
+    app: astra-labelbackup
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: astra-labelbackup
+  template:
+    metadata:
+      labels:
+        app: astra-labelbackup
+    spec:
+      serviceAccountName: astra-labelbackup
+      containers:
+        - name: alpine-astra-backup
+          image: python:3.10.13-alpine3.19
+          env:
+            - name: ACTOOLKIT_VERSION
+              value: "3.0.0a10"
+            - name: BUCKET
+              value: ""
+            - name: PROTECTION_LABEL_KEY
+              value: "astra.netapp.io/protection"
+            - name: GOLD_LABEL
+              value: "gold"
+            - name: SILVER_LABEL
+              value: "silver"
+            - name: BRONZE_LABEL
+              value: "bronze"
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - >
+              apk add curl &&
+              pip install --upgrade pip &&
+              pip install actoolkit==$ACTOOLKIT_VERSION &&
+              curl -sLO https://raw.githubusercontent.com/NetApp/netapp-astra-toolkits/neptune/examples/labelbased-backup/protectCluster.py &&
+              trap : TERM INT; sleep infinity & wait
