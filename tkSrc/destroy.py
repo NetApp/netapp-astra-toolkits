@@ -27,6 +27,15 @@ def main(args, parser, ard):
             print(f"Backup {args.backupID} destroyed")
         else:
             raise SystemExit(f"Failed destroying backup: {args.backupID}")
+    elif args.objectType == "cluster":
+        if ard.needsattr("clusters"):
+            ard.clusters = astraSDK.clusters.getClusters().main()
+        cluster = ard.getSingleDict("clusters", "id", args.cluster, parser)
+        rc = astraSDK.clusters.deleteCluster(quiet=args.quiet, verbose=args.verbose).main(
+            cluster["id"], cluster["cloudID"]
+        )
+        if not rc:
+            raise SystemExit(f"Failed destroying cluster: {args.cluster}")
     elif args.objectType == "credential":
         rc = astraSDK.credentials.destroyCredential(quiet=args.quiet, verbose=args.verbose).main(
             args.credentialID

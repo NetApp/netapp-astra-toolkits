@@ -275,7 +275,7 @@ class deleteCluster(SDKCommon):
 
         if ret.ok:
             if not self.quiet:
-                print("Cluster deleted")
+                print(f"Cluster {clusterID} destroyed")
             return True
         else:
             if not self.quiet:

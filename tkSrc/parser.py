@@ -323,6 +323,10 @@ class ToolkitParser:
             "backup",
             help="destroy backup",
         )
+        self.subparserDestroyCluster = self.subparserDestroy.add_parser(
+            "cluster",
+            help="destroy cluster",
+        )
         self.subparserDestroyCredential = self.subparserDestroy.add_parser(
             "credential",
             help="destroy credential",
@@ -1510,6 +1514,14 @@ class ToolkitParser:
             help="backupID to destroy",
         )
 
+    def destroy_cluster_args(self):
+        """destroy cluster args and flags"""
+        self.subparserDestroyCluster.add_argument(
+            "cluster",
+            choices=(None if self.plaidMode else self.acl.clusters),
+            help="cluster to destroy",
+        )
+
     def destroy_credential_args(self):
         """destroy credential args and flags"""
         self.subparserDestroyCredential.add_argument(
@@ -1785,6 +1797,7 @@ class ToolkitParser:
         self.manage_cloud_args()
 
         self.destroy_backup_args()
+        self.destroy_cluster_args()
         self.destroy_credential_args()
         self.destroy_hook_args()
         self.destroy_protection_args()

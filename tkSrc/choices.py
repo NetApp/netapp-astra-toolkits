@@ -267,6 +267,9 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
             acl.apps = ard.buildList("apps", "id")
             ard.backups = astraSDK.backups.getBackups().main()
             acl.backups = ard.buildList("backups", "id", fKey="appID", fVal=argv[verbPosition + 2])
+        elif argv[verbPosition + 1] == "cluster" and len(argv) - verbPosition >= 3:
+            ard.clusters = astraSDK.clusters.getClusters().main()
+            acl.clusters = ard.buildList("clusters", "id", fKey="managedState", fVal="unmanaged")
         elif argv[verbPosition + 1] == "credential" and len(argv) - verbPosition >= 3:
             ard.credentials = astraSDK.credentials.getCredentials().main()
             acl.credentials = ard.buildList("credentials", "id")
