@@ -42,7 +42,7 @@ class getResources(KubeCommon):
     def main(
         self,
         plural,
-        namespace="neptune-system",
+        namespace="astra-connector",
         version="v1",
         group="astra.netapp.io",
         keyFilter=None,
@@ -181,7 +181,7 @@ class destroyResource(KubeCommon):
         self,
         plural,
         name,
-        namespace="neptune-system",
+        namespace="astra-connector",
         version="v1",
         group="astra.netapp.io",
     ):
@@ -258,10 +258,10 @@ class getNamespaces(KubeCommon):
             if type(systemNS) is not list:
                 systemNS = [
                     "astra-connector-operator",
+                    "astra-connector",
                     "kube-node-lease",
                     "kube-public",
                     "kube-system",
-                    "neptune-system",
                     "trident",
                 ]
             namespaces = copy.deepcopy(resp)
@@ -295,7 +295,7 @@ class getSecrets(KubeCommon):
         self.output = output
         super().__init__(config_context=config_context)
 
-    def main(self, namespace="trident"):
+    def main(self, namespace="astra-connector"):
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
         try:
             resp = api_instance.list_namespaced_secret(namespace).to_dict()
@@ -326,7 +326,7 @@ class destroySecret(KubeCommon):
         self.dry_run = dry_run
         super().__init__(config_context=config_context)
 
-    def main(self, name, namespace="neptune-system"):
+    def main(self, name, namespace="astra-connector"):
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
         try:
             resp = api_instance.delete_namespaced_secret(
@@ -454,7 +454,7 @@ class createAstraApiToken(KubeCommon, SDKCommon):
         self.dry_run = dry_run
         super().__init__(config_context=config_context)
 
-    def main(self, name=None, namespace="neptune-system"):
+    def main(self, name=None, namespace="astra-connector"):
         # Handle case sensitivity
         authorization = (
             self.conf["headers"].get("Authorization")
@@ -510,7 +510,7 @@ class createAstraConnector(SDKCommon):
         regCred,
         registry=None,
         name="astra-connector",
-        namespace="neptune-system",
+        namespace="astra-connector",
     ):
         body = {
             "apiVersion": "astra.netapp.io/v1",

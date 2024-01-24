@@ -154,16 +154,14 @@ def deployHelm(chart, appName, namespace, setValues, fileValues, verbose, quiet)
 def main(args, parser, ard):
     if args.objectType == "acp":
         # Ensure the trident orchestrator is already running
-        torc = astraSDK.k8s.getClusterResources(config_context=args.neptune).main(
-            "tridentorchestrators"
-        )
+        torc = astraSDK.k8s.getClusterResources(config_context=args.v3).main("tridentorchestrators")
         if torc is None or len(torc["items"]) == 0:
             parser.error("trident operator not found on current Kubernetes context")
         elif len(torc["items"]) > 1:
             parser.error("multiple trident operators found on current Kubernetes context")
         # Handle the registry secret
         if not args.regCred:
-            cred = astraSDK.k8s.createRegCred(quiet=args.quiet, config_context=args.neptune).main(
+            cred = astraSDK.k8s.createRegCred(quiet=args.quiet, config_context=args.v3).main(
                 registry=args.registry
             )
             if not cred:
@@ -171,7 +169,7 @@ def main(args, parser, ard):
             args.regCred = cred["metadata"]["name"]
         else:
             if ard.needsattr("credentials"):
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=args.neptune).main(
+                ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main(
                     namespace="trident"
                 )
             cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
@@ -198,7 +196,7 @@ def main(args, parser, ard):
         torc_spec["spec"]["imagePullSecrets"] = [args.regCred]
         # Make the update
         torc_update = astraSDK.k8s.updateClusterResource(
-            quiet=args.quiet, config_context=args.neptune
+            quiet=args.quiet, config_context=args.v3
         ).main("tridentorchestrators", torc_name, torc_spec)
         if torc_update:
             print(f"tridentorchestrator.trident.netapp.io/{torc_name} edited")

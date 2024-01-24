@@ -21,7 +21,7 @@ import argparse
 class ToolkitParser:
     """Creates and returns an argparse parser for use in toolkit.py"""
 
-    def __init__(self, acl, plaidMode=False, neptune=False):
+    def __init__(self, acl, plaidMode=False, v3=False):
         """Creates the parser object and global arguments"""
         self.parser = argparse.ArgumentParser(allow_abbrev=True, prog="actoolkit")
         self.parser.add_argument(
@@ -49,31 +49,29 @@ class ToolkitParser:
             help="prioritize speed over validation (using this will not validate arguments, which "
             + "may have unintended consequences)",
         )
-        neptuneGroup = self.parser.add_argument_group(
-            title="neptune group",
+        v3Group = self.parser.add_argument_group(
+            title="v3 group",
             description="use CR-driven Kubernetes workflows rather than the Astra Control API",
         )
-        if neptune:
-            neptuneGroup.add_argument(
-                "-n",
-                "--neptune",
+        if v3:
+            v3Group.add_argument(
+                "--v3",
                 action="store",
-                choices=(acl.contexts if neptune else None),
-                help="create a Neptune CR directly on the Kubernetes cluster (defaults to current "
+                choices=(acl.contexts if v3 else None),
+                help="create a v3 CR directly on the Kubernetes cluster (defaults to current "
                 "context, but optionally specify a different context, kubeconfig_file, or "
                 "kubeconfig_file:context mapping)",
             )
         else:
-            neptuneGroup.add_argument(
-                "-n",
-                "--neptune",
+            v3Group.add_argument(
+                "--v3",
                 default=False,
                 action="store_true",
-                help="create a Neptune CR directly on the Kubernetes cluster (defaults to current "
+                help="create a v3 CR directly on the Kubernetes cluster (defaults to current "
                 "context, but optionally specify a different context, kubeconfig_file, or "
                 "kubeconfig_file:context mapping)",
             )
-        neptuneGroup.add_argument(
+        v3Group.add_argument(
             "--dry-run",
             default=False,
             choices=["client", "server"],
@@ -82,7 +80,7 @@ class ToolkitParser:
         )
         self.acl = acl
         self.plaidMode = plaidMode
-        self.neptune = neptune
+        self.v3 = v3
 
     def top_level_commands(self):
         """Creates the top level arguments, such as list, create, destroy, etc.
@@ -306,7 +304,7 @@ class ToolkitParser:
         self.subparserManageBucket = self.subparserManage.add_parser(
             "bucket",
             aliases=["appVault"],
-            help="manage bucket (appVault in neptune context)",
+            help="manage bucket (appVault in v3 context)",
         )
         self.subparserManageCloud = self.subparserManage.add_parser(
             "cloud",
@@ -406,7 +404,7 @@ class ToolkitParser:
             help="Source app to live clone",
         )
         self.parserClone.add_argument("appName", help="The logical name of the new app")
-        if not self.neptune:
+        if not self.v3:
             self.parserClone.add_argument(
                 "cluster",
                 choices=(None if self.plaidMode else self.acl.destClusters),
@@ -439,7 +437,7 @@ class ToolkitParser:
             default=None,
             help="Optionally specify a different storage class for the new app",
         )
-        if not self.neptune:
+        if not self.v3:
             pollingGroup = self.parserClone.add_argument_group(
                 title="polling group", description="optionally modify default polling mechanism"
             )
@@ -466,7 +464,7 @@ class ToolkitParser:
             help="Source backup or snapshot to restore the app from",
         )
         self.parserRestore.add_argument("appName", help="The logical name of the newly defined app")
-        if not self.neptune:
+        if not self.v3:
             self.parserRestore.add_argument(
                 "cluster",
                 choices=(None if self.plaidMode else self.acl.destClusters),
@@ -518,7 +516,7 @@ class ToolkitParser:
             "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
             "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
         )
-        if not self.neptune:
+        if not self.v3:
             pollingGroup = self.parserRestore.add_argument_group(
                 title="polling group", description="optionally modify default polling mechanism"
             )
@@ -579,7 +577,7 @@ class ToolkitParser:
             "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
             "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
         )
-        if not self.neptune:
+        if not self.v3:
             pollingGroup = self.parserIPR.add_argument_group(
                 title="polling group", description="optionally modify default polling mechanism"
             )
@@ -915,22 +913,22 @@ class ToolkitParser:
         )
         self.subparserCreateBackup.add_argument(
             "-u",
-            "--appVault" if self.neptune else "--bucketID",
+            "--appVault" if self.v3 else "--bucketID",
             dest="bucket",
             default=None,
-            required=(True if self.neptune else False),
+            required=(True if self.v3 else False),
             choices=(None if self.plaidMode else self.acl.buckets),
             help="Specify which bucket to store the backup",
         )
         self.subparserCreateBackup.add_argument(
             "-s",
-            "--snapshot" if self.neptune else "--snapshotID",
+            "--snapshot" if self.v3 else "--snapshotID",
             dest="snapshot",
             default=None,
             choices=(None if self.plaidMode else self.acl.snapshots),
             help="Optionally specify an existing snapshot as the source of the backup",
         )
-        if self.neptune:
+        if self.v3:
             self.subparserCreateBackup.add_argument(
                 "-r",
                 "--reclaimPolicy",
@@ -987,7 +985,7 @@ class ToolkitParser:
             "name",
             help="Name of the execution hook to be created",
         )
-        if self.neptune:
+        if self.v3:
             self.subparserCreateHook.add_argument(
                 "filePath",
                 help="the local filesystem path to the script",
@@ -1079,7 +1077,7 @@ class ToolkitParser:
             choices=(None if self.plaidMode else self.acl.apps),
             help="the application to create protection schedule for",
         )
-        if self.neptune:
+        if self.v3:
             self.subparserCreateProtection.add_argument(
                 "-u",
                 "--appVault",
@@ -1213,7 +1211,7 @@ class ToolkitParser:
             "name",
             help="Name of snapshot to be taken",
         )
-        if self.neptune:
+        if self.v3:
             self.subparserCreateSnapshot.add_argument(
                 "-u",
                 "--appVault",
@@ -1312,7 +1310,7 @@ class ToolkitParser:
             choices=(None if self.plaidMode else self.acl.namespaces),
             help="The namespace to move from undefined (aka unmanaged) to defined (aka managed)",
         )
-        if not self.neptune:
+        if not self.v3:
             self.subparserManageApp.add_argument(
                 "clusterID",
                 choices=(None if self.plaidMode else self.acl.clusters),
@@ -1371,7 +1369,7 @@ class ToolkitParser:
             help="The  Azure storage account name (only needed for 'Azure')",
             default=None,
         )
-        if self.neptune:
+        if self.v3:
             self.subparserManageBucket.add_argument(
                 "-c",
                 "--secret",
@@ -1427,7 +1425,7 @@ class ToolkitParser:
 
     def manage_cluster_args(self):
         """manage cluster args and flags"""
-        if self.neptune:
+        if self.v3:
             self.subparserManageCluster.add_argument(
                 "clusterName",
                 help="The friendly name of the cluster",

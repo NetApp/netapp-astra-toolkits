@@ -34,7 +34,7 @@ actoolkit / toolkit.py utilizes `argparse` to provide an interactive CLI.  To vi
 
 ```text
 $ actoolkit -h
-usage: actoolkit [-h] [-v] [-o {json,yaml,table}] [-q] [-f] [-n] {deploy,clone,restore,ipr,list,get,copy,create,manage,define,destroy,unmanage,update} ...
+usage: actoolkit [-h] [-v] [-o {json,yaml,table}] [-q] [-f] [--v3] [--dry-run {client,server}] {deploy,clone,restore,ipr,list,get,copy,create,manage,define,destroy,unmanage,update} ...
 
 positional arguments:
   {deploy,clone,restore,ipr,list,get,copy,create,manage,define,destroy,unmanage,update}
@@ -58,7 +58,13 @@ options:
                         command output format
   -q, --quiet           supress output
   -f, --fast            prioritize speed over validation (using this will not validate arguments, which may have unintended consequences)
-  -n, --neptune         print neptune YAML to manually apply via kubectl
+
+v3 group:
+  use CR-driven Kubernetes workflows rather than the Astra Control API
+
+  --v3                  create a v3 CR directly on the Kubernetes cluster (defaults to current context, but optionally specify a different context, kubeconfig_file, or kubeconfig_file:context mapping)
+  --dry-run {client,server}
+                        client: output YAML to standard out; server: submit request without persisting the resource
 ```
 
 For more information on the positional arguments, see the following pages:

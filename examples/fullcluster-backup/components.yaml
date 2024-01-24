@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: astra-fullbackup
-  namespace: neptune-system
+  namespace: astra-connector
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -27,13 +27,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: astra-fullbackup
-    namespace: neptune-system
+    namespace: astra-connector
 ---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: astra-fullbackup
-  namespace: neptune-system
+  namespace: astra-connector
   labels:
     app: astra-fullbackup
 spec:
@@ -55,7 +55,7 @@ spec:
                 - name: ACTOOLKIT_VERSION
                   value: "3.0.0a11"
                 - name: IGNORE_NAMESPACES
-                  value: "astra-connector-operator,cattle-fleet-system,cattle-impersonation-system,cattle-system,gmp-public,gmp-system,ingress-nginx,kube-node-lease,kube-public,kube-system,local,metallb-system,neptune-system,netapp-acc-operator,pcloud,trident"
+                  value: "astra-connector,astra-connector-operator,cattle-fleet-system,cattle-impersonation-system,cattle-system,gmp-public,gmp-system,ingress-nginx,kube-node-lease,kube-public,kube-system,local,metallb-system,netapp-acc-operator,pcloud,trident"
                 - name: BUCKET
                   value: ""
                 - name: BACKUPS_TO_KEEP

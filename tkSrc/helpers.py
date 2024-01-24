@@ -209,14 +209,14 @@ def updateNamespaceSpec(mapping, spec):
     return spec
 
 
-def createNamespaceList(namespaceArguments, neptune=False):
+def createNamespaceList(namespaceArguments, v3=False):
     """Create a list of dictionaries of namespace key/value and (optionally) labelSelectors
     key/value(list) for managing an app, as nargs="*" can provide a variety of input."""
     returnList = []
     for mapping in namespaceArguments:
         returnList.append({"namespace": mapping[0]})
         if len(mapping) == 2:
-            if neptune:
+            if v3:
                 returnList[-1]["labelSelector"] = {
                     "matchLabels": {mapping[1].split("=")[0]: mapping[1].split("=")[1]}
                 }
@@ -231,7 +231,7 @@ def createNamespaceList(namespaceArguments, neptune=False):
     return returnList
 
 
-def createCsrList(CSRs, apiResourcesDict, neptune=False):
+def createCsrList(CSRs, apiResourcesDict, v3=False):
     """Create a list of dictionaries of clusterScopedResources and (optionally) labelSelectors
     key/value(list) for managing an app, as nargs="*" can provide a variety of input."""
     returnList = []
@@ -243,12 +243,12 @@ def createCsrList(CSRs, apiResourcesDict, neptune=False):
                     "kind": resource["kind"],
                     "version": resource["apiVersion"].split("/")[1],
                 }
-                if neptune:
+                if v3:
                     returnList.append({"groupVersionKind": gvk_dict})
                 else:
                     returnList.append({"GVK": gvk_dict})
                 if len(csr) == 2:
-                    if neptune:
+                    if v3:
                         returnList[-1]["labelSelector"] = csr[1]
                     else:
                         returnList[-1]["labelSelectors"] = [csr[1]]
@@ -538,16 +538,14 @@ def prependDump(obj, prepend, indent=2):
     return None
 
 
-def checkNeptuneSupport(args, parser, supportedDict):
-    """Function to ensure a neptune-specific actoolkit command is currently supported by neptune"""
+def checkv3Support(args, parser, supportedDict):
+    """Function to ensure a v3-specific actoolkit command is currently supported by v3"""
     if supported := supportedDict.get(args.subcommand):
         if supported is True:
             return True
         elif args.objectType in supported:
             return True
-    parser.error(
-        f"'{args.subcommand} {args.objectType}' is not currently a supported --neptune command"
-    )
+    parser.error(f"'{args.subcommand} {args.objectType}' is not currently a supported --v3 command")
 
 
 def setupJinja(

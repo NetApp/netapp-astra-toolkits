@@ -24,7 +24,7 @@ import astraSDK
 import tkSrc
 
 
-def main(argv, verbs, verbPosition, ard, acl, neptune):
+def main(argv, verbs, verbPosition, ard, acl, v3):
     """This function builds the argparse choices lists. To build these lists, a variety of external
     calls need to be made. The results of these calls are stored in ard (an instantiation of
     AstraResourceDicts) so the same call doesn't have to be made again later. The choices lists are
@@ -37,22 +37,22 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
                 ard.charts = tkSrc.helpers.updateHelm()
                 acl.charts = ard.buildList("charts", "name")
             elif argv[verbPosition + 1] == "acp":
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=neptune).main(
+                ard.credentials = astraSDK.k8s.getSecrets(config_context=v3).main(
                     namespace="trident"
                 )
                 acl.credentials = ard.buildList("credentials", "metadata.name")
 
     elif verbs["clone"] or verbs["restore"]:
-        if neptune:
-            ard.apps = astraSDK.k8s.getResources(config_context=neptune).main("applications")
+        if v3:
+            ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
             acl.apps = ard.buildList("apps", "metadata.name")
             if verbs["restore"]:
-                ard.backups = astraSDK.k8s.getResources(config_context=neptune).main("backups")
-                ard.snapshots = astraSDK.k8s.getResources(config_context=neptune).main("snapshots")
+                ard.backups = astraSDK.k8s.getResources(config_context=v3).main("backups")
+                ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main("snapshots")
                 acl.dataProtections = ard.buildList("backups", "metadata.name") + ard.buildList(
                     "snapshots", "metadata.name"
                 )
-            ard.storageClasses = astraSDK.k8s.getStorageClasses(config_context=neptune).main()
+            ard.storageClasses = astraSDK.k8s.getStorageClasses(config_context=v3).main()
             acl.storageClasses = ard.buildList("storageClasses", "metadata.name")
         else:
             ard.apps = astraSDK.apps.getApps().main()
@@ -77,12 +77,12 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
             acl.storageClasses = list(set(ard.buildList("storageClasses", "name")))
 
     elif verbs["ipr"]:
-        if neptune:
-            ard.apps = astraSDK.k8s.getResources(config_context=neptune).main("applications")
+        if v3:
+            ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
             acl.apps = ard.buildList("apps", "metadata.name")
             if len(argv) - verbPosition >= 2:
-                ard.backups = astraSDK.k8s.getResources(config_context=neptune).main("backups")
-                ard.snapshots = astraSDK.k8s.getResources(config_context=neptune).main("snapshots")
+                ard.backups = astraSDK.k8s.getResources(config_context=v3).main("backups")
+                ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main("snapshots")
                 for a in argv[verbPosition + 1 :]:
                     acl.backups += ard.buildList(
                         "backups", "metadata.name", "spec.applicationRef", a
@@ -108,17 +108,15 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
             or argv[verbPosition + 1] == "replication"
             or argv[verbPosition + 1] == "snapshot"
         ):
-            if neptune:
-                ard.apps = astraSDK.k8s.getResources(config_context=neptune).main("applications")
+            if v3:
+                ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
                 acl.apps = ard.buildList("apps", "metadata.name")
             else:
                 ard.apps = astraSDK.apps.getApps().main()
                 acl.apps = ard.buildList("apps", "id")
             if argv[verbPosition + 1] == "backup" or argv[verbPosition + 1] == "snapshot":
-                if neptune:
-                    ard.buckets = astraSDK.k8s.getResources(config_context=neptune).main(
-                        "appvaults"
-                    )
+                if v3:
+                    ard.buckets = astraSDK.k8s.getResources(config_context=v3).main("appvaults")
                     acl.buckets = ard.buildList("buckets", "metadata.name")
                 else:
                     ard.buckets = astraSDK.buckets.getBuckets(quiet=True).main()
@@ -127,10 +125,8 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
                 if argv[verbPosition + 1] == "backup":
                     for a in argv[verbPosition + 1 :]:
                         if a in acl.apps:
-                            if neptune:
-                                ard.snapshots = astraSDK.k8s.getResources(
-                                    config_context=neptune
-                                ).main(
+                            if v3:
+                                ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main(
                                     "snapshots",
                                     keyFilter="spec.applicationRef",
                                     valFilter=a,
@@ -143,10 +139,8 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
                 ard.scripts = astraSDK.scripts.getScripts().main()
                 acl.scripts = ard.buildList("scripts", "id")
             if argv[verbPosition + 1] == "protection":
-                if neptune:
-                    ard.buckets = astraSDK.k8s.getResources(config_context=neptune).main(
-                        "appvaults"
-                    )
+                if v3:
+                    ard.buckets = astraSDK.k8s.getResources(config_context=v3).main("appvaults")
                     acl.buckets = ard.buildList("buckets", "metadata.name")
             if argv[verbPosition + 1] == "replication":
                 ard.destClusters = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
@@ -191,8 +185,8 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
 
     elif (verbs["manage"] or verbs["define"]) and len(argv) - verbPosition >= 2:
         if argv[verbPosition + 1] == "app":
-            if neptune:
-                ard.namespaces = astraSDK.k8s.getNamespaces(config_context=neptune).main()
+            if v3:
+                ard.namespaces = astraSDK.k8s.getNamespaces(config_context=v3).main()
                 acl.namespaces = ard.buildList("namespaces", "metadata.name")
             else:
                 ard.namespaces = astraSDK.namespaces.getNamespaces().main()
@@ -200,10 +194,8 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
                 acl.clusters = ard.buildList("namespaces", "clusterID")
                 acl.clusters = list(set(acl.clusters))
         elif argv[verbPosition + 1] == "bucket" or argv[verbPosition + 1] == "appVault":
-            if neptune:
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=neptune).main(
-                    namespace="neptune-system"
-                )
+            if v3:
+                ard.credentials = astraSDK.k8s.getSecrets(config_context=v3).main()
                 acl.credentials = ard.buildList("credentials", "metadata.name")
                 for c in argv[verbPosition + 1 :]:
                     if c in acl.credentials:
@@ -235,7 +227,7 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
                             if credID:
                                 acl.credentials.append(credential["id"])
         elif argv[verbPosition + 1] == "cluster":
-            if neptune:
+            if v3:
                 ard.clouds = astraSDK.clouds.getClouds().main()
                 for cloud in ard.clouds["items"]:
                     if cloud["cloudType"] not in ["GCP", "Azure", "AWS"]:
@@ -245,9 +237,7 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
                     rc = astraSDK.clouds.manageCloud(quiet=True).main("private", "private")
                     if rc:
                         acl.clouds.append(rc["id"])
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=neptune).main(
-                    namespace="neptune-system"
-                )
+                ard.credentials = astraSDK.k8s.getSecrets(config_context=v3).main()
                 acl.credentials = ard.buildList("credentials", "metadata.name")
             else:
                 ard.clusters = astraSDK.clusters.getClusters().main()
@@ -314,8 +304,8 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
             ard.buckets = astraSDK.buckets.getBuckets().main()
             acl.buckets = ard.buildList("buckets", "id")
         elif argv[verbPosition + 1] == "cluster":
-            if neptune:
-                ard.connectors = astraSDK.k8s.getResources(config_context=neptune).main(
+            if v3:
+                ard.connectors = astraSDK.k8s.getResources(config_context=v3).main(
                     "astraconnectors", version="v1", group="astra.netapp.io"
                 )
                 acl.clusters = ard.buildList("connectors", "spec.astra.clusterId") + ard.buildList(
@@ -384,7 +374,7 @@ def main(argv, verbs, verbPosition, ard, acl, neptune):
             acl.scripts = ard.buildList("scripts", "id")
 
 
-def kube_config(argv, acl, verbPosition, neptunePosition, global_args):
+def kube_config(argv, acl, verbPosition, v3Position, global_args):
     """This method completes two key actions:
     A) Generates the argparse choices list (acl) for the possible kubeconfig "contexts"
     B) Transparently modifies argv to enable very simple inputs for the user, but also allowing
@@ -392,8 +382,8 @@ def kube_config(argv, acl, verbPosition, neptunePosition, global_args):
 
     There are 5 possible use-cases which are covered:
     1) Incluster config (from within a pod)
-    2) User enters plain "-n/--neptune"-> use system default config_file and context
-    3) Specific kubeconfig AND context specified "-n kubeconfig_file:context"-> use specified values
+    2) User enters plain "--v3"-> use system default config_file and context
+    3) Specific kubeconfig AND context specified "--v3 kubeconfig_file:context"-> use specified val
     4) Only kubeconfig specified "-n kubeconfig_file"-> use default context of that config_file
     5) Only context specified "-n context"-> use specified context with default config_file
 
@@ -401,10 +391,10 @@ def kube_config(argv, acl, verbPosition, neptunePosition, global_args):
     verbPosition.
     """
     desired_context = ""
-    neptune_arg = argv[neptunePosition + 1]
-    # This is only needed to properly generate help text ("actoolkit --neptune --help")
+    v3_arg = argv[v3Position + 1]
+    # This is only needed to properly generate help text ("actoolkit --v3 --help")
     if verbPosition is None:
-        verbPosition = neptunePosition + 1
+        verbPosition = v3Position + 1
 
     # First try to load the incluster_config (1)
     try:
@@ -415,21 +405,21 @@ def kube_config(argv, acl, verbPosition, neptunePosition, global_args):
     # If we hit this, it's a regular, non-incluster config (2-5)
     except kubernetes.config.config_exception.ConfigException:
         # Handle plain input / no kubeconfig or context specified (2)
-        if neptunePosition + 1 == verbPosition or neptune_arg.split("=")[0] in global_args:
+        if v3Position + 1 == verbPosition or v3_arg.split("=")[0] in global_args:
             config_file = None
 
         # Handle user input use cases (3-5)
         else:
-            # Popping neptune_arg from the list, as it gets re-added in proper format below
-            argv.pop(neptunePosition + 1)
+            # Popping v3_arg from the list, as it gets re-added in proper format below
+            argv.pop(v3Position + 1)
             verbPosition -= 1
             # Handle `kubeconfig:context` use case (3)
-            if ":" in neptune_arg:
-                config_file, desired_context = tuple(neptune_arg.split(":"))
+            if ":" in v3_arg:
+                config_file, desired_context = tuple(v3_arg.split(":"))
             # Handle use cases 4 and 5, config_file is set to the user's input, which may actually
             # be a kubeconfig (4), but could be a context (5), which will throw an error
             else:
-                config_file = neptune_arg
+                config_file = v3_arg
 
         # If this works without an error, then 2, 3, or 4 was entered
         try:
@@ -441,7 +431,7 @@ def kube_config(argv, acl, verbPosition, neptunePosition, global_args):
 
         # If an exception, then a `context` has been provided (5)
         except kubernetes.config.config_exception.ConfigException:
-            config_file, desired_context = None, neptune_arg
+            config_file, desired_context = None, v3_arg
             try:
                 contexts, _ = kubernetes.config.kube_config.list_kube_config_contexts(
                     config_file=config_file
@@ -454,6 +444,6 @@ def kube_config(argv, acl, verbPosition, neptunePosition, global_args):
     # Build the choices list and modify argv
     acl.contexts = [f"{config_file}:{c['name']}" for c in contexts]
     config_context = f"{config_file}:{desired_context}"
-    argv.insert(neptunePosition + 1, config_context)
+    argv.insert(v3Position + 1, config_context)
     verbPosition += 1
     return config_context, verbPosition

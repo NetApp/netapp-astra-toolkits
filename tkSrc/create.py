@@ -76,11 +76,11 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
 
 def main(args, parser, ard):
     if args.objectType == "backup":
-        if args.neptune:
+        if args.v3:
             template = tkSrc.helpers.setupJinja(args.objectType)
             if ard.needsattr("apps"):
                 ard.apps = astraSDK.apps.getApps().main()
-            neptune_dict = yaml.safe_load(
+            v3_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(args.name),
                     appName=args.app,
@@ -90,14 +90,14 @@ def main(args, parser, ard):
                 )
             )
             if args.dry_run == "client":
-                print(yaml.dump(neptune_dict).rstrip("\n"))
+                print(yaml.dump(v3_dict).rstrip("\n"))
             else:
                 astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
                 ).main(
-                    f"{neptune_dict['kind'].lower()}s",
-                    neptune_dict["metadata"]["namespace"],
-                    neptune_dict,
+                    f"{v3_dict['kind'].lower()}s",
+                    v3_dict["metadata"]["namespace"],
+                    v3_dict,
                     version="v1",
                     group="astra.netapp.io",
                 )
@@ -141,11 +141,11 @@ def main(args, parser, ard):
         else:
             raise SystemExit("astraSDK.credentials.createCredential() failed")
     elif args.objectType == "hook":
-        if args.neptune:
+        if args.v3:
             with open(args.filePath, encoding="utf8") as f:
                 encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
             template = tkSrc.helpers.setupJinja(args.objectType)
-            neptune_dict = yaml.safe_load(
+            v3_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(args.name),
                     action=args.operation.split("-")[1],
@@ -168,14 +168,14 @@ def main(args, parser, ard):
                 )
             )
             if args.dry_run == "client":
-                print(yaml.dump(neptune_dict).rstrip("\n"))
+                print(yaml.dump(v3_dict).rstrip("\n"))
             else:
                 astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
                 ).main(
-                    f"{neptune_dict['kind'].lower()}s",
-                    neptune_dict["metadata"]["namespace"],
-                    neptune_dict,
+                    f"{v3_dict['kind'].lower()}s",
+                    v3_dict["metadata"]["namespace"],
+                    v3_dict,
                     version="v1",
                     group="astra.netapp.io",
                 )
@@ -198,7 +198,7 @@ def main(args, parser, ard):
             if rc is False:
                 raise SystemExit("astraSDK.hooks.createHook() failed")
     elif args.objectType == "protection":
-        naStr = "" if args.neptune else "*"
+        naStr = "" if args.v3 else "*"
         if args.granularity == "hourly":
             if args.hour:
                 parser.error("'hourly' granularity must not specify -H / --hour")
@@ -224,9 +224,9 @@ def main(args, parser, ard):
             if not args.dayOfMonth:
                 parser.error("'monthly' granularity requires -M / --dayOfMonth")
             args.dayOfWeek = naStr
-        if args.neptune:
+        if args.v3:
             template = tkSrc.helpers.setupJinja(args.objectType)
-            neptune_dict = yaml.safe_load(
+            v3_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(f"{args.app}-{args.granularity}") + "-",
                     appName=args.app,
@@ -241,14 +241,14 @@ def main(args, parser, ard):
                 )
             )
             if args.dry_run == "client":
-                print(yaml.dump(neptune_dict).rstrip("\n"))
+                print(yaml.dump(v3_dict).rstrip("\n"))
             else:
                 astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
                 ).main(
-                    f"{neptune_dict['kind'].lower()}s",
-                    neptune_dict["metadata"]["namespace"],
-                    neptune_dict,
+                    f"{v3_dict['kind'].lower()}s",
+                    v3_dict["metadata"]["namespace"],
+                    v3_dict,
                     version="v1",
                     group="astra.netapp.io",
                 )
@@ -336,11 +336,11 @@ def main(args, parser, ard):
         if rc is False:
             raise SystemExit("astraSDK.scripts.createScript() failed")
     elif args.objectType == "snapshot":
-        if args.neptune:
+        if args.v3:
             template = tkSrc.helpers.setupJinja(args.objectType)
             if ard.needsattr("apps"):
                 ard.apps = astraSDK.apps.getApps().main()
-            neptune_dict = yaml.safe_load(
+            v3_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(args.name),
                     appName=args.app,
@@ -353,14 +353,14 @@ def main(args, parser, ard):
                 )
             )
             if args.dry_run == "client":
-                print(yaml.dump(neptune_dict).rstrip("\n"))
+                print(yaml.dump(v3_dict).rstrip("\n"))
             else:
                 astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
                 ).main(
-                    f"{neptune_dict['kind'].lower()}s",
-                    neptune_dict["metadata"]["namespace"],
-                    neptune_dict,
+                    f"{v3_dict['kind'].lower()}s",
+                    v3_dict["metadata"]["namespace"],
+                    v3_dict,
                     version="v1",
                     group="astra.netapp.io",
                 )

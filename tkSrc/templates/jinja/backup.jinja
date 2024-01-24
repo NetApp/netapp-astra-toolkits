@@ -2,7 +2,7 @@ apiVersion: astra.netapp.io/v1
 kind: Backup
 metadata:
   name: {{ name }}
-  namespace: neptune-system
+  namespace: astra-connector
 spec:
   applicationRef: {{ appName }}
   appVaultRef: {{ appVaultName }}

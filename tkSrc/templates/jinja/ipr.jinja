@@ -2,7 +2,7 @@ apiVersion: astra.netapp.io/v1
 kind: {{ kind }}InplaceRestore
 metadata:
   name: {{ iprName }}
-  namespace: neptune-system
+  namespace: astra-connector
 spec:
   appArchivePath: {{ appArchivePath }}
   appVaultRef: {{ appVaultRef }}

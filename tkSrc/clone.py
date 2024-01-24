@@ -219,12 +219,12 @@ def doClone(
         raise SystemExit(f"Submitting {verb} failed.")
 
 
-def waitForAppArchivePath(dp_resp, neptune):
+def waitForAppArchivePath(dp_resp, v3):
     """Given a data protection creation response, wait for the 'status.appArchivePath' field
     to be populated in a get of the dp dict, then return that dict"""
     dp_name = dp_resp["metadata"]["name"]
     dp_plural = f"{dp_resp['kind'].lower()}s"
-    get_K8s_obj = astraSDK.k8s.getResources(config_context=neptune)
+    get_K8s_obj = astraSDK.k8s.getResources(config_context=v3)
     dp_body = get_K8s_obj.main(dp_plural, keyFilter="metadata.name", valFilter=dp_name)["items"][0]
     counter = 0
     while not dp_body.get("status") or not dp_body["status"].get("appArchivePath"):
@@ -248,19 +248,19 @@ def main(args, parser, ard):
                 "either both or none of --filterSelection and --filterSet should be specified"
             )
 
-    if args.neptune:
+    if args.v3:
         # args.newNamespace is not required, but we do need it set for proper YAML generation
         if args.newNamespace is None and args.multiNsMapping is None:
             args.newNamespace = args.appName
         # Handle -f/--fast/plaidMode cases
         if ard.needsattr("apps"):
-            ard.apps = astraSDK.k8s.getResources(config_context=args.neptune).main("applications")
+            ard.apps = astraSDK.k8s.getResources(config_context=args.v3).main("applications")
 
         # A live clone is just a snapshot (or backup for cross-cluster), and then the normal
         # restore operation. So we'll take care of the data protection operation here first,
         # then clone and restore will use the same operation after
         if args.subcommand == "clone":
-            ard.buckets = astraSDK.k8s.getResources(config_context=args.neptune).main("appvaults")
+            ard.buckets = astraSDK.k8s.getResources(config_context=args.v3).main("appvaults")
             bucketDict = ard.getSingleDict("buckets", "status.state", "available", parser)
             kind = "Snapshot"  # TODO: change to if/else+Backup depending on dest cluster
             appArchivePath = (
@@ -268,7 +268,7 @@ def main(args, parser, ard):
                 + f"{kind}.status.appArchivePath"
             )
             template = tkSrc.helpers.setupJinja(kind.lower())
-            neptune_dp_dict = yaml.safe_load(
+            v3_dp_dict = yaml.safe_load(
                 template.render(
                     generateName=f"{args.sourceApp}-clone-{kind.lower()}-",
                     appName=args.sourceApp,
@@ -276,21 +276,21 @@ def main(args, parser, ard):
                 )
             )
             if args.dry_run == "client":
-                restoreSourceDict = neptune_dp_dict
-                print(yaml.dump(neptune_dp_dict).rstrip("\n"))
+                restoreSourceDict = v3_dp_dict
+                print(yaml.dump(v3_dp_dict).rstrip("\n"))
                 print("---")
             else:
                 restoreSourceDict = astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
                 ).main(
-                    f"{neptune_dp_dict['kind'].lower()}s",
-                    neptune_dp_dict["metadata"]["namespace"],
-                    neptune_dp_dict,
+                    f"{v3_dp_dict['kind'].lower()}s",
+                    v3_dp_dict["metadata"]["namespace"],
+                    v3_dp_dict,
                     version="v1",
                     group="astra.netapp.io",
                 )
                 if not args.dry_run:
-                    restoreSourceDict = waitForAppArchivePath(restoreSourceDict, args.neptune)
+                    restoreSourceDict = waitForAppArchivePath(restoreSourceDict, args.v3)
             if args.dry_run:
                 restoreSourceDict["status"] = {}
                 restoreSourceDict["status"]["appArchivePath"] = appArchivePath
@@ -298,11 +298,9 @@ def main(args, parser, ard):
         # For restore, we need to figure out if a backup or a snapshot source was provided
         elif args.subcommand == "restore":
             if ard.needsattr("backups"):
-                ard.backups = astraSDK.k8s.getResources(config_context=args.neptune).main("backups")
+                ard.backups = astraSDK.k8s.getResources(config_context=args.v3).main("backups")
             if ard.needsattr("snapshots"):
-                ard.snapshots = astraSDK.k8s.getResources(config_context=args.neptune).main(
-                    "snapshots"
-                )
+                ard.snapshots = astraSDK.k8s.getResources(config_context=args.v3).main("snapshots")
                 ard.snapshots = astraSDK.snapshots.getSnaps().main()
             if args.restoreSource in ard.buildList("backups", "metadata.name"):
                 restoreSourceDict = ard.getSingleDict(
@@ -326,7 +324,7 @@ def main(args, parser, ard):
         )
         template = tkSrc.helpers.setupJinja("restore")
         try:
-            neptune_gen = yaml.safe_load_all(
+            v3_gen = yaml.safe_load_all(
                 template.render(
                     kind=restoreSourceDict["kind"],
                     restoreName=f"{args.appName}-restore-",
@@ -343,15 +341,15 @@ def main(args, parser, ard):
                 )
             )
             if args.dry_run == "client":
-                print(yaml.dump_all(neptune_gen).rstrip("\n"))
+                print(yaml.dump_all(v3_gen).rstrip("\n"))
             else:
-                for neptune_dict in neptune_gen:
+                for v3_dict in v3_gen:
                     astraSDK.k8s.createResource(
-                        quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                        quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
                     ).main(
-                        f"{neptune_dict['kind'].lower()}s",
-                        neptune_dict["metadata"]["namespace"],
-                        neptune_dict,
+                        f"{v3_dict['kind'].lower()}s",
+                        v3_dict["metadata"]["namespace"],
+                        v3_dict,
                         version="v1",
                         group="astra.netapp.io",
                     )

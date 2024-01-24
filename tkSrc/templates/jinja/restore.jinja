@@ -2,7 +2,7 @@ apiVersion: astra.netapp.io/v1
 kind: {{ kind }}Restore
 metadata:
   generateName: {{ restoreName }}
-  namespace: neptune-system
+  namespace: astra-connector
 spec:
   appArchivePath: {{ appArchivePath }}
   appVaultRef: {{ appVaultRef }}
@@ -14,6 +14,6 @@ apiVersion: astra.netapp.io/v1
 kind: Application
 metadata:
   name: {{ appName }}
-  namespace: neptune-system
+  namespace: astra-connector
 spec:
 {{ appSpec }}

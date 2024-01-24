@@ -30,21 +30,19 @@ def main(args, parser, ard):
     ):
         parser.error("either both or none of --filterSelection and --filterSet should be specified")
 
-    if args.neptune:
+    if args.v3:
         if args.backup:
             if ard.needsattr("backups"):
-                ard.backups = astraSDK.k8s.getResources(config_context=args.neptune).main("backups")
+                ard.backups = astraSDK.k8s.getResources(config_context=args.v3).main("backups")
             iprSourceDict = ard.getSingleDict("backups", "metadata.name", args.backup, parser)
         elif args.snapshot:
             if ard.needsattr("snapshots"):
-                ard.snapshots = astraSDK.k8s.getResources(config_context=args.neptune).main(
-                    "snapshots"
-                )
+                ard.snapshots = astraSDK.k8s.getResources(config_context=args.v3).main("snapshots")
             iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", args.snapshot, parser)
 
         template = tkSrc.helpers.setupJinja(args.subcommand)
         try:
-            neptune_dict = yaml.safe_load(
+            v3_dict = yaml.safe_load(
                 template.render(
                     kind=iprSourceDict["kind"],
                     iprName=f"{iprSourceDict['kind'].lower()}ipr-{uuid.uuid4()}",
@@ -53,14 +51,14 @@ def main(args, parser, ard):
                 )
             )
             if args.dry_run == "client":
-                print(yaml.dump(neptune_dict).rstrip("\n"))
+                print(yaml.dump(v3_dict).rstrip("\n"))
             else:
                 astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.neptune
+                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
                 ).main(
-                    f"{neptune_dict['kind'].lower()}s",
-                    neptune_dict["metadata"]["namespace"],
-                    neptune_dict,
+                    f"{v3_dict['kind'].lower()}s",
+                    v3_dict["metadata"]["namespace"],
+                    v3_dict,
                     version="v1",
                     group="astra.netapp.io",
                 )

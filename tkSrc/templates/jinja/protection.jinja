@@ -2,7 +2,7 @@ apiVersion: astra.netapp.io/v1
 kind: Schedule
 metadata:
   generateName: {{ name }}
-  namespace: neptune-system
+  namespace: astra-connector
 spec:
   appVaultRef: {{ appVaultName }}
   applicationRef: {{ appName }}

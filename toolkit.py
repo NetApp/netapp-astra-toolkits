@@ -29,7 +29,7 @@ def main(argv=sys.argv):
     acl = tkSrc.classes.ArgparseChoicesLists()
     ard = tkSrc.classes.AstraResourceDicts()
     plaidMode = False
-    neptune = False
+    v3 = False
 
     if len(argv) > 1:
         # global_args must manually be kept in sync with __init__() parser args in tkSrc/parser.py
@@ -42,8 +42,7 @@ def main(argv=sys.argv):
             "--quiet",
             "-f",
             "--fast",
-            "-n",
-            "--neptune",
+            "--v3",
             "--dry-run",
         ]
         # verbs must manually be kept in sync with top_level_commands() in tkSrc/parser.py
@@ -117,15 +116,15 @@ def main(argv=sys.argv):
                     main(argv=argv)
                 sys.exit(0)
 
-        # Handle plaidMode (-f/--fast) and neptune (-n/--neptune) use-cases
+        # Handle plaidMode (-f/--fast) and --v3 use-cases
         for counter, item in enumerate(argv):
             if verbPosition and counter < verbPosition and (item == "-f" or item == "--fast"):
                 plaidMode = True
             if ((verbPosition and counter < verbPosition) or (verbPosition is None)) and (
-                item == "-n" or item == "--neptune"
+                item == "--v3"
             ):
-                neptune = True
-                neptunePosition = counter
+                v3 = True
+                v3Position = counter
 
         # Argparse cares about capitalization, kubectl does not, so transparently fix appvault
         if verbPosition and len(argv) - verbPosition >= 2 and argv[verbPosition + 1] == "appvault":
@@ -141,16 +140,16 @@ def main(argv=sys.argv):
             print("Hit the protectionpolicy change")
             print(argv)
 
-        # If neptune, build the kubeconfig:context choices list (we want this outside of
+        # If v3, build the kubeconfig:context choices list (we want this outside of
         # tkSrc.choices.main as it should be generated regardless of plaidMode)
-        if neptune:
-            neptune, verbPosition = tkSrc.choices.kube_config(
-                argv, acl, verbPosition, neptunePosition, global_args
+        if v3:
+            v3, verbPosition = tkSrc.choices.kube_config(
+                argv, acl, verbPosition, v3Position, global_args
             )
 
         # As long as we're not --fast/plaidMode, build the argparse choices lists
         if not plaidMode:
-            tkSrc.choices.main(argv, verbs, verbPosition, ard, acl, neptune)
+            tkSrc.choices.main(argv, verbs, verbPosition, ard, acl, v3)
 
     else:
         raise SystemExit(
@@ -160,11 +159,11 @@ def main(argv=sys.argv):
 
     # Manually passing args into argparse via parse_args() shouldn't include the function name
     argv = argv[1:] if "toolkit" in argv[0] else argv
-    tkParser = tkSrc.parser.ToolkitParser(acl, plaidMode=plaidMode, neptune=neptune)
+    tkParser = tkSrc.parser.ToolkitParser(acl, plaidMode=plaidMode, v3=v3)
     parser = tkParser.main()
     args = parser.parse_args(args=argv)
-    if args.neptune:
-        tkSrc.helpers.checkNeptuneSupport(
+    if args.v3:
+        tkSrc.helpers.checkv3Support(
             args,
             parser,
             {
