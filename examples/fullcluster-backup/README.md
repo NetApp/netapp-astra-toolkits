@@ -2,20 +2,19 @@
 
 This is an example on how to protect every namespace on an Astra Control-managed Kubernetes cluster. It requires Astra Control 24.02 or greater, and the Kubernetes cluster must be managed through Architecture 3.0. It consists of the following files:
 
-* `./components.yaml`: consists of 1) a Kubernetes service account, cluster role, and cluster role binding which gives the necessary privileges to view and manage Astra Control custom resources, and 2) a Kubernetes cron job which runs the `./protectCluster.py` script
-* `./protectCluster.py`: a python script which finds all namespaces not currently protected, and not part of the IGNORE\_NAMESPACES environment variable, and then brings them under management (with hourly, daily, weekly, and monthly protection policies) through Astra Control custom resources
+* `components.yaml`: consists of 1) a Kubernetes service account, cluster role, and cluster role binding which gives the necessary privileges to view and manage Astra Control custom resources, and 2) a Kubernetes cron job which runs the `protectCluster.py` script
+* `protectCluster.py`: a python script which finds all namespaces not currently protected, and not part of the `IGNORE_NAMESPACES` environment variable, and then brings them under management (with hourly, daily, weekly, and monthly protection policies) through Astra Control custom resources
 
 ## Setup
 
-Open up `./components.yaml` and optionally modify the following fields:
+Open up `components.yaml` and optionally modify the following fields:
 
 * `schedule`: change to your desired CronJob schedule for how frequently you want non-protected namespaces protected (default is every evening at 11pm)
-`ACTOOLKIT_VERSION`: the [actoolkit](https://pypi.org/project/actoolkit/#history) version (must be >=3.0.0) to utilize
+* `ACTOOLKIT_VERSION`: the [actoolkit](https://pypi.org/project/actoolkit/#history) version (must be >=3.0.0) to utilize
 * `IGNORE_NAMESPACES`: the list of namespaces (system or otherwise) that should *not* be protected
 * `BUCKET`: optionally specify the bucket to store the backups and snapshots (if one isn't specified, the first `available` bucket/appVault is used)
 * `BACKUPS_TO_KEEP`: the number of backups to keep for each granularity
 * `SNAPSHOTS_TO_KEEP`: the number of snapshots to keep for each granularity
-* `MINUTE`: the minute to create each backup and snapshot (all granularities)
 * `HOUR`: the hour to create each backup and snapshot (daily, weekly, and monthly granularities)
 * `DAY_OF_WEEK`: the day of the week to create each backup and snapshot (weekly granularity)
 * `DAY_OF_MONTH`: the day of the month to create each backup and snapshot (monthly granularity)
@@ -36,7 +35,7 @@ NAME               SCHEDULE     SUSPEND   ACTIVE   LAST SCHEDULE   AGE
 astra-fullbackup   0 23 * * *   False     0        <none>          15s
 ```
 
-Next, wait the allotted amount of time per the schedule defined in `./components.yaml` (the default is 11pm). Then, verify "last schedule" has been populated:
+Next, wait the allotted amount of time per the schedule defined in `components.yaml` (the default is 11pm). Then, verify "last schedule" has been populated:
 
 ```text
 kubectl -n astra-connector get cronjob
