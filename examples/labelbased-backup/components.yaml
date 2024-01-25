@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: astra-labelbackup
-  namespace: neptune-system
+  namespace: astra-connector
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -27,13 +27,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: astra-labelbackup
-    namespace: neptune-system
+    namespace: astra-connector
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: astra-labelbackup
-  namespace: neptune-system
+  namespace: astra-connector
   labels:
     app: astra-labelbackup
 spec:
@@ -52,8 +52,10 @@ spec:
           image: python:3.10.13-alpine3.19
           env:
             - name: ACTOOLKIT_VERSION
-              value: "3.0.0a10"
+              value: "3.0.0a12"
             - name: BUCKET
+              value: ""
+            - name: GOLD_BUCKET
               value: ""
             - name: PROTECTION_LABEL_KEY
               value: "astra.netapp.io/protection"

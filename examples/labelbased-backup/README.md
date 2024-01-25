@@ -3,5 +3,5 @@
 ## Create
 
 ```text
-kubectl -n neptune-system apply -f components.yaml
+kubectl -n astra-connector apply -f components.yaml
 ```
