@@ -2,6 +2,8 @@
 
 This is an example on how to protect every namespace on an Astra Control-managed Kubernetes cluster. It requires Astra Control 24.02 or greater, and the Kubernetes cluster must be managed through Architecture 3.0. It consists of the following files:
 
+**Note**: if you prefer a more granular solution which only protects cluster namespaces which have a particular metadata label, please see the [labelbased-backup example](../labelbased-backup/README.md).
+
 * `components.yaml`: consists of 1) a Kubernetes service account, cluster role, and cluster role binding which gives the necessary privileges to view and manage Astra Control custom resources, and 2) a Kubernetes cron job which runs the `protectCluster.py` script
 * `protectCluster.py`: a python script which finds all namespaces not currently protected, and not part of the `IGNORE_NAMESPACES` environment variable, and then brings them under management (with hourly, daily, weekly, and monthly protection policies) through Astra Control custom resources
 
@@ -38,7 +40,7 @@ astra-fullbackup   0 23 * * *   False     0        <none>          15s
 Next, wait the allotted amount of time per the schedule defined in `components.yaml` (the default is 11pm). Then, verify "last schedule" has been populated:
 
 ```text
-kubectl -n astra-connector get cronjob
+$ kubectl -n astra-connector get cronjob
 NAME               SCHEDULE     SUSPEND   ACTIVE   LAST SCHEDULE   AGE
 astra-fullbackup   0 23 * * *   False     0        48s             2m44s
 ```
