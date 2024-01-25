@@ -16,6 +16,7 @@
 """
 
 import os
+import random
 
 import astraSDK
 import toolkit
@@ -39,33 +40,30 @@ def get_bucket():
     """Returns a name of an available bucket/appVault"""
     desired_bucket = os.environ.get("BUCKET")
     buckets = astraSDK.k8s.getResources().main("appvaults")
-    if desired_bucket in [
+    available_bucket_list = [
         x["metadata"]["name"]
         for x in buckets["items"]
         if x.get("status") and x["status"].get("state") and x["status"]["state"] == "available"
-    ]:
+    ]
+    # If there are no available buckets, raise an error
+    if not available_bucket_list:
+        raise SystemError(f"No bucket/appVault found in an available state, {buckets=}")
+    # Return either the desired bucket, or the first available bucket
+    if desired_bucket in available_bucket_list:
         return desired_bucket
-    for bucket in buckets["items"]:
-        if (
-            bucket.get("status")
-            and bucket["status"].get("state")
-            and bucket["status"]["state"] == "available"
-        ):
-            return bucket["metadata"]["name"]
-    raise SystemError(f"No bucket/appVault found in an available state, {buckets=}")
+    return available_bucket_list[0]
 
 
 def build_protections_list():
     """Returns a list of protections by granularity"""
-    minute = os.environ.get("MINUTE")
     hour = os.environ.get("HOUR")
     day_of_week = os.environ.get("DAY_OF_WEEK")
     day_of_month = os.environ.get("DAY_OF_MONTH")
     return [
-        f"--granularity hourly  --minute {minute}",
-        f"--granularity daily   --minute {minute} --hour {hour}",
-        f"--granularity weekly  --minute {minute} --hour {hour} --dayOfWeek {day_of_week}",
-        f"--granularity monthly --minute {minute} --hour {hour} --dayOfMonth {day_of_month}",
+        f"-g hourly  --minute {random.randint(0, 59)}",
+        f"-g daily   --minute {random.randint(0, 59)} --hour {hour}",
+        f"-g weekly  --minute {random.randint(0, 59)} --hour {hour} --dayOfWeek {day_of_week}",
+        f"-g monthly --minute {random.randint(0, 59)} --hour {hour} --dayOfMonth {day_of_month}",
     ]
 
 
@@ -73,16 +71,16 @@ def protect_namespace(namespace):
     """Manage an app named {namespace} in namespace {namespace} via a toolkit command
     which generates and creates the necessary custom resource"""
     print(f"--> managing namespace {namespace}")
-    toolkit.main(argv=f"-n -f manage app {namespace} {namespace}".split())
+    toolkit.main(argv=f"--v3 -f manage app {namespace} {namespace}".split())
 
 
 def create_protection_policy(namespace, protection, bucket):
     """Creates a protection policy for a given namespace and granularity"""
     num_backups = os.environ.get("BACKUPS_TO_KEEP")
     num_snapshots = os.environ.get("SNAPSHOTS_TO_KEEP")
-    print(f"    --> creating {protection[14:21]} protection policy")
+    print(f"    --> creating {protection[3:10]} protection policy")
     cmd = (
-        f"-n -f create protection {namespace} -u {bucket} -b {num_backups} -s {num_snapshots}"
+        f"--v3 -f create protection {namespace} -u {bucket} -b {num_backups} -s {num_snapshots}"
         f" {protection}"
     )
     toolkit.main(argv=cmd.split())
