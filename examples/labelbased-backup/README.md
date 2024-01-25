@@ -2,10 +2,10 @@
 
 This is an example on how to automatically protect any namespace on an Astra Control-managed Kubernetes cluster which contains a specific metadata label. It requires Astra Control 24.02 or greater, and the Kubernetes cluster must be managed through Architecture 3.0. It consists of the following files:
 
-**Note**: if you prefer a simpler solution which simply protects every namespace on the cluster, please see the [fullcluster-backup example](../fullcluster-backup/README.md).
-
 * `components.yaml`: consists of 1) a Kubernetes service account, cluster role, and cluster role binding which gives the necessary privileges to view and manage Astra Control custom resources, and 2) a Kubernetes cron job which runs the `protectCluster.py` script
 * `protectCluster.py`: a python script which finds all namespaces not currently protected, and have a metadata label with a key matching the `PROTECTION_LABEL_KEY` environment variable and a corresponding value matching one of the `GOLD_LABEL`, `SILVER_LABEL`, or `BRONZE_LABEL` environment variables, and then brings them under management (with hourly, daily, weekly, and monthly protection policies) through Astra Control custom resources
+
+**Note**: if you prefer a simpler solution which simply protects every namespace on the cluster, please see the [fullcluster-backup example](../fullcluster-backup/README.md).
 
 ## Setup
 
