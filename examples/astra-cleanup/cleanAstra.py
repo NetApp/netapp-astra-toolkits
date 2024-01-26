@@ -76,8 +76,9 @@ def unmanageAllApps(apps):
 
 def unmanageAllClusters(clusters):
     for cluster in clusters["items"]:
-        print(f"Unmanaging cluster:\t{cluster['name']}")
-        runToolkitCmd(f"unmanage cluster {cluster['id']}")
+        if cluster["managedState"] == "managed":
+            print(f"Unmanaging cluster:\t{cluster['name']}")
+            runToolkitCmd(f"unmanage cluster {cluster['id']}", plaid_mode=False)
 
 
 if __name__ == "__main__":
