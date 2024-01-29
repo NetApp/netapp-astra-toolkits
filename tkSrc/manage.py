@@ -201,9 +201,12 @@ def main(args, parser, ard):
     elif args.objectType == "cluster":
         if args.v3:
             # Install the operator
+            config_file, context = tuple(args.v3.split(":"))
             tkSrc.helpers.run(
-                f"kubectl apply --dry_run={args.dry_run if args.dry_run else 'none'} -f "
-                f"{tkSrc.helpers.getOperatorURL(args.operator_version)}"
+                f"kubectl --context={context} apply "
+                f"--dry_run={args.dry_run if args.dry_run else 'none'} -f "
+                f"{tkSrc.helpers.getOperatorURL(args.operator_version)}",
+                env={"KUBECONFIG": config_file} if config_file != "None" else None,
             )
             # Create the astra API token secret
             apiToken = astraSDK.k8s.createAstraApiToken(

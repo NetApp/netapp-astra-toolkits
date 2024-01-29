@@ -322,15 +322,18 @@ def updateHelm():
     return chartsDict
 
 
-def run(command, captureOutput=False, ignoreErrors=False):
+def run(command, captureOutput=False, ignoreErrors=False, env=None):
     """Run an arbitrary shell command.
     If ignore_errors=False raise SystemExit exception if the commands returns != 0 (failure).
     If ignore_errors=True, return the shell return code if it is != 0.
     If the shell return code is 0 (success) either return True or the contents of stdout,
-    depending on whether capture_output is set to True or False"""
+    depending on whether capture_output is set to True or False.
+    env should either "None" or a dict of environment variables to add to current environ"""
+    if isinstance(env, dict):
+        env.update(os.environ)
     command = command.split(" ")
     try:
-        ret = subprocess.run(command, capture_output=captureOutput)
+        ret = subprocess.run(command, capture_output=captureOutput, env=env)
     except OSError as e:
         raise SystemExit(f"{command} OSError: {e}")
     # Shell returns 0 for success, a positive int for an error
