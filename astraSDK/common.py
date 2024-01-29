@@ -216,25 +216,24 @@ class KubeCommon(BaseCommon):
     def __init__(self, config_context=None):
         super().__init__()
 
-        # First try loading from incluster (a local pod)
+        # Setup the config_file and context based on the config_context input
+        config_file, context = None, None
+        if config_context and ":" in config_context:
+            config_file, context = tuple(config_context.split(":"))
+            config_file = None if config_file == "None" else config_file
+        elif config_context:
+            config_file = config_context
         try:
-            self.api_client = kubernetes.client.ApiClient(
-                configuration=kubernetes.config.load_incluster_config()
+            # Create the api_client
+            self.api_client = kubernetes.config.new_client_from_config(
+                config_file=config_file, context=context
             )
 
-        # If that fails, then it's a "normal" kubeconfig+context environment
+        # If that fails, then try an incluster config
         except kubernetes.config.config_exception.ConfigException as err:
-            # Setup the config_file and context based on the config_context input
-            config_file, context = None, None
-            if config_context and ":" in config_context:
-                config_file, context = tuple(config_context.split(":"))
-                config_file = None if config_file == "None" else config_file
-            elif config_context:
-                config_file = config_context
             try:
-                # Create the api_client
-                self.api_client = kubernetes.config.new_client_from_config(
-                    config_file=config_file, context=context
+                self.api_client = kubernetes.client.ApiClient(
+                    configuration=kubernetes.config.load_incluster_config()
                 )
             except kubernetes.config.config_exception.ConfigException:
                 self.printError(f"{err}\n")
