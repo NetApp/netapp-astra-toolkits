@@ -381,11 +381,11 @@ def kube_config(argv, acl, verbPosition, v3Position, global_args):
        for any amount of customization (any config_file, any context)
 
     There are 5 possible use-cases which are covered:
-    1) Incluster config (from within a pod)
-    2) User enters plain "--v3"-> use system default config_file and context
-    3) Specific kubeconfig AND context specified "--v3 kubeconfig_file:context"-> use specified val
-    4) Only kubeconfig specified "-n kubeconfig_file"-> use default context of that config_file
-    5) Only context specified "-n context"-> use specified context with default config_file
+    1) User enters plain "--v3"-> use system default config_file and context
+    2) Specific kubeconfig AND context specified "--v3 kubeconfig_file:context"-> use specified val
+    3) Only kubeconfig specified "-n kubeconfig_file"-> use default context of that config_file
+    4) Only context specified "-n context"-> use specified context with default config_file
+    5) Incluster config (from within a pod)
 
     Since we are potentially modifying the length of argv, this function also modifies and returns
     verbPosition.
@@ -396,46 +396,46 @@ def kube_config(argv, acl, verbPosition, v3Position, global_args):
     if verbPosition is None:
         verbPosition = v3Position + 1
 
-    # First try to load the incluster_config (1)
-    try:
-        kubernetes.config.load_incluster_config()
-        contexts, desired_context = [{"name": "incluster"}], "incluster"
+    # First assume it's a regular, non-incluster config (1-4)
+    # Handle plain input / no kubeconfig or context specified (1)
+    if v3Position + 1 == verbPosition or v3_arg.split("=")[0] in global_args:
         config_file = None
 
-    # If we hit this, it's a regular, non-incluster config (2-5)
-    except kubernetes.config.config_exception.ConfigException:
-        # Handle plain input / no kubeconfig or context specified (2)
-        if v3Position + 1 == verbPosition or v3_arg.split("=")[0] in global_args:
-            config_file = None
-
-        # Handle user input use cases (3-5)
+    # Handle user input use cases (2-4)
+    else:
+        # Popping v3_arg from the list, as it gets re-added in proper format below
+        argv.pop(v3Position + 1)
+        verbPosition -= 1
+        # Handle `kubeconfig:context` use case (2)
+        if ":" in v3_arg:
+            config_file, desired_context = tuple(v3_arg.split(":"))
+        # Handle use cases 3 and 4, config_file is set to the user's input, which may actually
+        # be a kubeconfig (3), but could be a context (4), which will throw an error
         else:
-            # Popping v3_arg from the list, as it gets re-added in proper format below
-            argv.pop(v3Position + 1)
-            verbPosition -= 1
-            # Handle `kubeconfig:context` use case (3)
-            if ":" in v3_arg:
-                config_file, desired_context = tuple(v3_arg.split(":"))
-            # Handle use cases 4 and 5, config_file is set to the user's input, which may actually
-            # be a kubeconfig (4), but could be a context (5), which will throw an error
-            else:
-                config_file = v3_arg
+            config_file = v3_arg
 
-        # If this works without an error, then 2, 3, or 4 was entered
+    # If this works without an error, then 1, 2, or 3 was entered
+    try:
+        contexts, current_context = kubernetes.config.kube_config.list_kube_config_contexts(
+            config_file=config_file
+        )
+        if not desired_context:
+            desired_context = current_context["name"]
+
+    # If an exception, then either a `context` has been provided (4) or it's incluster (5)
+    except kubernetes.config.config_exception.ConfigException:
+        config_file, desired_context = None, v3_arg
         try:
-            contexts, current_context = kubernetes.config.kube_config.list_kube_config_contexts(
+            contexts, _ = kubernetes.config.kube_config.list_kube_config_contexts(
                 config_file=config_file
             )
-            if not desired_context:
-                desired_context = current_context["name"]
-
-        # If an exception, then a `context` has been provided (5)
+        # If that fails as a last resort try an incluster config
         except kubernetes.config.config_exception.ConfigException:
-            config_file, desired_context = None, v3_arg
             try:
-                contexts, _ = kubernetes.config.kube_config.list_kube_config_contexts(
-                    config_file=config_file
-                )
+                kubernetes.config.load_incluster_config()
+                contexts, desired_context = [{"name": "incluster"}], "incluster"
+                config_file = None
+                argv.insert(v3Position + 1, v3_arg)
             # If this was hit, we do not have a valid kubeconfig file
             except kubernetes.config.config_exception.ConfigException as err:
                 sys.stderr.write(colored(f"{err}\n", "red"))
