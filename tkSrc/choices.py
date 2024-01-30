@@ -435,7 +435,6 @@ def kube_config(argv, acl, verbPosition, v3Position, global_args):
                 kubernetes.config.load_incluster_config()
                 contexts, desired_context = [{"name": "incluster"}], "incluster"
                 config_file = None
-                argv.insert(v3Position + 1, v3_arg)
             # If this was hit, we do not have a valid kubeconfig file
             except kubernetes.config.config_exception.ConfigException as err:
                 sys.stderr.write(colored(f"{err}\n", "red"))
