@@ -24,10 +24,14 @@ import yaml
 from datetime import datetime, timedelta
 from secrets import token_urlsafe
 from tabulate import tabulate
-from termcolor import colored
 from base64 import b64encode, b64decode
 
 import gcpClasses
+
+
+BLUE = "\033[34m"
+YELLOW = "\033[33m"
+ENDC = "\033[0m"
 
 # A bit of a hack to support both git repo and actoolkit python package use cases
 try:
@@ -138,33 +142,33 @@ def assignOrAppend(bKey, abKey, backups, allBackups):
 def printBackups(backups):
     """Given a dictionary of all the backups, print out their state in a table"""
     tabHeader = [
-        colored("Timestamp", "blue"),
-        colored("Gitaly OS Disk Backup", "blue"),
-        colored("Gitaly Git Disk Backup", "blue"),
-        colored("PostgreSQL Backup", "blue"),
-        colored("Redis Backup", "blue"),
-        colored("Astra App Backup", "blue"),
+        f"{BLUE}Timestamp{ENDC}",
+        f"{BLUE}Gitaly OS Disk Backup{ENDC}",
+        f"{BLUE}Gitaly Git Disk Backup{ENDC}",
+        f"{BLUE}PostgreSQL Backup{ENDC}",
+        f"{BLUE}Redis Backup{ENDC}",
+        f"{BLUE}Astra App Backup{ENDC}",
     ]
     tabData = []
     for backup in backups["items"]:
         tabData.append(
             [
-                colored(backup["tmstmp"], "blue"),
+                f"{BLUE}{backup['tmstmp']}{ENDC}",
                 backup["osBackup"]["status"]
                 if backup.get("osBackup")
-                else colored("No backup found", "yellow"),
+                else f"{YELLOW}No backup found{ENDC}",
                 backup["dataBackup"]["status"]
                 if backup.get("dataBackup")
-                else colored("No backup found", "yellow"),
+                else f"{YELLOW}No backup found{ENDC}",
                 backup["dbBackup"]["status"]
                 if backup.get("dbBackup")
-                else colored("No backup found", "yellow"),
+                else f"{YELLOW}No backup found{ENDC}",
                 backup["redisBackup"]["response"]["state"]
                 if (backup.get("redisBackup") and backup["redisBackup"].get("response"))
-                else colored("No backup found", "yellow"),
+                else f"{YELLOW}No backup found{ENDC}",
                 backup["appBackup"]["state"]
                 if backup.get("appBackup")
-                else colored("No backup found", "yellow"),
+                else f"{YELLOW}No backup found{ENDC}",
             ]
         )
     print(tabulate(tabData, tabHeader, tablefmt="grid"))
@@ -417,7 +421,7 @@ def destroy(valuesDict):
     destroyAstraResources()
     destroyGcpResources(valuesDict)
     destroyKubernetesResources()
-    print(f"\nSuccess! All resources destroyed.")
+    print("\nSuccess! All resources destroyed.")
 
 
 def getWebPassword():

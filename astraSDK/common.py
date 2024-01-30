@@ -21,9 +21,12 @@ import os
 import sys
 import yaml
 from tabulate import tabulate
-from termcolor import colored
 import requests
 from urllib3 import disable_warnings
+
+RED = "\033[31m"
+GREEN = "\033[32m"
+ENDC = "\033[0m"
 
 
 class getConfig:
@@ -100,11 +103,11 @@ class BaseCommon:
     def printError(self, ret):
         """Function to print relevant error information when a call fails"""
         try:
-            sys.stderr.write(colored(json.dumps(json.loads(ret.text), indent=2), "red") + "\n")
+            sys.stderr.write(RED + json.dumps(json.loads(ret.text), indent=2) + f"{ENDC}\n")
         except json.decoder.JSONDecodeError:
-            sys.stderr.write(colored(ret.text, "red"))
+            sys.stderr.write(f"{RED}{ret.text}{ENDC}")
         except AttributeError:
-            sys.stderr.write(colored(ret, "red"))
+            sys.stderr.write(f"{RED}{ret}{ENDC}")
 
     def recursiveGet(self, k, item):
         """Recursion function which is just a wrapper around dict.get(key), to handle cases
@@ -170,19 +173,16 @@ class SDKCommon(BaseCommon):
                 )
             elif ret.status_code >= 400 and ret.status_code < 500:
                 if "x-pcloud-accountid" in ret.text:
-                    print(
-                        "API call to Astra Control failed: "
-                        + colored("check uid in config.json", "red")
-                    )
+                    print(f"API call to Astra Control failed: {RED}check uid in config.json{ENDC}")
                 elif ret.status_code == 401:
                     print(
                         "API call to Astra Control failed: "
-                        + colored("check Authorization in config.json", "red")
+                        f"{RED}check Authorization in config.json{ENDC}"
                     )
                 else:
                     print(
                         "API call to Astra Control failed: "
-                        + colored(f"{ret.status_code} - {ret.reason}", "red")
+                        f"{RED}{ret.status_code} - {ret.reason}{ENDC}"
                     )
                     if ret.text.strip():
                         print(f"text: {ret.text.strip()}")
@@ -205,11 +205,11 @@ class SDKCommon(BaseCommon):
 
     def printVerbose(self, url, method, headers, data, params):
         """Function to print API call details when in verbose mode"""
-        print(colored(f"API URL: {url}", "green"))
-        print(colored(f"API Method: {method}", "green"))
-        print(colored(f"API Headers: {headers}", "green"))
-        print(colored(f"API data: {data}", "green"))
-        print(colored(f"API params: {params}", "green"))
+        print(f"{GREEN}API URL: {url}{ENDC}")
+        print(f"{GREEN}API Method: {method}{ENDC}")
+        print(f"{GREEN}API Headers: {headers}{ENDC}")
+        print(f"{GREEN}API data: {data}{ENDC}")
+        print(f"{GREEN}API params: {params}{ENDC}")
 
 
 class KubeCommon(BaseCommon):

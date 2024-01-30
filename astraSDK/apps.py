@@ -19,9 +19,11 @@ import yaml
 import json
 import copy
 from tabulate import tabulate
-from termcolor import colored
 
 from .common import SDKCommon
+
+BLUE = "\033[34m"
+ENDC = "\033[0m"
 
 
 class getApps(SDKCommon):
@@ -155,7 +157,7 @@ class getApps(SDKCommon):
                             (
                                 app["name"]
                                 if "replicationSourceAppID" not in app
-                                else app["name"] + colored(" (replication destination)", "blue")
+                                else app["name"] + f"{BLUE} (replication destination){ENDC}"
                             ),
                             app["id"],
                             app["clusterName"],
