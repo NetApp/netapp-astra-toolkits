@@ -18,10 +18,12 @@
 
 import kubernetes
 import sys
-from termcolor import colored
 
 import astraSDK
 import tkSrc
+
+RED = "\033[31m"
+ENDC = "\033[0m"
 
 
 def main(argv, verbs, verbPosition, ard, acl, v3):
@@ -437,7 +439,7 @@ def kube_config(argv, acl, verbPosition, v3Position, global_args):
                 config_file = None
             # If this was hit, we do not have a valid kubeconfig file
             except kubernetes.config.config_exception.ConfigException as err:
-                sys.stderr.write(colored(f"{err}\n", "red"))
+                sys.stderr.write(f"{RED}{err}{ENDC}\n")
                 raise SystemExit()
 
     # Build the choices list and modify argv
