@@ -18,10 +18,12 @@
 import yaml
 import json
 import copy
-from termcolor import colored
 from datetime import datetime, timedelta
 
 from .common import SDKCommon
+
+YELLOW = "\033[33m"
+ENDC = "\033[0m"
 
 
 class getNotifications(SDKCommon):
@@ -78,12 +80,14 @@ class getNotifications(SDKCommon):
             elif self.output == "yaml":
                 dataReturn = yaml.dump(notificationsCooked)
             elif self.output == "table":
-                dataReturn = self.basicTable(
-                    ["notificationID", "summary", "severity", "eventTime"],
-                    ["id", "summary", "severity", "eventTime"],
-                    notificationsCooked,
-                ) + colored(
-                    f"\npre-filtered count: {notificationsCooked['metadata']['count']}", "yellow"
+                dataReturn = (
+                    self.basicTable(
+                        ["notificationID", "summary", "severity", "eventTime"],
+                        ["id", "summary", "severity", "eventTime"],
+                        notificationsCooked,
+                    )
+                    + f"\n{YELLOW}pre-filtered count: "
+                    f"{notificationsCooked['metadata']['count']}{ENDC}"
                 )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
