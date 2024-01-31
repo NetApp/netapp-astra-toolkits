@@ -237,7 +237,7 @@ def createCsrList(CSRs, apiResourcesDict, v3=False):
     returnList = []
     for csr in CSRs:
         for resource in apiResourcesDict["items"]:
-            if csr[0] == resource["kind"]:
+            if csr[0] == f"{resource['apiVersion']}/{resource['kind']}":
                 gvk_dict = {
                     "group": resource["apiVersion"].split("/")[0],
                     "kind": resource["kind"],
@@ -249,7 +249,9 @@ def createCsrList(CSRs, apiResourcesDict, v3=False):
                     returnList.append({"GVK": gvk_dict})
                 if len(csr) == 2:
                     if v3:
-                        returnList[-1]["labelSelector"] = csr[1]
+                        returnList[-1]["labelSelector"] = {
+                            "matchLabels": {csr[1].split("=")[0]: csr[1].split("=")[1]}
+                        }
                     else:
                         returnList[-1]["labelSelectors"] = [csr[1]]
                 elif len(csr) > 2:

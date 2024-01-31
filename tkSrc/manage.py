@@ -31,31 +31,54 @@ def main(args, parser, ard):
             )
         if args.clusterScopedResource:
             if args.v3:
-                # If we're running a v3 command, we don't have the clusterID arg populated by
-                # the end user, so gather the Connector information which contains the cluster
-                # name, which can be used in place of the cluster ID
-                ard.connectors = astraSDK.k8s.getResources(config_context=args.v3).main(
-                    "astraconnectors", version="v1", group="astra.netapp.io"
+                # Hardcoding the api resources list to not require an API call to AC
+                ard.apiresources = {
+                    "items": [
+                        {
+                            "apiVersion": "rbac.authorization.k8s.io/v1",
+                            "kind": "ClusterRole",
+                        },
+                        {
+                            "apiVersion": "rbac.authorization.k8s.io/v1",
+                            "kind": "ClusterRoleBinding",
+                        },
+                        {
+                            "apiVersion": "apiextensions.k8s.io/v1",
+                            "kind": "CustomResource",
+                        },
+                        {
+                            "apiVersion": "apiextensions.k8s.io/v1",
+                            "kind": "CustomResourceDefinition",
+                        },
+                        {
+                            "apiVersion": "apiextensions.k8s.io/v1beta1",
+                            "kind": "CustomResource",
+                        },
+                        {
+                            "apiVersion": "apiextensions.k8s.io/v1beta1",
+                            "kind": "CustomResourceDefinition",
+                        },
+                        {
+                            "apiVersion": "admissionregistration.k8s.io/v1",
+                            "kind": "MutatingWebhookConfiguration",
+                        },
+                        {
+                            "apiVersion": "admissionregistration.k8s.io/v1",
+                            "kind": "ValidatingWebhookConfiguration",
+                        },
+                    ]
+                }
+            else:
+                ard.apiresources = astraSDK.apiresources.getApiResources().main(
+                    cluster=args.clusterID
                 )
-                ard.getSingleDict(
-                    "connectors",
-                    "spec.astra.accountId",
-                    astraSDK.common.getConfig().conf["uid"],
-                    parser,
-                )
-                args.clusterID = ard.getSingleDict(
-                    "connectors",
-                    "spec.astra.accountId",
-                    astraSDK.common.getConfig().conf["uid"],
-                    None,
-                )["spec"]["astra"]["clusterName"]
-            ard.apiresources = astraSDK.apiresources.getApiResources().main(cluster=args.clusterID)
             # Validate input as argparse+choices is unable to only validate the first input
+            api_res_list = [f"{a['apiVersion']}/{a['kind']}" for a in ard.apiresources["items"]]
             for csr in args.clusterScopedResource:
-                if csr[0] not in (apiRes := [a["kind"] for a in ard.apiresources["items"]]):
+                if csr[0] not in api_res_list:
                     parser.error(
                         f"argument -c/--clusterScopedResource: invalid choice: '{csr[0]}' "
-                        f"(choose from {', '.join(apiRes)})"
+                        f"(choose from {', '.join(api_res_list)})"
                     )
             args.clusterScopedResource = tkSrc.helpers.createCsrList(
                 args.clusterScopedResource, ard.apiresources, v3=args.v3

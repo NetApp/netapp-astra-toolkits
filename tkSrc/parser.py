@@ -1342,7 +1342,7 @@ class ToolkitParser:
             nargs="*",
             action="append",
             help="Any number of clusterScopedResources (and optional labelSelectors), one set per"
-            + " argument (-c csr-kind1 -c csr-kind2 app=appname)",
+            + " argument (-c csr1 -c csr2 app=appname)",
         )
 
     def manage_bucket_args(self):
