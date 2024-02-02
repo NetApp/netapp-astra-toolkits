@@ -130,16 +130,16 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                             if v3:
                                 ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main(
                                     "snapshots",
-                                    keyFilter="spec.applicationRef",
-                                    valFilter=a,
+                                    filters=[{"keyFilter": "spec.applicationRef", "valFilter": a}],
                                 )
                                 acl.snapshots = ard.buildList("snapshots", "metadata.name")
                             else:
                                 ard.snapshots = astraSDK.snapshots.getSnaps().main(appFilter=a)
                                 acl.snapshots = ard.buildList("snapshots", "id")
             if argv[verbPosition + 1] == "hook":
-                ard.scripts = astraSDK.scripts.getScripts().main()
-                acl.scripts = ard.buildList("scripts", "id")
+                if not v3:
+                    ard.scripts = astraSDK.scripts.getScripts().main()
+                    acl.scripts = ard.buildList("scripts", "id")
             if argv[verbPosition + 1] == "protection":
                 if v3:
                     ard.buckets = astraSDK.k8s.getResources(config_context=v3).main("appvaults")

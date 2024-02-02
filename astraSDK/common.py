@@ -109,21 +109,45 @@ class BaseCommon:
         except AttributeError:
             sys.stderr.write(f"{RED}{ret}{ENDC}")
 
-    def recursiveGet(self, k, item):
+    def recursiveGet(self, k, item, conCatList=[]):
         """Recursion function which is just a wrapper around dict.get(key), to handle cases
-        where there's a dict within a dict. A '.' in the key name ('metadata.creationTimestamp')
-        is used for identification purposes."""
-        if len(k.split(".")) > 1:
-            return self.recursiveGet(k.split(".", 1)[1], item[k.split(".")[0]])
-        else:
-            return item.get(k)
+        where there's a dict or list within a dict:
+         - '.' in the key name ('metadata.creationTimestamp') is used to identify a dict
+         - '[]' in the key name ('spec.includedNamespaces[]') is used to identify a list
+         - '*' as a key represents a wildcard (returns first entry)
+         - 'KEYS' represents returning the keys rather than the vaules."""
+        if len(k.split(".")) > 1 and k.split(".")[0] == "":
+            return self.recursiveGet(k.split(".", 1)[1], item, conCatList)
+        elif (len(k.split(".")) > 1 and len(k.split("[]")) == 1) or (
+            len(k.split(".")[0]) < len(k.split("[]")[0])
+        ):
+            if k.split(".")[0] == "*":
+                return self.recursiveGet(k.split(".", 1)[1], item[next(iter(item))], conCatList)
+            elif k.split(".")[0] == "KEYS":
+                print("hit the KEYS section")
+                return self.recursiveGet(
+                    k.split(".", 1)[1], item[k.split(".")[0]].keys(), conCatList
+                )
+            try:
+                return self.recursiveGet(k.split(".", 1)[1], item[k.split(".")[0]], conCatList)
+            except KeyError:
+                return "None"
+        elif (len(k.split("[]")) > 1 and len(k.split(".")) == 1) or (
+            len(k.split("[]")[0]) < len(k.split(".")[0])
+        ):
+            for i in item[k.split("[]")[0]]:
+                conCatList.append(self.recursiveGet(k.split("[]", 1)[1], i, []))
+            return conCatList
+        if k == "KEYS":
+            return list(item.keys())
+        return item.get(k)
 
     def basicTable(self, tabHeader, tabKeys, dataDict):
         """Function to create a basic tabulate table for terminal printing"""
         tabData = []
         for item in dataDict["items"]:
             # Generate a table row based on the keys list
-            row = [self.recursiveGet(k, item) for k in tabKeys]
+            row = [self.recursiveGet(k, item, []) for k in tabKeys]
             # Handle cases where table row has a nested list
             for c, r in enumerate(row):
                 if type(r) is list:

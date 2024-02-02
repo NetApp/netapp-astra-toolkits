@@ -27,14 +27,31 @@ def main(args):
         ).main(cluster=args.cluster)
         if rc is False:
             raise SystemExit("astraSDK.apiresources.getApiResources() failed")
-    elif args.objectType == "apps":
-        rc = astraSDK.apps.getApps(quiet=args.quiet, verbose=args.verbose, output=args.output).main(
-            namespace=args.namespace,
-            nameFilter=args.nameFilter,
-            cluster=args.cluster,
-        )
-        if rc is False:
-            raise SystemExit("astraSDK.apps.getApps() failed")
+    elif args.objectType == "apps" or args.objectType == "applications":
+        if args.v3:
+            rc = astraSDK.k8s.getResources(
+                quiet=args.quiet, output=args.output, config_context=args.v3
+            ).main(
+                "applications",
+                filters=[
+                    {
+                        "keyFilter": "spec.includedNamespaces[].namespace",
+                        "valFilter": args.namespace,
+                        "inMatch": True,  # inMatch since app namespaces is a list, not a str
+                    },
+                    {"keyFilter": "metadata.name", "valFilter": args.nameFilter, "inMatch": True},
+                ],
+            )
+        else:
+            rc = astraSDK.apps.getApps(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(
+                namespace=args.namespace,
+                nameFilter=args.nameFilter,
+                cluster=args.cluster,
+            )
+            if rc is False:
+                raise SystemExit("astraSDK.apps.getApps() failed")
     elif args.objectType == "assets":
         rc = astraSDK.apps.getAppAssets(
             quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -42,17 +59,36 @@ def main(args):
         if rc is False:
             raise SystemExit("astraSDK.apps.getAppAssets() failed")
     elif args.objectType == "backups":
-        rc = astraSDK.backups.getBackups(
-            quiet=args.quiet, verbose=args.verbose, output=args.output
-        ).main(appFilter=args.app)
-        if rc is False:
-            raise SystemExit("astraSDK.backups.getBackups() failed")
-    elif args.objectType == "buckets":
-        rc = astraSDK.buckets.getBuckets(
-            quiet=args.quiet, verbose=args.verbose, output=args.output
-        ).main(nameFilter=args.nameFilter, provider=args.provider)
-        if rc is False:
-            raise SystemExit("astraSDK.buckets.getBuckets() failed")
+        if args.v3:
+            rc = astraSDK.k8s.getResources(
+                quiet=args.quiet, output=args.output, config_context=args.v3
+            ).main(
+                "backups",
+                filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}],
+            )
+        else:
+            rc = astraSDK.backups.getBackups(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(appFilter=args.app)
+            if rc is False:
+                raise SystemExit("astraSDK.backups.getBackups() failed")
+    elif args.objectType == "buckets" or args.objectType == "appVaults":
+        if args.v3:
+            rc = astraSDK.k8s.getResources(
+                quiet=args.quiet, output=args.output, config_context=args.v3
+            ).main(
+                "appvaults",
+                filters=[
+                    {"keyFilter": "spec.providerType", "valFilter": args.provider},
+                    {"keyFilter": "metadata.name", "valFilter": args.nameFilter, "inMatch": True},
+                ],
+            )
+        else:
+            rc = astraSDK.buckets.getBuckets(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(nameFilter=args.nameFilter, provider=args.provider)
+            if rc is False:
+                raise SystemExit("astraSDK.buckets.getBuckets() failed")
     elif args.objectType == "clouds":
         rc = astraSDK.clouds.getClouds(
             quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -69,24 +105,44 @@ def main(args):
         )
         if rc is False:
             raise SystemExit("astraSDK.clusters.getClusters() failed")
-    elif args.objectType == "credentials":
-        rc = astraSDK.credentials.getCredentials(
-            quiet=args.quiet, verbose=args.verbose, output=args.output
-        ).main(kubeconfigOnly=args.kubeconfigOnly)
-        if rc is False:
-            raise SystemExit("astraSDK.credentials.getCredentials() failed")
-    elif args.objectType == "hooks":
-        rc = astraSDK.hooks.getHooks(
-            quiet=args.quiet, verbose=args.verbose, output=args.output
-        ).main(appFilter=args.app)
-        if rc is False:
-            raise SystemExit("astraSDK.hooks.getHooks() failed")
-    elif args.objectType == "protections":
-        rc = astraSDK.protections.getProtectionpolicies(
-            quiet=args.quiet, verbose=args.verbose, output=args.output
-        ).main(appFilter=args.app)
-        if rc is False:
-            raise SystemExit("astraSDK.protections.getProtectionpolicies() failed")
+    elif args.objectType == "credentials" or args.objectType == "secrets":
+        if args.v3:
+            rc = astraSDK.k8s.getSecrets(
+                quiet=args.quiet, output=args.output, config_context=args.v3
+            ).main()
+        else:
+            rc = astraSDK.credentials.getCredentials(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(kubeconfigOnly=args.kubeconfigOnly)
+            if rc is False:
+                raise SystemExit("astraSDK.credentials.getCredentials() failed")
+    elif args.objectType == "hooks" or args.objectType == "exechooks":
+        if args.v3:
+            rc = astraSDK.k8s.getResources(
+                quiet=args.quiet, output=args.output, config_context=args.v3
+            ).main(
+                "exechooks", filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}]
+            )
+        else:
+            rc = astraSDK.hooks.getHooks(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(appFilter=args.app)
+            if rc is False:
+                raise SystemExit("astraSDK.hooks.getHooks() failed")
+    elif args.objectType == "protections" or args.objectType == "schedules":
+        if args.v3:
+            rc = astraSDK.k8s.getResources(
+                quiet=args.quiet, output=args.output, config_context=args.v3
+            ).main(
+                "schedules",
+                filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}],
+            )
+        else:
+            rc = astraSDK.protections.getProtectionpolicies(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(appFilter=args.app)
+            if rc is False:
+                raise SystemExit("astraSDK.protections.getProtectionpolicies() failed")
     elif args.objectType == "replications":
         rc = astraSDK.replications.getReplicationpolicies(
             quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -141,11 +197,19 @@ def main(args):
                     print("#" * len(f"### {script['name']} ###"))
                     print(base64.b64decode(script["source"]).decode("utf-8"))
     elif args.objectType == "snapshots":
-        rc = astraSDK.snapshots.getSnaps(
-            quiet=args.quiet, verbose=args.verbose, output=args.output
-        ).main(appFilter=args.app)
-        if rc is False:
-            raise SystemExit("astraSDK.snapshots.getSnaps() failed")
+        if args.v3:
+            rc = astraSDK.k8s.getResources(
+                quiet=args.quiet, output=args.output, config_context=args.v3
+            ).main(
+                "snapshots",
+                filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}],
+            )
+        else:
+            rc = astraSDK.snapshots.getSnaps(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(appFilter=args.app)
+            if rc is False:
+                raise SystemExit("astraSDK.snapshots.getSnaps() failed")
     elif args.objectType == "storagebackends":
         rc = astraSDK.storagebackends.getStorageBackends(
             quiet=args.quiet, verbose=args.verbose, output=args.output

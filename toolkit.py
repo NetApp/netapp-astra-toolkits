@@ -129,6 +129,8 @@ def main(argv=sys.argv):
         # Argparse cares about capitalization, kubectl does not, so transparently fix appvault
         if verbPosition and len(argv) - verbPosition >= 2 and argv[verbPosition + 1] == "appvault":
             argv[verbPosition + 1] = "appVault"
+        if verbPosition and len(argv) - verbPosition >= 2 and argv[verbPosition + 1] == "appvaults":
+            argv[verbPosition + 1] = "appVaults"
 
         # Transparently change "protectionpolicy" to "protection" for backwards compatibility
         if (
@@ -137,8 +139,6 @@ def main(argv=sys.argv):
             and argv[verbPosition + 1] == "protectionpolicy"
         ):
             argv[verbPosition + 1] = "protection"
-            print("Hit the protectionpolicy change")
-            print(argv)
 
         # If v3, build the kubeconfig:context choices list (we want this outside of
         # tkSrc.choices.main as it should be generated regardless of plaidMode)
@@ -163,19 +163,34 @@ def main(argv=sys.argv):
     parser = tkParser.main()
     args = parser.parse_args(args=argv)
     if args.v3:
-        tkSrc.helpers.checkv3Support(
-            args,
-            parser,
-            {
-                "clone": True,
-                "create": ["backup", "snapshot", "hook", "protection"],
-                "define": ["app", "bucket", "appVault", "cluster"],
-                "ipr": True,
-                "manage": ["app", "bucket", "appVault", "cluster"],
-                "restore": True,
-                "unmanage": ["cluster"],
-            },
+        v3_dict = {
+            "create": ["backup", "snapshot", "hook", "protection"],
+            "unmanage": ["cluster"],
+        }
+        v3_dict.update(dict.fromkeys(["clone", "ipr", "restore"], True))
+        v3_dict.update(
+            dict.fromkeys(["define", "manage"], ["app", "bucket", "appVault", "cluster"])
         )
+        v3_dict.update(
+            dict.fromkeys(
+                ["list", "get"],
+                [
+                    "apps",
+                    "applications",
+                    "appVaults",
+                    "backups",
+                    "buckets",
+                    "credentials",
+                    "exechooks",
+                    "hooks",
+                    "protections",
+                    "schedules",
+                    "secrets",
+                    "snapshots",
+                ],
+            )
+        )
+        tkSrc.helpers.checkv3Support(args, parser, v3_dict)
 
     if args.subcommand == "deploy":
         tkSrc.deploy.main(args, parser, ard)

@@ -29,7 +29,8 @@ class getResources(KubeCommon):
 
     def __init__(self, quiet=True, output="json", config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        output: json: (default) output in JSON
+        output: table: pretty print the data
+                json: (default) output in JSON
                 yaml: output in yaml
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
@@ -45,9 +46,13 @@ class getResources(KubeCommon):
         namespace="astra-connector",
         version="v1",
         group="astra.netapp.io",
-        keyFilter=None,
-        valFilter=None,
+        filters=[],
     ):
+        """filters must be of format (logical AND if specifying multiple filters, set
+        inMatch to True to use "in" comparison instead of "=="): [
+          {"keyFilter": "keyname1", "valFilter": "value1", inMatch=True},
+          {"keyFilter": "keyname2", "valFilter": "value2"}
+        ]"""
         api_instance = kubernetes.client.CustomObjectsApi(self.api_client)
         try:
             resp = api_instance.list_namespaced_custom_object(
@@ -56,14 +61,23 @@ class getResources(KubeCommon):
                 namespace=namespace,
                 plural=plural,
             )
-            if keyFilter and valFilter:
+            for f in filters:
                 filterCopy = copy.deepcopy(resp)
-                for counter, r in enumerate(filterCopy.get("items")):
-                    if self.recursiveGet(keyFilter, r) != valFilter:
-                        resp["items"].remove(filterCopy["items"][counter])
+                if f["keyFilter"] and f["valFilter"]:
+                    for counter, r in enumerate(filterCopy.get("items")):
+                        if f.get("inMatch"):
+                            if f["valFilter"] not in self.recursiveGet(f["keyFilter"], r, []):
+                                resp["items"].remove(filterCopy["items"][counter])
+                        else:
+                            if self.recursiveGet(f["keyFilter"], r, []) != f["valFilter"]:
+                                resp["items"].remove(filterCopy["items"][counter])
 
             if self.output == "yaml":
                 resp = yaml.dump(resp)
+            elif self.output == "table":
+                resp = self.basicTable(
+                    self.getTableInfo(plural, headers=True), self.getTableInfo(plural), resp
+                )
 
             if not self.quiet:
                 print(json.dumps(resp) if type(resp) is dict else resp)
@@ -71,6 +85,102 @@ class getResources(KubeCommon):
 
         except kubernetes.client.rest.ApiException as e:
             self.printError(e)
+
+    def getTableInfo(self, plural, headers=False):
+        if plural == "applications":
+            if headers:
+                return ["name", "namespaces", "labelSelectors", "state"]
+            return [
+                "metadata.name",
+                "spec.includedNamespaces[].namespace",
+                "spec.includedNamespaces[].labelSelector.matchLabels.app",
+                "status.conditions[].type",
+            ]
+        elif plural == "appvaults":
+            if headers:
+                return ["name", "credential", "provider", "state"]
+            return [
+                "metadata.name",
+                "spec.providerCredentials.*.valueFromSecret.name",
+                "spec.providerType",
+                "status.state",
+            ]
+        elif plural == "backups":
+            if headers:
+                return [
+                    "applicationRef",
+                    "backupName",
+                    "appVaultRef",
+                    "backupState",
+                    "creationTimestamp",
+                ]
+            return [
+                "spec.applicationRef",
+                "metadata.name",
+                "spec.appVaultRef",
+                "status.state",
+                "metadata.creationTimestamp",
+            ]
+        elif plural == "exechooks":
+            if headers:
+                return [
+                    "applicationRef",
+                    "name",
+                    "stage",
+                    "action",
+                    "arguments",
+                    "matchingCriteriaType",
+                    "matchingCriteriaValue",
+                ]
+            return [
+                "spec.applicationRef",
+                "metadata.name",
+                "spec.stage",
+                "spec.action",
+                "spec.arguments",
+                "spec.matchingCriteria[].type",
+                "spec.matchingCriteria[].value",
+            ]
+        elif plural == "schedules":
+            if headers:
+                return [
+                    "applicationRef",
+                    "name",
+                    "granularity",
+                    "minute",
+                    "hour",
+                    "dayOfWeek",
+                    "dayOfMonth",
+                    "snapRetention",
+                    "backupRetention",
+                ]
+            return [
+                "spec.applicationRef",
+                "metadata.name",
+                "spec.granularity",
+                "spec.minute",
+                "spec.hour",
+                "spec.dayOfWeek",
+                "spec.dayOfMonth",
+                "spec.snapshotRetention",
+                "spec.backupRetention",
+            ]
+        elif plural == "snapshots":
+            if headers:
+                return [
+                    "applicationRef",
+                    "snapshotName",
+                    "appVaultRef",
+                    "snapshotState",
+                    "creationTimestamp",
+                ]
+            return [
+                "spec.applicationRef",
+                "metadata.name",
+                "spec.appVaultRef",
+                "status.state",
+                "metadata.creationTimestamp",
+            ]
 
 
 class getClusterResources(KubeCommon):
@@ -285,7 +395,8 @@ class getSecrets(KubeCommon):
 
     def __init__(self, quiet=True, output="json", config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        output: json: (default) output in JSON
+        output: table: pretty print the data
+                json: (default) output in JSON
                 yaml: output in yaml
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
@@ -302,6 +413,12 @@ class getSecrets(KubeCommon):
 
             if self.output == "yaml":
                 resp = yaml.dump(resp)
+            elif self.output == "table":
+                resp = self.basicTable(
+                    ["name", "type", "dataKeys", "creationTimestamp"],
+                    ["metadata.name", "type", "data.KEYS", "metadata.creation_timestamp"],
+                    resp,
+                )
 
             if not self.quiet:
                 print(json.dumps(resp, default=str) if type(resp) is dict else resp)

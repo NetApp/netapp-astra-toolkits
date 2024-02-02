@@ -182,6 +182,7 @@ class ToolkitParser:
         )
         self.subparserListApps = self.subparserList.add_parser(
             "apps",
+            aliases=["applications"],
             help="list apps",
         )
         self.subparserListAssets = self.subparserList.add_parser(
@@ -194,6 +195,7 @@ class ToolkitParser:
         )
         self.subparserListBuckets = self.subparserList.add_parser(
             "buckets",
+            aliases=["appVaults"],
             help="list buckets",
         )
         self.subparserListClouds = self.subparserList.add_parser(
@@ -206,10 +208,13 @@ class ToolkitParser:
         )
         self.subparserListCredentials = self.subparserList.add_parser(
             "credentials",
+            aliases=["secrets"],
             help="list credentials",
         )
         self.subparserListHooks = self.subparserList.add_parser(
-            "hooks", help="list hooks (executionHooks)"
+            "hooks",
+            aliases=["exechooks"],
+            help="list hooks (executionHooks)",
         )
         self.subparserListNamespaces = self.subparserList.add_parser(
             "namespaces",
@@ -221,6 +226,7 @@ class ToolkitParser:
         )
         self.subparserListProtections = self.subparserList.add_parser(
             "protections",
+            aliases=["schedules"],
             help="list protection policies",
         )
         self.subparserListReplications = self.subparserList.add_parser(
@@ -662,9 +668,10 @@ class ToolkitParser:
             default=None,
             help="Filter app names by this value to minimize output (partial match)",
         )
-        self.subparserListApps.add_argument(
-            "-c", "--cluster", default=None, help="Only show apps from this cluster"
-        )
+        if not self.v3:
+            self.subparserListApps.add_argument(
+                "-c", "--cluster", default=None, help="Only show apps from this cluster"
+            )
 
     def list_assets_args(self):
         """list assets args and flags"""
@@ -730,13 +737,14 @@ class ToolkitParser:
 
     def list_credentials_args(self):
         """list credentials args and flags"""
-        self.subparserListCredentials.add_argument(
-            "-k",
-            "--kubeconfigOnly",
-            default=False,
-            action="store_true",
-            help="Only show kubeconfig credentials",
-        )
+        if not self.v3:
+            self.subparserListCredentials.add_argument(
+                "-k",
+                "--kubeconfigOnly",
+                default=False,
+                action="store_true",
+                help="Only show kubeconfig credentials",
+            )
 
     def list_hooks_args(self):
         """list hooks args and flags"""
