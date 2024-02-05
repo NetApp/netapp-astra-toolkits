@@ -24,7 +24,7 @@ import tkSrc
 
 
 def main(args, parser, ard):
-    if args.objectType == "app":
+    if args.objectType == "app" or args.objectType == "application":
         if args.additionalNamespace:
             args.additionalNamespace = tkSrc.helpers.createNamespaceList(
                 args.additionalNamespace, v3=args.v3

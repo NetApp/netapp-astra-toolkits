@@ -20,13 +20,18 @@ import astraSDK
 
 def main(args, parser, ard):
     if args.objectType == "backup":
-        rc = astraSDK.backups.destroyBackup(quiet=args.quiet, verbose=args.verbose).main(
-            args.appID, args.backupID
-        )
-        if rc:
-            print(f"Backup {args.backupID} destroyed")
+        if args.v3:
+            rc = astraSDK.k8s.destroyResource(
+                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+            ).main("backups", args.backup)
         else:
-            raise SystemExit(f"Failed destroying backup: {args.backupID}")
+            rc = astraSDK.backups.destroyBackup(quiet=args.quiet, verbose=args.verbose).main(
+                args.app, args.backup
+            )
+            if rc:
+                print(f"Backup {args.backup} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying backup: {args.backup}")
     elif args.objectType == "cluster":
         if ard.needsattr("clusters"):
             ard.clusters = astraSDK.clusters.getClusters().main()
@@ -37,29 +42,44 @@ def main(args, parser, ard):
         if not rc:
             raise SystemExit(f"Failed destroying cluster: {args.cluster}")
     elif args.objectType == "credential":
-        rc = astraSDK.credentials.destroyCredential(quiet=args.quiet, verbose=args.verbose).main(
-            args.credentialID
-        )
-        if rc:
-            print(f"Credential {args.credentialID} destroyed")
+        if args.v3:
+            astraSDK.k8s.destroySecret(
+                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+            ).main(args.credential)
         else:
-            raise SystemExit(f"Failed destroying credential: {args.credentialID}")
+            rc = astraSDK.credentials.destroyCredential(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(args.credential)
+            if rc:
+                print(f"Credential {args.credential} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying credential: {args.credential}")
     elif args.objectType == "hook":
-        rc = astraSDK.hooks.destroyHook(quiet=args.quiet, verbose=args.verbose).main(
-            args.appID, args.hookID
-        )
-        if rc:
-            print(f"Hook {args.hookID} destroyed")
+        if args.v3:
+            rc = astraSDK.k8s.destroyResource(
+                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+            ).main("exechooks", args.hook)
         else:
-            raise SystemExit(f"Failed destroying hook: {args.hookID}")
+            rc = astraSDK.hooks.destroyHook(quiet=args.quiet, verbose=args.verbose).main(
+                args.app, args.hook
+            )
+            if rc:
+                print(f"Hook {args.hook} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying hook: {args.hook}")
     elif args.objectType == "protection":
-        rc = astraSDK.protections.destroyProtectiontionpolicy(
-            quiet=args.quiet, verbose=args.verbose
-        ).main(args.appID, args.protectionID)
-        if rc:
-            print(f"Protection policy {args.protectionID} destroyed")
+        if args.v3:
+            rc = astraSDK.k8s.destroyResource(
+                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+            ).main("schedules", args.protection)
         else:
-            raise SystemExit(f"Failed destroying protection policy: {args.protectionID}")
+            rc = astraSDK.protections.destroyProtectiontionpolicy(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(args.app, args.protection)
+            if rc:
+                print(f"Protection policy {args.protection} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying protection policy: {args.protection}")
     elif args.objectType == "replication":
         if ard.needsattr("replications"):
             ard.replications = astraSDK.replications.getReplicationpolicies().main()
@@ -100,13 +120,18 @@ def main(args, parser, ard):
         else:
             raise SystemExit(f"Failed destroying script: {args.scriptID}")
     elif args.objectType == "snapshot":
-        rc = astraSDK.snapshots.destroySnapshot(quiet=args.quiet, verbose=args.verbose).main(
-            args.appID, args.snapshotID
-        )
-        if rc:
-            print(f"Snapshot {args.snapshotID} destroyed")
+        if args.v3:
+            rc = astraSDK.k8s.destroyResource(
+                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+            ).main("snapshots", args.snapshot)
         else:
-            raise SystemExit(f"Failed destroying snapshot: {args.snapshotID}")
+            rc = astraSDK.snapshots.destroySnapshot(quiet=args.quiet, verbose=args.verbose).main(
+                args.app, args.snapshot
+            )
+            if rc:
+                print(f"Snapshot {args.snapshot} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying snapshot: {args.snapshot}")
     elif args.objectType == "user":
         userDestroyed = False
         roleBindings = astraSDK.rolebindings.getRolebindings().main()

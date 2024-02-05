@@ -305,6 +305,7 @@ class ToolkitParser:
         """manage 'X'"""
         self.subparserManageApp = self.subparserManage.add_parser(
             "app",
+            aliases=["application"],
             help="manage app",
         )
         self.subparserManageBucket = self.subparserManage.add_parser(
@@ -364,10 +365,12 @@ class ToolkitParser:
         """unmanage 'X'"""
         self.subparserUnmanageApp = self.subparserUnmanage.add_parser(
             "app",
+            aliases=["application"],
             help="unmanage app",
         )
         self.subparserUnmanageBucket = self.subparserUnmanage.add_parser(
             "bucket",
+            aliases=["appVault"],
             help="unmanage bucket",
         )
         self.subparserUnmanageCloud = self.subparserUnmanage.add_parser(
@@ -1511,14 +1514,14 @@ class ToolkitParser:
     def destroy_backup_args(self):
         """destroy backup args and flags"""
         self.subparserDestroyBackup.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of app to destroy backups from",
+            help="app to destroy backups from",
         )
         self.subparserDestroyBackup.add_argument(
-            "backupID",
+            "backup",
             choices=(None if self.plaidMode else self.acl.backups),
-            help="backupID to destroy",
+            help="backup to destroy",
         )
 
     def destroy_cluster_args(self):
@@ -1532,35 +1535,35 @@ class ToolkitParser:
     def destroy_credential_args(self):
         """destroy credential args and flags"""
         self.subparserDestroyCredential.add_argument(
-            "credentialID",
+            "credential",
             choices=(None if self.plaidMode else self.acl.credentials),
-            help="credentialID to destroy",
+            help="credential to destroy",
         )
 
     def destroy_hook_args(self):
         """destroy hook args and flags"""
         self.subparserDestroyHook.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of app to destroy hooks from",
+            help="app to destroy hooks from",
         )
         self.subparserDestroyHook.add_argument(
-            "hookID",
+            "hook",
             choices=(None if self.plaidMode else self.acl.hooks),
-            help="hookID to destroy",
+            help="hook to destroy",
         )
 
     def destroy_protection_args(self):
         """destroy protection args and flags"""
         self.subparserDestroyProtection.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of app to destroy protection policy from",
+            help="app to destroy protection policy from",
         )
         self.subparserDestroyProtection.add_argument(
-            "protectionID",
+            "protection",
             choices=(None if self.plaidMode else self.acl.protections),
-            help="protectionID to destroy",
+            help="protection to destroy",
         )
 
     def destroy_replication_args(self):
@@ -1582,14 +1585,14 @@ class ToolkitParser:
     def destroy_snapshot_args(self):
         """destroy snapshot args and flags"""
         self.subparserDestroySnapshot.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of app to destroy snapshot from",
+            help="app to destroy snapshot from",
         )
         self.subparserDestroySnapshot.add_argument(
-            "snapshotID",
+            "snapshot",
             choices=(None if self.plaidMode else self.acl.snapshots),
-            help="snapshotID to destroy",
+            help="snapshot to destroy",
         )
 
     def destroy_user_args(self):
@@ -1603,17 +1606,17 @@ class ToolkitParser:
     def unmanage_app_args(self):
         """unmanage app args and flags"""
         self.subparserUnmanageApp.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of app to move from managed to unmanaged",
+            help="app to move from managed to unmanaged",
         )
 
     def unmanage_bucket_args(self):
         """unmanage bucket args and flags"""
         self.subparserUnmanageBucket.add_argument(
-            "bucketID",
+            "bucket",
             choices=(None if self.plaidMode else self.acl.buckets),
-            help="bucketID of bucket to unmanage",
+            help="bucket to unmanage",
         )
 
     def unmanage_cluster_args(self):

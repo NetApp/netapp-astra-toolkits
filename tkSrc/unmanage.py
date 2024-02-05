@@ -19,16 +19,26 @@ import astraSDK
 
 
 def main(args, parser, ard):
-    if args.objectType == "app":
-        rc = astraSDK.apps.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(args.appID)
-        if rc is False:
-            raise SystemExit("astraSDK.apps.unmanageApp() failed")
-    elif args.objectType == "bucket":
-        rc = astraSDK.buckets.unmanageBucket(quiet=args.quiet, verbose=args.verbose).main(
-            args.bucketID
-        )
-        if rc is False:
-            raise SystemExit("astraSDK.buckets.unmanageBucket() failed")
+    if args.objectType == "app" or args.objectType == "application":
+        if args.v3:
+            astraSDK.k8s.destroyResource(
+                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+            ).main("applications", args.app)
+        else:
+            rc = astraSDK.apps.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(args.app)
+            if rc is False:
+                raise SystemExit("astraSDK.apps.unmanageApp() failed")
+    elif args.objectType == "bucket" or args.objectType == "appVault":
+        if args.v3:
+            astraSDK.k8s.destroyResource(
+                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+            ).main("appvaults", args.bucket)
+        else:
+            rc = astraSDK.buckets.unmanageBucket(quiet=args.quiet, verbose=args.verbose).main(
+                args.bucket
+            )
+            if rc is False:
+                raise SystemExit("astraSDK.buckets.unmanageBucket() failed")
     elif args.objectType == "cluster":
         # If this is a v3-managed cluster, we need to destroy the AstraConnector CR, however we do
         # not want to do that without first ensuring the clusterID the user inputted matches the
