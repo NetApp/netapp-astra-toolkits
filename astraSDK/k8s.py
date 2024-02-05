@@ -20,6 +20,7 @@ import copy
 import json
 import kubernetes
 import yaml
+from datetime import datetime, timedelta, timezone
 
 from .common import KubeCommon, SDKCommon
 
@@ -76,7 +77,10 @@ class getResources(KubeCommon):
                 resp = yaml.dump(resp)
             elif self.output == "table":
                 resp = self.basicTable(
-                    self.getTableInfo(plural, headers=True), self.getTableInfo(plural), resp
+                    self.getTableInfo(plural, headers=True),
+                    self.getTableInfo(plural),
+                    resp,
+                    tablefmt="outline",
                 )
 
             if not self.quiet:
@@ -357,11 +361,15 @@ class getNamespaces(KubeCommon):
         self.output = output
         super().__init__(config_context=config_context)
 
-    def main(self, systemNS=None):
+    def main(self, systemNS=None, nameFilter=None, unassociated=False, minuteFilter=False):
         """Default behavior (systemNS=None) is to remove typical system namespaces from the
         response. However for certain workflows, you may want to return ALL namespaces (pass an
         empty list: systemNS=[]), or remove a custom list (systemNS=["ns1-to-ignore",
-        "ns2-to-ignore", "ns3-to-ignore"])."""
+        "ns2-to-ignore", "ns3-to-ignore"]).
+        nameFilter: partial match against metadata.name
+        unassociated: only return namespaces which do not contain the "managed-by-astra-application"
+                      annotation
+        minuteFilter: only return namespaces created within the last X minutes"""
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
         try:
             resp = api_instance.list_namespace().to_dict()
@@ -378,9 +386,33 @@ class getNamespaces(KubeCommon):
             for counter, ns in enumerate(namespaces.get("items")):
                 if ns.get("metadata").get("name") in systemNS:
                     resp["items"].remove(namespaces["items"][counter])
+                elif nameFilter and nameFilter not in ns["metadata"].get("name"):
+                    resp["items"].remove(namespaces["items"][counter])
+                elif (
+                    unassociated
+                    and "managed-by-astra-application" in ns["metadata"].get("annotations").keys()
+                ):
+                    resp["items"].remove(namespaces["items"][counter])
+                elif minuteFilter and (
+                    datetime.now(timezone.utc) - ns["metadata"].get("creation_timestamp")
+                    > timedelta(minutes=minuteFilter)
+                ):
+                    resp["items"].remove(namespaces["items"][counter])
 
             if self.output == "yaml":
                 resp = yaml.dump(resp)
+            elif self.output == "table":
+                resp = self.basicTable(
+                    ["name", "status", "managed-by-astra-application", "creationTimestamp"],
+                    [
+                        "metadata.name",
+                        "status.phase",
+                        "metadata.annotations.managed-by-astra-application",
+                        "metadata.creation_timestamp",
+                    ],
+                    resp,
+                    tablefmt="outline",
+                )
 
             if not self.quiet:
                 print(json.dumps(resp, default=str) if type(resp) is dict else resp)
@@ -418,6 +450,7 @@ class getSecrets(KubeCommon):
                     ["name", "type", "dataKeys", "creationTimestamp"],
                     ["metadata.name", "type", "data.KEYS", "metadata.creation_timestamp"],
                     resp,
+                    tablefmt="outline",
                 )
 
             if not self.quiet:

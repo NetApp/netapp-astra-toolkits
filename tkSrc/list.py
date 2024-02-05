@@ -150,17 +150,26 @@ def main(args):
         if rc is False:
             raise SystemExit("astraSDK.replications.getReplicationpolicies() failed")
     elif args.objectType == "namespaces":
-        rc = astraSDK.namespaces.getNamespaces(
-            quiet=args.quiet, verbose=args.verbose, output=args.output
-        ).main(
-            clusterID=args.clusterID,
-            nameFilter=args.nameFilter,
-            showRemoved=args.showRemoved,
-            unassociated=args.unassociated,
-            minuteFilter=args.minutes,
-        )
-        if rc is False:
-            raise SystemExit("astraSDK.namespaces.getNamespaces() failed")
+        if args.v3:
+            rc = astraSDK.k8s.getNamespaces(
+                quiet=args.quiet, output=args.output, config_context=args.v3
+            ).main(
+                nameFilter=args.nameFilter,
+                unassociated=args.unassociated,
+                minuteFilter=args.minutes,
+            )
+        else:
+            rc = astraSDK.namespaces.getNamespaces(
+                quiet=args.quiet, verbose=args.verbose, output=args.output
+            ).main(
+                clusterID=args.clusterID,
+                nameFilter=args.nameFilter,
+                showRemoved=args.showRemoved,
+                unassociated=args.unassociated,
+                minuteFilter=args.minutes,
+            )
+            if rc is False:
+                raise SystemExit("astraSDK.namespaces.getNamespaces() failed")
     elif args.objectType == "notifications":
         rc = astraSDK.notifications.getNotifications(
             quiet=args.quiet, verbose=args.verbose, output=args.output

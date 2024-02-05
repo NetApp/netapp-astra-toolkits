@@ -754,21 +754,22 @@ class ToolkitParser:
 
     def list_namespaces_args(self):
         """list namespaces args and flags"""
-        self.subparserListNamespaces.add_argument(
-            "-c", "--clusterID", default=None, help="Only show namespaces from this clusterID"
-        )
+        if not self.v3:
+            self.subparserListNamespaces.add_argument(
+                "-c", "--clusterID", default=None, help="Only show namespaces from this clusterID"
+            )
+            self.subparserListNamespaces.add_argument(
+                "-r",
+                "--showRemoved",
+                default=False,
+                action="store_true",
+                help="Show namespaces in a 'removed' state",
+            )
         self.subparserListNamespaces.add_argument(
             "-f",
             "--nameFilter",
             default=None,
             help="Filter namespaces by this value to minimize output (partial match)",
-        )
-        self.subparserListNamespaces.add_argument(
-            "-r",
-            "--showRemoved",
-            default=False,
-            action="store_true",
-            help="Show namespaces in a 'removed' state",
         )
         self.subparserListNamespaces.add_argument(
             "-u",

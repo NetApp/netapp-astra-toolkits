@@ -183,6 +183,7 @@ def main(argv=sys.argv):
                     "credentials",
                     "exechooks",
                     "hooks",
+                    "namespaces",
                     "protections",
                     "schedules",
                     "secrets",

@@ -142,7 +142,7 @@ class BaseCommon:
             return list(item.keys())
         return item.get(k)
 
-    def basicTable(self, tabHeader, tabKeys, dataDict):
+    def basicTable(self, tabHeader, tabKeys, dataDict, tablefmt="grid"):
         """Function to create a basic tabulate table for terminal printing"""
         tabData = []
         for item in dataDict["items"]:
@@ -153,7 +153,7 @@ class BaseCommon:
                 if type(r) is list:
                     row[c] = ", ".join(r)
             tabData.append(row)
-        return tabulate(tabData, tabHeader, tablefmt="grid")
+        return tabulate(tabData, tabHeader, tablefmt=tablefmt)
 
 
 class SDKCommon(BaseCommon):
