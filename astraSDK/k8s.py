@@ -66,10 +66,10 @@ class getResources(KubeCommon):
                 if f["keyFilter"] and f["valFilter"]:
                     for counter, r in enumerate(filterCopy.get("items")):
                         if f.get("inMatch"):
-                            if f["valFilter"] not in self.recursiveGet(f["keyFilter"], r, []):
+                            if f["valFilter"] not in self.recursiveGet(f["keyFilter"], r):
                                 resp["items"].remove(filterCopy["items"][counter])
                         else:
-                            if self.recursiveGet(f["keyFilter"], r, []) != f["valFilter"]:
+                            if self.recursiveGet(f["keyFilter"], r) != f["valFilter"]:
                                 resp["items"].remove(filterCopy["items"][counter])
 
             if self.output == "yaml":

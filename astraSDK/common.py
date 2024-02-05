@@ -109,7 +109,7 @@ class BaseCommon:
         except AttributeError:
             sys.stderr.write(f"{RED}{ret}{ENDC}")
 
-    def recursiveGet(self, k, item, conCatList=[]):
+    def recursiveGet(self, k, item, conCatList=None):
         """Recursion function which is just a wrapper around dict.get(key), to handle cases
         where there's a dict or list within a dict:
          - '.' in the key name ('metadata.creationTimestamp') is used to identify a dict
