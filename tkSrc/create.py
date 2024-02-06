@@ -78,8 +78,6 @@ def main(args, parser, ard):
     if args.objectType == "backup":
         if args.v3:
             template = tkSrc.helpers.setupJinja(args.objectType)
-            if ard.needsattr("apps"):
-                ard.apps = astraSDK.apps.getApps().main()
             v3_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(args.name),
@@ -338,8 +336,6 @@ def main(args, parser, ard):
     elif args.objectType == "snapshot":
         if args.v3:
             template = tkSrc.helpers.setupJinja(args.objectType)
-            if ard.needsattr("apps"):
-                ard.apps = astraSDK.apps.getApps().main()
             v3_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(args.name),

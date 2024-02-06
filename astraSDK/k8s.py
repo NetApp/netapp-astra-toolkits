@@ -47,7 +47,7 @@ class getResources(KubeCommon):
         namespace="astra-connector",
         version="v1",
         group="astra.netapp.io",
-        filters=[],
+        filters=None,
     ):
         """filters must be of format (logical AND if specifying multiple filters, set
         inMatch to True to use "in" comparison instead of "=="): [
@@ -62,16 +62,17 @@ class getResources(KubeCommon):
                 namespace=namespace,
                 plural=plural,
             )
-            for f in filters:
-                filterCopy = copy.deepcopy(resp)
-                if f["keyFilter"] and f["valFilter"]:
-                    for counter, r in enumerate(filterCopy.get("items")):
-                        if f.get("inMatch"):
-                            if f["valFilter"] not in self.recursiveGet(f["keyFilter"], r):
-                                resp["items"].remove(filterCopy["items"][counter])
-                        else:
-                            if self.recursiveGet(f["keyFilter"], r) != f["valFilter"]:
-                                resp["items"].remove(filterCopy["items"][counter])
+            if isinstance(filters, list):
+                for f in filters:
+                    filterCopy = copy.deepcopy(resp)
+                    if f["keyFilter"] and f["valFilter"]:
+                        for counter, r in enumerate(filterCopy.get("items")):
+                            if f.get("inMatch"):
+                                if f["valFilter"] not in self.recursiveGet(f["keyFilter"], r):
+                                    resp["items"].remove(filterCopy["items"][counter])
+                            else:
+                                if self.recursiveGet(f["keyFilter"], r) != f["valFilter"]:
+                                    resp["items"].remove(filterCopy["items"][counter])
 
             if self.output == "yaml":
                 resp = yaml.dump(resp)
