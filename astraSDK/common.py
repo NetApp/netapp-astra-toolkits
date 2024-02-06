@@ -135,6 +135,8 @@ class BaseCommon:
         elif (len(k.split("[]")) > 1 and len(k.split(".")) == 1) or (
             len(k.split("[]")[0]) < len(k.split(".")[0])
         ):
+            if conCatList is None:
+                conCatList = []
             for i in item[k.split("[]")[0]]:
                 conCatList.append(self.recursiveGet(k.split("[]", 1)[1], i, []))
             return conCatList
