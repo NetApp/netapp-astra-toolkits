@@ -124,7 +124,6 @@ class BaseCommon:
             if k.split(".")[0] == "*":
                 return self.recursiveGet(k.split(".", 1)[1], item[next(iter(item))], conCatList)
             elif k.split(".")[0] == "KEYS":
-                print("hit the KEYS section")
                 return self.recursiveGet(
                     k.split(".", 1)[1], item[k.split(".")[0]].keys(), conCatList
                 )
@@ -139,7 +138,7 @@ class BaseCommon:
                 conCatList = []
             for i in item[k.split("[]")[0]]:
                 conCatList.append(self.recursiveGet(k.split("[]", 1)[1], i, []))
-            return conCatList
+            return ", ".join(conCatList)
         if k == "KEYS":
             return list(item.keys())
         return item.get(k)
