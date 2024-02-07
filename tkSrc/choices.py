@@ -105,9 +105,11 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
     elif verbs["create"] and len(argv) - verbPosition >= 2:
         if (
             argv[verbPosition + 1] == "backup"
+            or argv[verbPosition + 1] == "exechook"
             or argv[verbPosition + 1] == "hook"
             or argv[verbPosition + 1] == "protection"
             or argv[verbPosition + 1] == "replication"
+            or argv[verbPosition + 1] == "schedule"
             or argv[verbPosition + 1] == "snapshot"
         ):
             if v3:
@@ -136,11 +138,11 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                             else:
                                 ard.snapshots = astraSDK.snapshots.getSnaps().main(appFilter=a)
                                 acl.snapshots = ard.buildList("snapshots", "id")
-            if argv[verbPosition + 1] == "hook":
+            if argv[verbPosition + 1] == "hook" or argv[verbPosition + 1] == "exechook":
                 if not v3:
                     ard.scripts = astraSDK.scripts.getScripts().main()
                     acl.scripts = ard.buildList("scripts", "id")
-            if argv[verbPosition + 1] == "protection":
+            if argv[verbPosition + 1] == "protection" or argv[verbPosition + 1] == "schedule":
                 if v3:
                     ard.buckets = astraSDK.k8s.getResources(config_context=v3).main("appvaults")
                     acl.buckets = ard.buildList("buckets", "metadata.name")
@@ -186,7 +188,7 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
             acl.apps = ard.buildList("apps", "id")
 
     elif (verbs["manage"] or verbs["define"]) and len(argv) - verbPosition >= 2:
-        if argv[verbPosition + 1] == "app":
+        if argv[verbPosition + 1] == "app" or argv[verbPosition + 1] == "application":
             if v3:
                 ard.namespaces = astraSDK.k8s.getNamespaces(config_context=v3).main()
                 acl.namespaces = ard.buildList("namespaces", "metadata.name")
@@ -275,14 +277,18 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
         elif argv[verbPosition + 1] == "cluster" and len(argv) - verbPosition >= 3:
             ard.clusters = astraSDK.clusters.getClusters().main()
             acl.clusters = ard.buildList("clusters", "id", fKey="managedState", fVal="unmanaged")
-        elif argv[verbPosition + 1] == "credential" and len(argv) - verbPosition >= 3:
+        elif (argv[verbPosition + 1] == "credential" or argv[verbPosition + 1] == "secret") and len(
+            argv
+        ) - verbPosition >= 3:
             if v3:
                 ard.credentials = astraSDK.k8s.getSecrets(config_context=v3).main()
                 acl.credentials = ard.buildList("credentials", "metadata.name")
             else:
                 ard.credentials = astraSDK.credentials.getCredentials().main()
                 acl.credentials = ard.buildList("credentials", "id")
-        elif argv[verbPosition + 1] == "hook" and len(argv) - verbPosition >= 3:
+        elif (argv[verbPosition + 1] == "hook" or argv[verbPosition + 1] == "exechook") and len(
+            argv
+        ) - verbPosition >= 3:
             if v3:
                 ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
                 acl.apps = ard.buildList("apps", "metadata.name")
@@ -349,14 +355,14 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
             acl.users = ard.buildList("users", "id")
 
     elif verbs["unmanage"] and len(argv) - verbPosition >= 2:
-        if argv[verbPosition + 1] == "app":
+        if argv[verbPosition + 1] == "app" or argv[verbPosition + 1] == "application":
             if v3:
                 ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
                 acl.apps = ard.buildList("apps", "metadata.name")
             else:
                 ard.apps = astraSDK.apps.getApps().main()
                 acl.apps = ard.buildList("apps", "id")
-        elif argv[verbPosition + 1] == "bucket":
+        elif argv[verbPosition + 1] == "bucket" or argv[verbPosition + 1] == "appVault":
             if v3:
                 ard.buckets = astraSDK.k8s.getResources(config_context=v3).main("appvaults")
                 acl.buckets = ard.buildList("buckets", "metadata.name")

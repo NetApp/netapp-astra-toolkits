@@ -41,7 +41,7 @@ def main(args, parser, ard):
         )
         if not rc:
             raise SystemExit(f"Failed destroying cluster: {args.cluster}")
-    elif args.objectType == "credential":
+    elif args.objectType == "credential" or args.objectType == "secret":
         if args.v3:
             astraSDK.k8s.destroySecret(
                 quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
@@ -54,7 +54,7 @@ def main(args, parser, ard):
                 print(f"Credential {args.credential} destroyed")
             else:
                 raise SystemExit(f"Failed destroying credential: {args.credential}")
-    elif args.objectType == "hook":
+    elif args.objectType == "hook" or args.objectType == "exechook":
         if args.v3:
             rc = astraSDK.k8s.destroyResource(
                 quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
@@ -67,7 +67,7 @@ def main(args, parser, ard):
                 print(f"Hook {args.hook} destroyed")
             else:
                 raise SystemExit(f"Failed destroying hook: {args.hook}")
-    elif args.objectType == "protection":
+    elif args.objectType == "protection" or args.objectType == "schedule":
         if args.v3:
             rc = astraSDK.k8s.destroyResource(
                 quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3

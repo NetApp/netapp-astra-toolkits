@@ -278,10 +278,12 @@ class ToolkitParser:
         )
         self.subparserCreateHook = self.subparserCreate.add_parser(
             "hook",
-            help="create hook (executionHook)",
+            aliases=["exechook"],
+            help="create execution hook",
         )
         self.subparserCreateProtection = self.subparserCreate.add_parser(
             "protection",
+            aliases=["schedule"],
             help="create protection policy",
         )
         self.subparserCreateReplication = self.subparserCreate.add_parser(
@@ -334,14 +336,17 @@ class ToolkitParser:
         )
         self.subparserDestroyCredential = self.subparserDestroy.add_parser(
             "credential",
+            aliases=["secret"],
             help="destroy credential",
         )
         self.subparserDestroyHook = self.subparserDestroy.add_parser(
             "hook",
-            help="destroy hook (executionHook)",
+            aliases=["exechook"],
+            help="destroy execution hook",
         )
         self.subparserDestroyProtection = self.subparserDestroy.add_parser(
             "protection",
+            aliases=["schedule"],
             help="destroy protection policy",
         )
         self.subparserDestroyReplication = self.subparserDestroy.add_parser(

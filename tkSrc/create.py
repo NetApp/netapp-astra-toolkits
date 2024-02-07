@@ -138,7 +138,7 @@ def main(args, parser, ard):
                 raise SystemExit("astraSDK.clusters.createCluster() failed")
         else:
             raise SystemExit("astraSDK.credentials.createCredential() failed")
-    elif args.objectType == "hook":
+    elif args.objectType == "hook" or args.objectType == "exechook":
         if args.v3:
             with open(args.filePath, encoding="utf8") as f:
                 encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
@@ -195,7 +195,7 @@ def main(args, parser, ard):
             )
             if rc is False:
                 raise SystemExit("astraSDK.hooks.createHook() failed")
-    elif args.objectType == "protection":
+    elif args.objectType == "protection" or args.objectType == "schedule":
         naStr = "" if args.v3 else "*"
         if args.granularity == "hourly":
             if args.hour:
