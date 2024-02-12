@@ -153,55 +153,63 @@ def deployHelm(chart, appName, namespace, setValues, fileValues, verbose, quiet)
 
 def main(args, parser, ard):
     if args.objectType == "acp":
-        # Ensure the trident orchestrator is already running
-        torc = astraSDK.k8s.getClusterResources(config_context=args.v3).main("tridentorchestrators")
-        if torc is None or len(torc["items"]) == 0:
-            parser.error("trident operator not found on current Kubernetes context")
-        elif len(torc["items"]) > 1:
-            parser.error("multiple trident operators found on current Kubernetes context")
-        # Handle the registry secret
-        if not args.regCred:
-            cred = astraSDK.k8s.createRegCred(quiet=args.quiet, config_context=args.v3).main(
-                registry=args.registry
+        if args.v3:
+            # Ensure the trident orchestrator is already running
+            torc = astraSDK.k8s.getClusterResources(config_context=args.v3).main(
+                "tridentorchestrators"
             )
-            if not cred:
-                raise SystemExit("astraSDK.k8s.createRegCred() failed")
-            args.regCred = cred["metadata"]["name"]
-        else:
-            if ard.needsattr("credentials"):
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main(
-                    namespace="trident"
+            if torc is None or len(torc["items"]) == 0:
+                parser.error("trident operator not found on current Kubernetes context")
+            elif len(torc["items"]) > 1:
+                parser.error("multiple trident operators found on current Kubernetes context")
+            # Handle the registry secret
+            if not args.regCred:
+                cred = astraSDK.k8s.createRegCred(quiet=args.quiet, config_context=args.v3).main(
+                    registry=args.registry
                 )
-            cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
-        # Handle default registry
-        if not args.registry:
-            try:
-                args.registry = next(
-                    iter(
-                        json.loads(base64.b64decode(cred["data"][".dockerconfigjson"]).decode())[
-                            "auths"
-                        ].keys()
+                if not cred:
+                    raise SystemExit("astraSDK.k8s.createRegCred() failed")
+                args.regCred = cred["metadata"]["name"]
+            else:
+                if ard.needsattr("credentials"):
+                    ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main(
+                        namespace="trident"
                     )
-                )
-            except KeyError as err:
-                parser.error(
-                    f"{args.regCred} does not appear to be a Docker secret: {err} key not found"
-                )
-        # Create the patch spec
-        torc_name = torc["items"][0]["metadata"]["name"]
-        torc_version = torc["items"][0]["status"]["version"][1:]
-        torc_spec = {"spec": torc["items"][0]["spec"]}
-        torc_spec["spec"]["enableACP"] = True
-        torc_spec["spec"]["acpImage"] = f"{args.registry}/astra/trident-acp:{torc_version}"
-        torc_spec["spec"]["imagePullSecrets"] = [args.regCred]
-        # Make the update
-        torc_update = astraSDK.k8s.updateClusterResource(
-            quiet=args.quiet, config_context=args.v3
-        ).main("tridentorchestrators", torc_name, torc_spec)
-        if torc_update:
-            print(f"tridentorchestrator.trident.netapp.io/{torc_name} edited")
+                cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
+            # Handle default registry
+            if not args.registry:
+                try:
+                    args.registry = next(
+                        iter(
+                            json.loads(
+                                base64.b64decode(cred["data"][".dockerconfigjson"]).decode()
+                            )["auths"].keys()
+                        )
+                    )
+                except KeyError as err:
+                    parser.error(
+                        f"{args.regCred} does not appear to be a Docker secret: {err} key not found"
+                    )
+            # Create the patch spec
+            torc_name = torc["items"][0]["metadata"]["name"]
+            torc_version = torc["items"][0]["status"]["version"][1:]
+            torc_spec = {"spec": torc["items"][0]["spec"]}
+            torc_spec["spec"]["enableACP"] = True
+            torc_spec["spec"]["acpImage"] = f"{args.registry}/astra/trident-acp:{torc_version}"
+            torc_spec["spec"]["imagePullSecrets"] = [args.regCred]
+            # Make the update
+            torc_update = astraSDK.k8s.updateClusterResource(
+                quiet=args.quiet, config_context=args.v3
+            ).main("tridentorchestrators", torc_name, torc_spec)
+            if torc_update:
+                print(f"tridentorchestrator.trident.netapp.io/{torc_name} edited")
+            else:
+                raise SystemExit("astraSDK.k8s.updateClusterResource() failed")
         else:
-            raise SystemExit("astraSDK.k8s.updateClusterResource() failed")
+            parser.error(
+                "'deploy acp' is currently only supported as a --v3 command, please re-run with "
+                "--v3 and an aptional context, kubeconfig_file, or kubeconfig_file:context mapping"
+            )
     elif args.objectType == "chart":
         deployHelm(
             args.chart,

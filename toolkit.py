@@ -165,6 +165,7 @@ def main(argv=sys.argv):
     if args.v3:
         v3_dict = {
             "create": ["backup", "hook", "protection", "snapshot"],
+            "deploy": ["acp"],
             "destroy": ["backup", "credential", "hook", "protection", "snapshot"],
             "unmanage": ["app", "application", "appVault", "bucket", "cluster"],
         }
