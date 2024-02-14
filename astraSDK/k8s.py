@@ -98,7 +98,7 @@ class getResources(KubeCommon):
             return [
                 "metadata.name",
                 "spec.includedNamespaces[].namespace",
-                "spec.includedNamespaces[].labelSelector.matchLabels.app",
+                "spec.includedNamespaces[].labelSelector.matchLabels",
                 "status.conditions[].type",
             ]
         elif plural == "appvaults":

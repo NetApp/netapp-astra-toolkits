@@ -74,31 +74,43 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
     return False
 
 
+def createV3Backup(v3, dry_run, quiet, name, app, appVault, snapshot=None, reclaimPolicy=None):
+    template = tkSrc.helpers.setupJinja("backup")
+    v3_dict = yaml.safe_load(
+        template.render(
+            name=tkSrc.helpers.isRFC1123(name),
+            appName=app,
+            appVaultName=appVault,
+            snapshotName=snapshot,
+            reclaimPolicy=reclaimPolicy,
+        )
+    )
+    if dry_run == "client":
+        print(yaml.dump(v3_dict).rstrip("\n"))
+        return v3_dict
+    else:
+        return astraSDK.k8s.createResource(quiet=quiet, dry_run=dry_run, config_context=v3).main(
+            f"{v3_dict['kind'].lower()}s",
+            v3_dict["metadata"]["namespace"],
+            v3_dict,
+            version="v1",
+            group="astra.netapp.io",
+        )
+
+
 def main(args, parser, ard):
     if args.objectType == "backup":
         if args.v3:
-            template = tkSrc.helpers.setupJinja(args.objectType)
-            v3_dict = yaml.safe_load(
-                template.render(
-                    name=tkSrc.helpers.isRFC1123(args.name),
-                    appName=args.app,
-                    appVaultName=args.bucket,
-                    snapshotName=args.snapshot,
-                    reclaimPolicy=args.reclaimPolicy,
-                )
+            createV3Backup(
+                args.v3,
+                args.dry_run,
+                args.quiet,
+                args.name,
+                args.app,
+                args.bucket,
+                args.snapshot,
+                args.reclaimPolicy,
             )
-            if args.dry_run == "client":
-                print(yaml.dump(v3_dict).rstrip("\n"))
-            else:
-                astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
-                ).main(
-                    f"{v3_dict['kind'].lower()}s",
-                    v3_dict["metadata"]["namespace"],
-                    v3_dict,
-                    version="v1",
-                    group="astra.netapp.io",
-                )
         else:
             protectionID = astraSDK.backups.takeBackup(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,

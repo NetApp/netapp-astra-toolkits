@@ -108,6 +108,7 @@ def main(argv=sys.argv):
 
         # Enabling comma separated listing of objects, like:
         # 'toolkit.py list apps,backups,snapshots'
+        # TODO: make this work for --v3
         if (verbs["list"] or verbs["get"]) and len(argv) > (verbPosition + 1):
             if "," in argv[verbPosition + 1]:
                 listTypeArray = argv[verbPosition + 1].split(",")

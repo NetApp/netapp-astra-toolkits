@@ -219,22 +219,37 @@ def doClone(
         raise SystemExit(f"Submitting {verb} failed.")
 
 
-def waitForAppArchivePath(dp_resp, v3):
-    """Given a data protection creation response, wait for the 'status.appArchivePath' field
-    to be populated in a get of the dp dict, then return that dict"""
+def waitForDpCompletion(dp_resp, v3):
+    """Given a data protection creation response, wait for the 'status.state' field
+    to be 'Completed', then return that dict"""
     dp_name = dp_resp["metadata"]["name"]
     dp_plural = f"{dp_resp['kind'].lower()}s"
     get_K8s_obj = astraSDK.k8s.getResources(config_context=v3)
-    dp_body = get_K8s_obj.main(dp_plural, keyFilter="metadata.name", valFilter=dp_name)["items"][0]
-    counter = 0
-    while not dp_body.get("status") or not dp_body["status"].get("appArchivePath"):
-        if counter > 20:
-            raise SystemExit(f"Could not get 'status.appArchivePath' from {dp_body=}")
-        time.sleep(1)
-        dp_body = get_K8s_obj.main(dp_plural, keyFilter="metadata.name", valFilter=dp_name)[
-            "items"
-        ][0]
+    dp_body = get_K8s_obj.main(
+        dp_plural, filters=[{"keyFilter": "metadata.name", "valFilter": dp_name}]
+    )["items"][0]
+    counter = 1
+    print(f"Waiting for {dp_resp['kind'].lower()} to become available", end="")
+    sys.stdout.flush()
+    while (
+        not dp_body.get("status")
+        or not dp_body["status"].get("state")
+        or dp_body["status"]["state"] != "Completed"
+    ):
+        if counter > 60:
+            raise SystemExit(
+                f"{dp_body['metadata']['name']}'s status never went into a completed state: "
+                f"{dp_body['status']['state']}\n{dp_body=}"
+            )
+        time.sleep(counter)
+        dp_body = get_K8s_obj.main(
+            dp_plural, filters=[{"keyFilter": "metadata.name", "valFilter": dp_name}]
+        )["items"][0]
         counter += 1
+        print(".", end="")
+        sys.stdout.flush()
+    print("Completed")
+    sys.stdout.flush()
     return dp_body
 
 
@@ -255,6 +270,8 @@ def main(args, parser, ard):
         # Handle -f/--fast/plaidMode cases
         if ard.needsattr("apps"):
             ard.apps = astraSDK.k8s.getResources(config_context=args.v3).main("applications")
+        # Determine if this is a cross-cluster clones/restores, which require backups
+        crossCluster = not tkSrc.helpers.sameK8sCluster(args.v3, args.cluster)
 
         # A live clone is just a snapshot (or backup for cross-cluster), and then the normal
         # restore operation. So we'll take care of the data protection operation here first,
@@ -263,10 +280,6 @@ def main(args, parser, ard):
             ard.buckets = astraSDK.k8s.getResources(config_context=args.v3).main("appvaults")
             bucketDict = ard.getSingleDict("buckets", "status.state", "available", parser)
             kind = "Snapshot"  # TODO: change to if/else+Backup depending on dest cluster
-            appArchivePath = (
-                "placeholder/this-is-a-placeholder-field-which-must-be-replaced-with/"
-                + f"{kind}.status.appArchivePath"
-            )
             template = tkSrc.helpers.setupJinja(kind.lower())
             v3_dp_dict = yaml.safe_load(
                 template.render(
@@ -289,11 +302,14 @@ def main(args, parser, ard):
                     version="v1",
                     group="astra.netapp.io",
                 )
-                if not args.dry_run:
-                    restoreSourceDict = waitForAppArchivePath(restoreSourceDict, args.v3)
             if args.dry_run:
                 restoreSourceDict["status"] = {}
-                restoreSourceDict["status"]["appArchivePath"] = appArchivePath
+                restoreSourceDict["status"]["appArchivePath"] = (
+                    "placeholder/this-is-a-placeholder-field-which-must-be-replaced-with/"
+                    + f"{kind}.status.appArchivePath"
+                )
+            else:
+                restoreSourceDict = waitForDpCompletion(restoreSourceDict, args.v3)
 
         # For restore, we need to figure out if a backup or a snapshot source was provided
         elif args.subcommand == "restore":
@@ -301,7 +317,6 @@ def main(args, parser, ard):
                 ard.backups = astraSDK.k8s.getResources(config_context=args.v3).main("backups")
             if ard.needsattr("snapshots"):
                 ard.snapshots = astraSDK.k8s.getResources(config_context=args.v3).main("snapshots")
-                ard.snapshots = astraSDK.snapshots.getSnaps().main()
             if args.restoreSource in ard.buildList("backups", "metadata.name"):
                 restoreSourceDict = ard.getSingleDict(
                     "backups", "metadata.name", args.restoreSource, parser
@@ -310,6 +325,32 @@ def main(args, parser, ard):
                 restoreSourceDict = ard.getSingleDict(
                     "snapshots", "metadata.name", args.restoreSource, parser
                 )
+                # crossCluster requires a backup, so create a backup from the specified snapshot
+                if crossCluster:
+                    if args.dry_run == "client":
+                        print(
+                            f"# This must be applied on the source cluster specified by '{args.v3}'"
+                        )
+                    restoreSourceDict = tkSrc.create.createV3Backup(
+                        args.v3,
+                        args.dry_run,
+                        args.quiet,
+                        f"{restoreSourceDict['spec']['applicationRef']}-restore-"
+                        f"{tkSrc.helpers.generateNameSuffix()}",
+                        restoreSourceDict["spec"]["applicationRef"],
+                        restoreSourceDict["spec"]["appVaultRef"],
+                        snapshot=restoreSourceDict["metadata"]["name"],
+                    )
+                    if args.dry_run:
+                        restoreSourceDict["status"] = {}
+                        restoreSourceDict["status"]["appArchivePath"] = (
+                            "placeholder/this-is-a-placeholder-field-which-must-be-replaced-with/"
+                            + "Backup.status.appArchivePath"
+                        )
+                        if args.dry_run == "client":
+                            print("---")
+                    else:
+                        restoreSourceDict = waitForDpCompletion(restoreSourceDict, args.v3)
             else:
                 parser.error(
                     f"the restoreSource '{args.restoreSource}' is not a valid backup or snapshot"
@@ -329,7 +370,13 @@ def main(args, parser, ard):
                     kind=restoreSourceDict["kind"],
                     restoreName=f"{args.appName}-restore-",
                     appArchivePath=restoreSourceDict["status"]["appArchivePath"],
-                    appVaultRef=restoreSourceDict["spec"]["appVaultRef"],
+                    appVaultRef=(
+                        tkSrc.helpers.swapAppVaultRef(
+                            restoreSourceDict["spec"]["appVaultRef"], args.v3, args.cluster, parser
+                        )
+                        if crossCluster
+                        else restoreSourceDict["spec"]["appVaultRef"]
+                    ),
                     namespaceMapping=tkSrc.helpers.prependDump(namespaceMapping, prepend=4),
                     appName=args.appName,
                     appSpec=tkSrc.helpers.prependDump(
@@ -341,11 +388,15 @@ def main(args, parser, ard):
                 )
             )
             if args.dry_run == "client":
+                print(
+                    "# These must be applied on the destination cluster specified by "
+                    f"'{args.cluster}'"
+                )
                 print(yaml.dump_all(v3_gen).rstrip("\n"))
             else:
                 for v3_dict in v3_gen:
                     astraSDK.k8s.createResource(
-                        quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                        quiet=args.quiet, dry_run=args.dry_run, config_context=args.cluster
                     ).main(
                         f"{v3_dict['kind'].lower()}s",
                         v3_dict["metadata"]["namespace"],

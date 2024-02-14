@@ -137,10 +137,15 @@ class BaseCommon:
             if conCatList is None:
                 conCatList = []
             for i in item[k.split("[]")[0]]:
-                conCatList.append(self.recursiveGet(k.split("[]", 1)[1], i, []))
+                if add := self.recursiveGet(k.split("[]", 1)[1], i, []):
+                    conCatList.append(add)
             return ", ".join(conCatList)
         if k == "KEYS":
             return list(item.keys())
+        elif k == "*":
+            return item[next(iter(item))]
+        elif isinstance(item.get(k), dict):
+            return str(item.get(k))
         return item.get(k)
 
     def basicTable(self, tabHeader, tabKeys, dataDict, tablefmt="grid"):
@@ -243,11 +248,24 @@ class KubeCommon(BaseCommon):
 
         # Setup the config_file and context based on the config_context input
         config_file, context = None, None
-        if config_context and ":" in config_context:
+        # If "None" was passed, just use current kube config_file and context
+        if config_context == "None":
+            pass
+        # If a ":" is present, it must be a config_file:context mapping
+        elif config_context and ":" in config_context:
             config_file, context = tuple(config_context.split(":"))
             config_file = None if config_file == "None" else config_file
+        # If a ":" isn't present, we need to determine if a config_file or context was passed
         elif config_context:
-            config_file = config_context
+            # First see if the input is part of the contexts on the default kubeconfig
+            default_contexts, _ = kubernetes.config.kube_config.list_kube_config_contexts(
+                config_file=None
+            )
+            if config_context in [c["name"] for c in default_contexts]:
+                context = config_context
+            # If it's not, assume a config_file was passed
+            else:
+                config_file = config_context
         try:
             # Create the api_client
             self.api_client = kubernetes.config.new_client_from_config(
@@ -263,8 +281,9 @@ class KubeCommon(BaseCommon):
             except kubernetes.config.config_exception.ConfigException:
                 self.printError(f"{err}\n")
                 self.printError(
-                    f"Please ensure '{config_file}:{context}' is the correct 'config_file:context'"
-                    " mapping, and you have network connectivity to the cluster.\n"
+                    f"Please ensure '{config_context}' is either a valid kubernetes config_file, "
+                    "context, or 'config_file:context' mapping, and you have network connectivity "
+                    "to the cluster.\n"
                 )
                 raise SystemExit()
 

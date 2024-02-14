@@ -418,7 +418,13 @@ class ToolkitParser:
             help="Source app to live clone",
         )
         self.parserClone.add_argument("appName", help="The logical name of the new app")
-        if not self.v3:
+        if self.v3:
+            self.parserClone.add_argument(
+                "cluster",
+                help="Cluster to live clone into (can be same as source), specify any context, "
+                "kubeconfig_file, or kubeconfig_file:context mapping",
+            )
+        else:
             self.parserClone.add_argument(
                 "cluster",
                 choices=(None if self.plaidMode else self.acl.destClusters),
@@ -478,7 +484,13 @@ class ToolkitParser:
             help="Source backup or snapshot to restore the app from",
         )
         self.parserRestore.add_argument("appName", help="The logical name of the newly defined app")
-        if not self.v3:
+        if self.v3:
+            self.parserRestore.add_argument(
+                "cluster",
+                help="Cluster to restore into (can be same as source), specify any context, "
+                "kubeconfig_file, or kubeconfig_file:context mapping",
+            )
+        else:
             self.parserRestore.add_argument(
                 "cluster",
                 choices=(None if self.plaidMode else self.acl.destClusters),

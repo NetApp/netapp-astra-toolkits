@@ -17,12 +17,15 @@
 
 import json
 import os
+import random
 import re
 import subprocess
 import tempfile
 import yaml
 
 from jinja2 import Environment, FileSystemLoader
+
+import astraSDK
 
 
 def subKeys(subObject, key):
@@ -570,3 +573,48 @@ def getOperatorURL(version):
     elif "-main" in version:
         return f"{base}/download/{version}/{filename}"
     return f"{base}/download/{version}-main/{filename}"
+
+
+def sameK8sCluster(cluster1, cluster2):
+    """Function which determines if cluster1 and cluster2 are the same underlying Kubernetes
+    clusters or not. Returns True if metadata.uid of the kube-system NS are the same."""
+    namespaces1 = astraSDK.k8s.getNamespaces(config_context=cluster1).main(systemNS=[])
+    namespaces2 = astraSDK.k8s.getNamespaces(config_context=cluster2).main(systemNS=[])
+    ks1 = next(n for n in namespaces1["items"] if n["metadata"]["name"] == "kube-system")
+    ks2 = next(n for n in namespaces2["items"] if n["metadata"]["name"] == "kube-system")
+    if ks1["metadata"]["uid"] == ks2["metadata"]["uid"]:
+        return True
+    return False
+
+
+def swapAppVaultRef(sourceAppVaultRef, sourceCluster, destCluster, parser):
+    """Function which takes in the name of a sourceCluster's appVaultRef, and then returns
+    the name of the destCluster's same appVaultRef (appVaults can be named differently across
+    clusters due to Astra Control auto-appending a unique identifier)."""
+    sourceAppVaults = astraSDK.k8s.getResources(config_context=sourceCluster).main("appvaults")
+    destAppVaults = astraSDK.k8s.getResources(config_context=destCluster).main("appvaults")
+    try:
+        sourceAppVault = next(
+            a for a in sourceAppVaults["items"] if a["metadata"]["name"] == sourceAppVaultRef
+        )
+        sourceUid = sourceAppVault["status"]["uid"]
+    except StopIteration:
+        parser.error(f"'{sourceAppVaultRef}' not found on the source cluster,\n{sourceAppVaults=}")
+    except KeyError as err:
+        parser.error(f"{err} key not found in '{sourceAppVaultRef}' object,\n{sourceAppVaults=}")
+    try:
+        destAppVault = next(a for a in destAppVaults["items"] if a["status"]["uid"] == sourceUid)
+        return destAppVault["metadata"]["name"]
+    except StopIteration:
+        parser.error(
+            f"An appVault with status.uid of '{sourceUid}' not found on the destination cluster,"
+            f"\n{destAppVaults=}"
+        )
+    except KeyError as err:
+        parser.error(f"{err} key not found in 'destAppVault' object,\n{destAppVaults=}")
+
+
+def generateNameSuffix():
+    """Generates a suffix to be appended to a name for Kubernetes API uniqueness"""
+    alphanums = "bcdfghjklmnpqrstvwxz2456789"
+    return "".join(random.choice(alphanums) for _ in range(5))
