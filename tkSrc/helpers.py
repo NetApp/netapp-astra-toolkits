@@ -17,7 +17,6 @@
 
 import json
 import os
-import random
 import re
 import subprocess
 import tempfile
@@ -587,6 +586,20 @@ def sameK8sCluster(cluster1, cluster2):
     return False
 
 
+def getCommonAppVault(cluster1, cluster2, parser):
+    """Function which takes in two cluster contexts, and finds and returns an appVault that's
+    common between the two of them, as designated by status.uid"""
+    c1AppVaults = astraSDK.k8s.getResources(config_context=cluster1).main("appvaults")
+    c2AppVaults = astraSDK.k8s.getResources(config_context=cluster2).main("appvaults")
+    for c1av in c1AppVaults["items"]:
+        for c2av in c2AppVaults["items"]:
+            if c1av.get("status") and c1av["status"].get("uid"):
+                if c2av.get("status") and c2av["status"].get("uid"):
+                    if c1av["status"]["uid"] == c2av["status"]["uid"]:
+                        return c1av
+    parser.error(f"A common appVault was not found between cluster {cluster1} and {cluster2}")
+
+
 def swapAppVaultRef(sourceAppVaultRef, sourceCluster, destCluster, parser):
     """Function which takes in the name of a sourceCluster's appVaultRef, and then returns
     the name of the destCluster's same appVaultRef (appVaults can be named differently across
@@ -612,9 +625,3 @@ def swapAppVaultRef(sourceAppVaultRef, sourceCluster, destCluster, parser):
         )
     except KeyError as err:
         parser.error(f"{err} key not found in 'destAppVault' object,\n{destAppVaults=}")
-
-
-def generateNameSuffix():
-    """Generates a suffix to be appended to a name for Kubernetes API uniqueness"""
-    alphanums = "bcdfghjklmnpqrstvwxz2456789"
-    return "".join(random.choice(alphanums) for _ in range(5))

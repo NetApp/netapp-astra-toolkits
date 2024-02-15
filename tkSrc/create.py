@@ -74,15 +74,18 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
     return False
 
 
-def createV3Backup(v3, dry_run, quiet, name, app, appVault, snapshot=None, reclaimPolicy=None):
+def createV3Backup(
+    v3, dry_run, quiet, name, app, appVault, snapshot=None, reclaimPolicy=None, generateName=None
+):
     template = tkSrc.helpers.setupJinja("backup")
     v3_dict = yaml.safe_load(
         template.render(
-            name=tkSrc.helpers.isRFC1123(name),
+            name=(tkSrc.helpers.isRFC1123(name) if name else name),
             appName=app,
             appVaultName=appVault,
             snapshotName=snapshot,
             reclaimPolicy=reclaimPolicy,
+            generateName=generateName,
         )
     )
     if dry_run == "client":

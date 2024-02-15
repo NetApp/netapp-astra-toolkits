@@ -219,38 +219,40 @@ def doClone(
         raise SystemExit(f"Submitting {verb} failed.")
 
 
-def waitForDpCompletion(dp_resp, v3):
+def waitForDpCompletion(dp_resp, cluster):
     """Given a data protection creation response, wait for the 'status.state' field
     to be 'Completed', then return that dict"""
     dp_name = dp_resp["metadata"]["name"]
     dp_plural = f"{dp_resp['kind'].lower()}s"
-    get_K8s_obj = astraSDK.k8s.getResources(config_context=v3)
-    dp_body = get_K8s_obj.main(
+    get_K8s_obj = astraSDK.k8s.getResources(config_context=cluster)
+    dp = get_K8s_obj.main(
         dp_plural, filters=[{"keyFilter": "metadata.name", "valFilter": dp_name}]
     )["items"][0]
     counter = 1
     print(f"Waiting for {dp_resp['kind'].lower()} to become available", end="")
     sys.stdout.flush()
     while (
-        not dp_body.get("status")
-        or not dp_body["status"].get("state")
-        or dp_body["status"]["state"] != "Completed"
+        not dp.get("status")
+        or not dp["status"].get("state")
+        or dp["status"]["state"] != "Completed"
     ):
-        if counter > 60:
+        if dp.get("status") and dp["status"].get("state") and dp["status"]["state"] == "Failed":
+            raise SystemExit(f"{dp['metadata']['name']} failed")
+        elif counter > 60:
             raise SystemExit(
-                f"{dp_body['metadata']['name']}'s status never went into a completed state: "
-                f"{dp_body['status']['state']}\n{dp_body=}"
+                f"{dp['metadata']['name']}'s status never went into a 'Completed' state: "
+                f"{dp['status']['state']}"
             )
         time.sleep(counter)
-        dp_body = get_K8s_obj.main(
-            dp_plural, filters=[{"keyFilter": "metadata.name", "valFilter": dp_name}]
-        )["items"][0]
         counter += 1
         print(".", end="")
         sys.stdout.flush()
+        dp = get_K8s_obj.main(
+            dp_plural, filters=[{"keyFilter": "metadata.name", "valFilter": dp_name}]
+        )["items"][0]
     print("Completed")
     sys.stdout.flush()
-    return dp_body
+    return dp
 
 
 def main(args, parser, ard):
@@ -277,9 +279,8 @@ def main(args, parser, ard):
         # restore operation. So we'll take care of the data protection operation here first,
         # then clone and restore will use the same operation after
         if args.subcommand == "clone":
-            ard.buckets = astraSDK.k8s.getResources(config_context=args.v3).main("appvaults")
-            bucketDict = ard.getSingleDict("buckets", "status.state", "available", parser)
-            kind = "Snapshot"  # TODO: change to if/else+Backup depending on dest cluster
+            bucketDict = tkSrc.helpers.getCommonAppVault(args.v3, args.cluster, parser)
+            kind = "Backup" if crossCluster else "Snapshot"
             template = tkSrc.helpers.setupJinja(kind.lower())
             v3_dp_dict = yaml.safe_load(
                 template.render(
@@ -289,6 +290,7 @@ def main(args, parser, ard):
                 )
             )
             if args.dry_run == "client":
+                print(f"# This must be applied on the source cluster specified by '{args.v3}'")
                 restoreSourceDict = v3_dp_dict
                 print(yaml.dump(v3_dp_dict).rstrip("\n"))
                 print("---")
@@ -335,11 +337,11 @@ def main(args, parser, ard):
                         args.v3,
                         args.dry_run,
                         args.quiet,
-                        f"{restoreSourceDict['spec']['applicationRef']}-restore-"
-                        f"{tkSrc.helpers.generateNameSuffix()}",
+                        None,
                         restoreSourceDict["spec"]["applicationRef"],
                         restoreSourceDict["spec"]["appVaultRef"],
                         snapshot=restoreSourceDict["metadata"]["name"],
+                        generateName=f"{restoreSourceDict['spec']['applicationRef']}-restore-",
                     )
                     if args.dry_run:
                         restoreSourceDict["status"] = {}
