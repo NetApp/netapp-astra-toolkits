@@ -448,7 +448,7 @@ def kube_config(argv, acl, verbPosition, v3Position, global_args):
 
     There are 5 possible use-cases which are covered:
     1) User enters plain "--v3"-> use system default config_file and context
-    2) Specific kubeconfig AND context specified "--v3 kubeconfig_file~context"-> use specified val
+    2) Specific context AND kubeconfig specified "--v3 context@kubeconfig_file"-> use specified val
     3) Only kubeconfig specified "-n kubeconfig_file"-> use default context of that config_file
     4) Only context specified "-n context"-> use specified context with default config_file
     5) Incluster config (from within a pod)
@@ -472,9 +472,9 @@ def kube_config(argv, acl, verbPosition, v3Position, global_args):
         # Popping v3_arg from the list, as it gets re-added in proper format below
         argv.pop(v3Position + 1)
         verbPosition -= 1
-        # Handle `kubeconfig~context` use case (2)
-        if "~" in v3_arg:
-            config_file, desired_context = tuple(v3_arg.split("~"))
+        # Handle `context@kubeconfig` use case (2)
+        if "@" in v3_arg:
+            desired_context, config_file = tuple(v3_arg.split("@"))
         # Handle use cases 3 and 4, config_file is set to the user's input, which may actually
         # be a kubeconfig (3), but could be a context (4), which will throw an error
         else:
@@ -490,6 +490,13 @@ def kube_config(argv, acl, verbPosition, v3Position, global_args):
 
     # If an exception, then either a `context` has been provided (4) or it's incluster (5)
     except kubernetes.config.config_exception.ConfigException:
+        # Check to ensure `kubeconfig@context` wasn't accidentally entered
+        if "@" in v3_arg:
+            sys.stderr.write(
+                f"{RED}Invalid kube-config file. No configuration found.\n"
+                f"Please ensure {v3_arg} is a valid 'context@kubeconfig' mapping.{ENDC}\n"
+            )
+            raise SystemExit()
         config_file, desired_context = None, v3_arg
         try:
             contexts, _ = kubernetes.config.kube_config.list_kube_config_contexts(
@@ -507,8 +514,8 @@ def kube_config(argv, acl, verbPosition, v3Position, global_args):
                 raise SystemExit()
 
     # Build the choices list and modify argv
-    acl.contexts = [f"{config_file}~{c['name']}" for c in contexts]
-    config_context = f"{config_file}~{desired_context}"
+    acl.contexts = [f"{c['name']}@{config_file}" for c in contexts]
+    config_context = f"{desired_context}@{config_file}"
     argv.insert(v3Position + 1, config_context)
     verbPosition += 1
     return config_context, verbPosition
