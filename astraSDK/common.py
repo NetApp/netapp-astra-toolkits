@@ -251,11 +251,11 @@ class KubeCommon(BaseCommon):
         # If "None" was passed, just use current kube config_file and context
         if config_context == "None":
             pass
-        # If a ":" is present, it must be a config_file:context mapping
-        elif config_context and ":" in config_context:
-            config_file, context = tuple(config_context.split(":"))
+        # If a "~" is present, it must be a config_file:context mapping
+        elif config_context and "~" in config_context:
+            config_file, context = tuple(config_context.split("~"))
             config_file = None if config_file == "None" else config_file
-        # If a ":" isn't present, we need to determine if a config_file or context was passed
+        # If a "~" isn't present, we need to determine if a config_file or context was passed
         elif config_context:
             # First see if the input is part of the contexts on the default kubeconfig
             default_contexts, _ = kubernetes.config.kube_config.list_kube_config_contexts(
@@ -282,7 +282,7 @@ class KubeCommon(BaseCommon):
                 self.printError(f"{err}\n")
                 self.printError(
                     f"Please ensure '{config_context}' is either a valid kubernetes config_file, "
-                    "context, or 'config_file:context' mapping, and you have network connectivity "
+                    "context, or 'config_file~context' mapping, and you have network connectivity "
                     "to the cluster.\n"
                 )
                 raise SystemExit()

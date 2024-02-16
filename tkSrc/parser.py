@@ -60,7 +60,7 @@ class ToolkitParser:
                 choices=(acl.contexts if v3 else None),
                 help="create a v3 CR directly on the Kubernetes cluster (defaults to current "
                 "context, but optionally specify a different context, kubeconfig_file, or "
-                "kubeconfig_file:context mapping)",
+                "kubeconfig_file~context mapping)",
             )
         else:
             v3Group.add_argument(
@@ -69,7 +69,7 @@ class ToolkitParser:
                 action="store_true",
                 help="create a v3 CR directly on the Kubernetes cluster (defaults to current "
                 "context, but optionally specify a different context, kubeconfig_file, or "
-                "kubeconfig_file:context mapping)",
+                "kubeconfig_file~context mapping)",
             )
         v3Group.add_argument(
             "--dry-run",
