@@ -40,7 +40,7 @@ def main(args, parser, ard):
                 ard.snapshots = astraSDK.k8s.getResources(config_context=args.v3).main("snapshots")
             iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", args.snapshot, parser)
 
-        template = tkSrc.helpers.setupJinja(args.subcommand)
+        template = tkSrc.helpers.setupJinja("ipr")
         try:
             v3_dict = yaml.safe_load(
                 template.render(

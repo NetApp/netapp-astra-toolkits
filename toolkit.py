@@ -165,9 +165,17 @@ def main(argv=sys.argv):
     args = parser.parse_args(args=argv)
     if args.v3:
         v3_dict = {
-            "create": ["backup", "hook", "protection", "snapshot"],
+            "create": ["backup", "exechook", "hook", "protection", "schedule", "snapshot"],
             "deploy": ["acp"],
-            "destroy": ["backup", "credential", "hook", "protection", "snapshot"],
+            "destroy": [
+                "backup",
+                "credential",
+                "exechok",
+                "hook",
+                "protection",
+                "schedule",
+                "snapshot",
+            ],
             "unmanage": ["app", "application", "appVault", "bucket", "cluster"],
         }
         v3_dict.update(dict.fromkeys(["clone", "ipr", "restore"], True))

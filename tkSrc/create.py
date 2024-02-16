@@ -157,7 +157,7 @@ def main(args, parser, ard):
         if args.v3:
             with open(args.filePath, encoding="utf8") as f:
                 encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
-            template = tkSrc.helpers.setupJinja(args.objectType)
+            template = tkSrc.helpers.setupJinja("hook")
             v3_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(args.name),
@@ -238,7 +238,7 @@ def main(args, parser, ard):
                 parser.error("'monthly' granularity requires -M / --dayOfMonth")
             args.dayOfWeek = naStr
         if args.v3:
-            template = tkSrc.helpers.setupJinja(args.objectType)
+            template = tkSrc.helpers.setupJinja("protection")
             v3_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(f"{args.app}-{args.granularity}") + "-",
@@ -350,7 +350,7 @@ def main(args, parser, ard):
             raise SystemExit("astraSDK.scripts.createScript() failed")
     elif args.objectType == "snapshot":
         if args.v3:
-            template = tkSrc.helpers.setupJinja(args.objectType)
+            template = tkSrc.helpers.setupJinja("snapshot")
             v3_dict = yaml.safe_load(
                 template.render(
                     name=tkSrc.helpers.isRFC1123(args.name),

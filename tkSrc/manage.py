@@ -84,7 +84,7 @@ def main(args, parser, ard):
                 args.clusterScopedResource, ard.apiresources, v3=args.v3
             )
         if args.v3:
-            template = tkSrc.helpers.setupJinja(args.objectType)
+            template = tkSrc.helpers.setupJinja("app")
             v3_dict = yaml.safe_load(
                 template.render(
                     appName=tkSrc.helpers.isRFC1123(args.appName),
@@ -146,7 +146,7 @@ def main(args, parser, ard):
                 keyNameList = ["credentials"]
             else:
                 keyNameList = ["accessKeyID", "secretAccessKey"]
-            template = tkSrc.helpers.setupJinja(args.objectType)
+            template = tkSrc.helpers.setupJinja("appVault")
             v3_dict = yaml.safe_load(
                 template.render(
                     bucketName=tkSrc.helpers.isRFC1123(args.bucketName),
