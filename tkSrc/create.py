@@ -101,6 +101,47 @@ def createV3Backup(
         )
 
 
+def createV3Protection(
+    v3,
+    dry_run,
+    quiet,
+    app,
+    bucket,
+    granularity,
+    backupRetention,
+    snapshotRetention,
+    minute,
+    hour,
+    dayOfWeek,
+    dayOfMonth,
+):
+    template = tkSrc.helpers.setupJinja("protection")
+    v3_dict = yaml.safe_load(
+        template.render(
+            name=tkSrc.helpers.isRFC1123(f"{app}-{granularity}") + "-",
+            appName=app,
+            appVaultName=bucket,
+            backupRetention=backupRetention,
+            dayOfMonth=dayOfMonth,
+            dayOfWeek=dayOfWeek,
+            granularity=granularity,
+            hour=hour,
+            minute=minute,
+            snapshotRetention=snapshotRetention,
+        )
+    )
+    if dry_run == "client":
+        print(yaml.dump(v3_dict).rstrip("\n"))
+    else:
+        astraSDK.k8s.createResource(quiet=quiet, dry_run=dry_run, config_context=v3).main(
+            f"{v3_dict['kind'].lower()}s",
+            v3_dict["metadata"]["namespace"],
+            v3_dict,
+            version="v1",
+            group="astra.netapp.io",
+        )
+
+
 def main(args, parser, ard):
     if args.objectType == "backup":
         if args.v3:
@@ -238,33 +279,20 @@ def main(args, parser, ard):
                 parser.error("'monthly' granularity requires -M / --dayOfMonth")
             args.dayOfWeek = naStr
         if args.v3:
-            template = tkSrc.helpers.setupJinja("protection")
-            v3_dict = yaml.safe_load(
-                template.render(
-                    name=tkSrc.helpers.isRFC1123(f"{args.app}-{args.granularity}") + "-",
-                    appName=args.app,
-                    appVaultName=args.bucket,
-                    backupRetention=args.backupRetention,
-                    dayOfMonth=args.dayOfMonth,
-                    dayOfWeek=args.dayOfWeek,
-                    granularity=args.granularity,
-                    hour=args.hour,
-                    minute=args.minute,
-                    snapshotRetention=args.snapshotRetention,
-                )
+            createV3Protection(
+                args.v3,
+                args.dry_run,
+                args.quiet,
+                args.app,
+                args.bucket,
+                args.granularity,
+                args.backupRetention,
+                args.snapshotRetention,
+                args.minute,
+                args.hour,
+                args.dayOfWeek,
+                args.dayOfMonth,
             )
-            if args.dry_run == "client":
-                print(yaml.dump(v3_dict).rstrip("\n"))
-            else:
-                astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
-                ).main(
-                    f"{v3_dict['kind'].lower()}s",
-                    v3_dict["metadata"]["namespace"],
-                    v3_dict,
-                    version="v1",
-                    group="astra.netapp.io",
-                )
         else:
             rc = astraSDK.protections.createProtectionpolicy(
                 quiet=args.quiet, verbose=args.verbose

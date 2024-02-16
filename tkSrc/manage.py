@@ -23,6 +23,42 @@ import astraSDK
 import tkSrc
 
 
+def manageV3App(
+    v3,
+    dry_run,
+    quiet,
+    appName,
+    namespace,
+    labelSelectors=None,
+    additionalNamespace=None,
+    clusterScopedResource=None,
+):
+    template = tkSrc.helpers.setupJinja("app")
+    v3_dict = yaml.safe_load(
+        template.render(
+            appName=tkSrc.helpers.isRFC1123(appName),
+            namespace=namespace,
+            labelSelectors=(
+                f"{labelSelectors.split('=')[0]}: {labelSelectors.split('=')[1]}"
+                if labelSelectors
+                else None
+            ),
+            addNamespaces=tkSrc.helpers.prependDump(additionalNamespace, prepend=4),
+            clusterScopedResources=tkSrc.helpers.prependDump(clusterScopedResource, prepend=4),
+        ),
+    )
+    if dry_run == "client":
+        print(yaml.dump(v3_dict).rstrip("\n"))
+    else:
+        astraSDK.k8s.createResource(quiet=quiet, dry_run=dry_run, config_context=v3).main(
+            f"{v3_dict['kind'].lower()}s",
+            v3_dict["metadata"]["namespace"],
+            v3_dict,
+            version="v1",
+            group="astra.netapp.io",
+        )
+
+
 def main(args, parser, ard):
     if args.objectType == "app" or args.objectType == "application":
         if args.additionalNamespace:
@@ -84,34 +120,16 @@ def main(args, parser, ard):
                 args.clusterScopedResource, ard.apiresources, v3=args.v3
             )
         if args.v3:
-            template = tkSrc.helpers.setupJinja("app")
-            v3_dict = yaml.safe_load(
-                template.render(
-                    appName=tkSrc.helpers.isRFC1123(args.appName),
-                    namespace=args.namespace,
-                    labelSelectors=(
-                        f"{args.labelSelectors.split('=')[0]}: {args.labelSelectors.split('=')[1]}"
-                        if args.labelSelectors
-                        else None
-                    ),
-                    addNamespaces=tkSrc.helpers.prependDump(args.additionalNamespace, prepend=4),
-                    clusterScopedResources=tkSrc.helpers.prependDump(
-                        args.clusterScopedResource, prepend=4
-                    ),
-                ),
+            manageV3App(
+                args.v3,
+                args.dry_run,
+                args.quiet,
+                args.appName,
+                args.namespace,
+                labelSelectors=args.labelSelectors,
+                additionalNamespace=args.additionalNamespace,
+                clusterScopedResource=args.clusterScopedResource,
             )
-            if args.dry_run == "client":
-                print(yaml.dump(v3_dict).rstrip("\n"))
-            else:
-                astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
-                ).main(
-                    f"{v3_dict['kind'].lower()}s",
-                    v3_dict["metadata"]["namespace"],
-                    v3_dict,
-                    version="v1",
-                    group="astra.netapp.io",
-                )
         else:
             rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
                 tkSrc.helpers.isRFC1123(args.appName),
@@ -224,7 +242,7 @@ def main(args, parser, ard):
     elif args.objectType == "cluster":
         if args.v3:
             # Install the operator
-            config_file, context = tuple(args.v3.split(":"))
+            context, config_file = tuple(args.v3.split("@"))
             tkSrc.helpers.run(
                 f"kubectl --context={context} apply "
                 f"--dry_run={args.dry_run if args.dry_run else 'none'} -f "

@@ -106,17 +106,6 @@ def main(argv=sys.argv):
                             verbs[verb] = False
                             verbPosition = None
 
-        # Enabling comma separated listing of objects, like:
-        # 'toolkit.py list apps,backups,snapshots'
-        # TODO: make this work for --v3
-        if (verbs["list"] or verbs["get"]) and len(argv) > (verbPosition + 1):
-            if "," in argv[verbPosition + 1]:
-                listTypeArray = argv[verbPosition + 1].split(",")
-                for lt in listTypeArray:
-                    argv[verbPosition + 1] = lt
-                    main(argv=argv)
-                sys.exit(0)
-
         # Handle plaidMode (-f/--fast) and --v3 use-cases
         for counter, item in enumerate(argv):
             if verbPosition and counter < verbPosition and (item == "-f" or item == "--fast"):
@@ -141,12 +130,22 @@ def main(argv=sys.argv):
         ):
             argv[verbPosition + 1] = "protection"
 
-        # If v3, build the kubeconfig:context choices list (we want this outside of
+        # If v3, build the context@kubeconfig choices list (we want this outside of
         # tkSrc.choices.main as it should be generated regardless of plaidMode)
         if v3:
             v3, verbPosition = tkSrc.choices.kube_config(
                 argv, acl, verbPosition, v3Position, global_args
             )
+
+        # Enabling comma separated listing of objects, like:
+        # 'toolkit.py list apps,backups,snapshots'
+        if (verbs["list"] or verbs["get"]) and len(argv) > (verbPosition + 1):
+            if "," in argv[verbPosition + 1]:
+                listTypeArray = argv[verbPosition + 1].split(",")
+                for lt in listTypeArray:
+                    argv[verbPosition + 1] = lt
+                    main(argv=argv)
+                sys.exit(0)
 
         # As long as we're not --fast/plaidMode, build the argparse choices lists
         if not plaidMode:
@@ -164,23 +163,27 @@ def main(argv=sys.argv):
     parser = tkParser.main()
     args = parser.parse_args(args=argv)
     if args.v3:
-        v3_dict = {
-            "create": ["backup", "exechook", "hook", "protection", "schedule", "snapshot"],
-            "deploy": ["acp"],
-            "destroy": [
-                "backup",
-                "credential",
-                "exechok",
-                "hook",
-                "protection",
-                "schedule",
-                "snapshot",
-            ],
-            "unmanage": ["app", "application", "appVault", "bucket", "cluster"],
-        }
+        v3_dict = {"deploy": ["acp", "chart"]}
+        v3_dict.update(
+            dict.fromkeys(
+                ["create", "destroy"],
+                [
+                    "backup",
+                    "exechok",
+                    "hook",
+                    "protection",
+                    "schedule",
+                    "snapshot",
+                ],
+            )
+        )
+        v3_dict["destroy"].append("credential")
         v3_dict.update(dict.fromkeys(["clone", "ipr", "restore"], True))
         v3_dict.update(
-            dict.fromkeys(["define", "manage"], ["app", "bucket", "appVault", "cluster"])
+            dict.fromkeys(
+                ["define", "manage", "unmanage"],
+                ["app", "application", "appVault", "bucket", "cluster"],
+            )
         )
         v3_dict.update(
             dict.fromkeys(

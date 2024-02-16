@@ -38,6 +38,9 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
             if argv[verbPosition + 1] == "chart":
                 ard.charts = tkSrc.helpers.updateHelm()
                 acl.charts = ard.buildList("charts", "name")
+                if v3:
+                    ard.buckets = astraSDK.k8s.getResources(config_context=v3).main("appvaults")
+                    acl.buckets = ard.buildList("buckets", "metadata.name")
             elif argv[verbPosition + 1] == "acp":
                 ard.credentials = astraSDK.k8s.getSecrets(config_context=v3).main(
                     namespace="trident"
@@ -475,6 +478,7 @@ def kube_config(argv, acl, verbPosition, v3Position, global_args):
         # Handle `context@kubeconfig` use case (2)
         if "@" in v3_arg:
             desired_context, config_file = tuple(v3_arg.split("@"))
+            config_file = None if config_file == "None" else config_file
         # Handle use cases 3 and 4, config_file is set to the user's input, which may actually
         # be a kubeconfig (3), but could be a context (4), which will throw an error
         else:

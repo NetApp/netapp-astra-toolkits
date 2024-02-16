@@ -144,9 +144,11 @@ class BaseCommon:
             return list(item.keys())
         elif k == "*":
             return item[next(iter(item))]
-        elif isinstance(item.get(k), dict):
+        elif isinstance(item, dict) and isinstance(item.get(k), dict):
             return str(item.get(k))
-        return item.get(k)
+        elif isinstance(item, dict):
+            return item.get(k)
+        return ""
 
     def basicTable(self, tabHeader, tabKeys, dataDict, tablefmt="grid"):
         """Function to create a basic tabulate table for terminal printing"""

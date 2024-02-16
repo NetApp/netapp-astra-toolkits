@@ -649,6 +649,16 @@ class ToolkitParser:
             choices=(None if self.plaidMode else self.acl.charts),
             help="chart to deploy",
         )
+        if self.v3:
+            self.subparserDeployChart.add_argument(
+                "-u",
+                "--appVault",
+                dest="bucket",
+                default=None,
+                required=True,
+                choices=(None if self.plaidMode else self.acl.buckets),
+                help="Name of the AppVault to use as the target of the backups/snapshots",
+            )
         self.subparserDeployChart.add_argument(
             "-n",
             "--namespace",
