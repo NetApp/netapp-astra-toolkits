@@ -259,14 +259,19 @@ class KubeCommon(BaseCommon):
             config_file = None if config_file == "None" else config_file
         # If a "@" isn't present, we need to determine if a config_file or context was passed
         elif config_context:
-            # First see if the input is part of the contexts on the default kubeconfig
-            default_contexts, _ = kubernetes.config.kube_config.list_kube_config_contexts(
-                config_file=None
-            )
-            if config_context in [c["name"] for c in default_contexts]:
-                context = config_context
-            # If it's not, assume a config_file was passed
-            else:
+            try:
+                # First see if the input is part of the contexts on the default kubeconfig
+                default_contexts, _ = kubernetes.config.kube_config.list_kube_config_contexts(
+                    config_file=None
+                )
+                if config_context in [c["name"] for c in default_contexts]:
+                    context = config_context
+                # If it's not, assume a config_file was passed
+                else:
+                    config_file = config_context
+            # Or if an exception occurs, the default ~/.kube/config likely doesn't exist, in which
+            # case also assume a config_file was passed
+            except kubernetes.config.config_exception.ConfigException:
                 config_file = config_context
         try:
             # Create the api_client
