@@ -132,7 +132,7 @@ def main(args, parser, ard):
             )
         else:
             rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
-                tkSrc.helpers.isRFC1123(args.appName),
+                tkSrc.helpers.isRFC1123(args.appName, parser=parser),
                 args.namespace,
                 args.clusterID,
                 args.labelSelectors,
@@ -167,7 +167,7 @@ def main(args, parser, ard):
             template = tkSrc.helpers.setupJinja("appVault")
             v3_dict = yaml.safe_load(
                 template.render(
-                    bucketName=tkSrc.helpers.isRFC1123(args.bucketName),
+                    bucketName=tkSrc.helpers.isRFC1123(args.bucketName, parser=parser),
                     providerType=args.provider,
                     accountName=args.storageAccount,
                     endpoint=args.serverURL,
@@ -241,6 +241,8 @@ def main(args, parser, ard):
 
     elif args.objectType == "cluster":
         if args.v3:
+            # Validate the inputted cluster name conforms to RFC-1123 prior to installing resources
+            tkSrc.helpers.isRFC1123(args.clusterName, parser=parser)
             # Install the operator
             context, config_file = tuple(args.v3.split("@"))
             tkSrc.helpers.run(

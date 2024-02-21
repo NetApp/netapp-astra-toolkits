@@ -229,7 +229,7 @@ def main(args, parser, ard):
     elif args.objectType == "chart":
         deployHelm(
             args.chart,
-            tkSrc.helpers.isRFC1123(args.app),
+            tkSrc.helpers.isRFC1123(args.app, parser=parser),
             args.namespace,
             args.set,
             args.values,

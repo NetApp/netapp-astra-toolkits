@@ -152,7 +152,7 @@ def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser):
         return [
             {
                 "source": appNamespaces[0]["namespace"],
-                "destination": isRFC1123(singleNs),
+                "destination": isRFC1123(singleNs, parser=parser),
             }
         ]
     # Handle multiNsMapping cases
@@ -182,7 +182,10 @@ def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser):
         returnList = []
         for mapping in mappingList:
             returnList.append(
-                {"source": mapping.split("=")[0], "destination": isRFC1123(mapping.split("=")[1])}
+                {
+                    "source": mapping.split("=")[0],
+                    "destination": isRFC1123(mapping.split("=")[1], parser=parser),
+                }
             )
         return returnList
     else:
@@ -381,18 +384,22 @@ def stsPatch(patch, stsName):
         raise SystemExit(f"os.system exited with RC: {ret}")
 
 
-def isRFC1123(string):
+def isRFC1123(string, parser=None):
     """isRFC1123 returns the input 'string' if it conforms to RFC 1123 spec,
-    otherwise it throws an error and exits with code 15"""
+    otherwise it throws an error and exits"""
     regex = re.compile("[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
     if regex.match(string) is not None and len(string) < 64:
         return string
     else:
-        raise SystemExit(
-            f"Error: '{string}' must consist of lower case alphanumeric characters or '-', must "
-            + "start and end with an alphanumeric character, and must be at most 63 characters "
-            + "(for example 'my-name' or '123-abc')."
+        error = (
+            f"'{string}' must consist of lower case alphanumeric characters or '-', must start "
+            "and end with an alphanumeric character, and must be at most 63 characters (for "
+            "example 'my-name' or '123-abc')."
         )
+        if parser is not None:
+            parser.error(error)
+        else:
+            raise SystemExit(f"Error: {error}")
 
 
 def dupeKeyError(key):

@@ -455,7 +455,7 @@ def main(args, parser, ard):
             )
 
         doClone(
-            tkSrc.helpers.isRFC1123(args.appName),
+            tkSrc.helpers.isRFC1123(args.appName, parser=parser),
             args.cluster,
             oApp,
             tkSrc.helpers.createNamespaceMapping(

@@ -236,9 +236,10 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
         elif argv[verbPosition + 1] == "cluster":
             if v3:
                 ard.clouds = astraSDK.clouds.getClouds().main()
-                for cloud in ard.clouds["items"]:
-                    if cloud["cloudType"] not in ["GCP", "Azure", "AWS"]:
-                        acl.clouds.append(cloud["id"])
+                if ard.clouds and ard.clouds.get("items"):
+                    for cloud in ard.clouds["items"]:
+                        if cloud["cloudType"] not in ["GCP", "Azure", "AWS"]:
+                            acl.clouds.append(cloud["id"])
                 # Add a private cloud if it doesn't already exist
                 if len(acl.clouds) == 0:
                     rc = astraSDK.clouds.manageCloud(quiet=True).main("private", "private")

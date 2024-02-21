@@ -158,7 +158,7 @@ def main(args, parser, ard):
         else:
             protectionID = astraSDK.backups.takeBackup(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,
-                tkSrc.helpers.isRFC1123(args.name),
+                tkSrc.helpers.isRFC1123(args.name, parser=parser),
                 bucketID=args.bucket,
                 snapshotID=args.snapshot,
             )
@@ -201,7 +201,7 @@ def main(args, parser, ard):
             template = tkSrc.helpers.setupJinja("hook")
             v3_dict = yaml.safe_load(
                 template.render(
-                    name=tkSrc.helpers.isRFC1123(args.name),
+                    name=tkSrc.helpers.isRFC1123(args.name, parser=parser),
                     action=args.operation.split("-")[1],
                     appName=args.app,
                     arguments=tkSrc.helpers.prependDump(
@@ -381,7 +381,7 @@ def main(args, parser, ard):
             template = tkSrc.helpers.setupJinja("snapshot")
             v3_dict = yaml.safe_load(
                 template.render(
-                    name=tkSrc.helpers.isRFC1123(args.name),
+                    name=tkSrc.helpers.isRFC1123(args.name, parser=parser),
                     appName=args.app,
                     appVaultName=args.bucket,
                     reclaimPolicy=args.reclaimPolicy,
@@ -406,7 +406,7 @@ def main(args, parser, ard):
         else:
             protectionID = astraSDK.snapshots.takeSnap(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,
-                tkSrc.helpers.isRFC1123(args.name),
+                tkSrc.helpers.isRFC1123(args.name, parser=parser),
             )
             rc = monitorProtectionTask(
                 protectionID,
