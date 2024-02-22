@@ -576,7 +576,7 @@ def getOperatorURL(version):
     filename = "astraconnector_operator.yaml"
     if version == "latest":
         return f"{base}/{version}/download/{filename}"
-    elif "-main" in version:
+    elif "-" in version:
         return f"{base}/download/{version}/{filename}"
     return f"{base}/download/{version}-main/{filename}"
 
