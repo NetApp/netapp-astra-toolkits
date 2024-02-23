@@ -22,7 +22,7 @@ def main(args, parser, ard):
     if args.objectType == "app" or args.objectType == "application":
         if args.v3:
             astraSDK.k8s.destroyResource(
-                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
             ).main("applications", args.app)
         else:
             rc = astraSDK.apps.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(args.app)
@@ -31,7 +31,7 @@ def main(args, parser, ard):
     elif args.objectType == "bucket" or args.objectType == "appVault":
         if args.v3:
             astraSDK.k8s.destroyResource(
-                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
             ).main("appvaults", args.bucket)
         else:
             rc = astraSDK.buckets.unmanageBucket(quiet=args.quiet, verbose=args.verbose).main(
@@ -58,7 +58,7 @@ def main(args, parser, ard):
             connector = ard.connectors["items"][0]
             # Destroy the AstraConnector CR and api token secret (TODO: regcred destruction?)
             if astraSDK.k8s.destroyResource(
-                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
             ).main(
                 "astraconnectors",
                 connector["metadata"]["name"],
@@ -66,7 +66,10 @@ def main(args, parser, ard):
                 group="astra.netapp.io",
             ):
                 if not astraSDK.k8s.destroySecret(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                    quiet=args.quiet,
+                    dry_run=args.dry_run,
+                    verbose=args.verbose,
+                    config_context=args.v3,
                 ).main(
                     connector["spec"]["astra"]["tokenRef"],
                     namespace=connector["metadata"]["namespace"],

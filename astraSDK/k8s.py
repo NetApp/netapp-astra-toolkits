@@ -19,6 +19,7 @@ import base64
 import copy
 import json
 import kubernetes
+import sys
 import yaml
 from datetime import datetime, timedelta, timezone
 
@@ -28,7 +29,7 @@ from .common import KubeCommon, SDKCommon
 class getResources(KubeCommon):
     """Get all namespace scoped resources of a specific CRD"""
 
-    def __init__(self, quiet=True, output="json", config_context=None):
+    def __init__(self, quiet=True, verbose=False, output="json", config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         output: table: pretty print the data
                 json: (default) output in JSON
@@ -39,7 +40,9 @@ class getResources(KubeCommon):
                         str "<config_file>:<context>": use specified file and context"""
         self.quiet = quiet
         self.output = output
+        self.verbose = verbose
         super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
 
     def main(
         self,
@@ -56,6 +59,9 @@ class getResources(KubeCommon):
         ]"""
         api_instance = kubernetes.client.CustomObjectsApi(self.api_client)
         try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
             resp = api_instance.list_namespaced_custom_object(
                 group=group,
                 version=version,
@@ -84,11 +90,15 @@ class getResources(KubeCommon):
                     tablefmt="outline",
                 )
 
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
             if not self.quiet:
                 print(json.dumps(resp) if type(resp) is dict else resp)
             return resp
 
         except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
             self.printError(e)
 
     def getTableInfo(self, plural, headers=False):
@@ -191,7 +201,7 @@ class getResources(KubeCommon):
 class getClusterResources(KubeCommon):
     """Get all cluster scoped resources of a specific CRD"""
 
-    def __init__(self, quiet=True, output="json", config_context=None):
+    def __init__(self, quiet=True, output="json", verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
                 yaml: output in yaml
@@ -201,7 +211,9 @@ class getClusterResources(KubeCommon):
                         str "<config_file>:<context>": use specified file and context"""
         self.quiet = quiet
         self.output = output
+        self.verbose = verbose
         super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
 
     def main(
         self,
@@ -213,6 +225,9 @@ class getClusterResources(KubeCommon):
     ):
         api_instance = kubernetes.client.CustomObjectsApi(self.api_client)
         try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
             resp = api_instance.list_cluster_custom_object(
                 group=group,
                 version=version,
@@ -227,18 +242,22 @@ class getClusterResources(KubeCommon):
             if self.output == "yaml":
                 resp = yaml.dump(resp)
 
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
             if not self.quiet:
                 print(json.dumps(resp) if type(resp) is dict else resp)
             return resp
 
         except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
             self.printError(e)
 
 
 class createResource(KubeCommon):
     """Creates a cluster scoped Custom Resource"""
 
-    def __init__(self, quiet=True, dry_run=False, config_context=None):
+    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -248,7 +267,9 @@ class createResource(KubeCommon):
                         str "<config_file>:<context>": use specified file and context"""
         self.quiet = quiet
         self.dry_run = dry_run
+        self.verbose = verbose
         super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
 
     def main(
         self,
@@ -260,6 +281,9 @@ class createResource(KubeCommon):
     ):
         api_instance = kubernetes.client.CustomObjectsApi(self.api_client)
         try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
             resp = api_instance.create_namespaced_custom_object(
                 group,
                 version,
@@ -269,18 +293,22 @@ class createResource(KubeCommon):
                 dry_run=("All" if self.dry_run else None),
             )
 
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
             if not self.quiet:
                 print(json.dumps(resp) if type(resp) is dict else resp)
             return resp
 
         except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
             self.printError(e)
 
 
 class destroyResource(KubeCommon):
     """Destroys a cluster scoped Custom Resource"""
 
-    def __init__(self, quiet=True, dry_run=False, config_context=None):
+    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -290,7 +318,9 @@ class destroyResource(KubeCommon):
                         str "<config_file>:<context>": use specified file and context"""
         self.quiet = quiet
         self.dry_run = dry_run
+        self.verbose = verbose
         super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
 
     def main(
         self,
@@ -302,6 +332,9 @@ class destroyResource(KubeCommon):
     ):
         api_instance = kubernetes.client.CustomObjectsApi(self.api_client)
         try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
             resp = api_instance.delete_namespaced_custom_object(
                 group,
                 version,
@@ -311,23 +344,30 @@ class destroyResource(KubeCommon):
                 dry_run=("All" if self.dry_run else None),
             )
 
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
             if not self.quiet:
                 print(json.dumps(resp) if type(resp) is dict else resp)
             return resp
 
         except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
             self.printError(e)
 
 
 class updateClusterResource(KubeCommon):
-    def __init__(self, quiet=True, config_context=None):
+    def __init__(self, quiet=True, verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
                         str "<config_file>:<context>": use specified file and context"""
+        # TODO: add dry-run
         self.quiet = quiet
+        self.verbose = verbose
         super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
 
     def main(
         self,
@@ -339,18 +379,25 @@ class updateClusterResource(KubeCommon):
     ):
         api_instance = kubernetes.client.CustomObjectsApi(self.api_client)
         try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
             resp = api_instance.patch_cluster_custom_object(group, version, plural, name, body)
 
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
             if not self.quiet:
                 print(json.dumps(resp) if type(resp) is dict else resp)
             return resp
 
         except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
             self.printError(e)
 
 
 class getNamespaces(KubeCommon):
-    def __init__(self, quiet=True, output="json", config_context=None):
+    def __init__(self, quiet=True, output="json", verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
                 yaml: output in yaml
@@ -360,7 +407,9 @@ class getNamespaces(KubeCommon):
                         str "<config_file>:<context>": use specified file and context"""
         self.quiet = quiet
         self.output = output
+        self.verbose = verbose
         super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
 
     def main(self, systemNS=None, nameFilter=None, unassociated=False, minuteFilter=False):
         """Default behavior (systemNS=None) is to remove typical system namespaces from the
@@ -373,6 +422,9 @@ class getNamespaces(KubeCommon):
         minuteFilter: only return namespaces created within the last X minutes"""
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
         try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
             resp = api_instance.list_namespace().to_dict()
             if type(systemNS) is not list:
                 systemNS = [
@@ -415,18 +467,22 @@ class getNamespaces(KubeCommon):
                     tablefmt="outline",
                 )
 
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
             if not self.quiet:
                 print(json.dumps(resp, default=str) if type(resp) is dict else resp)
             return resp
 
         except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
             self.printError(e)
 
 
 class getSecrets(KubeCommon):
     """Gets all kubernetes secrets in a specific namespace"""
 
-    def __init__(self, quiet=True, output="json", config_context=None):
+    def __init__(self, quiet=True, output="json", verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         output: table: pretty print the data
                 json: (default) output in JSON
@@ -437,11 +493,16 @@ class getSecrets(KubeCommon):
                         str "<config_file>:<context>": use specified file and context"""
         self.quiet = quiet
         self.output = output
+        self.verbose = verbose
         super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
 
     def main(self, namespace="astra-connector"):
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
         try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
             resp = api_instance.list_namespaced_secret(namespace).to_dict()
 
             if self.output == "yaml":
@@ -454,18 +515,22 @@ class getSecrets(KubeCommon):
                     tablefmt="outline",
                 )
 
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
             if not self.quiet:
                 print(json.dumps(resp, default=str) if type(resp) is dict else resp)
             return resp
 
         except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
             self.printError(e)
 
 
 class destroySecret(KubeCommon):
     """Destroys a kubernetes secret in a specific namespace"""
 
-    def __init__(self, quiet=True, dry_run=False, config_context=None):
+    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -475,26 +540,36 @@ class destroySecret(KubeCommon):
                         str "<config_file>:<context>": use specified file and context"""
         self.quiet = quiet
         self.dry_run = dry_run
+        self.verbose = verbose
         super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
 
     def main(self, name, namespace="astra-connector"):
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
         try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
             resp = api_instance.delete_namespaced_secret(
                 name,
                 namespace,
                 dry_run=("All" if self.dry_run else None),
             ).to_dict()
+
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
             if not self.quiet:
                 print(json.dumps(resp) if type(resp) is dict else resp)
             return resp
 
         except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
             self.printError(e)
 
 
 class getStorageClasses(KubeCommon):
-    def __init__(self, quiet=True, output="json", config_context=None):
+    def __init__(self, quiet=True, output="json", verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
                 yaml: output in yaml
@@ -504,21 +579,30 @@ class getStorageClasses(KubeCommon):
                         str "<config_file>:<context>": use specified file and context"""
         self.quiet = quiet
         self.output = output
+        self.verbose = verbose
         super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
 
     def main(self):
         api_instance = kubernetes.client.StorageV1Api(self.api_client)
         try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
             resp = api_instance.list_storage_class().to_dict()
 
             if self.output == "yaml":
                 resp = yaml.dump(resp)
 
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
             if not self.quiet:
                 print(json.dumps(resp, default=str) if type(resp) is dict else resp)
             return resp
 
         except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
             self.printError(e)
 
 
@@ -526,7 +610,7 @@ class createRegCred(KubeCommon, SDKCommon):
     """Creates a docker registry credential. By default it uses fields from config.yaml,
     however any of these fields can be overridden by custom values."""
 
-    def __init__(self, quiet=True, dry_run=False, config_context=None):
+    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -536,7 +620,9 @@ class createRegCred(KubeCommon, SDKCommon):
                         str "<config_file>:<context>": use specified file and context"""
         self.quiet = quiet
         self.dry_run = dry_run
+        self.verbose = verbose
         super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
 
     def main(self, name=None, registry=None, username=None, password=None, namespace="trident"):
         if (not username and password) or (username and not password):
@@ -578,22 +664,30 @@ class createRegCred(KubeCommon, SDKCommon):
 
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
         try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
             resp = api_instance.create_namespaced_secret(
                 namespace=namespace,
                 body=regCredSecret,
                 dry_run=("All" if self.dry_run else None),
             ).to_dict()
+
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
             if not self.quiet:
                 print(json.dumps(resp, default=str) if type(resp) is dict else resp)
             return resp
         except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
             self.printError(e)
 
 
 class createAstraApiToken(KubeCommon, SDKCommon):
     """Creates an astra-api-token secret based on the contents of config.yaml"""
 
-    def __init__(self, quiet=True, dry_run=False, config_context=None):
+    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -603,7 +697,9 @@ class createAstraApiToken(KubeCommon, SDKCommon):
                         str "<config_file>:<context>": use specified file and context"""
         self.quiet = quiet
         self.dry_run = dry_run
+        self.verbose = verbose
         super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
 
     def main(self, name=None, namespace="astra-connector"):
         # Handle case sensitivity
@@ -625,22 +721,30 @@ class createAstraApiToken(KubeCommon, SDKCommon):
 
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
         try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
             resp = api_instance.create_namespaced_secret(
                 namespace=namespace,
                 body=secret,
                 dry_run=("All" if self.dry_run else None),
             ).to_dict()
+
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
             if not self.quiet:
                 print(json.dumps(resp, default=str) if type(resp) is dict else resp)
             return resp
         except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
             self.printError(e)
 
 
 class createAstraConnector(SDKCommon):
     """Creates an AstraConnector custom resource"""
 
-    def __init__(self, quiet=True, dry_run=False, config_context=None):
+    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -650,6 +754,7 @@ class createAstraConnector(SDKCommon):
                         str "<config_file>:<context>": use specified file and context"""
         self.quiet = quiet
         self.dry_run = dry_run
+        self.verbose = verbose
         self.config_context = config_context
         super().__init__()
 
@@ -683,7 +788,10 @@ class createAstraConnector(SDKCommon):
             },
         }
         return createResource(
-            quiet=self.quiet, dry_run=self.dry_run, config_context=self.config_context
+            quiet=self.quiet,
+            dry_run=self.dry_run,
+            verbose=self.verbose,
+            config_context=self.config_context,
         ).main(
             body["kind"].lower() + "s",
             namespace,

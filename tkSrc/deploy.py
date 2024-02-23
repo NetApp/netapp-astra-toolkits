@@ -56,7 +56,7 @@ def deployHelm(
     if v3:
         if dry_run == "client":
             print("---")
-        tkSrc.manage.manageV3App(v3, dry_run, quiet, appName, namespace)
+        tkSrc.manage.manageV3App(v3, dry_run, quiet, verbose, appName, namespace)
         backupRetention = "1"
         snapshotRetention = "1"
         minute = "0"
@@ -73,6 +73,7 @@ def deployHelm(
                 v3,
                 dry_run,
                 quiet,
+                verbose,
                 appName,
                 bucket,
                 granularity,
@@ -171,18 +172,18 @@ def main(args, parser, ard):
     if args.objectType == "acp":
         if args.v3:
             # Ensure the trident orchestrator is already running
-            torc = astraSDK.k8s.getClusterResources(config_context=args.v3).main(
-                "tridentorchestrators"
-            )
+            torc = astraSDK.k8s.getClusterResources(
+                quiet=args.quiet, verbose=args.verbose, config_context=args.v3
+            ).main("tridentorchestrators")
             if torc is None or len(torc["items"]) == 0:
                 parser.error("trident operator not found on current Kubernetes context")
             elif len(torc["items"]) > 1:
                 parser.error("multiple trident operators found on current Kubernetes context")
             # Handle the registry secret
             if not args.regCred:
-                cred = astraSDK.k8s.createRegCred(quiet=args.quiet, config_context=args.v3).main(
-                    registry=args.registry
-                )
+                cred = astraSDK.k8s.createRegCred(
+                    quiet=args.quiet, verbose=args.verbose, config_context=args.v3
+                ).main(registry=args.registry)
                 if not cred:
                     raise SystemExit("astraSDK.k8s.createRegCred() failed")
                 args.regCred = cred["metadata"]["name"]
@@ -215,7 +216,7 @@ def main(args, parser, ard):
             torc_spec["spec"]["imagePullSecrets"] = [args.regCred]
             # Make the update
             torc_update = astraSDK.k8s.updateClusterResource(
-                quiet=args.quiet, config_context=args.v3
+                quiet=args.quiet, verbose=args.verbose, config_context=args.v3
             ).main("tridentorchestrators", torc_name, torc_spec)
             if torc_update:
                 print(f"tridentorchestrator.trident.netapp.io/{torc_name} edited")

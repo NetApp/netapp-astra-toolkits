@@ -54,7 +54,10 @@ def main(args, parser, ard):
                 print(yaml.dump(v3_dict).rstrip("\n"))
             else:
                 astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                    quiet=args.quiet,
+                    dry_run=args.dry_run,
+                    verbose=args.verbose,
+                    config_context=args.v3,
                 ).main(
                     f"{v3_dict['kind'].lower()}s",
                     v3_dict["metadata"]["namespace"],

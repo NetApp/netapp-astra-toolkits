@@ -224,7 +224,7 @@ class SDKCommon(BaseCommon):
                 if ret.text.strip():
                     print(f"text: {ret.text}")
         if verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
+            print(f"{GREEN}API HTTP Status Code: {ret.status_code}{ENDC}")
         return ret
 
     def jsonifyResults(self, requestsObject):
@@ -301,3 +301,23 @@ class KubeCommon(BaseCommon):
             )
             self.printError(f"{err}\n")
             raise SystemExit()
+
+    class WriteVerbose:
+        def __init__(self):
+            self.content = []
+
+        def write(self, string):
+            if string[:2] == "b'" or string[:2] == 'b"':
+                string = string[2:-1]
+            elif (string[:1] == "'" and string[-1:] == "'") or (
+                string[:1] == '"' and string[-1:] == '"'
+            ):
+                string = string[1:-1]
+            self.content.append(string)
+
+        def print(self):
+            verbose_info = "".join(self.content).replace("\\r\\n", "\n")
+            verbose_info = "\n".join(
+                [ll.rstrip() for ll in verbose_info.splitlines() if ll.strip()]
+            )
+            print(f"{GREEN}{verbose_info}{ENDC}")

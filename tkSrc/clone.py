@@ -296,7 +296,10 @@ def main(args, parser, ard):
                 print("---")
             else:
                 restoreSourceDict = astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                    quiet=args.quiet,
+                    dry_run=args.dry_run,
+                    verbose=args.verbose,
+                    config_context=args.v3,
                 ).main(
                     f"{v3_dp_dict['kind'].lower()}s",
                     v3_dp_dict["metadata"]["namespace"],
@@ -337,6 +340,7 @@ def main(args, parser, ard):
                         args.v3,
                         args.dry_run,
                         args.quiet,
+                        args.verbose,
                         None,
                         restoreSourceDict["spec"]["applicationRef"],
                         restoreSourceDict["spec"]["appVaultRef"],
@@ -398,7 +402,10 @@ def main(args, parser, ard):
             else:
                 for v3_dict in v3_gen:
                     astraSDK.k8s.createResource(
-                        quiet=args.quiet, dry_run=args.dry_run, config_context=args.cluster
+                        quiet=args.quiet,
+                        dry_run=args.dry_run,
+                        verbose=args.verbose,
+                        config_context=args.cluster,
                     ).main(
                         f"{v3_dict['kind'].lower()}s",
                         v3_dict["metadata"]["namespace"],

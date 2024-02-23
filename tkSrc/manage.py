@@ -17,6 +17,7 @@
 
 import base64
 import json
+import os
 import yaml
 
 import astraSDK
@@ -27,6 +28,7 @@ def manageV3App(
     v3,
     dry_run,
     quiet,
+    verbose,
     appName,
     namespace,
     labelSelectors=None,
@@ -50,7 +52,9 @@ def manageV3App(
     if dry_run == "client":
         print(yaml.dump(v3_dict).rstrip("\n"))
     else:
-        astraSDK.k8s.createResource(quiet=quiet, dry_run=dry_run, config_context=v3).main(
+        astraSDK.k8s.createResource(
+            quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+        ).main(
             f"{v3_dict['kind'].lower()}s",
             v3_dict["metadata"]["namespace"],
             v3_dict,
@@ -124,6 +128,7 @@ def main(args, parser, ard):
                 args.v3,
                 args.dry_run,
                 args.quiet,
+                args.verbose,
                 args.appName,
                 args.namespace,
                 labelSelectors=args.labelSelectors,
@@ -182,7 +187,10 @@ def main(args, parser, ard):
                 print(yaml.dump(v3_dict).rstrip("\n"))
             else:
                 astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                    quiet=args.quiet,
+                    dry_run=args.dry_run,
+                    verbose=args.verbose,
+                    config_context=args.v3,
                 ).main(
                     f"{v3_dict['kind'].lower()}s",
                     v3_dict["metadata"]["namespace"],
@@ -246,19 +254,24 @@ def main(args, parser, ard):
             # Install the operator
             context, config_file = tuple(args.v3.split("@"))
             tkSrc.helpers.run(
-                f"kubectl --context={context} apply "
+                f"kubectl --context={context} -v={6 if args.verbose else 0} apply "
                 f"--dry_run={args.dry_run if args.dry_run else 'none'} -f "
                 f"{tkSrc.helpers.getOperatorURL(args.operator_version)}",
-                env={"KUBECONFIG": config_file} if config_file != "None" else None,
+                env={"KUBECONFIG": os.path.expanduser(config_file)}
+                if config_file != "None"
+                else None,
             )
             # Create the astra API token secret
             apiToken = astraSDK.k8s.createAstraApiToken(
-                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
             ).main()
             # Handle the registry secret
             if not args.regCred:
                 cred = astraSDK.k8s.createRegCred(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                    quiet=args.quiet,
+                    dry_run=args.dry_run,
+                    verbose=args.verbose,
+                    config_context=args.v3,
                 ).main(registry=args.registry, namespace="astra-connector")
                 if not cred:
                     raise SystemExit("astraSDK.k8s.createRegCred() failed")
@@ -269,7 +282,7 @@ def main(args, parser, ard):
                 cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
             # Create the AstraConnector CR
             connector = astraSDK.k8s.createAstraConnector(
-                quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
             ).main(
                 args.clusterName,
                 args.cloudID,

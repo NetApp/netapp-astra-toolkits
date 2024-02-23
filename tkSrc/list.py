@@ -30,7 +30,7 @@ def main(args):
     elif args.objectType == "apps" or args.objectType == "applications":
         if args.v3:
             rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, config_context=args.v3
+                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
             ).main(
                 "applications",
                 filters=[
@@ -61,7 +61,7 @@ def main(args):
     elif args.objectType == "backups":
         if args.v3:
             rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, config_context=args.v3
+                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
             ).main(
                 "backups",
                 filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}],
@@ -75,7 +75,7 @@ def main(args):
     elif args.objectType == "buckets" or args.objectType == "appVaults":
         if args.v3:
             rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, config_context=args.v3
+                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
             ).main(
                 "appvaults",
                 filters=[
@@ -108,7 +108,7 @@ def main(args):
     elif args.objectType == "credentials" or args.objectType == "secrets":
         if args.v3:
             rc = astraSDK.k8s.getSecrets(
-                quiet=args.quiet, output=args.output, config_context=args.v3
+                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
             ).main()
         else:
             rc = astraSDK.credentials.getCredentials(
@@ -119,7 +119,7 @@ def main(args):
     elif args.objectType == "hooks" or args.objectType == "exechooks":
         if args.v3:
             rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, config_context=args.v3
+                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
             ).main(
                 "exechooks", filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}]
             )
@@ -132,7 +132,7 @@ def main(args):
     elif args.objectType == "protections" or args.objectType == "schedules":
         if args.v3:
             rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, config_context=args.v3
+                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
             ).main(
                 "schedules",
                 filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}],
@@ -152,7 +152,7 @@ def main(args):
     elif args.objectType == "namespaces":
         if args.v3:
             rc = astraSDK.k8s.getNamespaces(
-                quiet=args.quiet, output=args.output, config_context=args.v3
+                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
             ).main(
                 nameFilter=args.nameFilter,
                 unassociated=args.unassociated,
@@ -208,7 +208,7 @@ def main(args):
     elif args.objectType == "snapshots":
         if args.v3:
             rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, config_context=args.v3
+                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
             ).main(
                 "snapshots",
                 filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}],

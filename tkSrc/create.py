@@ -75,7 +75,16 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
 
 
 def createV3Backup(
-    v3, dry_run, quiet, name, app, appVault, snapshot=None, reclaimPolicy=None, generateName=None
+    v3,
+    dry_run,
+    quiet,
+    verbose,
+    name,
+    app,
+    appVault,
+    snapshot=None,
+    reclaimPolicy=None,
+    generateName=None,
 ):
     template = tkSrc.helpers.setupJinja("backup")
     v3_dict = yaml.safe_load(
@@ -92,7 +101,9 @@ def createV3Backup(
         print(yaml.dump(v3_dict).rstrip("\n"))
         return v3_dict
     else:
-        return astraSDK.k8s.createResource(quiet=quiet, dry_run=dry_run, config_context=v3).main(
+        return astraSDK.k8s.createResource(
+            quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+        ).main(
             f"{v3_dict['kind'].lower()}s",
             v3_dict["metadata"]["namespace"],
             v3_dict,
@@ -105,6 +116,7 @@ def createV3Protection(
     v3,
     dry_run,
     quiet,
+    verbose,
     app,
     bucket,
     granularity,
@@ -133,7 +145,9 @@ def createV3Protection(
     if dry_run == "client":
         print(yaml.dump(v3_dict).rstrip("\n"))
     else:
-        astraSDK.k8s.createResource(quiet=quiet, dry_run=dry_run, config_context=v3).main(
+        astraSDK.k8s.createResource(
+            quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+        ).main(
             f"{v3_dict['kind'].lower()}s",
             v3_dict["metadata"]["namespace"],
             v3_dict,
@@ -149,6 +163,7 @@ def main(args, parser, ard):
                 args.v3,
                 args.dry_run,
                 args.quiet,
+                args.verbose,
                 args.name,
                 args.app,
                 args.bucket,
@@ -225,7 +240,10 @@ def main(args, parser, ard):
                 print(yaml.dump(v3_dict).rstrip("\n"))
             else:
                 astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                    quiet=args.quiet,
+                    dry_run=args.dry_run,
+                    verbose=args.verbose,
+                    config_context=args.v3,
                 ).main(
                     f"{v3_dict['kind'].lower()}s",
                     v3_dict["metadata"]["namespace"],
@@ -283,6 +301,7 @@ def main(args, parser, ard):
                 args.v3,
                 args.dry_run,
                 args.quiet,
+                args.verbose,
                 args.app,
                 args.bucket,
                 args.granularity,
@@ -395,7 +414,10 @@ def main(args, parser, ard):
                 print(yaml.dump(v3_dict).rstrip("\n"))
             else:
                 astraSDK.k8s.createResource(
-                    quiet=args.quiet, dry_run=args.dry_run, config_context=args.v3
+                    quiet=args.quiet,
+                    dry_run=args.dry_run,
+                    verbose=args.verbose,
+                    config_context=args.v3,
                 ).main(
                     f"{v3_dict['kind'].lower()}s",
                     v3_dict["metadata"]["namespace"],
