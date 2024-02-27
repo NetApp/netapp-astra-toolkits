@@ -206,6 +206,10 @@ class ToolkitParser:
             "clusters",
             help="list clusters",
         )
+        if self.v3:
+            self.subparserListConnectors = self.subparserList.add_parser(
+                "connectors", aliases=["astraconnectors"], help="list astra connectors"
+            )
         self.subparserListCredentials = self.subparserList.add_parser(
             "credentials",
             aliases=["secrets"],

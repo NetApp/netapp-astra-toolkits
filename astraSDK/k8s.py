@@ -87,7 +87,7 @@ class getResources(KubeCommon):
                     self.getTableInfo(plural, headers=True),
                     self.getTableInfo(plural),
                     resp,
-                    tablefmt="outline",
+                    tablefmt="grid",
                 )
 
             if self.verbose:
@@ -119,6 +119,22 @@ class getResources(KubeCommon):
                 "spec.providerCredentials.*.valueFromSecret.name",
                 "spec.providerType",
                 "status.state",
+            ]
+        elif plural == "astraconnectors":
+            if headers:
+                return [
+                    "astraControlInstance",
+                    "registered",
+                    "astraClusterID",
+                    "astraConnectorID",
+                    "status",
+                ]
+            return [
+                "status.observedSpec.natsSyncClient.cloudBridgeURL",
+                "status.natsSyncClient.registered",
+                "status.natsSyncClient.astraClusterID",
+                "status.natsSyncClient.astraConnectorID",
+                "status.natsSyncClient.status",
             ]
         elif plural == "backups":
             if headers:
@@ -464,7 +480,7 @@ class getNamespaces(KubeCommon):
                         "metadata.creation_timestamp",
                     ],
                     resp,
-                    tablefmt="outline",
+                    tablefmt="grid",
                 )
 
             if self.verbose:
@@ -512,7 +528,7 @@ class getSecrets(KubeCommon):
                     ["name", "type", "dataKeys", "creationTimestamp"],
                     ["metadata.name", "type", "data.KEYS", "metadata.creation_timestamp"],
                     resp,
-                    tablefmt="outline",
+                    tablefmt="grid",
                 )
 
             if self.verbose:

@@ -21,6 +21,7 @@ import os
 import sys
 import yaml
 from tabulate import tabulate
+import textwrap
 import requests
 from urllib3 import disable_warnings
 
@@ -160,6 +161,8 @@ class BaseCommon:
             for c, r in enumerate(row):
                 if type(r) is list:
                     row[c] = ", ".join(r)
+            # Wrap text over 80 characters
+            row = [textwrap.fill(r, width=80) if isinstance(r, str) else r for r in row]
             tabData.append(row)
         return tabulate(tabData, tabHeader, tablefmt=tablefmt)
 

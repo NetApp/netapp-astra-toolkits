@@ -105,6 +105,10 @@ def main(args):
         )
         if rc is False:
             raise SystemExit("astraSDK.clusters.getClusters() failed")
+    elif args.objectType == "connectors" or args.objectType == "astraconnectors":
+        rc = astraSDK.k8s.getResources(
+            quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
+        ).main("astraconnectors")
     elif args.objectType == "credentials" or args.objectType == "secrets":
         if args.v3:
             rc = astraSDK.k8s.getSecrets(
