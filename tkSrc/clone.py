@@ -279,6 +279,9 @@ def main(args, parser, ard):
         # restore operation. So we'll take care of the data protection operation here first,
         # then clone and restore will use the same operation after
         if args.subcommand == "clone":
+            # There are certain args that aren't available for live clones, set those to None
+            args.filterSelection = None
+            args.filterSet = None
             bucketDict = tkSrc.helpers.getCommonAppVault(args.v3, args.cluster, parser)
             kind = "Backup" if crossCluster else "Snapshot"
             template = tkSrc.helpers.setupJinja(kind.lower())
@@ -384,6 +387,15 @@ def main(args, parser, ard):
                         else restoreSourceDict["spec"]["appVaultRef"]
                     ),
                     namespaceMapping=tkSrc.helpers.prependDump(namespaceMapping, prepend=4),
+                    resourceFilter=tkSrc.helpers.prependDump(
+                        tkSrc.helpers.createFilterSet(
+                            args.filterSelection,
+                            args.filterSet,
+                            None,
+                            v3=True,
+                        ),
+                        prepend=4,
+                    ),
                     appName=args.appName,
                     appSpec=tkSrc.helpers.prependDump(
                         tkSrc.helpers.updateNamespaceSpec(

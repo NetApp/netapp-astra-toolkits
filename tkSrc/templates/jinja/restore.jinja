@@ -8,6 +8,9 @@ spec:
   appVaultRef: {{ appVaultRef }}
   namespaceMapping:
 {{ namespaceMapping }}
+{%- if resourceFilter %}
+  resourceFilter:
+{{ resourceFilter }}{%- endif %}
 ...
 ---
 apiVersion: astra.netapp.io/v1
