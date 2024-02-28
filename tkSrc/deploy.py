@@ -182,7 +182,10 @@ def main(args, parser, ard):
             # Handle the registry secret
             if not args.regCred:
                 cred = astraSDK.k8s.createRegCred(
-                    quiet=args.quiet, verbose=args.verbose, config_context=args.v3
+                    quiet=args.quiet,
+                    dry_run=args.dry_run,
+                    verbose=args.verbose,
+                    config_context=args.v3,
                 ).main(registry=args.registry)
                 if not cred:
                     raise SystemExit("astraSDK.k8s.createRegCred() failed")
@@ -216,7 +219,7 @@ def main(args, parser, ard):
             torc_spec["spec"]["imagePullSecrets"] = [args.regCred]
             # Make the update
             torc_update = astraSDK.k8s.updateClusterResource(
-                quiet=args.quiet, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
             ).main("tridentorchestrators", torc_name, torc_spec)
             if torc_update:
                 print(f"tridentorchestrator.trident.netapp.io/{torc_name} edited")

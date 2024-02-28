@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,11 +29,12 @@ from .common import KubeCommon, SDKCommon
 class getResources(KubeCommon):
     """Get all namespace scoped resources of a specific CRD"""
 
-    def __init__(self, quiet=True, verbose=False, output="json", config_context=None):
+    def __init__(self, quiet=True, output="json", verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
         output: table: pretty print the data
                 json: (default) output in JSON
                 yaml: output in yaml
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
@@ -221,6 +222,7 @@ class getClusterResources(KubeCommon):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
                 yaml: output in yaml
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
@@ -277,6 +279,7 @@ class createResource(KubeCommon):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
@@ -328,6 +331,7 @@ class destroyResource(KubeCommon):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
@@ -373,14 +377,17 @@ class destroyResource(KubeCommon):
 
 
 class updateClusterResource(KubeCommon):
-    def __init__(self, quiet=True, verbose=False, config_context=None):
+    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
         """quiet: Will there be CLI output or just return (datastructure)
+        dry-run: False (default):       submit and persist the resource
+                 True or non-empty str: submit request without persisting the resource
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
                         str "<config_file>:<context>": use specified file and context"""
-        # TODO: add dry-run
         self.quiet = quiet
+        self.dry_run = dry_run
         self.verbose = verbose
         super().__init__(config_context=config_context)
         self.api_client.configuration.debug = self.verbose
@@ -398,7 +405,9 @@ class updateClusterResource(KubeCommon):
             if self.verbose:
                 verbose_log = self.WriteVerbose()
                 sys.stdout = verbose_log
-            resp = api_instance.patch_cluster_custom_object(group, version, plural, name, body)
+            resp = api_instance.patch_cluster_custom_object(
+                group, version, plural, name, body, dry_run=("All" if self.dry_run else None)
+            )
 
             if self.verbose:
                 sys.stdout = sys.__stdout__
@@ -417,6 +426,7 @@ class getNamespaces(KubeCommon):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
                 yaml: output in yaml
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
@@ -503,6 +513,7 @@ class getSecrets(KubeCommon):
         output: table: pretty print the data
                 json: (default) output in JSON
                 yaml: output in yaml
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
@@ -550,6 +561,7 @@ class destroySecret(KubeCommon):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
@@ -589,6 +601,7 @@ class getStorageClasses(KubeCommon):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
                 yaml: output in yaml
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
@@ -630,6 +643,7 @@ class createRegCred(KubeCommon, SDKCommon):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
@@ -707,6 +721,7 @@ class createAstraApiToken(KubeCommon, SDKCommon):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
@@ -764,6 +779,7 @@ class createAstraConnector(SDKCommon):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
