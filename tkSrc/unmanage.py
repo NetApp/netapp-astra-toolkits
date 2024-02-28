@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ def main(args, parser, ard):
                     "multiple AstraConnector operators found on current Kubernetes context"
                 )
             connector = ard.connectors["items"][0]
-            # Destroy the AstraConnector CR and api token secret (TODO: regcred destruction?)
+            # Destroy the AstraConnector CR and api token secret
             if astraSDK.k8s.destroyResource(
                 quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
             ).main(

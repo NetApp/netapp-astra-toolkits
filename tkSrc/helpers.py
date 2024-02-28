@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,59 +19,11 @@ import json
 import os
 import re
 import subprocess
-import tempfile
 import yaml
 
 from jinja2 import Environment, FileSystemLoader
 
 import astraSDK
-
-
-def subKeys(subObject, key):
-    """Short recursion function for when the userSelect dict object has another
-    dict as one of its key's values"""
-    subKey = key.split("/", maxsplit=1)
-    if len(subKey) == 1:
-        return subObject[subKey[0]]
-    else:
-        return subKeys(subObject[subKey[0]], subKey[1])
-
-
-def userSelect(pickList, keys):
-    """pickList is a dictionary with an 'items' array of dicts.  Print the values
-    that match the 'keys' array, have the user pick one and then return the value
-    of index 0 of the keys array"""
-    # pickList = {"items": [{"id": "123", "name": "webapp",  "state": "running"},
-    #                       {"id": "345", "name": "mongodb", "state": "stopped"}]}
-    # keys = ["id", "name"]
-    # Output:
-    # 1:    123         webapp
-    # 2:    345         mongodb
-    # User enters 2, "id" (index 0) is returned, so "345"
-
-    if not isinstance(pickList, dict) or not isinstance(keys, list):
-        return False
-
-    for counter, item in enumerate(pickList["items"], start=1):
-        outputStr = str(counter) + ":\t"
-        for key in keys:
-            if item.get(key):
-                outputStr += str(item[key]) + "\t"
-            elif "/" in key:
-                outputStr += subKeys(item, key) + "\t"
-        print(outputStr)
-
-    while True:
-        ret = input(f"Select a line (1-{counter}): ")
-        try:
-            # try/except catches errors thrown from non-valid input
-            objectValue = pickList["items"][int(ret) - 1][keys[0]]
-            if int(ret) > 0 and int(ret) <= counter and objectValue:
-                return objectValue
-            else:
-                continue
-        except (IndexError, TypeError, ValueError):
-            continue
 
 
 def createHelmStr(flagName, values):
@@ -355,33 +307,6 @@ def run(command, captureOutput=False, ignoreErrors=False, env=None):
             return ret.stdout
         else:
             return True
-
-
-def stsPatch(patch, stsName):
-    """Patch and restart a statefulset"""
-    patchYaml = yaml.dump(patch)
-    tmp = tempfile.NamedTemporaryFile()
-    tmp.write(bytes(patchYaml, "utf-8"))
-    tmp.seek(0)
-    # Use os.system a few times because the home rolled run() simply isn't up to the task
-    try:
-        # TODO: I suspect these gymnastics wouldn't be needed if the py-k8s module
-        # were used
-        ret = os.system(f'kubectl patch statefulset.apps/{stsName} -p "$(cat {tmp.name})"')
-    except OSError as e:
-        raise SystemExit(f"Exception: {e}")
-    if ret:
-        raise SystemExit(f"os.system exited with RC: {ret}")
-    tmp.close()
-    try:
-        os.system(
-            f"kubectl scale sts {stsName} --replicas=0 && "
-            f"sleep 10 && kubectl scale sts {stsName} --replicas=1"
-        )
-    except OSError as e:
-        raise SystemExit(f"Exception: {e}")
-    if ret:
-        raise SystemExit(f"os.system exited with RC: {ret}")
 
 
 def isRFC1123(string, parser=None):
