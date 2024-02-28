@@ -402,14 +402,12 @@ def isRFC1123(string, parser=None):
             raise SystemExit(f"Error: {error}")
 
 
-def dupeKeyError(key):
+def dupeKeyError(key, parser):
     """Print an error message if duplicate keys are used"""
-    raise SystemExit(
-        f"Error: '{key}' should not be specified multiple times within a single --filterSet arg"
-    )
+    parser.error(f"'{key}' should not be specified multiple times within a single --filterSet arg")
 
 
-def createSetDict(setDict, filterStr, assets, v3=False):
+def createSetDict(setDict, filterStr, assets, parser, v3=False):
     """Given a filterStr such as:
         label=app.kubernetes.io/tier=backend,name=mysql,kind=Deployment
     Return a setDict with the following format:
@@ -429,25 +427,25 @@ def createSetDict(setDict, filterStr, assets, v3=False):
         elif "label" in key:
             setDict.setdefault("labelSelectors", []).append(val)
         elif "group" in key:
-            setDict["group"] = val if not setDict.get("group") else dupeKeyError("group")
+            setDict["group"] = val if not setDict.get("group") else dupeKeyError("group", parser)
         elif "version" in key:
-            setDict["version"] = val if not setDict.get("version") else dupeKeyError("version")
+            setDict["version"] = (
+                val if not setDict.get("version") else dupeKeyError("version", parser)
+            )
         elif "kind" in key:
-            setDict["kind"] = val if not setDict.get("kind") else dupeKeyError("kind")
+            setDict["kind"] = val if not setDict.get("kind") else dupeKeyError("kind", parser)
         else:
-            raise SystemExit(
-                f"Error: '{key}' not one of ['namespace', 'name', 'label', 'group', 'version', "
-                "'kind']"
+            parser.error(
+                f"'{key}' not one of ['namespace', 'name', 'label', 'group', 'version', 'kind']"
             )
     # TODO: Add v3 validation once ASTRACTL-31946 is complete
     if not v3:
         # Validate the inputs are valid assets for this app
         for key in ["group", "version", "kind"]:
             if setDict.get(key) and setDict[key] not in [a["GVK"][key] for a in assets["items"]]:
-                raise SystemExit(
-                    f"Error: '{setDict[key]}' is not a valid '{key}' for this application, please "
-                    f"run 'list assets {assets['metadata']['appID']}' to view possible '{key}' "
-                    "choices"
+                parser.error(
+                    f"'{setDict[key]}' is not a valid '{key}' for this application, please run '"
+                    f"list assets {assets['metadata']['appID']}' to view possible '{key}' choices"
                 )
         # Validate the inputs are valid GVK combinations
         for key1 in ["group", "version", "kind"]:
@@ -458,14 +456,14 @@ def createSetDict(setDict, filterStr, assets, v3=False):
                     if setDict[key1] not in [
                         a["GVK"][key1] for a in assets["items"] if a["GVK"][key2] == setDict[key2]
                     ]:
-                        raise SystemExit(
-                            f"Error: '{key1}={setDict[key1]}' does not match with "
-                            f"'{key2}={setDict[key2]}', please run 'list assets "
-                            f"{assets['metadata']['appID']}' to view valid GVK combinations"
+                        parser.error(
+                            f"'{key1}={setDict[key1]}' does not match with '{key2}={setDict[key2]}'"
+                            f", please run 'list assets {assets['metadata']['appID']}' to view "
+                            "valid GVK combinations"
                         )
 
 
-def createFilterSet(selection, filters, assets, v3=False):
+def createFilterSet(selection, filters, assets, parser, v3=False):
     """createFilterSet takes in a selection string, and a filters array of arrays, for example:
         [
             ['group=apps,version=v1,kind=Deployment'],
@@ -500,9 +498,9 @@ def createFilterSet(selection, filters, assets, v3=False):
         setDict = {}
         if isinstance(fil, list):
             for f in fil:
-                createSetDict(setDict, f, assets, v3=v3)
+                createSetDict(setDict, f, assets, parser, v3=v3)
         else:
-            createSetDict(setDict, fil, assets, v3=v3)
+            createSetDict(setDict, fil, assets, parser, v3=v3)
         rFilter[filterKey].append(setDict)
     return rFilter
 

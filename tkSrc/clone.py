@@ -392,6 +392,7 @@ def main(args, parser, ard):
                             args.filterSelection,
                             args.filterSet,
                             None,
+                            parser,
                             v3=True,
                         ),
                         prepend=4,
@@ -486,7 +487,10 @@ def main(args, parser, ard):
             snapshot,
             args.sourceApp,
             tkSrc.helpers.createFilterSet(
-                args.filterSelection, args.filterSet, astraSDK.apps.getAppAssets().main(oApp["id"])
+                args.filterSelection,
+                args.filterSet,
+                astraSDK.apps.getAppAssets().main(oApp["id"]),
+                parser,
             ),
             pollTimer=args.pollTimer,
             background=args.background,

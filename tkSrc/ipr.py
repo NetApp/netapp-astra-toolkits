@@ -78,7 +78,10 @@ def main(args, parser, ard):
             backupID=args.backup,
             snapshotID=args.snapshot,
             resourceFilter=tkSrc.helpers.createFilterSet(
-                args.filterSelection, args.filterSet, astraSDK.apps.getAppAssets().main(args.app)
+                args.filterSelection,
+                args.filterSet,
+                astraSDK.apps.getAppAssets().main(args.app),
+                parser,
             ),
         )
         if rc:
