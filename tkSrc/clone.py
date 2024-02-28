@@ -396,6 +396,7 @@ def main(args, parser, ard):
                         ),
                         prepend=4,
                     ),
+                    newStorageClass=args.newStorageClass,
                     appName=args.appName,
                     appSpec=tkSrc.helpers.prependDump(
                         tkSrc.helpers.updateNamespaceSpec(

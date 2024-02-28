@@ -57,8 +57,14 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                 acl.dataProtections = ard.buildList("backups", "metadata.name") + ard.buildList(
                     "snapshots", "metadata.name"
                 )
-            ard.storageClasses = astraSDK.k8s.getStorageClasses(config_context=v3).main()
-            acl.storageClasses = ard.buildList("storageClasses", "metadata.name")
+            if len(argv) - verbPosition >= 3:
+                ard.storageClasses = astraSDK.k8s.getStorageClasses(
+                    config_context=argv[verbPosition + 3]
+                ).main()
+                acl.storageClasses = ard.buildList("storageClasses", "metadata.name")
+            else:
+                ard.storageClasses = astraSDK.k8s.getStorageClasses(config_context=v3).main()
+                acl.storageClasses = ard.buildList("storageClasses", "metadata.name")
         else:
             ard.apps = astraSDK.apps.getApps().main()
             acl.apps = ard.buildList("apps", "id")

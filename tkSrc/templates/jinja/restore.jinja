@@ -11,6 +11,11 @@ spec:
 {%- if resourceFilter %}
   resourceFilter:
 {{ resourceFilter }}{%- endif %}
+{%- if newStorageClass %}
+  storageClassMapping:
+    - destination: {{ newStorageClass }}
+      source: '*'
+{%- endif %}
 ...
 ---
 apiVersion: astra.netapp.io/v1
