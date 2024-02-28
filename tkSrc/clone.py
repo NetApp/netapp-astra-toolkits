@@ -389,11 +389,7 @@ def main(args, parser, ard):
                     namespaceMapping=tkSrc.helpers.prependDump(namespaceMapping, prepend=4),
                     resourceFilter=tkSrc.helpers.prependDump(
                         tkSrc.helpers.createFilterSet(
-                            args.filterSelection,
-                            args.filterSet,
-                            None,
-                            parser,
-                            v3=True,
+                            args.filterSelection, args.filterSet, None, parser, v3=True
                         ),
                         prepend=4,
                     ),

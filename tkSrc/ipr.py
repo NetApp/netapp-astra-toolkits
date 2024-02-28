@@ -48,6 +48,12 @@ def main(args, parser, ard):
                     iprName=f"{iprSourceDict['kind'].lower()}ipr-{uuid.uuid4()}",
                     appArchivePath=iprSourceDict["status"]["appArchivePath"],
                     appVaultRef=iprSourceDict["spec"]["appVaultRef"],
+                    resourceFilter=tkSrc.helpers.prependDump(
+                        tkSrc.helpers.createFilterSet(
+                            args.filterSelection, args.filterSet, None, parser, v3=True
+                        ),
+                        prepend=4,
+                    ),
                 )
             )
             if args.dry_run == "client":

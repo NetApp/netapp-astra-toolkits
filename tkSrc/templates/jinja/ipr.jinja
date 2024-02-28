@@ -6,3 +6,6 @@ metadata:
 spec:
   appArchivePath: {{ appArchivePath }}
   appVaultRef: {{ appVaultRef }}
+{%- if resourceFilter %}
+  resourceFilter:
+{{ resourceFilter }}{%- endif %}
