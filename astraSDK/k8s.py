@@ -635,6 +635,47 @@ class getStorageClasses(KubeCommon):
             self.printError(e)
 
 
+class createV1Secret(KubeCommon):
+    """Creates a Kubernetes V1 Secret"""
+
+    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
+        """quiet: Will there be CLI output or just return (datastructure)
+        dry-run: False (default):       submit and persist the resource
+                 True or non-empty str: submit request without persisting the resource
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
+        config_context: the kubeconfig:context mapping to execute against
+                        None: use system defaults
+                        str "None:<context>": use default kubeconfig w/ specified context
+                        str "<config_file>:<context>": use specified file and context"""
+        self.quiet = quiet
+        self.dry_run = dry_run
+        self.verbose = verbose
+        super().__init__(config_context=config_context)
+        self.api_client.configuration.debug = self.verbose
+
+    def main(self, v1SecretObj, namespace="astra-connector"):
+        api_instance = kubernetes.client.CoreV1Api(self.api_client)
+        try:
+            if self.verbose:
+                verbose_log = self.WriteVerbose()
+                sys.stdout = verbose_log
+            resp = api_instance.create_namespaced_secret(
+                namespace=namespace,
+                body=v1SecretObj,
+                dry_run=("All" if self.dry_run else None),
+            ).to_dict()
+
+            if self.verbose:
+                sys.stdout = sys.__stdout__
+                verbose_log.print()
+            if not self.quiet:
+                print(json.dumps(resp, default=str) if type(resp) is dict else resp)
+            return resp
+        except kubernetes.client.rest.ApiException as e:
+            sys.stdout = sys.__stdout__
+            self.printError(e)
+
+
 class createRegCred(KubeCommon, SDKCommon):
     """Creates a docker registry credential. By default it uses fields from config.yaml,
     however any of these fields can be overridden by custom values."""
@@ -651,8 +692,8 @@ class createRegCred(KubeCommon, SDKCommon):
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
+        self.config_context = config_context
+        super().__init__()
 
     def main(self, name=None, registry=None, username=None, password=None, namespace="trident"):
         if (not username and password) or (username and not password):
@@ -691,27 +732,12 @@ class createRegCred(KubeCommon, SDKCommon):
                 )
             },
         )
-
-        api_instance = kubernetes.client.CoreV1Api(self.api_client)
-        try:
-            if self.verbose:
-                verbose_log = self.WriteVerbose()
-                sys.stdout = verbose_log
-            resp = api_instance.create_namespaced_secret(
-                namespace=namespace,
-                body=regCredSecret,
-                dry_run=("All" if self.dry_run else None),
-            ).to_dict()
-
-            if self.verbose:
-                sys.stdout = sys.__stdout__
-                verbose_log.print()
-            if not self.quiet:
-                print(json.dumps(resp, default=str) if type(resp) is dict else resp)
-            return resp
-        except kubernetes.client.rest.ApiException as e:
-            sys.stdout = sys.__stdout__
-            self.printError(e)
+        return createV1Secret(
+            quiet=self.quiet,
+            dry_run=self.dry_run,
+            verbose=self.verbose,
+            config_context=self.config_context,
+        ).main(regCredSecret, namespace=namespace)
 
 
 class createAstraApiToken(KubeCommon, SDKCommon):
@@ -729,8 +755,8 @@ class createAstraApiToken(KubeCommon, SDKCommon):
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
+        self.config_context = config_context
+        super().__init__()
 
     def main(self, name=None, namespace="astra-connector"):
         # Handle case sensitivity
@@ -749,27 +775,48 @@ class createAstraApiToken(KubeCommon, SDKCommon):
             type="Opaque",
             data={"apiToken": base64.b64encode(token.encode("utf-8")).decode("utf-8")},
         )
+        return createV1Secret(
+            quiet=self.quiet,
+            dry_run=self.dry_run,
+            verbose=self.verbose,
+            config_context=self.config_context,
+        ).main(secret, namespace=namespace)
 
-        api_instance = kubernetes.client.CoreV1Api(self.api_client)
-        try:
-            if self.verbose:
-                verbose_log = self.WriteVerbose()
-                sys.stdout = verbose_log
-            resp = api_instance.create_namespaced_secret(
-                namespace=namespace,
-                body=secret,
-                dry_run=("All" if self.dry_run else None),
-            ).to_dict()
 
-            if self.verbose:
-                sys.stdout = sys.__stdout__
-                verbose_log.print()
-            if not self.quiet:
-                print(json.dumps(resp, default=str) if type(resp) is dict else resp)
-            return resp
-        except kubernetes.client.rest.ApiException as e:
-            sys.stdout = sys.__stdout__
-            self.printError(e)
+class createGenericSecret(KubeCommon, SDKCommon):
+    """Creates a basic Kubernetes secret, the passed data must already be base64 encoded"""
+
+    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
+        """quiet: Will there be CLI output or just return (datastructure)
+        dry-run: False (default):       submit and persist the resource
+                 True or non-empty str: submit request without persisting the resource
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
+        config_context: the kubeconfig:context mapping to execute against
+                        None: use system defaults
+                        str "None:<context>": use default kubeconfig w/ specified context
+                        str "<config_file>:<context>": use specified file and context"""
+        self.quiet = quiet
+        self.dry_run = dry_run
+        self.verbose = verbose
+        self.config_context = config_context
+        super().__init__()
+
+    def main(self, name, data, generateName=False, namespace="astra-connector"):
+        secret = kubernetes.client.V1Secret(
+            metadata=(
+                kubernetes.client.V1ObjectMeta(generate_name=name)
+                if generateName
+                else kubernetes.client.V1ObjectMeta(name=name)
+            ),
+            type="Opaque",
+            data=data,
+        )
+        return createV1Secret(
+            quiet=self.quiet,
+            dry_run=self.dry_run,
+            verbose=self.verbose,
+            config_context=self.config_context,
+        ).main(secret, namespace=namespace)
 
 
 class createAstraConnector(SDKCommon):

@@ -15,6 +15,7 @@
    limitations under the License.
 """
 
+import base64
 import json
 import os
 import re
@@ -457,18 +458,18 @@ def createSingleSecretKeyDict(credKeyPair, ard, parser):
     return {"valueFromSecret": {"name": cred, "key": key}}
 
 
-def createSecretKeyDict(keyNameList, args, ard, parser):
+def createSecretKeyDict(keyNameList, credential, provider, ard, parser):
     """Use keyNameList to ensure number of credential arguments inputted is correct,
     and build the full providerCredentials dictionary"""
-    # Ensure correct args.credentials length matches keyNameList length
-    if len(args.credential) != len(keyNameList):
+    # Ensure correct credential length matches keyNameList length
+    if len(credential) != len(keyNameList):
         parser.error(
             f"-s/--credential must be specified {len(keyNameList)} time(s) for "
-            f"'{args.provider}' provider"
+            f"'{provider}' provider"
         )
     # argparse ensures len(args.credential) is 2, but can't ensure a valid name/key pair
     providerCredentials = {}
-    for i, credKeyPair in enumerate(args.credential):
+    for i, credKeyPair in enumerate(credential):
         providerCredentials[keyNameList[i]] = createSingleSecretKeyDict(credKeyPair, ard, parser)
     return providerCredentials
 
@@ -562,3 +563,27 @@ def swapAppVaultRef(sourceAppVaultRef, sourceCluster, destCluster, parser):
         )
     except KeyError as err:
         parser.error(f"{err} key not found in 'destAppVault' object,\n{destAppVaults=}")
+
+
+def openJson(path, parser):
+    """Given a file path, open the json file, and return a dict of its contents"""
+    with open(path, encoding="utf8") as f:
+        try:
+            return json.loads(f.read().rstrip())
+        except json.decoder.JSONDecodeError:
+            parser.error(f"{path} does not seem to be valid JSON")
+
+
+def openScript(path, parser):
+    """Given a file path, open the text file, and return a str of its contents"""
+    with open(path, encoding="utf8") as f:
+        return base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
+
+
+def openYaml(path, parser):
+    """Given a file path, open the yaml file, and return a dict of its contents"""
+    with open(path, encoding="utf8") as f:
+        try:
+            return yaml.load(f.read().rstrip(), Loader=yaml.SafeLoader)
+        except (yaml.scanner.ScannerError, IsADirectoryError):
+            parser.error(f"{path} does not seem to be valid YAML")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -15,8 +15,6 @@
    limitations under the License.
 """
 
-import base64
-import json
 import os
 import yaml
 
@@ -35,6 +33,7 @@ def manageV3App(
     additionalNamespace=None,
     clusterScopedResource=None,
 ):
+    """Manage an application via a Kubernetes custom resource"""
     template = tkSrc.helpers.setupJinja("app")
     v3_dict = yaml.safe_load(
         template.render(
@@ -61,6 +60,116 @@ def manageV3App(
             version="v1",
             group="astra.netapp.io",
         )
+
+
+def manageBucket(provider, bucketName, storageAccount, serverURL, credential, quiet, verbose):
+    """Manage a bucket via an API call"""
+    if provider == "azure":
+        bucketParameters = {"azure": {"bucketName": bucketName, "storageAccount": storageAccount}}
+    elif provider == "gcp":
+        bucketParameters = {"gcp": {"bucketName": bucketName}}
+    else:
+        bucketParameters = {"s3": {"bucketName": bucketName, "serverURL": serverURL}}
+    # Call manageBucket class
+    rc = astraSDK.buckets.manageBucket(quiet=quiet, verbose=verbose).main(
+        bucketName, credential, provider, bucketParameters
+    )
+    if rc:
+        return rc
+    raise SystemExit("astraSDK.buckets.manageBucket() failed")
+
+
+def manageV3Bucket(
+    v3,
+    dry_run,
+    quiet,
+    verbose,
+    bucketName,
+    provider,
+    storageAccount,
+    serverURL,
+    http,
+    skipCertValidation,
+    credential,
+    ard,
+    parser,
+):
+    """Manage a bucket via a Kubernetes custom resource"""
+    # Create providerCredentials based on provider input
+    # TODO: handle AWS
+    if provider == "azure":
+        keyNameList = ["accountKey"]
+    elif provider == "gcp":
+        keyNameList = ["credentials"]
+    else:
+        keyNameList = ["accessKeyID", "secretAccessKey"]
+    template = tkSrc.helpers.setupJinja("appVault")
+    v3_dict = yaml.safe_load(
+        template.render(
+            bucketName=tkSrc.helpers.isRFC1123(bucketName, parser=parser),
+            providerType=provider,
+            accountName=storageAccount,
+            endpoint=serverURL,
+            secure=("false" if http else None),
+            skipCertValidation=("true" if skipCertValidation else None),
+            providerCredentials=tkSrc.helpers.prependDump(
+                tkSrc.helpers.createSecretKeyDict(keyNameList, credential, provider, ard, parser),
+                prepend=4,
+            ),
+        )
+    )
+    if dry_run == "client":
+        print(yaml.dump(v3_dict).rstrip("\n"))
+    else:
+        astraSDK.k8s.createResource(
+            quiet=quiet,
+            dry_run=dry_run,
+            verbose=verbose,
+            config_context=v3,
+        ).main(
+            f"{v3_dict['kind'].lower()}s",
+            v3_dict["metadata"]["namespace"],
+            v3_dict,
+            version="v1",
+            group="astra.netapp.io",
+        )
+
+
+def validateBucketArgs(args, parser):
+    """Validate that user provided inputs for managing a bucket are valid"""
+    # Validate serverURL and storageAccount args depending upon provider type
+    if args.serverURL is None and args.provider in [
+        "aws",
+        "generic-s3",
+        "ontap-s3",
+        "storagegrid-s3",
+    ]:
+        parser.error(f"--serverURL must be provided for '{args.provider}' provider.")
+    if args.storageAccount is None and args.provider == "azure":
+        parser.error("--storageAccount must be provided for 'azure' provider.")
+    # Error if credential was specified with any other argument
+    if args.credential is not None:
+        if args.json is not None or args.accessKey is not None or args.accessSecret is not None:
+            parser.error(
+                "if an existing credential is specified, no other credentialGroup arguments "
+                "can be specified"
+            )
+    # Error if json was specified with accessKey/Secret
+    elif args.json is not None:
+        if args.accessKey is not None or args.accessSecret is not None:
+            parser.error(
+                "if a public cloud JSON credential file is specified, no other credentialGroup "
+                "arguments can be specified"
+            )
+    # If neither credential or json was specified, make sure both accessKey/Secret were
+    elif args.accessKey is None or args.accessSecret is None:
+        parser.error(
+            "either an (existing credential) OR (public cloud JSON credential) OR "
+            "(accessKey AND accessSecret) must be specified"
+        )
+    # If json was specified, ensure provider is a public cloud
+    if args.json is not None and args.provider not in ["aws", "azure", "gcp"]:
+        parser.error("--json should only be specified for public cloud providers (aws, azure, gcp)")
 
 
 def main(args, parser, ard):
@@ -148,104 +257,75 @@ def main(args, parser, ard):
                 raise SystemExit("astraSDK.apps.manageApp() failed")
 
     elif args.objectType == "bucket" or args.objectType == "appVault":
-        # Validate serverURL and storageAccount args depending upon provider type
-        if args.serverURL is None and args.provider in [
-            "aws",
-            "generic-s3",
-            "ontap-s3",
-            "storagegrid-s3",
-        ]:
-            parser.error(f"--serverURL must be provided for '{args.provider}' provider.")
-        if args.storageAccount is None and args.provider == "azure":
-            parser.error("--storageAccount must be provided for 'azure' provider.")
-
+        validateBucketArgs(args, parser)
         if args.v3:
-            if ard.needsattr("credentials"):
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main()
-            # Create providerCredentials based on args.provider input
-            if args.provider == "azure":
-                keyNameList = ["accountKey"]
-            elif args.provider == "gcp":
-                keyNameList = ["credentials"]
-            else:
-                keyNameList = ["accessKeyID", "secretAccessKey"]
-            template = tkSrc.helpers.setupJinja("appVault")
-            v3_dict = yaml.safe_load(
-                template.render(
-                    bucketName=tkSrc.helpers.isRFC1123(args.bucketName, parser=parser),
-                    providerType=args.provider,
-                    accountName=args.storageAccount,
-                    endpoint=args.serverURL,
-                    secure=("false" if args.http else None),
-                    skipCertValidation=("true" if args.skipCertValidation else None),
-                    providerCredentials=tkSrc.helpers.prependDump(
-                        tkSrc.helpers.createSecretKeyDict(keyNameList, args, ard, parser), prepend=4
-                    ),
-                )
-            )
-            if args.dry_run == "client":
-                print(yaml.dump(v3_dict).rstrip("\n"))
-            else:
-                astraSDK.k8s.createResource(
-                    quiet=args.quiet,
-                    dry_run=args.dry_run,
-                    verbose=args.verbose,
-                    config_context=args.v3,
-                ).main(
-                    f"{v3_dict['kind'].lower()}s",
-                    v3_dict["metadata"]["namespace"],
-                    v3_dict,
-                    version="v1",
-                    group="astra.netapp.io",
-                )
-
-        else:
-            # Validate that both credentialID and accessKey/accessSecret were not specified
-            if args.credential is not None and (
-                args.accessKey is not None or args.accessSecret is not None
-            ):
-                parser.error(
-                    "if a credential is specified, neither accessKey nor accessSecret"
-                    + " should be specified."
-                )
-            # Validate args and create credential if credential was not specified
-            if args.credential is None:
-                if args.accessKey is None or args.accessSecret is None:
-                    parser.error(
-                        "if a credential is not specified, both accessKey and "
-                        + "accessSecret arguments must be provided."
-                    )
-                encodedKey = base64.b64encode(args.accessKey.encode("utf-8")).decode("utf-8")
-                encodedSecret = base64.b64encode(args.accessSecret.encode("utf-8")).decode("utf-8")
-                crc = astraSDK.credentials.createCredential(
-                    quiet=args.quiet, verbose=args.verbose
-                ).main(
+            if args.accessKey:
+                crc = tkSrc.create.createV3S3Credential(
+                    args.v3,
+                    args.dry_run,
+                    args.quiet,
+                    args.verbose,
+                    args.accessKey,
+                    args.accessSecret,
                     args.bucketName,
-                    "s3",
-                    {"accessKey": encodedKey, "accessSecret": encodedSecret},
-                    cloudName="s3",
                 )
-                if crc:
-                    args.credential = crc["id"]
-                else:
-                    raise SystemExit("astraSDK.credentials.createCredential() failed")
-            # Create bucket parameters based on provider and optional arguments
-            if args.provider == "azure":
-                bucketParameters = {
-                    "azure": {"bucketName": args.bucketName, "storageAccount": args.storageAccount}
-                }
-            elif args.provider == "gcp":
-                bucketParameters = {"gcp": {"bucketName": args.bucketName}}
-            else:
-                bucketParameters = {
-                    "s3": {"bucketName": args.bucketName, "serverURL": args.serverURL}
-                }
-            # Call manageBucket class
-            rc = astraSDK.buckets.manageBucket(quiet=args.quiet, verbose=args.verbose).main(
-                args.bucketName, args.credential, args.provider, bucketParameters
+            elif args.json:
+                crc = tkSrc.create.createV3CloudCredential(
+                    args.v3,
+                    args.dry_run,
+                    args.quiet,
+                    args.verbose,
+                    args.json,
+                    args.bucketName,
+                    parser,
+                )
+            if args.accessKey or args.json:
+                args.credential = []
+                for key in crc["data"].keys():
+                    args.credential.append([crc["metadata"]["name"], key])
+                ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main()
+            elif ard.needsattr("credentials"):
+                ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main()
+            manageV3Bucket(
+                args.v3,
+                args.dry_run,
+                args.quiet,
+                args.verbose,
+                args.bucketName,
+                args.provider,
+                args.storageAccount,
+                args.serverURL,
+                args.http,
+                args.skipCertValidation,
+                args.credential,
+                ard,
+                parser,
             )
-            if rc is False:
-                raise SystemExit("astraSDK.buckets.manageBucket() failed")
+        else:
+            if args.accessKey:
+                crc = tkSrc.create.createS3Credential(
+                    args.quiet, args.verbose, args.accessKey, args.accessSecret, args.bucketName
+                )
+                args.credential = crc["id"]
+            elif args.json:
+                crc = tkSrc.create.createCloudCredential(
+                    args.quiet,
+                    args.verbose,
+                    args.json,
+                    args.bucketName,
+                    args.provider,
+                    parser,
+                )
+                args.credential = crc["id"]
+            manageBucket(
+                args.provider,
+                args.bucketName,
+                args.storageAccount,
+                args.serverURL,
+                args.credential,
+                args.quiet,
+                args.verbose,
+            )
 
     elif args.objectType == "cluster":
         if args.v3:
@@ -305,22 +385,15 @@ def main(args, parser, ard):
         if args.cloudType != "private":
             if args.credentialPath is None:
                 parser.error(f"--credentialPath is required for cloudType of {args.cloudType}")
-            with open(args.credentialPath, encoding="utf8") as f:
-                try:
-                    credDict = json.loads(f.read().rstrip())
-                except json.decoder.JSONDecodeError:
-                    parser.error(f"{args.credentialPath} does not seem to be valid JSON")
-            encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
-            rc = astraSDK.credentials.createCredential(quiet=args.quiet, verbose=args.verbose).main(
-                "astra-sa@" + args.cloudName,
-                "service-account",
-                {"base64": encodedStr},
+            rc = tkSrc.create.createCloudCredential(
+                args.quiet,
+                args.verbose,
+                args.credentialPath,
+                args.cloudName,
                 args.cloudType,
+                parser,
             )
-            if rc:
-                credentialID = rc["id"]
-            else:
-                raise SystemExit("astraSDK.credentials.createCredential() failed")
+            credentialID = rc["id"]
         # Next manage the cloud
         rc = astraSDK.clouds.manageCloud(quiet=args.quiet, verbose=args.verbose).main(
             args.cloudName,

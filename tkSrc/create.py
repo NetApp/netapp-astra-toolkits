@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -74,6 +74,52 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
     return False
 
 
+def createCloudCredential(quiet, verbose, path, name, cloudType, parser):
+    """Create a public cloud (AWS/Azure/GCP) credential via the API"""
+    credDict = tkSrc.helpers.openJson(path, parser)
+    encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
+    rc = astraSDK.credentials.createCredential(quiet=quiet, verbose=verbose).main(
+        "astra-sa@" + name,
+        "service-account",
+        {"base64": encodedStr},
+        cloudType,
+    )
+    if rc:
+        return rc
+    raise SystemExit("astraSDK.credentials.createCredential() failed")
+
+
+def createV3CloudCredential(v3, dry_run, quiet, verbose, path, name, parser):
+    """Create a public cloud (AWS/Azure/GCP) credential via a Kubernetes secret"""
+    credDict = tkSrc.helpers.openJson(path, parser)
+    encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
+    return astraSDK.k8s.createGenericSecret(
+        quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+    ).main(name, {"credentials.json": encodedStr})
+
+
+def createS3Credential(quiet, verbose, accessKey, accessSecret, name):
+    """Create an S3 (accessKey and accessSecret) bucket credential via the API"""
+    encodedKey = base64.b64encode(accessKey.encode("utf-8")).decode("utf-8")
+    encodedSecret = base64.b64encode(accessSecret.encode("utf-8")).decode("utf-8")
+    rc = astraSDK.credentials.createCredential(quiet=quiet, verbose=verbose).main(
+        name, "s3", {"accessKey": encodedKey, "accessSecret": encodedSecret}, cloudName="s3"
+    )
+    if rc:
+        return rc
+    else:
+        raise SystemExit("astraSDK.credentials.createCredential() failed")
+
+
+def createV3S3Credential(v3, dry_run, quiet, verbose, accessKey, accessSecret, name):
+    """Create a public cloud (AWS/Azure/GCP) credential via a Kubernetes secret"""
+    encodedKey = base64.b64encode(accessKey.encode("utf-8")).decode("utf-8")
+    encodedSecret = base64.b64encode(accessSecret.encode("utf-8")).decode("utf-8")
+    return astraSDK.k8s.createGenericSecret(
+        quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+    ).main(name, {"accessKeyID": encodedKey, "secretAccessKey": encodedSecret})
+
+
 def createV3Backup(
     v3,
     dry_run,
@@ -86,6 +132,7 @@ def createV3Backup(
     reclaimPolicy=None,
     generateName=None,
 ):
+    """Create an app backup via a Kubernetes custom resource"""
     template = tkSrc.helpers.setupJinja("backup")
     v3_dict = yaml.safe_load(
         template.render(
@@ -127,6 +174,7 @@ def createV3Protection(
     dayOfWeek,
     dayOfMonth,
 ):
+    """Create a protection policy via a Kubernetes custom resource"""
     template = tkSrc.helpers.setupJinja("protection")
     v3_dict = yaml.safe_load(
         template.render(
@@ -188,11 +236,8 @@ def main(args, parser, ard):
             if rc is False:
                 raise SystemExit("monitorProtectionTask() failed")
     elif args.objectType == "cluster":
-        with open(args.filePath, encoding="utf8") as f:
-            kubeconfigDict = yaml.load(f.read().rstrip(), Loader=yaml.SafeLoader)
-            encodedStr = base64.b64encode(json.dumps(kubeconfigDict).encode("utf-8")).decode(
-                "utf-8"
-            )
+        kubeconfigDict = tkSrc.helpers.openYaml(args.filePath, parser)
+        encodedStr = base64.b64encode(json.dumps(kubeconfigDict).encode("utf-8")).decode("utf-8")
         rc = astraSDK.credentials.createCredential(quiet=args.quiet, verbose=args.verbose).main(
             kubeconfigDict["clusters"][0]["name"],
             "kubeconfig",
@@ -211,8 +256,7 @@ def main(args, parser, ard):
             raise SystemExit("astraSDK.credentials.createCredential() failed")
     elif args.objectType == "hook" or args.objectType == "exechook":
         if args.v3:
-            with open(args.filePath, encoding="utf8") as f:
-                encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
+            encodedStr = tkSrc.helpers.openScript(args.filePath, parser)
             template = tkSrc.helpers.setupJinja("hook")
             v3_dict = yaml.safe_load(
                 template.render(
@@ -388,8 +432,7 @@ def main(args, parser, ard):
         else:
             raise SystemExit("astraSDK.replications.createReplicationpolicy() failed")
     elif args.objectType == "script":
-        with open(args.filePath, encoding="utf8") as f:
-            encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
+        encodedStr = tkSrc.helpers.openScript(args.filePath, parser)
         rc = astraSDK.scripts.createScript(quiet=args.quiet, verbose=args.verbose).main(
             name=args.name, source=encodedStr, description=args.description
         )

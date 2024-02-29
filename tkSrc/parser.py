@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -1414,21 +1414,6 @@ class ToolkitParser:
         )
         if self.v3:
             self.subparserManageBucket.add_argument(
-                "-c",
-                "--secret",
-                dest="credential",
-                required=True,
-                nargs=2,
-                action="append",
-                choices=(None if self.plaidMode else self.acl.credentials + self.acl.keys),
-                help=(
-                    "The Kubernetes secret name and corresponding key name storing the credential"
-                    " (-c gcp-credential credentials.json), if specifying S3 accessKey and "
-                    "secretKey, accessKey *must* be specified first (-c s3-creds accessKeyID "
-                    "-c s3-creds secretAccessKey)"
-                ),
-            )
-            self.subparserManageBucket.add_argument(
                 "--http",
                 action="store_true",
                 default=False,
@@ -1441,30 +1426,51 @@ class ToolkitParser:
                 help="Optionally skip TLS certificate validation",
             )
 
-        else:
-            credGroup = self.subparserManageBucket.add_argument_group(
-                "credentialGroup",
-                "Either an (existing credential) OR (accessKey AND accessSecret)",
+        credGroup = self.subparserManageBucket.add_argument_group(
+            "credentialGroup",
+            "Either an (existing credential) OR (public cloud JSON credential) OR (accessKey AND "
+            "accessSecret)",
+        )
+        if self.v3:
+            credGroup.add_argument(
+                "-c",
+                "--secret",
+                dest="credential",
+                default=None,
+                nargs=2,
+                action="append",
+                choices=(None if self.plaidMode else self.acl.credentials + self.acl.keys),
+                help=(
+                    "The Kubernetes secret name and corresponding key name storing the credential"
+                    " (-c gcp-credential credentials.json), if specifying S3 accessKey and "
+                    "secretKey, accessKey *must* be specified first (-c s3-creds accessKeyID "
+                    "-c s3-creds secretAccessKey)"
+                ),
             )
+        else:
             credGroup.add_argument(
                 "-c",
                 "--credentialID",
                 dest="credential",
-                required=False,
                 default=None,
                 choices=(None if self.plaidMode else self.acl.credentials),
                 help="The ID of the credentials used to access the bucket",
             )
-            credGroup.add_argument(
-                "--accessKey",
-                help="The access key of the bucket",
-                default=None,
-            )
-            credGroup.add_argument(
-                "--accessSecret",
-                help="The access secret of the bucket",
-                default=None,
-            )
+        credGroup.add_argument(
+            "--json",
+            default=None,
+            help="the local filesystem path to the cloud credential",
+        )
+        credGroup.add_argument(
+            "--accessKey",
+            help="The access key of the bucket",
+            default=None,
+        )
+        credGroup.add_argument(
+            "--accessSecret",
+            help="The access secret of the bucket",
+            default=None,
+        )
 
     def manage_cluster_args(self):
         """manage cluster args and flags"""
