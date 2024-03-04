@@ -93,9 +93,22 @@ def createV3CloudCredential(v3, dry_run, quiet, verbose, path, name, parser):
     """Create a public cloud (AWS/Azure/GCP) credential via a Kubernetes secret"""
     credDict = tkSrc.helpers.openJson(path, parser)
     encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
+    data = {"credentials.json": encodedStr}
+    namespace = "astra-connector"
+    if dry_run == "client":
+        secret_dict = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "metadata": {"name": name, "namespace": namespace},
+            "data": data,
+            "type": "Opaque",
+        }
+        print(yaml.dump(secret_dict).rstrip("\n"))
+        print("---")
+        return secret_dict
     return astraSDK.k8s.createGenericSecret(
         quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
-    ).main(name, {"credentials.json": encodedStr})
+    ).main(name, data, namespace=namespace)
 
 
 def createS3Credential(quiet, verbose, accessKey, accessSecret, name):
@@ -115,9 +128,22 @@ def createV3S3Credential(v3, dry_run, quiet, verbose, accessKey, accessSecret, n
     """Create a public cloud (AWS/Azure/GCP) credential via a Kubernetes secret"""
     encodedKey = base64.b64encode(accessKey.encode("utf-8")).decode("utf-8")
     encodedSecret = base64.b64encode(accessSecret.encode("utf-8")).decode("utf-8")
+    data = {"accessKeyID": encodedKey, "secretAccessKey": encodedSecret}
+    namespace = "astra-connector"
+    if dry_run == "client":
+        secret_dict = {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "metadata": {"name": name, "namespace": namespace},
+            "data": data,
+            "type": "Opaque",
+        }
+        print(yaml.dump(secret_dict).rstrip("\n"))
+        print("---")
+        return secret_dict
     return astraSDK.k8s.createGenericSecret(
         quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
-    ).main(name, {"accessKeyID": encodedKey, "secretAccessKey": encodedSecret})
+    ).main(name, data, namespace=namespace)
 
 
 def createV3Backup(

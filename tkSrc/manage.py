@@ -258,6 +258,8 @@ def main(args, parser, ard):
 
     elif args.objectType == "bucket" or args.objectType == "appVault":
         validateBucketArgs(args, parser)
+        if ard.needsattr("credentials"):
+            ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main()
         if args.v3:
             if args.accessKey:
                 crc = tkSrc.create.createV3S3Credential(
@@ -283,9 +285,7 @@ def main(args, parser, ard):
                 args.credential = []
                 for key in crc["data"].keys():
                     args.credential.append([crc["metadata"]["name"], key])
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main()
-            elif ard.needsattr("credentials"):
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main()
+                ard.credentials["items"].append(crc)
             manageV3Bucket(
                 args.v3,
                 args.dry_run,
