@@ -587,3 +587,31 @@ def openYaml(path, parser):
             return yaml.load(f.read().rstrip(), Loader=yaml.SafeLoader)
         except (yaml.scanner.ScannerError, IsADirectoryError):
             parser.error(f"{path} does not seem to be valid YAML")
+
+
+def getNestedValue(obj, key):
+    """Iterate through a nested dict / list to search for a particular key,
+    it returns the first match"""
+    if hasattr(obj, "items"):
+        for k, o in obj.items():
+            if k == key:
+                yield o
+            if isinstance(o, dict):
+                for result in getNestedValue(o, key):
+                    yield result
+            elif isinstance(o, list):
+                for d in o:
+                    for result in getNestedValue(d, key):
+                        yield result
+
+
+def extractAwsKeys(path, parser):
+    """Returns a tuple of the AccessKeyId, SecretAccessKey in an AWS credential JSON"""
+    awsCreds = openJson(path, parser)
+    accessKeyID = "".join(getNestedValue(awsCreds, "AccessKeyId"))
+    secretAccessKey = "".join(getNestedValue(awsCreds, "SecretAccessKey"))
+    if not accessKeyID:
+        parser.error(f"'AccessKeyId' not found in '{path}'")
+    if not secretAccessKey:
+        parser.error(f"'SecretAccessKey' not found in '{path}'")
+    return accessKeyID, secretAccessKey

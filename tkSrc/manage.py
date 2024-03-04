@@ -261,7 +261,11 @@ def main(args, parser, ard):
         if ard.needsattr("credentials"):
             ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main()
         if args.v3:
-            if args.accessKey:
+            if args.accessKey or (args.json and args.provider == "aws"):
+                if args.json and args.provider == "aws":
+                    args.accessKey, args.accessSecret = tkSrc.helpers.extractAwsKeys(
+                        args.json, parser
+                    )
                 crc = tkSrc.create.createV3S3Credential(
                     args.v3,
                     args.dry_run,
