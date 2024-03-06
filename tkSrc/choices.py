@@ -20,7 +20,7 @@ import kubernetes
 import sys
 
 import astraSDK
-import tkSrc
+from tkSrc import helpers
 
 RED = "\033[31m"
 ENDC = "\033[0m"
@@ -36,7 +36,7 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
         # This expression translates to "Is there an arg after the verb we found?"
         if len(argv) - verbPosition >= 2:
             if argv[verbPosition + 1] == "chart":
-                ard.charts = tkSrc.helpers.updateHelm()
+                ard.charts = helpers.updateHelm()
                 acl.charts = ard.buildList("charts", "name")
                 if v3:
                     ard.buckets = astraSDK.k8s.getResources(config_context=v3).main("appvaults")
@@ -57,7 +57,11 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                 acl.dataProtections = ard.buildList("backups", "metadata.name") + ard.buildList(
                     "snapshots", "metadata.name"
                 )
-            if len(argv) - verbPosition >= 3:
+            if (
+                len(argv) - verbPosition > 3
+                and argv[verbPosition + 3] != "-h"
+                and argv[verbPosition + 3] != "--help"
+            ):
                 ard.storageClasses = astraSDK.k8s.getStorageClasses(
                     config_context=argv[verbPosition + 3]
                 ).main()

@@ -22,7 +22,7 @@ import time
 import yaml
 
 import astraSDK
-import tkSrc
+from tkSrc import helpers
 
 
 def monitorProtectionTask(protectionID, protectionType, appID, background, pollTimer, parser):
@@ -76,7 +76,7 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
 
 def createCloudCredential(quiet, verbose, path, name, cloudType, parser):
     """Create a public cloud (AWS/Azure/GCP) credential via the API"""
-    credDict = tkSrc.helpers.openJson(path, parser)
+    credDict = helpers.openJson(path, parser)
     encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
     rc = astraSDK.credentials.createCredential(quiet=quiet, verbose=verbose).main(
         "astra-sa@" + name,
@@ -91,7 +91,7 @@ def createCloudCredential(quiet, verbose, path, name, cloudType, parser):
 
 def createV3CloudCredential(v3, dry_run, quiet, verbose, path, name, parser):
     """Create a public cloud (AWS/Azure/GCP) credential via a Kubernetes secret"""
-    credDict = tkSrc.helpers.openJson(path, parser)
+    credDict = helpers.openJson(path, parser)
     encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
     data = {"credentials.json": encodedStr}
     namespace = "astra-connector"
@@ -159,10 +159,10 @@ def createV3Backup(
     generateName=None,
 ):
     """Create an app backup via a Kubernetes custom resource"""
-    template = tkSrc.helpers.setupJinja("backup")
+    template = helpers.setupJinja("backup")
     v3_dict = yaml.safe_load(
         template.render(
-            name=(tkSrc.helpers.isRFC1123(name) if name else name),
+            name=(helpers.isRFC1123(name) if name else name),
             appName=app,
             appVaultName=appVault,
             snapshotName=snapshot,
@@ -201,10 +201,10 @@ def createV3Protection(
     dayOfMonth,
 ):
     """Create a protection policy via a Kubernetes custom resource"""
-    template = tkSrc.helpers.setupJinja("protection")
+    template = helpers.setupJinja("protection")
     v3_dict = yaml.safe_load(
         template.render(
-            name=tkSrc.helpers.isRFC1123(f"{app}-{granularity}") + "-",
+            name=helpers.isRFC1123(f"{app}-{granularity}") + "-",
             appName=app,
             appVaultName=bucket,
             backupRetention=backupRetention,
@@ -247,7 +247,7 @@ def main(args, parser, ard):
         else:
             protectionID = astraSDK.backups.takeBackup(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,
-                tkSrc.helpers.isRFC1123(args.name, parser=parser),
+                helpers.isRFC1123(args.name, parser=parser),
                 bucketID=args.bucket,
                 snapshotID=args.snapshot,
             )
@@ -262,7 +262,7 @@ def main(args, parser, ard):
             if rc is False:
                 raise SystemExit("monitorProtectionTask() failed")
     elif args.objectType == "cluster":
-        kubeconfigDict = tkSrc.helpers.openYaml(args.filePath, parser)
+        kubeconfigDict = helpers.openYaml(args.filePath, parser)
         encodedStr = base64.b64encode(json.dumps(kubeconfigDict).encode("utf-8")).decode("utf-8")
         rc = astraSDK.credentials.createCredential(quiet=args.quiet, verbose=args.verbose).main(
             kubeconfigDict["clusters"][0]["name"],
@@ -282,19 +282,19 @@ def main(args, parser, ard):
             raise SystemExit("astraSDK.credentials.createCredential() failed")
     elif args.objectType == "hook" or args.objectType == "exechook":
         if args.v3:
-            encodedStr = tkSrc.helpers.openScript(args.filePath, parser)
-            template = tkSrc.helpers.setupJinja("hook")
+            encodedStr = helpers.openScript(args.filePath, parser)
+            template = helpers.setupJinja("hook")
             v3_dict = yaml.safe_load(
                 template.render(
-                    name=tkSrc.helpers.isRFC1123(args.name, parser=parser),
+                    name=helpers.isRFC1123(args.name, parser=parser),
                     action=args.operation.split("-")[1],
                     appName=args.app,
-                    arguments=tkSrc.helpers.prependDump(
-                        tkSrc.helpers.createHookList(args.hookArguments), prepend=4
+                    arguments=helpers.prependDump(
+                        helpers.createHookList(args.hookArguments), prepend=4
                     ),
                     hookSource=encodedStr,
-                    matchingCriteria=tkSrc.helpers.prependDump(
-                        tkSrc.helpers.createCriteriaList(
+                    matchingCriteria=helpers.prependDump(
+                        helpers.createCriteriaList(
                             args.containerImage,
                             args.namespace,
                             args.podName,
@@ -328,8 +328,8 @@ def main(args, parser, ard):
                 args.script,
                 args.operation.split("-")[0],
                 args.operation.split("-")[1],
-                tkSrc.helpers.createHookList(args.hookArguments),
-                matchingCriteria=tkSrc.helpers.createCriteriaList(
+                helpers.createHookList(args.hookArguments),
+                matchingCriteria=helpers.createCriteriaList(
                     args.containerImage,
                     args.namespace,
                     args.podName,
@@ -458,7 +458,7 @@ def main(args, parser, ard):
         else:
             raise SystemExit("astraSDK.replications.createReplicationpolicy() failed")
     elif args.objectType == "script":
-        encodedStr = tkSrc.helpers.openScript(args.filePath, parser)
+        encodedStr = helpers.openScript(args.filePath, parser)
         rc = astraSDK.scripts.createScript(quiet=args.quiet, verbose=args.verbose).main(
             name=args.name, source=encodedStr, description=args.description
         )
@@ -466,10 +466,10 @@ def main(args, parser, ard):
             raise SystemExit("astraSDK.scripts.createScript() failed")
     elif args.objectType == "snapshot":
         if args.v3:
-            template = tkSrc.helpers.setupJinja("snapshot")
+            template = helpers.setupJinja("snapshot")
             v3_dict = yaml.safe_load(
                 template.render(
-                    name=tkSrc.helpers.isRFC1123(args.name, parser=parser),
+                    name=helpers.isRFC1123(args.name, parser=parser),
                     appName=args.app,
                     appVaultName=args.bucket,
                     reclaimPolicy=args.reclaimPolicy,
@@ -497,7 +497,7 @@ def main(args, parser, ard):
         else:
             protectionID = astraSDK.snapshots.takeSnap(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,
-                tkSrc.helpers.isRFC1123(args.name, parser=parser),
+                helpers.isRFC1123(args.name, parser=parser),
             )
             rc = monitorProtectionTask(
                 protectionID,
@@ -521,7 +521,7 @@ def main(args, parser, ard):
             ).main(
                 args.role,
                 userID=urc["id"],
-                roleConstraints=tkSrc.helpers.createConstraintList(
+                roleConstraints=helpers.createConstraintList(
                     args.namespaceConstraint, args.labelConstraint
                 ),
             )

@@ -21,7 +21,7 @@ import uuid
 import yaml
 
 import astraSDK
-import tkSrc
+from tkSrc import helpers
 
 
 def main(args, parser, ard):
@@ -40,7 +40,7 @@ def main(args, parser, ard):
                 ard.snapshots = astraSDK.k8s.getResources(config_context=args.v3).main("snapshots")
             iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", args.snapshot, parser)
 
-        template = tkSrc.helpers.setupJinja("ipr")
+        template = helpers.setupJinja("ipr")
         try:
             v3_dict = yaml.safe_load(
                 template.render(
@@ -48,8 +48,8 @@ def main(args, parser, ard):
                     iprName=f"{iprSourceDict['kind'].lower()}ipr-{uuid.uuid4()}",
                     appArchivePath=iprSourceDict["status"]["appArchivePath"],
                     appVaultRef=iprSourceDict["spec"]["appVaultRef"],
-                    resourceFilter=tkSrc.helpers.prependDump(
-                        tkSrc.helpers.createFilterSet(
+                    resourceFilter=helpers.prependDump(
+                        helpers.createFilterSet(
                             args.filterSelection, args.filterSet, None, parser, v3=True
                         ),
                         prepend=4,
@@ -83,7 +83,7 @@ def main(args, parser, ard):
             args.app,
             backupID=args.backup,
             snapshotID=args.snapshot,
-            resourceFilter=tkSrc.helpers.createFilterSet(
+            resourceFilter=helpers.createFilterSet(
                 args.filterSelection,
                 args.filterSet,
                 astraSDK.apps.getAppAssets().main(args.app),

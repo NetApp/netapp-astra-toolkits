@@ -19,7 +19,7 @@ import os
 import yaml
 
 import astraSDK
-import tkSrc
+from tkSrc import create, helpers
 
 
 def manageV3App(
@@ -34,18 +34,18 @@ def manageV3App(
     clusterScopedResource=None,
 ):
     """Manage an application via a Kubernetes custom resource"""
-    template = tkSrc.helpers.setupJinja("app")
+    template = helpers.setupJinja("app")
     v3_dict = yaml.safe_load(
         template.render(
-            appName=tkSrc.helpers.isRFC1123(appName),
+            appName=helpers.isRFC1123(appName),
             namespace=namespace,
             labelSelectors=(
                 f"{labelSelectors.split('=')[0]}: {labelSelectors.split('=')[1]}"
                 if labelSelectors
                 else None
             ),
-            addNamespaces=tkSrc.helpers.prependDump(additionalNamespace, prepend=4),
-            clusterScopedResources=tkSrc.helpers.prependDump(clusterScopedResource, prepend=4),
+            addNamespaces=helpers.prependDump(additionalNamespace, prepend=4),
+            clusterScopedResources=helpers.prependDump(clusterScopedResource, prepend=4),
         ),
     )
     if dry_run == "client":
@@ -103,17 +103,17 @@ def manageV3Bucket(
         keyNameList = ["credentials"]
     else:
         keyNameList = ["accessKeyID", "secretAccessKey"]
-    template = tkSrc.helpers.setupJinja("appVault")
+    template = helpers.setupJinja("appVault")
     v3_dict = yaml.safe_load(
         template.render(
-            bucketName=tkSrc.helpers.isRFC1123(bucketName, parser=parser),
+            bucketName=helpers.isRFC1123(bucketName, parser=parser),
             providerType=provider,
             accountName=storageAccount,
             endpoint=serverURL,
             secure=("false" if http else None),
             skipCertValidation=("true" if skipCertValidation else None),
-            providerCredentials=tkSrc.helpers.prependDump(
-                tkSrc.helpers.createSecretKeyDict(keyNameList, credential, provider, ard, parser),
+            providerCredentials=helpers.prependDump(
+                helpers.createSecretKeyDict(keyNameList, credential, provider, ard, parser),
                 prepend=4,
             ),
         )
@@ -175,7 +175,7 @@ def validateBucketArgs(args, parser):
 def main(args, parser, ard):
     if args.objectType == "app" or args.objectType == "application":
         if args.additionalNamespace:
-            args.additionalNamespace = tkSrc.helpers.createNamespaceList(
+            args.additionalNamespace = helpers.createNamespaceList(
                 args.additionalNamespace, v3=args.v3
             )
         if args.clusterScopedResource:
@@ -229,7 +229,7 @@ def main(args, parser, ard):
                         f"argument -c/--clusterScopedResource: invalid choice: '{csr[0]}' "
                         f"(choose from {', '.join(api_res_list)})"
                     )
-            args.clusterScopedResource = tkSrc.helpers.createCsrList(
+            args.clusterScopedResource = helpers.createCsrList(
                 args.clusterScopedResource, ard.apiresources, v3=args.v3
             )
         if args.v3:
@@ -246,7 +246,7 @@ def main(args, parser, ard):
             )
         else:
             rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
-                tkSrc.helpers.isRFC1123(args.appName, parser=parser),
+                helpers.isRFC1123(args.appName, parser=parser),
                 args.namespace,
                 args.clusterID,
                 args.labelSelectors,
@@ -263,10 +263,8 @@ def main(args, parser, ard):
         if args.v3:
             if args.accessKey or (args.json and args.provider == "aws"):
                 if args.json and args.provider == "aws":
-                    args.accessKey, args.accessSecret = tkSrc.helpers.extractAwsKeys(
-                        args.json, parser
-                    )
-                crc = tkSrc.create.createV3S3Credential(
+                    args.accessKey, args.accessSecret = helpers.extractAwsKeys(args.json, parser)
+                crc = create.createV3S3Credential(
                     args.v3,
                     args.dry_run,
                     args.quiet,
@@ -276,7 +274,7 @@ def main(args, parser, ard):
                     args.bucketName,
                 )
             elif args.json:
-                crc = tkSrc.create.createV3CloudCredential(
+                crc = create.createV3CloudCredential(
                     args.v3,
                     args.dry_run,
                     args.quiet,
@@ -307,12 +305,12 @@ def main(args, parser, ard):
             )
         else:
             if args.accessKey:
-                crc = tkSrc.create.createS3Credential(
+                crc = create.createS3Credential(
                     args.quiet, args.verbose, args.accessKey, args.accessSecret, args.bucketName
                 )
                 args.credential = crc["id"]
             elif args.json:
-                crc = tkSrc.create.createCloudCredential(
+                crc = create.createCloudCredential(
                     args.quiet,
                     args.verbose,
                     args.json,
@@ -334,13 +332,13 @@ def main(args, parser, ard):
     elif args.objectType == "cluster":
         if args.v3:
             # Validate the inputted cluster name conforms to RFC-1123 prior to installing resources
-            tkSrc.helpers.isRFC1123(args.clusterName, parser=parser)
+            helpers.isRFC1123(args.clusterName, parser=parser)
             # Install the operator
             context, config_file = tuple(args.v3.split("@"))
-            tkSrc.helpers.run(
+            helpers.run(
                 f"kubectl --context={context} -v={6 if args.verbose else 0} apply "
                 f"--dry_run={args.dry_run if args.dry_run else 'none'} -f "
-                f"{tkSrc.helpers.getOperatorURL(args.operator_version)}",
+                f"{helpers.getOperatorURL(args.operator_version)}",
                 env={"KUBECONFIG": os.path.expanduser(config_file)}
                 if config_file != "None"
                 else None,
@@ -389,7 +387,7 @@ def main(args, parser, ard):
         if args.cloudType != "private":
             if args.credentialPath is None:
                 parser.error(f"--credentialPath is required for cloudType of {args.cloudType}")
-            rc = tkSrc.create.createCloudCredential(
+            rc = create.createCloudCredential(
                 args.quiet,
                 args.verbose,
                 args.credentialPath,

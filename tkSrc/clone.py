@@ -24,7 +24,7 @@ import yaml
 
 
 import astraSDK
-import tkSrc
+from tkSrc import create, helpers
 
 
 def doClone(
@@ -273,7 +273,7 @@ def main(args, parser, ard):
         if ard.needsattr("apps"):
             ard.apps = astraSDK.k8s.getResources(config_context=args.v3).main("applications")
         # Determine if this is a cross-cluster clones/restores, which require backups
-        crossCluster = not tkSrc.helpers.sameK8sCluster(args.v3, args.cluster)
+        crossCluster = not helpers.sameK8sCluster(args.v3, args.cluster)
 
         # A live clone is just a snapshot (or backup for cross-cluster), and then the normal
         # restore operation. So we'll take care of the data protection operation here first,
@@ -282,9 +282,9 @@ def main(args, parser, ard):
             # There are certain args that aren't available for live clones, set those to None
             args.filterSelection = None
             args.filterSet = None
-            bucketDict = tkSrc.helpers.getCommonAppVault(args.v3, args.cluster, parser)
+            bucketDict = helpers.getCommonAppVault(args.v3, args.cluster, parser)
             kind = "Backup" if crossCluster else "Snapshot"
-            template = tkSrc.helpers.setupJinja(kind.lower())
+            template = helpers.setupJinja(kind.lower())
             v3_dp_dict = yaml.safe_load(
                 template.render(
                     generateName=f"{args.sourceApp}-clone-{kind.lower()}-",
@@ -339,7 +339,7 @@ def main(args, parser, ard):
                         print(
                             f"# This must be applied on the source cluster specified by '{args.v3}'"
                         )
-                    restoreSourceDict = tkSrc.create.createV3Backup(
+                    restoreSourceDict = create.createV3Backup(
                         args.v3,
                         args.dry_run,
                         args.quiet,
@@ -369,10 +369,10 @@ def main(args, parser, ard):
         oApp = ard.getSingleDict(
             "apps", "metadata.name", restoreSourceDict["spec"]["applicationRef"], parser
         )
-        namespaceMapping = tkSrc.helpers.createNamespaceMapping(
+        namespaceMapping = helpers.createNamespaceMapping(
             oApp["spec"]["includedNamespaces"], args.newNamespace, args.multiNsMapping, parser
         )
-        template = tkSrc.helpers.setupJinja("restore")
+        template = helpers.setupJinja("restore")
         try:
             v3_gen = yaml.safe_load_all(
                 template.render(
@@ -380,25 +380,23 @@ def main(args, parser, ard):
                     restoreName=f"{args.appName}-restore-",
                     appArchivePath=restoreSourceDict["status"]["appArchivePath"],
                     appVaultRef=(
-                        tkSrc.helpers.swapAppVaultRef(
+                        helpers.swapAppVaultRef(
                             restoreSourceDict["spec"]["appVaultRef"], args.v3, args.cluster, parser
                         )
                         if crossCluster
                         else restoreSourceDict["spec"]["appVaultRef"]
                     ),
-                    namespaceMapping=tkSrc.helpers.prependDump(namespaceMapping, prepend=4),
-                    resourceFilter=tkSrc.helpers.prependDump(
-                        tkSrc.helpers.createFilterSet(
+                    namespaceMapping=helpers.prependDump(namespaceMapping, prepend=4),
+                    resourceFilter=helpers.prependDump(
+                        helpers.createFilterSet(
                             args.filterSelection, args.filterSet, None, parser, v3=True
                         ),
                         prepend=4,
                     ),
                     newStorageClass=args.newStorageClass,
                     appName=args.appName,
-                    appSpec=tkSrc.helpers.prependDump(
-                        tkSrc.helpers.updateNamespaceSpec(
-                            namespaceMapping, copy.deepcopy(oApp["spec"])
-                        ),
+                    appSpec=helpers.prependDump(
+                        helpers.updateNamespaceSpec(namespaceMapping, copy.deepcopy(oApp["spec"])),
                         prepend=2,
                     ),
                 )
@@ -472,17 +470,17 @@ def main(args, parser, ard):
             )
 
         doClone(
-            tkSrc.helpers.isRFC1123(args.appName, parser=parser),
+            helpers.isRFC1123(args.appName, parser=parser),
             args.cluster,
             oApp,
-            tkSrc.helpers.createNamespaceMapping(
+            helpers.createNamespaceMapping(
                 oApp["namespaceScopedResources"], args.newNamespace, args.multiNsMapping, parser
             ),
             args.newStorageClass,
             backup,
             snapshot,
             args.sourceApp,
-            tkSrc.helpers.createFilterSet(
+            helpers.createFilterSet(
                 args.filterSelection,
                 args.filterSet,
                 astraSDK.apps.getAppAssets().main(oApp["id"]),

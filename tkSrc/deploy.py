@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 
 
 import astraSDK
-import tkSrc
+from tkSrc import create, helpers, manage
 
 
 def deployHelm(
@@ -42,13 +42,13 @@ def deployHelm(
         v3 = None
         contextStr, configFileStr, dryRunStr = "", "", ""
 
-    setStr = tkSrc.helpers.createHelmStr("set", setValues)
-    valueStr = tkSrc.helpers.createHelmStr("values", fileValues)
+    setStr = helpers.createHelmStr("set", setValues)
+    valueStr = helpers.createHelmStr("values", fileValues)
     cluster_namespaces = astraSDK.k8s.getNamespaces(config_context=v3).main(systemNS=[])
     if namespace in [n["metadata"]["name"] for n in cluster_namespaces["items"]]:
         raise SystemExit(f"Namespace {namespace} already exists!")
 
-    tkSrc.helpers.run(
+    helpers.run(
         f"helm install{configFileStr}{contextStr}{dryRunStr} {appName} "
         f"-n {namespace} --create-namespace {chart}{setStr}{valueStr}"
     )
@@ -56,7 +56,7 @@ def deployHelm(
     if v3:
         if dry_run == "client":
             print("---")
-        tkSrc.manage.manageV3App(v3, dry_run, quiet, verbose, appName, namespace)
+        manage.manageV3App(v3, dry_run, quiet, verbose, appName, namespace)
         backupRetention = "1"
         snapshotRetention = "1"
         minute = "0"
@@ -69,7 +69,7 @@ def deployHelm(
         for granularity in protectionData.keys():
             if dry_run == "client":
                 print("---")
-            tkSrc.create.createV3Protection(
+            create.createV3Protection(
                 v3,
                 dry_run,
                 quiet,
@@ -233,7 +233,7 @@ def main(args, parser, ard):
     elif args.objectType == "chart":
         deployHelm(
             args.chart,
-            tkSrc.helpers.isRFC1123(args.app, parser=parser),
+            helpers.isRFC1123(args.app, parser=parser),
             args.namespace,
             args.set,
             args.values,
