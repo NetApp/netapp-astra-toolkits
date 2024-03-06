@@ -220,6 +220,15 @@ class ToolkitParser:
             aliases=["exechooks"],
             help="list hooks (executionHooks)",
         )
+        if self.v3:
+            self.subparserListHooksruns = self.subparserList.add_parser(
+                "hooksruns", aliases=["exechooksruns"], help="list exec hooks runs"
+            )
+            self.subparserListIprs = self.subparserList.add_parser(
+                "iprs",
+                aliases=["inplacerestores"],
+                help="list backup and snapshot in-place-restores",
+            )
         self.subparserListNamespaces = self.subparserList.add_parser(
             "namespaces",
             help="list namespaces",
@@ -237,6 +246,10 @@ class ToolkitParser:
             "replications",
             help="list replication policies",
         )
+        if self.v3:
+            self.subparserListRestores = self.subparserList.add_parser(
+                "restores", help="list backup and snapshot restores"
+            )
         self.subparserListRolebindings = self.subparserList.add_parser(
             "rolebindings",
             help="list role bindings",
@@ -786,6 +799,12 @@ class ToolkitParser:
             "-a", "--app", default=None, help="Only show execution hooks from this app"
         )
 
+    def list_hooksruns_args(self):
+        """list hooksruns args and flags"""
+        self.subparserListHooksruns.add_argument(
+            "-a", "--app", default=None, help="Only show execution hooks runs from this app"
+        )
+
     def list_namespaces_args(self):
         """list namespaces args and flags"""
         if not self.v3:
@@ -862,6 +881,21 @@ class ToolkitParser:
         """list replication policies args and flags"""
         self.subparserListReplications.add_argument(
             "-a", "--app", default=None, help="Only show replication policies from this app"
+        )
+
+    def list_restores_args(self):
+        """list v3 backup and snapshot restores args and flags"""
+        self.subparserListRestores.add_argument(
+            "-s",
+            "--sourceNamespace",
+            default=None,
+            help="Only show restores involving a source namespace (partial match)",
+        )
+        self.subparserListRestores.add_argument(
+            "-d",
+            "--destNamespace",
+            default=None,
+            help="Only show restores involving a destination namespace (partial match)",
         )
 
     def list_rolebindings_args(self):
@@ -1441,10 +1475,10 @@ class ToolkitParser:
                 action="append",
                 choices=(None if self.plaidMode else self.acl.credentials + self.acl.keys),
                 help=(
-                    "The Kubernetes secret name and corresponding key name storing the credential"
-                    " (-c gcp-credential credentials.json), if specifying S3 accessKey and "
-                    "secretKey, accessKey *must* be specified first (-c s3-creds accessKeyID "
-                    "-c s3-creds secretAccessKey)"
+                    "The Kubernetes secret name and corresponding key name storing the credential "
+                    "(-c gcp-credential credentials.json), if specifying existing S3 access and "
+                    "secret keys, the access key *must* be specified first (-c s3-creds accessKeyID"
+                    " -c s3-creds secretAccessKey)"
                 ),
             )
         else:
@@ -1816,10 +1850,12 @@ class ToolkitParser:
         self.list_clusters_args()
         self.list_credentials_args()
         self.list_hooks_args()
+        self.list_hooksruns_args()
         self.list_namespaces_args()
         self.list_notifications_args()
         self.list_protections_args()
         self.list_replications_args()
+        self.list_restores_args()
         self.list_rolebindings_args()
         self.list_scripts_args()
         self.list_snapshots_args()

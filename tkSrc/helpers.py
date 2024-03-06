@@ -615,3 +615,11 @@ def extractAwsKeys(path, parser):
     if not secretAccessKey:
         parser.error(f"'SecretAccessKey' not found in '{path}'")
     return accessKeyID, secretAccessKey
+
+
+def combineResources(*args):
+    """Accepts any number of {"items":[]} inputs, concatenates the lists, returns a dict"""
+    base_dict = {"apiVersion": "v1", "items": [], "kind": "List"}
+    for resource in args:
+        base_dict["items"] += resource["items"]
+    return base_dict

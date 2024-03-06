@@ -18,6 +18,7 @@
 import base64
 
 import astraSDK
+from tkSrc import helpers
 
 
 def main(args):
@@ -133,6 +134,20 @@ def main(args):
             ).main(appFilter=args.app)
             if rc is False:
                 raise SystemExit("astraSDK.hooks.getHooks() failed")
+    elif args.objectType == "hooksruns" or args.objectType == "exechooksruns":
+        rc = astraSDK.k8s.getResources(
+            quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
+        ).main(
+            "exechooksruns", filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}]
+        )
+    elif args.objectType == "iprs" or args.objectType == "inplacerestores":
+        resources = astraSDK.k8s.getResources(verbose=args.verbose, config_context=args.v3)
+        iprs = helpers.combineResources(
+            resources.main("backupinplacerestores"), resources.main("snapshotinplacerestores")
+        )
+        resources.formatPrint(
+            iprs, "inplacerestores", quiet=args.quiet, output=args.output, verbose=args.verbose
+        )
     elif args.objectType == "protections" or args.objectType == "schedules":
         if args.v3:
             rc = astraSDK.k8s.getResources(
@@ -185,6 +200,43 @@ def main(args):
         )
         if rc is False:
             raise SystemExit("astraSDK.namespaces.getNotifications() failed")
+    elif args.objectType == "restores":
+        resources = astraSDK.k8s.getResources(verbose=args.verbose, config_context=args.v3)
+        restores = helpers.combineResources(
+            resources.main(
+                "backuprestores",
+                filters=[
+                    {
+                        "keyFilter": "spec.namespaceMapping[].source",
+                        "valFilter": args.sourceNamespace,
+                        "inMatch": True,
+                    },
+                    {
+                        "keyFilter": "spec.namespaceMapping[].destination",
+                        "valFilter": args.destNamespace,
+                        "inMatch": True,
+                    },
+                ],
+            ),
+            resources.main(
+                "snapshotrestores",
+                filters=[
+                    {
+                        "keyFilter": "spec.namespaceMapping[].source",
+                        "valFilter": args.sourceNamespace,
+                        "inMatch": True,
+                    },
+                    {
+                        "keyFilter": "spec.namespaceMapping[].destination",
+                        "valFilter": args.destNamespace,
+                        "inMatch": True,
+                    },
+                ],
+            ),
+        )
+        resources.formatPrint(
+            restores, "restores", quiet=args.quiet, output=args.output, verbose=args.verbose
+        )
     elif args.objectType == "rolebindings":
         rc = astraSDK.rolebindings.getRolebindings(
             quiet=args.quiet, verbose=args.verbose, output=args.output

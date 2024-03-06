@@ -61,8 +61,8 @@ class getResources(KubeCommon):
         api_instance = kubernetes.client.CustomObjectsApi(self.api_client)
         try:
             if self.verbose:
-                verbose_log = self.WriteVerbose()
-                sys.stdout = verbose_log
+                self.verbose_log = self.WriteVerbose()
+                sys.stdout = self.verbose_log
             resp = api_instance.list_namespaced_custom_object(
                 group=group,
                 version=version,
@@ -80,27 +80,34 @@ class getResources(KubeCommon):
                             else:
                                 if self.recursiveGet(f["keyFilter"], r) != f["valFilter"]:
                                     resp["items"].remove(filterCopy["items"][counter])
-
-            if self.output == "yaml":
-                resp = yaml.dump(resp)
-            elif self.output == "table":
-                resp = self.basicTable(
-                    self.getTableInfo(plural, headers=True),
-                    self.getTableInfo(plural),
-                    resp,
-                    tablefmt="grid",
-                )
-
-            if self.verbose:
-                sys.stdout = sys.__stdout__
-                verbose_log.print()
-            if not self.quiet:
-                print(json.dumps(resp) if type(resp) is dict else resp)
+            self.formatPrint(resp, plural)
             return resp
 
         except kubernetes.client.rest.ApiException as e:
             sys.stdout = sys.__stdout__
             self.printError(e)
+
+    def formatPrint(self, resp, plural, quiet=None, output=None, verbose=None):
+        if quiet is None:
+            quiet = self.quiet
+        if output is None:
+            output = self.output
+        if verbose is None:
+            verbose = self.verbose
+        if output == "yaml":
+            resp = yaml.dump(resp).rstrip()
+        elif output == "table":
+            resp = self.basicTable(
+                self.getTableInfo(plural, headers=True),
+                self.getTableInfo(plural),
+                resp,
+                tablefmt="grid",
+            )
+        if verbose:
+            sys.stdout = sys.__stdout__
+            self.verbose_log.print()
+        if not quiet:
+            print(json.dumps(resp) if type(resp) is dict else resp)
 
     def getTableInfo(self, plural, headers=False):
         if plural == "applications":
@@ -172,6 +179,35 @@ class getResources(KubeCommon):
                 "spec.arguments",
                 "spec.matchingCriteria[].type",
                 "spec.matchingCriteria[].value",
+            ]
+        elif plural == "exechooksruns":
+            if headers:
+                return [
+                    "applicationRef",
+                    "name",
+                    "state",
+                    "matchingPods",
+                    "creationTimestamp",
+                ]
+            return [
+                "spec.applicationRef",
+                "metadata.name",
+                "status.state",
+                "status.matchingContainers[].podName",
+                "metadata.creationTimestamp",
+            ]
+        elif plural == "inplacerestores":
+            if headers:
+                return ["name", "state"]
+            return ["metadata.name", "status.state"]
+        elif plural == "restores":
+            if headers:
+                return ["name", "sourceNamespace", "destinationNamespace", "state"]
+            return [
+                "metadata.name",
+                "spec.namespaceMapping[].source",
+                "spec.namespaceMapping[].destination",
+                "status.state",
             ]
         elif plural == "schedules":
             if headers:
