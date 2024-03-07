@@ -22,14 +22,68 @@ import astraSDK
 from tkSrc import helpers
 
 
-def listHooksruns(v3, quiet, output, verbose, app):
-    """List exechooksruns Kubernetes custom resources"""
-    astraSDK.k8s.getResources(quiet=quiet, output=output, verbose=verbose, config_context=v3).main(
-        "exechooksruns", filters=[{"keyFilter": "spec.applicationRef", "valFilter": app}]
+def listV3Apps(v3, quiet, output, verbose, nameFilter=None, namespace=None):
+    """List applications Kubernetes custom resources"""
+    return astraSDK.k8s.getResources(
+        quiet=quiet, output=output, verbose=verbose, config_context=v3
+    ).main(
+        "applications",
+        filters=[
+            {
+                "keyFilter": "spec.includedNamespaces[].namespace",
+                "valFilter": namespace,
+                "inMatch": True,  # inMatch since app namespaces is a list, not a str
+            },
+            {"keyFilter": "metadata.name", "valFilter": nameFilter, "inMatch": True},
+        ],
     )
 
 
-def listIprs(v3, quiet, output, verbose, app):
+def listV3Appvaults(v3, quiet, output, verbose, provider=None, nameFilter=None):
+    """List appvaults Kubernetes custom resources"""
+    return astraSDK.k8s.getResources(
+        quiet=quiet, output=output, verbose=verbose, config_context=v3
+    ).main(
+        "appvaults",
+        filters=[
+            {"keyFilter": "spec.providerType", "valFilter": provider},
+            {"keyFilter": "metadata.name", "valFilter": nameFilter, "inMatch": True},
+        ],
+    )
+
+
+def listV3Backups(v3, quiet, output, verbose, app=None):
+    """List backups Kubernetes custom resources"""
+    return astraSDK.k8s.getResources(
+        quiet=quiet, output=output, verbose=verbose, config_context=v3
+    ).main(
+        "backups",
+        filters=[{"keyFilter": "spec.applicationRef", "valFilter": app}],
+    )
+
+
+def listV3Connectors(v3, quiet, output, verbose):
+    """List astraconnectors Kubernetes custom resources"""
+    return astraSDK.k8s.getResources(
+        quiet=quiet, output=output, verbose=verbose, config_context=v3
+    ).main("astraconnectors")
+
+
+def listV3Hooks(v3, quiet, output, verbose, app=None):
+    """List exechooks Kubernetes custom resources"""
+    return astraSDK.k8s.getResources(
+        quiet=quiet, output=output, verbose=verbose, config_context=v3
+    ).main("exechooks", filters=[{"keyFilter": "spec.applicationRef", "valFilter": app}])
+
+
+def listV3Hooksruns(v3, quiet, output, verbose, app=None):
+    """List exechooksruns Kubernetes custom resources"""
+    return astraSDK.k8s.getResources(
+        quiet=quiet, output=output, verbose=verbose, config_context=v3
+    ).main("exechooksruns", filters=[{"keyFilter": "spec.applicationRef", "valFilter": app}])
+
+
+def listV3Iprs(v3, quiet, output, verbose, app):
     """List both backupinplacerestores and snapshotinplacerestores Kubernetes custom resources"""
     resources = astraSDK.k8s.getResources(verbose=verbose, config_context=v3)
     apps = resources.main("applications")
@@ -45,9 +99,19 @@ def listIprs(v3, quiet, output, verbose, app):
         if app and app != ipr["metadata"]["app"]["metadata"]["name"]:
             iprs["items"].remove(iprsCopy["items"][counter])
     resources.formatPrint(iprs, "inplacerestores", quiet=quiet, output=output, verbose=verbose)
+    return iprs
 
 
-def listRestores(v3, quiet, output, verbose, sourceNamespace, destNamespace):
+def listV3Namespaces(
+    v3, quiet, output, verbose, nameFilter=None, unassociated=None, minuteFilter=None
+):
+    """List Kubernetes namespaces"""
+    return astraSDK.k8s.getNamespaces(
+        quiet=quiet, output=output, verbose=verbose, config_context=v3
+    ).main(nameFilter=nameFilter, unassociated=unassociated, minuteFilter=minuteFilter)
+
+
+def listV3Restores(v3, quiet, output, verbose, sourceNamespace, destNamespace):
     """List both backuprestores and snapshotrestores Kubernetes custom resources"""
     resources = astraSDK.k8s.getResources(verbose=verbose, config_context=v3)
     restores = helpers.combineResources(
@@ -83,6 +147,28 @@ def listRestores(v3, quiet, output, verbose, sourceNamespace, destNamespace):
         ),
     )
     resources.formatPrint(restores, "restores", quiet=quiet, output=output, verbose=verbose)
+    return restores
+
+
+def listV3Schedules(v3, quiet, output, verbose, app=None):
+    """List schedules Kubernetes custom resources"""
+    return astraSDK.k8s.getResources(
+        quiet=quiet, output=output, verbose=verbose, config_context=v3
+    ).main("schedules", filters=[{"keyFilter": "spec.applicationRef", "valFilter": app}])
+
+
+def listV3Secrets(v3, quiet, output, verbose):
+    """List Kubernetes secrets"""
+    return astraSDK.k8s.getSecrets(
+        quiet=quiet, output=output, verbose=verbose, config_context=v3
+    ).main()
+
+
+def listV3Snapshots(v3, quiet, output, verbose, app=None):
+    """List snapshots Kubernetes custom resources"""
+    return astraSDK.k8s.getResources(
+        quiet=quiet, output=output, verbose=verbose, config_context=v3
+    ).main("snapshots", filters=[{"keyFilter": "spec.applicationRef", "valFilter": app}])
 
 
 def main(args):
@@ -94,18 +180,13 @@ def main(args):
             raise SystemExit("astraSDK.apiresources.getApiResources() failed")
     elif args.objectType == "apps" or args.objectType == "applications":
         if args.v3:
-            rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
-            ).main(
-                "applications",
-                filters=[
-                    {
-                        "keyFilter": "spec.includedNamespaces[].namespace",
-                        "valFilter": args.namespace,
-                        "inMatch": True,  # inMatch since app namespaces is a list, not a str
-                    },
-                    {"keyFilter": "metadata.name", "valFilter": args.nameFilter, "inMatch": True},
-                ],
+            listV3Apps(
+                args.v3,
+                args.quiet,
+                args.output,
+                args.verbose,
+                nameFilter=args.nameFilter,
+                namespace=args.namespace,
             )
         else:
             rc = astraSDK.apps.getApps(
@@ -125,12 +206,7 @@ def main(args):
             raise SystemExit("astraSDK.apps.getAppAssets() failed")
     elif args.objectType == "backups":
         if args.v3:
-            rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
-            ).main(
-                "backups",
-                filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}],
-            )
+            listV3Backups(args.v3, args.quiet, args.output, args.verbose, app=args.app)
         else:
             rc = astraSDK.backups.getBackups(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -139,14 +215,13 @@ def main(args):
                 raise SystemExit("astraSDK.backups.getBackups() failed")
     elif args.objectType == "buckets" or args.objectType == "appVaults":
         if args.v3:
-            rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
-            ).main(
-                "appvaults",
-                filters=[
-                    {"keyFilter": "spec.providerType", "valFilter": args.provider},
-                    {"keyFilter": "metadata.name", "valFilter": args.nameFilter, "inMatch": True},
-                ],
+            listV3Appvaults(
+                args.v3,
+                args.quiet,
+                args.output,
+                args.verbose,
+                provider=args.provider,
+                nameFilter=args.nameFilter,
             )
         else:
             rc = astraSDK.buckets.getBuckets(
@@ -171,14 +246,10 @@ def main(args):
         if rc is False:
             raise SystemExit("astraSDK.clusters.getClusters() failed")
     elif args.objectType == "connectors" or args.objectType == "astraconnectors":
-        rc = astraSDK.k8s.getResources(
-            quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
-        ).main("astraconnectors")
+        listV3Connectors(args.v3, args.quiet, args.output, args.verbose)
     elif args.objectType == "credentials" or args.objectType == "secrets":
         if args.v3:
-            rc = astraSDK.k8s.getSecrets(
-                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
-            ).main()
+            listV3Secrets(args.v3, args.quiet, args.output, args.verbose)
         else:
             rc = astraSDK.credentials.getCredentials(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -187,11 +258,7 @@ def main(args):
                 raise SystemExit("astraSDK.credentials.getCredentials() failed")
     elif args.objectType == "hooks" or args.objectType == "exechooks":
         if args.v3:
-            rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
-            ).main(
-                "exechooks", filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}]
-            )
+            listV3Hooks(args.v3, args.quiet, args.output, args.verbose, app=args.app)
         else:
             rc = astraSDK.hooks.getHooks(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -200,18 +267,13 @@ def main(args):
                 raise SystemExit("astraSDK.hooks.getHooks() failed")
     elif args.objectType == "hooksruns" or args.objectType == "exechooksruns":
         """This is a --v3 only command, per tkSrc/parser.py"""
-        listHooksruns(args.v3, args.quiet, args.output, args.verbose, args.app)
+        listV3Hooksruns(args.v3, args.quiet, args.output, args.verbose, app=args.app)
     elif args.objectType == "iprs" or args.objectType == "inplacerestores":
         """This is a --v3 only command, per tkSrc/parser.py"""
-        listIprs(args.v3, args.quiet, args.output, args.verbose, args.app)
+        listV3Iprs(args.v3, args.quiet, args.output, args.verbose, args.app)
     elif args.objectType == "protections" or args.objectType == "schedules":
         if args.v3:
-            rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
-            ).main(
-                "schedules",
-                filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}],
-            )
+            listV3Schedules(args.v3, args.quiet, args.output, args.verbose, app=args.app)
         else:
             rc = astraSDK.protections.getProtectionpolicies(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
@@ -226,9 +288,11 @@ def main(args):
             raise SystemExit("astraSDK.replications.getReplicationpolicies() failed")
     elif args.objectType == "namespaces":
         if args.v3:
-            rc = astraSDK.k8s.getNamespaces(
-                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
-            ).main(
+            listV3Namespaces(
+                args.v3,
+                args.quiet,
+                args.output,
+                args.verbose,
                 nameFilter=args.nameFilter,
                 unassociated=args.unassociated,
                 minuteFilter=args.minutes,
@@ -258,7 +322,7 @@ def main(args):
             raise SystemExit("astraSDK.namespaces.getNotifications() failed")
     elif args.objectType == "restores":
         """This is a --v3 only command, per tkSrc/parser.py"""
-        listRestores(
+        listV3Restores(
             args.v3, args.quiet, args.output, args.verbose, args.sourceNamespace, args.destNamespace
         )
     elif args.objectType == "rolebindings":
@@ -287,12 +351,7 @@ def main(args):
                     print(base64.b64decode(script["source"]).decode("utf-8"))
     elif args.objectType == "snapshots":
         if args.v3:
-            rc = astraSDK.k8s.getResources(
-                quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
-            ).main(
-                "snapshots",
-                filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}],
-            )
+            listV3Snapshots(args.v3, args.quiet, args.output, args.verbose, app=args.app)
         else:
             rc = astraSDK.snapshots.getSnaps(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
