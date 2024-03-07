@@ -24,6 +24,61 @@ import astraSDK
 from tkSrc import helpers
 
 
+def doV3Ipr(
+    v3,
+    dry_run,
+    quiet,
+    verbose,
+    parser,
+    ard,
+    backup=None,
+    snapshot=None,
+    filterSelection=None,
+    filterSet=None,
+):
+    if backup:
+        if ard.needsattr("backups"):
+            ard.backups = astraSDK.k8s.getResources(config_context=v3).main("backups")
+        iprSourceDict = ard.getSingleDict("backups", "metadata.name", backup, parser)
+    elif snapshot:
+        if ard.needsattr("snapshots"):
+            ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main("snapshots")
+        iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", snapshot, parser)
+
+    template = helpers.setupJinja("ipr")
+    try:
+        v3_dict = yaml.safe_load(
+            template.render(
+                kind=iprSourceDict["kind"],
+                iprName=f"{iprSourceDict['kind'].lower()}ipr-{uuid.uuid4()}",
+                appArchivePath=iprSourceDict["status"]["appArchivePath"],
+                appVaultRef=iprSourceDict["spec"]["appVaultRef"],
+                resourceFilter=helpers.prependDump(
+                    helpers.createFilterSet(filterSelection, filterSet, None, parser, v3=True),
+                    prepend=4,
+                ),
+            )
+        )
+        if dry_run == "client":
+            print(yaml.dump(v3_dict).rstrip("\n"))
+        else:
+            astraSDK.k8s.createResource(
+                quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+            ).main(
+                f"{v3_dict['kind'].lower()}s",
+                v3_dict["metadata"]["namespace"],
+                v3_dict,
+                version="v1",
+                group="astra.netapp.io",
+            )
+    except KeyError as err:
+        iprSourceName = backup if backup else snapshot
+        parser.error(
+            f"{err} key not found in '{iprSourceName}' object, please ensure "
+            f"'{iprSourceName}' is a valid backup/snapshot"
+        )
+
+
 def main(args, parser, ard):
     if (args.filterSelection and not args.filterSet) or (
         args.filterSet and not args.filterSelection
@@ -31,53 +86,18 @@ def main(args, parser, ard):
         parser.error("either both or none of --filterSelection and --filterSet should be specified")
 
     if args.v3:
-        if args.backup:
-            if ard.needsattr("backups"):
-                ard.backups = astraSDK.k8s.getResources(config_context=args.v3).main("backups")
-            iprSourceDict = ard.getSingleDict("backups", "metadata.name", args.backup, parser)
-        elif args.snapshot:
-            if ard.needsattr("snapshots"):
-                ard.snapshots = astraSDK.k8s.getResources(config_context=args.v3).main("snapshots")
-            iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", args.snapshot, parser)
-
-        template = helpers.setupJinja("ipr")
-        try:
-            v3_dict = yaml.safe_load(
-                template.render(
-                    kind=iprSourceDict["kind"],
-                    iprName=f"{iprSourceDict['kind'].lower()}ipr-{uuid.uuid4()}",
-                    appArchivePath=iprSourceDict["status"]["appArchivePath"],
-                    appVaultRef=iprSourceDict["spec"]["appVaultRef"],
-                    resourceFilter=helpers.prependDump(
-                        helpers.createFilterSet(
-                            args.filterSelection, args.filterSet, None, parser, v3=True
-                        ),
-                        prepend=4,
-                    ),
-                )
-            )
-            if args.dry_run == "client":
-                print(yaml.dump(v3_dict).rstrip("\n"))
-            else:
-                astraSDK.k8s.createResource(
-                    quiet=args.quiet,
-                    dry_run=args.dry_run,
-                    verbose=args.verbose,
-                    config_context=args.v3,
-                ).main(
-                    f"{v3_dict['kind'].lower()}s",
-                    v3_dict["metadata"]["namespace"],
-                    v3_dict,
-                    version="v1",
-                    group="astra.netapp.io",
-                )
-        except KeyError as err:
-            iprSourceName = args.backup if args.backup else args.snapshot
-            parser.error(
-                f"{err} key not found in '{iprSourceName}' object, please ensure "
-                f"'{iprSourceName}' is a valid backup/snapshot"
-            )
-
+        doV3Ipr(
+            args.v3,
+            args.dry_run,
+            args.quiet,
+            args.verbose,
+            parser,
+            ard,
+            backup=args.backup,
+            snapshot=args.snapshot,
+            filterSelection=args.filterSelection,
+            filterSet=args.filterSet,
+        )
     else:
         rc = astraSDK.apps.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
             args.app,

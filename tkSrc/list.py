@@ -83,17 +83,17 @@ def listV3Hooksruns(v3, quiet, output, verbose, app=None):
     ).main("exechooksruns", filters=[{"keyFilter": "spec.applicationRef", "valFilter": app}])
 
 
-def listV3Iprs(v3, quiet, output, verbose, app):
+def listV3Iprs(v3, quiet, output, verbose, app=None):
     """List both backupinplacerestores and snapshotinplacerestores Kubernetes custom resources"""
     resources = astraSDK.k8s.getResources(verbose=verbose, config_context=v3)
     apps = resources.main("applications")
     iprs = helpers.combineResources(
         resources.main("backupinplacerestores"), resources.main("snapshotinplacerestores")
     )
-    for app in apps["items"]:
+    for a in apps["items"]:
         for ipr in iprs["items"]:
-            if app["metadata"]["uid"] in ipr["spec"]["appArchivePath"]:
-                ipr["metadata"]["app"] = app
+            if a["metadata"]["uid"] in ipr["spec"]["appArchivePath"]:
+                ipr["metadata"]["app"] = a
     iprsCopy = copy.deepcopy(iprs)
     for counter, ipr in enumerate(iprsCopy.get("items")):
         if app and app != ipr["metadata"]["app"]["metadata"]["name"]:
@@ -111,7 +111,7 @@ def listV3Namespaces(
     ).main(nameFilter=nameFilter, unassociated=unassociated, minuteFilter=minuteFilter)
 
 
-def listV3Restores(v3, quiet, output, verbose, sourceNamespace, destNamespace):
+def listV3Restores(v3, quiet, output, verbose, sourceNamespace=None, destNamespace=None):
     """List both backuprestores and snapshotrestores Kubernetes custom resources"""
     resources = astraSDK.k8s.getResources(verbose=verbose, config_context=v3)
     restores = helpers.combineResources(
@@ -270,7 +270,7 @@ def main(args):
         listV3Hooksruns(args.v3, args.quiet, args.output, args.verbose, app=args.app)
     elif args.objectType == "iprs" or args.objectType == "inplacerestores":
         """This is a --v3 only command, per tkSrc/parser.py"""
-        listV3Iprs(args.v3, args.quiet, args.output, args.verbose, args.app)
+        listV3Iprs(args.v3, args.quiet, args.output, args.verbose, app=args.app)
     elif args.objectType == "protections" or args.objectType == "schedules":
         if args.v3:
             listV3Schedules(args.v3, args.quiet, args.output, args.verbose, app=args.app)
@@ -323,7 +323,12 @@ def main(args):
     elif args.objectType == "restores":
         """This is a --v3 only command, per tkSrc/parser.py"""
         listV3Restores(
-            args.v3, args.quiet, args.output, args.verbose, args.sourceNamespace, args.destNamespace
+            args.v3,
+            args.quiet,
+            args.output,
+            args.verbose,
+            sourceNamespace=args.sourceNamespace,
+            destNamespace=args.destNamespace,
         )
     elif args.objectType == "rolebindings":
         rc = astraSDK.rolebindings.getRolebindings(
