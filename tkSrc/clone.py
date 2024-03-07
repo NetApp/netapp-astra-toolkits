@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -255,6 +255,226 @@ def waitForDpCompletion(dp_resp, cluster):
     return dp
 
 
+def doV3Clone(
+    v3,
+    dry_run,
+    quiet,
+    verbose,
+    parser,
+    ard,
+    sourceApp,
+    appName,
+    cluster,
+    crossCluster,
+    newStorageClass=None,
+    newNamespace=None,
+    multiNsMapping=None,
+):
+    """Performs a live clone by first creating either a snapshot (same-cluster) or backup (cross-
+    cluster) of the sourcApp, and then it calls doV3Restore for the remaining restore operation,
+    which consists of a BackupRestore or SnapshotRestore and an Application definition."""
+    bucketDict = helpers.getCommonAppVault(v3, cluster, parser)
+    if dry_run == "client":
+        print(f"# This must be applied on the source cluster specified by '{v3}'")
+    if crossCluster:
+        restoreSourceDict = create.createV3Backup(
+            v3,
+            dry_run,
+            quiet,
+            verbose,
+            None,
+            sourceApp,
+            bucketDict["metadata"]["name"],
+            generateName=f"{sourceApp}-clone-backup-",
+        )
+    else:
+        restoreSourceDict = create.createV3Snapshot(
+            v3,
+            dry_run,
+            quiet,
+            verbose,
+            None,
+            sourceApp,
+            bucketDict["metadata"]["name"],
+            generateName=f"{sourceApp}-clone-snapshot-",
+        )
+    if dry_run == "client":
+        print("---")
+    if dry_run:
+        restoreSourceDict["status"] = {}
+        restoreSourceDict["status"]["appArchivePath"] = (
+            "placeholder/this-is-a-placeholder-field-which-must-be-replaced-with/"
+            + f"{'backup' if crossCluster else 'snapshot'}.status.appArchivePath"
+        )
+    else:
+        restoreSourceDict = waitForDpCompletion(restoreSourceDict, v3)
+    doV3Restore(
+        v3,
+        dry_run,
+        quiet,
+        verbose,
+        parser,
+        ard,
+        restoreSourceDict,
+        appName,
+        cluster,
+        crossCluster,
+        newStorageClass=newStorageClass,
+        newNamespace=newNamespace,
+        multiNsMapping=multiNsMapping,
+    )
+
+
+def setupV3Restore(
+    v3,
+    dry_run,
+    quiet,
+    verbose,
+    parser,
+    ard,
+    restoreSource,
+    appName,
+    cluster,
+    crossCluster,
+    newStorageClass=None,
+    newNamespace=None,
+    multiNsMapping=None,
+    filterSelection=None,
+    filterSet=None,
+):
+    """Sets up a restore operation by first determining if the restoreSource is a backup or a
+    snapshot (if it's snapshot and a cross-cluster restore then it converts the snapshot to a
+    backup), then calls doV3Restore to create the BackupRestore or SnapshotRestore and
+    Application definitions."""
+    if ard.needsattr("backups"):
+        ard.backups = astraSDK.k8s.getResources(config_context=v3).main("backups")
+    if ard.needsattr("snapshots"):
+        ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main("snapshots")
+    # For restore, we need to figure out if a backup or a snapshot source was provided
+    if restoreSource in ard.buildList("backups", "metadata.name"):
+        restoreSourceDict = ard.getSingleDict("backups", "metadata.name", restoreSource, parser)
+    elif restoreSource in ard.buildList("snapshots", "metadata.name"):
+        restoreSourceDict = ard.getSingleDict("snapshots", "metadata.name", restoreSource, parser)
+        # crossCluster requires a backup, so create a backup from the specified snapshot
+        if crossCluster:
+            if dry_run == "client":
+                print(f"# This must be applied on the source cluster specified by '{v3}'")
+            restoreSourceDict = create.createV3Backup(
+                v3,
+                dry_run,
+                quiet,
+                verbose,
+                None,
+                restoreSourceDict["spec"]["applicationRef"],
+                restoreSourceDict["spec"]["appVaultRef"],
+                snapshot=restoreSourceDict["metadata"]["name"],
+                generateName=f"{restoreSourceDict['spec']['applicationRef']}-restore-",
+            )
+            if dry_run:
+                restoreSourceDict["status"] = {}
+                restoreSourceDict["status"]["appArchivePath"] = (
+                    "placeholder/this-is-a-placeholder-field-which-must-be-replaced-with/"
+                    + "Backup.status.appArchivePath"
+                )
+                if dry_run == "client":
+                    print("---")
+            else:
+                restoreSourceDict = waitForDpCompletion(restoreSourceDict, v3)
+    else:
+        parser.error(f"the restoreSource '{restoreSource}' is not a valid backup or snapshot")
+    doV3Restore(
+        v3,
+        dry_run,
+        quiet,
+        verbose,
+        parser,
+        ard,
+        restoreSourceDict,
+        appName,
+        cluster,
+        crossCluster,
+        newStorageClass=newStorageClass,
+        newNamespace=newNamespace,
+        multiNsMapping=multiNsMapping,
+        filterSelection=filterSelection,
+        filterSet=filterSet,
+    )
+
+
+def doV3Restore(
+    v3,
+    dry_run,
+    quiet,
+    verbose,
+    parser,
+    ard,
+    restoreSourceDict,
+    appName,
+    cluster,
+    crossCluster,
+    newStorageClass=None,
+    newNamespace=None,
+    multiNsMapping=None,
+    filterSelection=None,
+    filterSet=None,
+):
+    """Restores an app by creating a BackupRestore or SnapshotRestore (based on the contents of
+    restoreSourceDict), and then creates the Application definition."""
+    oApp = ard.getSingleDict(
+        "apps", "metadata.name", restoreSourceDict["spec"]["applicationRef"], parser
+    )
+    namespaceMapping = helpers.createNamespaceMapping(
+        oApp["spec"]["includedNamespaces"], newNamespace, multiNsMapping, parser
+    )
+    template = helpers.setupJinja("restore")
+    try:
+        v3_gen = yaml.safe_load_all(
+            template.render(
+                kind=restoreSourceDict["kind"],
+                restoreName=f"{appName}-restore-",
+                appArchivePath=restoreSourceDict["status"]["appArchivePath"],
+                appVaultRef=(
+                    helpers.swapAppVaultRef(
+                        restoreSourceDict["spec"]["appVaultRef"], v3, cluster, parser
+                    )
+                    if crossCluster
+                    else restoreSourceDict["spec"]["appVaultRef"]
+                ),
+                namespaceMapping=helpers.prependDump(namespaceMapping, prepend=4),
+                resourceFilter=helpers.prependDump(
+                    helpers.createFilterSet(filterSelection, filterSet, None, parser, v3=True),
+                    prepend=4,
+                ),
+                newStorageClass=newStorageClass,
+                appName=appName,
+                appSpec=helpers.prependDump(
+                    helpers.updateNamespaceSpec(namespaceMapping, copy.deepcopy(oApp["spec"])),
+                    prepend=2,
+                ),
+            )
+        )
+        if dry_run == "client":
+            print(f"# These must be applied on the destination cluster specified by '{cluster}'")
+            print(yaml.dump_all(v3_gen).rstrip("\n"))
+        else:
+            for v3_dict in v3_gen:
+                astraSDK.k8s.createResource(
+                    quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=cluster
+                ).main(
+                    f"{v3_dict['kind'].lower()}s",
+                    v3_dict["metadata"]["namespace"],
+                    v3_dict,
+                    version="v1",
+                    group="astra.netapp.io",
+                )
+    except KeyError as err:
+        rName = restoreSourceDict["metadata"]["name"]
+        parser.error(
+            f"{err} key not found in '{rName}' object, please ensure "
+            f"{rName}' is a valid backup/snapshot"
+        )
+
+
 def main(args, parser, ard):
     # Ensure proper use of resource filters
     if args.subcommand == "restore":
@@ -272,159 +492,39 @@ def main(args, parser, ard):
         # Handle -f/--fast/plaidMode cases
         if ard.needsattr("apps"):
             ard.apps = astraSDK.k8s.getResources(config_context=args.v3).main("applications")
-        # Determine if this is a cross-cluster clones/restores, which require backups
-        crossCluster = not helpers.sameK8sCluster(args.v3, args.cluster)
-
-        # A live clone is just a snapshot (or backup for cross-cluster), and then the normal
-        # restore operation. So we'll take care of the data protection operation here first,
-        # then clone and restore will use the same operation after
         if args.subcommand == "clone":
-            # There are certain args that aren't available for live clones, set those to None
-            args.filterSelection = None
-            args.filterSet = None
-            bucketDict = helpers.getCommonAppVault(args.v3, args.cluster, parser)
-            kind = "Backup" if crossCluster else "Snapshot"
-            template = helpers.setupJinja(kind.lower())
-            v3_dp_dict = yaml.safe_load(
-                template.render(
-                    generateName=f"{args.sourceApp}-clone-{kind.lower()}-",
-                    appName=args.sourceApp,
-                    appVaultName=bucketDict["metadata"]["name"],
-                )
+            doV3Clone(
+                args.v3,
+                args.dry_run,
+                args.quiet,
+                args.verbose,
+                parser,
+                ard,
+                args.sourceApp,
+                args.appName,
+                args.cluster,
+                not helpers.sameK8sCluster(args.v3, args.cluster),
+                newStorageClass=args.newStorageClass,
+                newNamespace=args.newNamespace,
+                multiNsMapping=args.multiNsMapping,
             )
-            if args.dry_run == "client":
-                print(f"# This must be applied on the source cluster specified by '{args.v3}'")
-                restoreSourceDict = v3_dp_dict
-                print(yaml.dump(v3_dp_dict).rstrip("\n"))
-                print("---")
-            else:
-                restoreSourceDict = astraSDK.k8s.createResource(
-                    quiet=args.quiet,
-                    dry_run=args.dry_run,
-                    verbose=args.verbose,
-                    config_context=args.v3,
-                ).main(
-                    f"{v3_dp_dict['kind'].lower()}s",
-                    v3_dp_dict["metadata"]["namespace"],
-                    v3_dp_dict,
-                    version="v1",
-                    group="astra.netapp.io",
-                )
-            if args.dry_run:
-                restoreSourceDict["status"] = {}
-                restoreSourceDict["status"]["appArchivePath"] = (
-                    "placeholder/this-is-a-placeholder-field-which-must-be-replaced-with/"
-                    + f"{kind}.status.appArchivePath"
-                )
-            else:
-                restoreSourceDict = waitForDpCompletion(restoreSourceDict, args.v3)
-
-        # For restore, we need to figure out if a backup or a snapshot source was provided
         elif args.subcommand == "restore":
-            if ard.needsattr("backups"):
-                ard.backups = astraSDK.k8s.getResources(config_context=args.v3).main("backups")
-            if ard.needsattr("snapshots"):
-                ard.snapshots = astraSDK.k8s.getResources(config_context=args.v3).main("snapshots")
-            if args.restoreSource in ard.buildList("backups", "metadata.name"):
-                restoreSourceDict = ard.getSingleDict(
-                    "backups", "metadata.name", args.restoreSource, parser
-                )
-            elif args.restoreSource in ard.buildList("snapshots", "metadata.name"):
-                restoreSourceDict = ard.getSingleDict(
-                    "snapshots", "metadata.name", args.restoreSource, parser
-                )
-                # crossCluster requires a backup, so create a backup from the specified snapshot
-                if crossCluster:
-                    if args.dry_run == "client":
-                        print(
-                            f"# This must be applied on the source cluster specified by '{args.v3}'"
-                        )
-                    restoreSourceDict = create.createV3Backup(
-                        args.v3,
-                        args.dry_run,
-                        args.quiet,
-                        args.verbose,
-                        None,
-                        restoreSourceDict["spec"]["applicationRef"],
-                        restoreSourceDict["spec"]["appVaultRef"],
-                        snapshot=restoreSourceDict["metadata"]["name"],
-                        generateName=f"{restoreSourceDict['spec']['applicationRef']}-restore-",
-                    )
-                    if args.dry_run:
-                        restoreSourceDict["status"] = {}
-                        restoreSourceDict["status"]["appArchivePath"] = (
-                            "placeholder/this-is-a-placeholder-field-which-must-be-replaced-with/"
-                            + "Backup.status.appArchivePath"
-                        )
-                        if args.dry_run == "client":
-                            print("---")
-                    else:
-                        restoreSourceDict = waitForDpCompletion(restoreSourceDict, args.v3)
-            else:
-                parser.error(
-                    f"the restoreSource '{args.restoreSource}' is not a valid backup or snapshot"
-                )
-
-        # Now we're ready to create the {kind}Restore and Application CRs
-        oApp = ard.getSingleDict(
-            "apps", "metadata.name", restoreSourceDict["spec"]["applicationRef"], parser
-        )
-        namespaceMapping = helpers.createNamespaceMapping(
-            oApp["spec"]["includedNamespaces"], args.newNamespace, args.multiNsMapping, parser
-        )
-        template = helpers.setupJinja("restore")
-        try:
-            v3_gen = yaml.safe_load_all(
-                template.render(
-                    kind=restoreSourceDict["kind"],
-                    restoreName=f"{args.appName}-restore-",
-                    appArchivePath=restoreSourceDict["status"]["appArchivePath"],
-                    appVaultRef=(
-                        helpers.swapAppVaultRef(
-                            restoreSourceDict["spec"]["appVaultRef"], args.v3, args.cluster, parser
-                        )
-                        if crossCluster
-                        else restoreSourceDict["spec"]["appVaultRef"]
-                    ),
-                    namespaceMapping=helpers.prependDump(namespaceMapping, prepend=4),
-                    resourceFilter=helpers.prependDump(
-                        helpers.createFilterSet(
-                            args.filterSelection, args.filterSet, None, parser, v3=True
-                        ),
-                        prepend=4,
-                    ),
-                    newStorageClass=args.newStorageClass,
-                    appName=args.appName,
-                    appSpec=helpers.prependDump(
-                        helpers.updateNamespaceSpec(namespaceMapping, copy.deepcopy(oApp["spec"])),
-                        prepend=2,
-                    ),
-                )
-            )
-            if args.dry_run == "client":
-                print(
-                    "# These must be applied on the destination cluster specified by "
-                    f"'{args.cluster}'"
-                )
-                print(yaml.dump_all(v3_gen).rstrip("\n"))
-            else:
-                for v3_dict in v3_gen:
-                    astraSDK.k8s.createResource(
-                        quiet=args.quiet,
-                        dry_run=args.dry_run,
-                        verbose=args.verbose,
-                        config_context=args.cluster,
-                    ).main(
-                        f"{v3_dict['kind'].lower()}s",
-                        v3_dict["metadata"]["namespace"],
-                        v3_dict,
-                        version="v1",
-                        group="astra.netapp.io",
-                    )
-        except KeyError as err:
-            parser.error(
-                f"{err} key not found in '{args.restoreSource}' object, please ensure "
-                f"'{args.restoreSource}' is a valid backup/snapshot"
+            setupV3Restore(
+                args.v3,
+                args.dry_run,
+                args.quiet,
+                args.verbose,
+                parser,
+                ard,
+                args.restoreSource,
+                args.appName,
+                args.cluster,
+                not helpers.sameK8sCluster(args.v3, args.cluster),
+                newStorageClass=args.newStorageClass,
+                newNamespace=args.newNamespace,
+                multiNsMapping=args.multiNsMapping,
+                filterSelection=args.filterSelection,
+                filterSet=args.filterSet,
             )
 
     else:

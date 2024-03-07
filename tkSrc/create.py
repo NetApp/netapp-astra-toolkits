@@ -230,6 +230,47 @@ def createV3Protection(
         )
 
 
+def createV3Snapshot(
+    v3,
+    dry_run,
+    quiet,
+    verbose,
+    name,
+    app,
+    appVault,
+    reclaimPolicy=None,
+    createdTimeout=None,
+    readyToUseTimeout=None,
+    generateName=None,
+):
+    """Create an app snapshot via a Kubernetes custom resource"""
+    template = helpers.setupJinja("snapshot")
+    v3_dict = yaml.safe_load(
+        template.render(
+            name=(helpers.isRFC1123(name) if name else name),
+            appName=app,
+            appVaultName=appVault,
+            reclaimPolicy=reclaimPolicy,
+            createdTimeout=(None if not createdTimeout else str(createdTimeout)),
+            readyToUseTimeout=(None if not readyToUseTimeout else str(readyToUseTimeout)),
+            generateName=generateName,
+        )
+    )
+    if dry_run == "client":
+        print(yaml.dump(v3_dict).rstrip("\n"))
+        return v3_dict
+    else:
+        return astraSDK.k8s.createResource(
+            quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+        ).main(
+            f"{v3_dict['kind'].lower()}s",
+            v3_dict["metadata"]["namespace"],
+            v3_dict,
+            version="v1",
+            group="astra.netapp.io",
+        )
+
+
 def main(args, parser, ard):
     if args.objectType == "backup":
         if args.v3:
@@ -466,34 +507,18 @@ def main(args, parser, ard):
             raise SystemExit("astraSDK.scripts.createScript() failed")
     elif args.objectType == "snapshot":
         if args.v3:
-            template = helpers.setupJinja("snapshot")
-            v3_dict = yaml.safe_load(
-                template.render(
-                    name=helpers.isRFC1123(args.name, parser=parser),
-                    appName=args.app,
-                    appVaultName=args.bucket,
-                    reclaimPolicy=args.reclaimPolicy,
-                    createdTimeout=(None if not args.createdTimeout else str(args.createdTimeout)),
-                    readyToUseTimeout=(
-                        None if not args.readyToUseTimeout else str(args.readyToUseTimeout)
-                    ),
-                )
+            createV3Snapshot(
+                args.v3,
+                args.dry_run,
+                args.quiet,
+                args.verbose,
+                args.name,
+                args.app,
+                args.bucket,
+                reclaimPolicy=args.reclaimPolicy,
+                createdTimeout=args.createdTimeout,
+                readyToUseTimeout=args.readyToUseTimeout,
             )
-            if args.dry_run == "client":
-                print(yaml.dump(v3_dict).rstrip("\n"))
-            else:
-                astraSDK.k8s.createResource(
-                    quiet=args.quiet,
-                    dry_run=args.dry_run,
-                    verbose=args.verbose,
-                    config_context=args.v3,
-                ).main(
-                    f"{v3_dict['kind'].lower()}s",
-                    v3_dict["metadata"]["namespace"],
-                    v3_dict,
-                    version="v1",
-                    group="astra.netapp.io",
-                )
         else:
             protectionID = astraSDK.snapshots.takeSnap(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,
