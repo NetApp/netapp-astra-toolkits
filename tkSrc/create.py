@@ -185,6 +185,60 @@ def createV3Backup(
         )
 
 
+def createV3Hook(
+    v3,
+    dry_run,
+    quiet,
+    verbose,
+    parser,
+    app,
+    name,
+    filePath,
+    operation,
+    hookArguments=None,
+    containerImage=None,
+    namespace=None,
+    podName=None,
+    label=None,
+    containerName=None,
+):
+    """Creates an exec hook via a Kubernetes custom resource"""
+    encodedStr = helpers.openScript(filePath, parser)
+    template = helpers.setupJinja("hook")
+    v3_dict = yaml.safe_load(
+        template.render(
+            name=helpers.isRFC1123(name, parser=parser),
+            action=operation.split("-")[1],
+            appName=app,
+            arguments=helpers.prependDump(helpers.createHookList(hookArguments), prepend=4),
+            hookSource=encodedStr,
+            matchingCriteria=helpers.prependDump(
+                helpers.createCriteriaList(
+                    containerImage if containerImage else [],
+                    namespace if namespace else [],
+                    podName if podName else [],
+                    label if label else [],
+                    containerName if containerName else [],
+                ),
+                prepend=4,
+            ),
+            stage=operation.split("-")[0],
+        )
+    )
+    if dry_run == "client":
+        print(yaml.dump(v3_dict).rstrip("\n"))
+    else:
+        astraSDK.k8s.createResource(
+            quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+        ).main(
+            f"{v3_dict['kind'].lower()}s",
+            v3_dict["metadata"]["namespace"],
+            v3_dict,
+            version="v1",
+            group="astra.netapp.io",
+        )
+
+
 def createV3Protection(
     v3,
     dry_run,
@@ -323,45 +377,23 @@ def main(args, parser, ard):
             raise SystemExit("astraSDK.credentials.createCredential() failed")
     elif args.objectType == "hook" or args.objectType == "exechook":
         if args.v3:
-            encodedStr = helpers.openScript(args.filePath, parser)
-            template = helpers.setupJinja("hook")
-            v3_dict = yaml.safe_load(
-                template.render(
-                    name=helpers.isRFC1123(args.name, parser=parser),
-                    action=args.operation.split("-")[1],
-                    appName=args.app,
-                    arguments=helpers.prependDump(
-                        helpers.createHookList(args.hookArguments), prepend=4
-                    ),
-                    hookSource=encodedStr,
-                    matchingCriteria=helpers.prependDump(
-                        helpers.createCriteriaList(
-                            args.containerImage,
-                            args.namespace,
-                            args.podName,
-                            args.label,
-                            args.containerName,
-                        ),
-                        prepend=4,
-                    ),
-                    stage=args.operation.split("-")[0],
-                )
+            createV3Hook(
+                args.v3,
+                args.dry_run,
+                args.quiet,
+                args.verbose,
+                parser,
+                args.app,
+                args.name,
+                args.filePath,
+                args.operation,
+                hookArguments=args.hookArguments,
+                containerImage=args.containerImage,
+                namespace=args.namespace,
+                podName=args.podName,
+                label=args.label,
+                containerName=args.containerName,
             )
-            if args.dry_run == "client":
-                print(yaml.dump(v3_dict).rstrip("\n"))
-            else:
-                astraSDK.k8s.createResource(
-                    quiet=args.quiet,
-                    dry_run=args.dry_run,
-                    verbose=args.verbose,
-                    config_context=args.v3,
-                ).main(
-                    f"{v3_dict['kind'].lower()}s",
-                    v3_dict["metadata"]["namespace"],
-                    v3_dict,
-                    version="v1",
-                    group="astra.netapp.io",
-                )
         else:
             rc = astraSDK.hooks.createHook(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,
