@@ -801,9 +801,17 @@ class ToolkitParser:
 
     def list_hooksruns_args(self):
         """list hooksruns args and flags"""
-        self.subparserListHooksruns.add_argument(
-            "-a", "--app", default=None, help="Only show execution hooks runs from this app"
-        )
+        if self.v3:
+            self.subparserListHooksruns.add_argument(
+                "-a", "--app", default=None, help="Only show execution hooks runs from this app"
+            )
+
+    def list_iprs_args(self):
+        """list iprs args and flags"""
+        if self.v3:
+            self.subparserListIprs.add_argument(
+                "-a", "--app", default=None, help="Only show in-place-restores of this app"
+            )
 
     def list_namespaces_args(self):
         """list namespaces args and flags"""
@@ -885,18 +893,19 @@ class ToolkitParser:
 
     def list_restores_args(self):
         """list v3 backup and snapshot restores args and flags"""
-        self.subparserListRestores.add_argument(
-            "-s",
-            "--sourceNamespace",
-            default=None,
-            help="Only show restores involving a source namespace (partial match)",
-        )
-        self.subparserListRestores.add_argument(
-            "-d",
-            "--destNamespace",
-            default=None,
-            help="Only show restores involving a destination namespace (partial match)",
-        )
+        if self.v3:
+            self.subparserListRestores.add_argument(
+                "-s",
+                "--sourceNamespace",
+                default=None,
+                help="Only show restores involving a source namespace (partial match)",
+            )
+            self.subparserListRestores.add_argument(
+                "-d",
+                "--destNamespace",
+                default=None,
+                help="Only show restores involving a destination namespace (partial match)",
+            )
 
     def list_rolebindings_args(self):
         """list rolebindings args and flags"""
@@ -1851,6 +1860,7 @@ class ToolkitParser:
         self.list_credentials_args()
         self.list_hooks_args()
         self.list_hooksruns_args()
+        self.list_iprs_args()
         self.list_namespaces_args()
         self.list_notifications_args()
         self.list_protections_args()

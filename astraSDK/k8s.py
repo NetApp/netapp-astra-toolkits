@@ -198,16 +198,28 @@ class getResources(KubeCommon):
             ]
         elif plural == "inplacerestores":
             if headers:
-                return ["name", "state"]
-            return ["metadata.name", "status.state"]
+                return ["name", "applicationRef", "state", "creationTimestamp"]
+            return [
+                "metadata.name",
+                "metadata.app.metadata.name",
+                "status.state",
+                "metadata.creationTimestamp",
+            ]
         elif plural == "restores":
             if headers:
-                return ["name", "sourceNamespace", "destinationNamespace", "state"]
+                return [
+                    "name",
+                    "sourceNamespace",
+                    "destinationNamespace",
+                    "state",
+                    "creationTimestamp",
+                ]
             return [
                 "metadata.name",
                 "spec.namespaceMapping[].source",
                 "spec.namespaceMapping[].destination",
                 "status.state",
+                "metadata.creationTimestamp",
             ]
         elif plural == "schedules":
             if headers:

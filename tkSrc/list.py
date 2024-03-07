@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,9 +16,73 @@
 """
 
 import base64
+import copy
 
 import astraSDK
 from tkSrc import helpers
+
+
+def listHooksruns(v3, quiet, output, verbose, app):
+    """List exechooksruns Kubernetes custom resources"""
+    astraSDK.k8s.getResources(quiet=quiet, output=output, verbose=verbose, config_context=v3).main(
+        "exechooksruns", filters=[{"keyFilter": "spec.applicationRef", "valFilter": app}]
+    )
+
+
+def listIprs(v3, quiet, output, verbose, app):
+    """List both backupinplacerestores and snapshotinplacerestores Kubernetes custom resources"""
+    resources = astraSDK.k8s.getResources(verbose=verbose, config_context=v3)
+    apps = resources.main("applications")
+    iprs = helpers.combineResources(
+        resources.main("backupinplacerestores"), resources.main("snapshotinplacerestores")
+    )
+    for app in apps["items"]:
+        for ipr in iprs["items"]:
+            if app["metadata"]["uid"] in ipr["spec"]["appArchivePath"]:
+                ipr["metadata"]["app"] = app
+    iprsCopy = copy.deepcopy(iprs)
+    for counter, ipr in enumerate(iprsCopy.get("items")):
+        if app and app != ipr["metadata"]["app"]["metadata"]["name"]:
+            iprs["items"].remove(iprsCopy["items"][counter])
+    resources.formatPrint(iprs, "inplacerestores", quiet=quiet, output=output, verbose=verbose)
+
+
+def listRestores(v3, quiet, output, verbose, sourceNamespace, destNamespace):
+    """List both backuprestores and snapshotrestores Kubernetes custom resources"""
+    resources = astraSDK.k8s.getResources(verbose=verbose, config_context=v3)
+    restores = helpers.combineResources(
+        resources.main(
+            "backuprestores",
+            filters=[
+                {
+                    "keyFilter": "spec.namespaceMapping[].source",
+                    "valFilter": sourceNamespace,
+                    "inMatch": True,
+                },
+                {
+                    "keyFilter": "spec.namespaceMapping[].destination",
+                    "valFilter": destNamespace,
+                    "inMatch": True,
+                },
+            ],
+        ),
+        resources.main(
+            "snapshotrestores",
+            filters=[
+                {
+                    "keyFilter": "spec.namespaceMapping[].source",
+                    "valFilter": sourceNamespace,
+                    "inMatch": True,
+                },
+                {
+                    "keyFilter": "spec.namespaceMapping[].destination",
+                    "valFilter": destNamespace,
+                    "inMatch": True,
+                },
+            ],
+        ),
+    )
+    resources.formatPrint(restores, "restores", quiet=quiet, output=output, verbose=verbose)
 
 
 def main(args):
@@ -135,19 +199,11 @@ def main(args):
             if rc is False:
                 raise SystemExit("astraSDK.hooks.getHooks() failed")
     elif args.objectType == "hooksruns" or args.objectType == "exechooksruns":
-        rc = astraSDK.k8s.getResources(
-            quiet=args.quiet, output=args.output, verbose=args.verbose, config_context=args.v3
-        ).main(
-            "exechooksruns", filters=[{"keyFilter": "spec.applicationRef", "valFilter": args.app}]
-        )
+        """This is a --v3 only command, per tkSrc/parser.py"""
+        listHooksruns(args.v3, args.quiet, args.output, args.verbose, args.app)
     elif args.objectType == "iprs" or args.objectType == "inplacerestores":
-        resources = astraSDK.k8s.getResources(verbose=args.verbose, config_context=args.v3)
-        iprs = helpers.combineResources(
-            resources.main("backupinplacerestores"), resources.main("snapshotinplacerestores")
-        )
-        resources.formatPrint(
-            iprs, "inplacerestores", quiet=args.quiet, output=args.output, verbose=args.verbose
-        )
+        """This is a --v3 only command, per tkSrc/parser.py"""
+        listIprs(args.v3, args.quiet, args.output, args.verbose, args.app)
     elif args.objectType == "protections" or args.objectType == "schedules":
         if args.v3:
             rc = astraSDK.k8s.getResources(
@@ -201,41 +257,9 @@ def main(args):
         if rc is False:
             raise SystemExit("astraSDK.namespaces.getNotifications() failed")
     elif args.objectType == "restores":
-        resources = astraSDK.k8s.getResources(verbose=args.verbose, config_context=args.v3)
-        restores = helpers.combineResources(
-            resources.main(
-                "backuprestores",
-                filters=[
-                    {
-                        "keyFilter": "spec.namespaceMapping[].source",
-                        "valFilter": args.sourceNamespace,
-                        "inMatch": True,
-                    },
-                    {
-                        "keyFilter": "spec.namespaceMapping[].destination",
-                        "valFilter": args.destNamespace,
-                        "inMatch": True,
-                    },
-                ],
-            ),
-            resources.main(
-                "snapshotrestores",
-                filters=[
-                    {
-                        "keyFilter": "spec.namespaceMapping[].source",
-                        "valFilter": args.sourceNamespace,
-                        "inMatch": True,
-                    },
-                    {
-                        "keyFilter": "spec.namespaceMapping[].destination",
-                        "valFilter": args.destNamespace,
-                        "inMatch": True,
-                    },
-                ],
-            ),
-        )
-        resources.formatPrint(
-            restores, "restores", quiet=args.quiet, output=args.output, verbose=args.verbose
+        """This is a --v3 only command, per tkSrc/parser.py"""
+        listRestores(
+            args.v3, args.quiet, args.output, args.verbose, args.sourceNamespace, args.destNamespace
         )
     elif args.objectType == "rolebindings":
         rc = astraSDK.rolebindings.getRolebindings(
