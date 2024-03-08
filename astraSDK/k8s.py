@@ -85,6 +85,8 @@ class getResources(KubeCommon):
 
         except kubernetes.client.rest.ApiException as e:
             sys.stdout = sys.__stdout__
+            if e.status == 404 and e.reason == "Not Found":
+                self.notInstalled(f"/apis/{group}/{version}/namespaces/{namespace}/{plural}")
             self.printError(e)
 
     def formatPrint(self, resp, plural, quiet=None, output=None, verbose=None):
@@ -317,6 +319,8 @@ class getClusterResources(KubeCommon):
 
         except kubernetes.client.rest.ApiException as e:
             sys.stdout = sys.__stdout__
+            if e.status == 404 and e.reason == "Not Found":
+                self.notInstalled(f"/apis/{group}/{version}/{plural}")
             self.printError(e)
 
 
@@ -369,6 +373,8 @@ class createResource(KubeCommon):
 
         except kubernetes.client.rest.ApiException as e:
             sys.stdout = sys.__stdout__
+            if e.status == 404 and e.reason == "Not Found":
+                self.notInstalled(f"/apis/{group}/{version}/namespaces/{namespace}/{plural}")
             self.printError(e)
 
 
@@ -421,6 +427,8 @@ class destroyResource(KubeCommon):
 
         except kubernetes.client.rest.ApiException as e:
             sys.stdout = sys.__stdout__
+            if e.status == 404 and e.reason == "Not Found":
+                self.notInstalled(f"/apis/{group}/{version}/namespaces/{namespace}/{plural}")
             self.printError(e)
 
 
@@ -466,6 +474,8 @@ class updateClusterResource(KubeCommon):
 
         except kubernetes.client.rest.ApiException as e:
             sys.stdout = sys.__stdout__
+            if e.status == 404 and e.reason == "Not Found":
+                self.notInstalled(f"/apis/{group}/{version}/{plural}")
             self.printError(e)
 
 

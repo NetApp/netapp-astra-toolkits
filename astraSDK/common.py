@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -304,6 +304,14 @@ class KubeCommon(BaseCommon):
             )
             self.printError(f"{err}\n")
             raise SystemExit()
+
+    def notInstalled(self, path):
+        server = self.api_client.configuration.host.split("//")[-1].split(":")[0].split("/")[0]
+        self.printError(
+            f"Error: {path} not found, please ensure the AstraConnector Operator is installed on "
+            f"cluster {server}.\n"
+        )
+        raise SystemExit()
 
     class WriteVerbose:
         def __init__(self):
