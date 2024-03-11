@@ -1002,7 +1002,6 @@ class ToolkitParser:
             "--appVault" if self.v3 else "--bucketID",
             dest="bucket",
             default=None,
-            required=(True if self.v3 else False),
             choices=(None if self.plaidMode else self.acl.buckets),
             help="Specify which bucket to store the backup",
         )
@@ -1303,7 +1302,6 @@ class ToolkitParser:
                 "--appVault",
                 dest="bucket",
                 default=None,
-                required=True,
                 choices=(None if self.plaidMode else self.acl.buckets),
                 help="Specify which appVault to store snapshot metadata",
             )

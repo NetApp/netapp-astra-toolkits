@@ -328,6 +328,12 @@ def createV3Snapshot(
 def main(args, parser, ard):
     if args.objectType == "backup":
         if args.v3:
+            if ard.needsattr("buckets"):
+                ard.buckets = astraSDK.k8s.getResources(config_context=args.v3).main("appvaults")
+            if args.bucket is None:
+                args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
+                    "metadata"
+                ]["name"]
             createV3Backup(
                 args.v3,
                 args.dry_run,
@@ -539,6 +545,12 @@ def main(args, parser, ard):
             raise SystemExit("astraSDK.scripts.createScript() failed")
     elif args.objectType == "snapshot":
         if args.v3:
+            if ard.needsattr("buckets"):
+                ard.buckets = astraSDK.k8s.getResources(config_context=args.v3).main("appvaults")
+            if args.bucket is None:
+                args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
+                    "metadata"
+                ]["name"]
             createV3Snapshot(
                 args.v3,
                 args.dry_run,
