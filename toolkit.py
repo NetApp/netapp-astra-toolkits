@@ -213,6 +213,8 @@ def main(argv=sys.argv):
             )
         )
         tkSrc.helpers.checkv3Support(args, parser, v3_dict)
+    if args.dry_run and not args.v3:
+        parser.error("--dry-run can only be used in conjunction with --v3")
 
     if args.subcommand == "deploy":
         tkSrc.deploy.main(args, parser, ard)
