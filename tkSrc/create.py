@@ -108,7 +108,7 @@ def createV3CloudCredential(v3, dry_run, quiet, verbose, path, name, parser):
         return secret_dict
     return astraSDK.k8s.createGenericSecret(
         quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
-    ).main(name, data, namespace=namespace)
+    ).main(f"{name}-", data, generateName=True, namespace=namespace)
 
 
 def createS3Credential(quiet, verbose, accessKey, accessSecret, name):
@@ -143,7 +143,7 @@ def createV3S3Credential(v3, dry_run, quiet, verbose, accessKey, accessSecret, n
         return secret_dict
     return astraSDK.k8s.createGenericSecret(
         quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
-    ).main(name, data, namespace=namespace)
+    ).main(f"{name}-", data, generateName=True, namespace=namespace)
 
 
 def createV3Backup(

@@ -177,7 +177,7 @@ def main(argv=sys.argv):
                 ],
             )
         )
-        v3_dict["destroy"].append("credential")
+        v3_dict["destroy"].extend(["credential", "secret"])
         v3_dict.update(dict.fromkeys(["clone", "ipr", "restore"], True))
         v3_dict.update(
             dict.fromkeys(

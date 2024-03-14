@@ -439,7 +439,8 @@ class ToolkitParser:
             self.parserClone.add_argument(
                 "cluster",
                 help="Cluster to live clone into (can be same as source), specify any context, "
-                "kubeconfig_file, or kubeconfig_file:context mapping",
+                "kubeconfig_file, or context@kubeconfig_file mapping, or 'None' for current "
+                "system default",
             )
         else:
             self.parserClone.add_argument(
@@ -504,8 +505,9 @@ class ToolkitParser:
         if self.v3:
             self.parserRestore.add_argument(
                 "cluster",
-                help="Cluster to restore into (can be same as source), specify any context, "
-                "kubeconfig_file, or kubeconfig_file:context mapping",
+                help="Cluster to live clone into (can be same as source), specify any context, "
+                "kubeconfig_file, or context@kubeconfig_file mapping, or 'None' for current "
+                "system default",
             )
         else:
             self.parserRestore.add_argument(
