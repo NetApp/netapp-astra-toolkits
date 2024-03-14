@@ -140,3 +140,7 @@ def main(args, parser):
         )
         if rc is False:
             raise SystemExit("astraSDK.clouds.manageCloud() failed")
+    elif args.objectType == "ldap":
+        credential = tkSrc.create.createLdapCredential(
+            args.quiet, args.verbose, args.username, args.password, parser
+        )

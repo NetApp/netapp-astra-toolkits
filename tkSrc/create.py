@@ -74,6 +74,20 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
     return False
 
 
+def createLdapCredential(quiet, verbose, username, password, parser):
+    """Create a public cloud (AWS/Azure/GCP) credential via the API"""
+    bindDn = base64.b64encode(username.encode("utf-8")).decode("utf-8")
+    enpass = base64.b64encode(password.encode("utf-8")).decode("utf-8")
+    rc = astraSDK.credentials.createCredential(quiet=quiet, verbose=verbose).main(
+        "ldapBindCredential-" + username.split("@")[0],
+        "generic",
+        {"bindDn": bindDn, "password": enpass},
+    )
+    if rc:
+        return rc
+    raise SystemExit("astraSDK.credentials.createCredential() failed")
+
+
 def main(args, parser, ard):
     if args.objectType == "backup":
         protectionID = astraSDK.backups.takeBackup(quiet=args.quiet, verbose=args.verbose).main(

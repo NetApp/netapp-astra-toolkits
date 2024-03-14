@@ -280,6 +280,10 @@ class ToolkitParser:
             "cluster",
             help="manage cluster",
         )
+        self.subparserManageLdap = self.subparserManage.add_parser(
+            "ldap",
+            help="manage an LDAP(S) server for remote authentication",
+        )
 
     def sub_destroy_commands(self):
         """destroy 'X'"""
@@ -1281,6 +1285,53 @@ class ToolkitParser:
             help="optionally specify the default bucketID for backups",
         )
 
+    def manage_ldap_args(self):
+        """manage LDAP(S) args and flags"""
+        self.subparserManageLdap.add_argument("url", help="the LDAP(S) server URL or IP address")
+        self.subparserManageLdap.add_argument("port", help="the LDAP(S) server port")
+        self.subparserManageLdap.add_argument(
+            "ldap-or-ldaps",
+            choices=["ldap", "ldaps"],
+            type=str.lower,
+            help="whether to use LDAP or LDAPS",
+        )
+        saGroup = self.subparserManageLdap.add_argument_group(
+            "serviceAccountGroup", "the service account credentials in email format"
+        )
+        saGroup.add_argument(
+            "-u",
+            "--username",
+            help="the username (in email format) of the service account (required)",
+            required=True,
+        )
+        saGroup.add_argument(
+            "-p", "--password", help="the password of the service account (required)", required=True
+        )
+        umGroup = self.subparserManageLdap.add_argument_group(
+            "userMatchGroup", "the user match settings"
+        )
+        umGroup.add_argument(
+            "--userBaseDN", help="the user search base DN (required)", required=True
+        )
+        umGroup.add_argument(
+            "--userSearchFilter",
+            default="(objectClass=Person)",
+            help="the user search filter, default: %(default)s",
+        )
+        umGroup.add_argument(
+            "--loginAttribute",
+            default="mail",
+            choices=["mail", "userPrincipalName"],
+            help="the user login attribute, default: %(default)s",
+        )
+        gmGroup = self.subparserManageLdap.add_argument_group(
+            "groupMatchGroup", "the group match settings"
+        )
+        gmGroup.add_argument(
+            "--groupBaseDN", help="the group search base DN (required)", required=True
+        )
+        gmGroup.add_argument("--groupSearchFilter", help="the group search filter (optional)")
+
     def destroy_backup_args(self):
         """destroy backup args and flags"""
         self.subparserDestroyBackup.add_argument(
@@ -1560,6 +1611,7 @@ class ToolkitParser:
         self.manage_bucket_args()
         self.manage_cluster_args()
         self.manage_cloud_args()
+        self.manage_ldap_args()
 
         self.destroy_backup_args()
         self.destroy_credential_args()
