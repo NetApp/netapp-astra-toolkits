@@ -22,7 +22,11 @@ def main(args, parser, ard):
     if args.objectType == "app" or args.objectType == "application":
         if args.v3:
             astraSDK.k8s.destroyResource(
-                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main("applications", args.app)
         else:
             rc = astraSDK.apps.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(args.app)
@@ -31,7 +35,11 @@ def main(args, parser, ard):
     elif args.objectType == "bucket" or args.objectType == "appVault":
         if args.v3:
             astraSDK.k8s.destroyResource(
-                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main("appvaults", args.bucket)
         else:
             rc = astraSDK.buckets.unmanageBucket(quiet=args.quiet, verbose=args.verbose).main(
@@ -46,9 +54,9 @@ def main(args, parser, ard):
         if args.v3:
             # Ensure we have an AstraConnector CR installed
             if ard.needsattr("connectors"):
-                ard.connectors = astraSDK.k8s.getResources(config_context=args.v3).main(
-                    "astraconnectors", version="v1", group="astra.netapp.io"
-                )
+                ard.connectors = astraSDK.k8s.getResources(
+                    config_context=args.v3, skip_tls_verify=args.skip_tls_verify
+                ).main("astraconnectors", version="v1", group="astra.netapp.io")
             if ard.connectors is None or len(ard.connectors["items"]) == 0:
                 parser.error("AstraConnector operator not found on current Kubernetes context")
             elif len(ard.connectors["items"]) > 1:
@@ -58,7 +66,11 @@ def main(args, parser, ard):
             connector = ard.connectors["items"][0]
             # Destroy the AstraConnector CR and api token secret
             if astraSDK.k8s.destroyResource(
-                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main(
                 "astraconnectors",
                 connector["metadata"]["name"],
@@ -70,6 +82,7 @@ def main(args, parser, ard):
                     dry_run=args.dry_run,
                     verbose=args.verbose,
                     config_context=args.v3,
+                    skip_tls_verify=args.skip_tls_verify,
                 ).main(
                     connector["spec"]["astra"]["tokenRef"],
                     namespace=connector["metadata"]["namespace"],

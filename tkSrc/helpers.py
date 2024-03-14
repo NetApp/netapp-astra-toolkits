@@ -512,11 +512,15 @@ def getOperatorURL(version):
     return f"{base}/download/{version}-main/{filename}"
 
 
-def sameK8sCluster(cluster1, cluster2):
+def sameK8sCluster(cluster1, cluster2, skip_tls_verify=False):
     """Function which determines if cluster1 and cluster2 are the same underlying Kubernetes
     clusters or not. Returns True if metadata.uid of the kube-system NS are the same."""
-    namespaces1 = astraSDK.k8s.getNamespaces(config_context=cluster1).main(systemNS=[])
-    namespaces2 = astraSDK.k8s.getNamespaces(config_context=cluster2).main(systemNS=[])
+    namespaces1 = astraSDK.k8s.getNamespaces(
+        config_context=cluster1, skip_tls_verify=skip_tls_verify
+    ).main(systemNS=[])
+    namespaces2 = astraSDK.k8s.getNamespaces(
+        config_context=cluster2, skip_tls_verify=skip_tls_verify
+    ).main(systemNS=[])
     ks1 = next(n for n in namespaces1["items"] if n["metadata"]["name"] == "kube-system")
     ks2 = next(n for n in namespaces2["items"] if n["metadata"]["name"] == "kube-system")
     if ks1["metadata"]["uid"] == ks2["metadata"]["uid"]:
@@ -524,11 +528,15 @@ def sameK8sCluster(cluster1, cluster2):
     return False
 
 
-def getCommonAppVault(cluster1, cluster2, parser):
+def getCommonAppVault(cluster1, cluster2, parser, skip_tls_verify=False):
     """Function which takes in two cluster contexts, and finds and returns an appVault that's
     common between the two of them, as designated by status.uid"""
-    c1AppVaults = astraSDK.k8s.getResources(config_context=cluster1).main("appvaults")
-    c2AppVaults = astraSDK.k8s.getResources(config_context=cluster2).main("appvaults")
+    c1AppVaults = astraSDK.k8s.getResources(
+        config_context=cluster1, skip_tls_verify=skip_tls_verify
+    ).main("appvaults")
+    c2AppVaults = astraSDK.k8s.getResources(
+        config_context=cluster2, skip_tls_verify=skip_tls_verify
+    ).main("appvaults")
     for c1av in c1AppVaults["items"]:
         for c2av in c2AppVaults["items"]:
             if c1av.get("status") and c1av["status"].get("uid"):
@@ -538,12 +546,16 @@ def getCommonAppVault(cluster1, cluster2, parser):
     parser.error(f"A common appVault was not found between cluster {cluster1} and {cluster2}")
 
 
-def swapAppVaultRef(sourceAppVaultRef, sourceCluster, destCluster, parser):
+def swapAppVaultRef(sourceAppVaultRef, sourceCluster, destCluster, parser, skip_tls_verify=False):
     """Function which takes in the name of a sourceCluster's appVaultRef, and then returns
     the name of the destCluster's same appVaultRef (appVaults can be named differently across
     clusters due to Astra Control auto-appending a unique identifier)."""
-    sourceAppVaults = astraSDK.k8s.getResources(config_context=sourceCluster).main("appvaults")
-    destAppVaults = astraSDK.k8s.getResources(config_context=destCluster).main("appvaults")
+    sourceAppVaults = astraSDK.k8s.getResources(
+        config_context=sourceCluster, skip_tls_verify=skip_tls_verify
+    ).main("appvaults")
+    destAppVaults = astraSDK.k8s.getResources(
+        config_context=destCluster, skip_tls_verify=skip_tls_verify
+    ).main("appvaults")
     try:
         sourceAppVault = next(
             a for a in sourceAppVaults["items"] if a["metadata"]["name"] == sourceAppVaultRef

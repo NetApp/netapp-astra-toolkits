@@ -27,6 +27,7 @@ from tkSrc import helpers
 def doV3Ipr(
     v3,
     dry_run,
+    skip_tls_verify,
     quiet,
     verbose,
     parser,
@@ -38,11 +39,15 @@ def doV3Ipr(
 ):
     if backup:
         if ard.needsattr("backups"):
-            ard.backups = astraSDK.k8s.getResources(config_context=v3).main("backups")
+            ard.backups = astraSDK.k8s.getResources(
+                config_context=v3, skip_tls_verify=skip_tls_verify
+            ).main("backups")
         iprSourceDict = ard.getSingleDict("backups", "metadata.name", backup, parser)
     elif snapshot:
         if ard.needsattr("snapshots"):
-            ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main("snapshots")
+            ard.snapshots = astraSDK.k8s.getResources(
+                config_context=v3, skip_tls_verify=skip_tls_verify
+            ).main("snapshots")
         iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", snapshot, parser)
 
     template = helpers.setupJinja("ipr")
@@ -63,7 +68,11 @@ def doV3Ipr(
             print(yaml.dump(v3_dict).rstrip("\n"))
         else:
             astraSDK.k8s.createResource(
-                quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+                quiet=quiet,
+                dry_run=dry_run,
+                verbose=verbose,
+                config_context=v3,
+                skip_tls_verify=skip_tls_verify,
             ).main(
                 f"{v3_dict['kind'].lower()}s",
                 v3_dict["metadata"]["namespace"],
@@ -89,6 +98,7 @@ def main(args, parser, ard):
         doV3Ipr(
             args.v3,
             args.dry_run,
+            args.skip_tls_verify,
             args.quiet,
             args.verbose,
             parser,

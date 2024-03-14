@@ -26,7 +26,7 @@ RED = "\033[31m"
 ENDC = "\033[0m"
 
 
-def main(argv, verbs, verbPosition, ard, acl, v3):
+def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False):
     """This function builds the argparse choices lists. To build these lists, a variety of external
     calls need to be made. The results of these calls are stored in ard (an instantiation of
     AstraResourceDicts) so the same call doesn't have to be made again later. The choices lists are
@@ -39,21 +39,29 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                 ard.charts = helpers.updateHelm()
                 acl.charts = ard.buildList("charts", "name")
                 if v3:
-                    ard.buckets = astraSDK.k8s.getResources(config_context=v3).main("appvaults")
+                    ard.buckets = astraSDK.k8s.getResources(
+                        config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                    ).main("appvaults")
                     acl.buckets = ard.buildList("buckets", "metadata.name")
             elif argv[verbPosition + 1] == "acp":
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=v3).main(
-                    namespace="trident"
-                )
+                ard.credentials = astraSDK.k8s.getSecrets(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main(namespace="trident")
                 acl.credentials = ard.buildList("credentials", "metadata.name")
 
     elif verbs["clone"] or verbs["restore"]:
         if v3:
-            ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
+            ard.apps = astraSDK.k8s.getResources(
+                config_context=v3, skip_tls_verify=v3_skip_tls_verify
+            ).main("applications")
             acl.apps = ard.buildList("apps", "metadata.name")
             if verbs["restore"]:
-                ard.backups = astraSDK.k8s.getResources(config_context=v3).main("backups")
-                ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main("snapshots")
+                ard.backups = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("backups")
+                ard.snapshots = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("snapshots")
                 acl.dataProtections = ard.buildList("backups", "metadata.name") + ard.buildList(
                     "snapshots", "metadata.name"
                 )
@@ -70,12 +78,14 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                         is not None
                     ):
                         ard.storageClasses = astraSDK.k8s.getStorageClasses(
-                            config_context=arg
+                            config_context=arg, skip_tls_verify=v3_skip_tls_verify
                         ).main()
                         acl.storageClasses = ard.buildList("storageClasses", "metadata.name")
                         break
             else:
-                ard.storageClasses = astraSDK.k8s.getStorageClasses(config_context=v3).main()
+                ard.storageClasses = astraSDK.k8s.getStorageClasses(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main()
                 acl.storageClasses = ard.buildList("storageClasses", "metadata.name")
         else:
             ard.apps = astraSDK.apps.getApps().main()
@@ -101,11 +111,17 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
 
     elif verbs["ipr"]:
         if v3:
-            ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
+            ard.apps = astraSDK.k8s.getResources(
+                config_context=v3, skip_tls_verify=v3_skip_tls_verify
+            ).main("applications")
             acl.apps = ard.buildList("apps", "metadata.name")
             if len(argv) - verbPosition >= 2:
-                ard.backups = astraSDK.k8s.getResources(config_context=v3).main("backups")
-                ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main("snapshots")
+                ard.backups = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("backups")
+                ard.snapshots = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("snapshots")
                 for a in argv[verbPosition + 1 :]:
                     acl.backups += ard.buildList(
                         "backups", "metadata.name", "spec.applicationRef", a
@@ -134,14 +150,18 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
             or argv[verbPosition + 1] == "snapshot"
         ):
             if v3:
-                ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
+                ard.apps = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("applications")
                 acl.apps = ard.buildList("apps", "metadata.name")
             else:
                 ard.apps = astraSDK.apps.getApps().main()
                 acl.apps = ard.buildList("apps", "id")
             if argv[verbPosition + 1] == "backup" or argv[verbPosition + 1] == "snapshot":
                 if v3:
-                    ard.buckets = astraSDK.k8s.getResources(config_context=v3).main("appvaults")
+                    ard.buckets = astraSDK.k8s.getResources(
+                        config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                    ).main("appvaults")
                     acl.buckets = ard.buildList("buckets", "metadata.name")
                 else:
                     ard.buckets = astraSDK.buckets.getBuckets(quiet=True).main()
@@ -151,7 +171,9 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                     for a in argv[verbPosition + 1 :]:
                         if a in acl.apps:
                             if v3:
-                                ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main(
+                                ard.snapshots = astraSDK.k8s.getResources(
+                                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                                ).main(
                                     "snapshots",
                                     filters=[{"keyFilter": "spec.applicationRef", "valFilter": a}],
                                 )
@@ -165,7 +187,9 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                     acl.scripts = ard.buildList("scripts", "id")
             if argv[verbPosition + 1] == "protection" or argv[verbPosition + 1] == "schedule":
                 if v3:
-                    ard.buckets = astraSDK.k8s.getResources(config_context=v3).main("appvaults")
+                    ard.buckets = astraSDK.k8s.getResources(
+                        config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                    ).main("appvaults")
                     acl.buckets = ard.buildList("buckets", "metadata.name")
             if argv[verbPosition + 1] == "replication":
                 ard.destClusters = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
@@ -211,7 +235,9 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
     elif (verbs["manage"] or verbs["define"]) and len(argv) - verbPosition >= 2:
         if argv[verbPosition + 1] == "app" or argv[verbPosition + 1] == "application":
             if v3:
-                ard.namespaces = astraSDK.k8s.getNamespaces(config_context=v3).main()
+                ard.namespaces = astraSDK.k8s.getNamespaces(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main()
                 acl.namespaces = ard.buildList("namespaces", "metadata.name")
             else:
                 ard.namespaces = astraSDK.namespaces.getNamespaces().main()
@@ -220,7 +246,9 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                 acl.clusters = list(set(acl.clusters))
         elif argv[verbPosition + 1] == "bucket" or argv[verbPosition + 1] == "appVault":
             if v3:
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=v3).main()
+                ard.credentials = astraSDK.k8s.getSecrets(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main()
                 acl.credentials = ard.buildList("credentials", "metadata.name")
                 for c in argv[verbPosition + 1 :]:
                     if c in acl.credentials:
@@ -263,7 +291,9 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                     rc = astraSDK.clouds.manageCloud(quiet=True).main("private", "private")
                     if rc:
                         acl.clouds.append(rc["id"])
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=v3).main()
+                ard.credentials = astraSDK.k8s.getSecrets(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main()
                 acl.credentials = ard.buildList("credentials", "metadata.name")
             else:
                 ard.clusters = astraSDK.clusters.getClusters().main()
@@ -280,9 +310,13 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
     elif verbs["destroy"] and len(argv) - verbPosition >= 2:
         if argv[verbPosition + 1] == "backup" and len(argv) - verbPosition >= 3:
             if v3:
-                ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
+                ard.apps = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("applications")
                 acl.apps = ard.buildList("apps", "metadata.name")
-                ard.backups = astraSDK.k8s.getResources(config_context=v3).main("backups")
+                ard.backups = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("backups")
                 acl.backups = ard.buildList(
                     "backups",
                     "metadata.name",
@@ -303,7 +337,9 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
             argv
         ) - verbPosition >= 3:
             if v3:
-                ard.credentials = astraSDK.k8s.getSecrets(config_context=v3).main()
+                ard.credentials = astraSDK.k8s.getSecrets(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main()
                 acl.credentials = ard.buildList("credentials", "metadata.name")
             else:
                 ard.credentials = astraSDK.credentials.getCredentials().main()
@@ -312,9 +348,13 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
             argv
         ) - verbPosition >= 3:
             if v3:
-                ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
+                ard.apps = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("applications")
                 acl.apps = ard.buildList("apps", "metadata.name")
-                ard.hooks = astraSDK.k8s.getResources(config_context=v3).main("exechooks")
+                ard.hooks = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("exechooks")
                 acl.hooks = ard.buildList(
                     "hooks",
                     "metadata.name",
@@ -328,9 +368,13 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                 acl.hooks = ard.buildList("hooks", "id", fKey="appID", fVal=argv[verbPosition + 2])
         elif argv[verbPosition + 1] == "protection" and len(argv) - verbPosition >= 3:
             if v3:
-                ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
+                ard.apps = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("applications")
                 acl.apps = ard.buildList("apps", "metadata.name")
-                ard.protections = astraSDK.k8s.getResources(config_context=v3).main("schedules")
+                ard.protections = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("schedules")
                 acl.protections = ard.buildList(
                     "protections",
                     "metadata.name",
@@ -353,9 +397,13 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
             acl.replications = ard.buildList("replications", "id")
         elif argv[verbPosition + 1] == "snapshot" and len(argv) - verbPosition >= 3:
             if v3:
-                ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
+                ard.apps = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("applications")
                 acl.apps = ard.buildList("apps", "metadata.name")
-                ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main("snapshots")
+                ard.snapshots = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("snapshots")
                 acl.snapshots = ard.buildList(
                     "snapshots",
                     "metadata.name",
@@ -379,23 +427,27 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
     elif verbs["unmanage"] and len(argv) - verbPosition >= 2:
         if argv[verbPosition + 1] == "app" or argv[verbPosition + 1] == "application":
             if v3:
-                ard.apps = astraSDK.k8s.getResources(config_context=v3).main("applications")
+                ard.apps = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("applications")
                 acl.apps = ard.buildList("apps", "metadata.name")
             else:
                 ard.apps = astraSDK.apps.getApps().main()
                 acl.apps = ard.buildList("apps", "id")
         elif argv[verbPosition + 1] == "bucket" or argv[verbPosition + 1] == "appVault":
             if v3:
-                ard.buckets = astraSDK.k8s.getResources(config_context=v3).main("appvaults")
+                ard.buckets = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("appvaults")
                 acl.buckets = ard.buildList("buckets", "metadata.name")
             else:
                 ard.buckets = astraSDK.buckets.getBuckets().main()
                 acl.buckets = ard.buildList("buckets", "id")
         elif argv[verbPosition + 1] == "cluster":
             if v3:
-                ard.connectors = astraSDK.k8s.getResources(config_context=v3).main(
-                    "astraconnectors", version="v1", group="astra.netapp.io"
-                )
+                ard.connectors = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("astraconnectors", version="v1", group="astra.netapp.io")
                 acl.clusters = ard.buildList("connectors", "spec.astra.clusterId") + ard.buildList(
                     "connectors", "spec.astra.clusterName"
                 )

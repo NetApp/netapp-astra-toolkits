@@ -219,12 +219,12 @@ def doClone(
         raise SystemExit(f"Submitting {verb} failed.")
 
 
-def waitForDpCompletion(dp_resp, cluster):
+def waitForDpCompletion(dp_resp, cluster, skip_tls_verify):
     """Given a data protection creation response, wait for the 'status.state' field
     to be 'Completed', then return that dict"""
     dp_name = dp_resp["metadata"]["name"]
     dp_plural = f"{dp_resp['kind'].lower()}s"
-    get_K8s_obj = astraSDK.k8s.getResources(config_context=cluster)
+    get_K8s_obj = astraSDK.k8s.getResources(config_context=cluster, skip_tls_verify=skip_tls_verify)
     dp = get_K8s_obj.main(
         dp_plural, filters=[{"keyFilter": "metadata.name", "valFilter": dp_name}]
     )["items"][0]
@@ -258,6 +258,7 @@ def waitForDpCompletion(dp_resp, cluster):
 def doV3Clone(
     v3,
     dry_run,
+    skip_tls_verify,
     quiet,
     verbose,
     parser,
@@ -273,13 +274,14 @@ def doV3Clone(
     """Performs a live clone by first creating either a snapshot (same-cluster) or backup (cross-
     cluster) of the sourcApp, and then it calls doV3Restore for the remaining restore operation,
     which consists of a BackupRestore or SnapshotRestore and an Application definition."""
-    bucketDict = helpers.getCommonAppVault(v3, cluster, parser)
+    bucketDict = helpers.getCommonAppVault(v3, cluster, parser, skip_tls_verify=skip_tls_verify)
     if dry_run == "client":
         print(f"# This must be applied on the source cluster specified by '{v3}'")
     if crossCluster:
         restoreSourceDict = create.createV3Backup(
             v3,
             dry_run,
+            skip_tls_verify,
             quiet,
             verbose,
             None,
@@ -291,6 +293,7 @@ def doV3Clone(
         restoreSourceDict = create.createV3Snapshot(
             v3,
             dry_run,
+            skip_tls_verify,
             quiet,
             verbose,
             None,
@@ -307,10 +310,11 @@ def doV3Clone(
             + f"{'backup' if crossCluster else 'snapshot'}.status.appArchivePath"
         )
     else:
-        restoreSourceDict = waitForDpCompletion(restoreSourceDict, v3)
+        restoreSourceDict = waitForDpCompletion(restoreSourceDict, v3, skip_tls_verify)
     doV3Restore(
         v3,
         dry_run,
+        skip_tls_verify,
         quiet,
         verbose,
         parser,
@@ -328,6 +332,7 @@ def doV3Clone(
 def setupV3Restore(
     v3,
     dry_run,
+    skip_tls_verify,
     quiet,
     verbose,
     parser,
@@ -347,9 +352,13 @@ def setupV3Restore(
     backup), then calls doV3Restore to create the BackupRestore or SnapshotRestore and
     Application definitions."""
     if ard.needsattr("backups"):
-        ard.backups = astraSDK.k8s.getResources(config_context=v3).main("backups")
+        ard.backups = astraSDK.k8s.getResources(
+            config_context=v3, skip_tls_verify=skip_tls_verify
+        ).main("backups")
     if ard.needsattr("snapshots"):
-        ard.snapshots = astraSDK.k8s.getResources(config_context=v3).main("snapshots")
+        ard.snapshots = astraSDK.k8s.getResources(
+            config_context=v3, skip_tls_verify=skip_tls_verify
+        ).main("snapshots")
     # For restore, we need to figure out if a backup or a snapshot source was provided
     if restoreSource in ard.buildList("backups", "metadata.name"):
         restoreSourceDict = ard.getSingleDict("backups", "metadata.name", restoreSource, parser)
@@ -362,6 +371,7 @@ def setupV3Restore(
             restoreSourceDict = create.createV3Backup(
                 v3,
                 dry_run,
+                skip_tls_verify,
                 quiet,
                 verbose,
                 None,
@@ -379,12 +389,13 @@ def setupV3Restore(
                 if dry_run == "client":
                     print("---")
             else:
-                restoreSourceDict = waitForDpCompletion(restoreSourceDict, v3)
+                restoreSourceDict = waitForDpCompletion(restoreSourceDict, v3, skip_tls_verify)
     else:
         parser.error(f"the restoreSource '{restoreSource}' is not a valid backup or snapshot")
     doV3Restore(
         v3,
         dry_run,
+        skip_tls_verify,
         quiet,
         verbose,
         parser,
@@ -404,6 +415,7 @@ def setupV3Restore(
 def doV3Restore(
     v3,
     dry_run,
+    skip_tls_verify,
     quiet,
     verbose,
     parser,
@@ -435,7 +447,11 @@ def doV3Restore(
                 appArchivePath=restoreSourceDict["status"]["appArchivePath"],
                 appVaultRef=(
                     helpers.swapAppVaultRef(
-                        restoreSourceDict["spec"]["appVaultRef"], v3, cluster, parser
+                        restoreSourceDict["spec"]["appVaultRef"],
+                        v3,
+                        cluster,
+                        parser,
+                        skip_tls_verify=skip_tls_verify,
                     )
                     if crossCluster
                     else restoreSourceDict["spec"]["appVaultRef"]
@@ -459,7 +475,11 @@ def doV3Restore(
         else:
             for v3_dict in v3_gen:
                 astraSDK.k8s.createResource(
-                    quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=cluster
+                    quiet=quiet,
+                    dry_run=dry_run,
+                    verbose=verbose,
+                    config_context=cluster,
+                    skip_tls_verify=skip_tls_verify,
                 ).main(
                     f"{v3_dict['kind'].lower()}s",
                     v3_dict["metadata"]["namespace"],
@@ -491,11 +511,14 @@ def main(args, parser, ard):
             args.newNamespace = args.appName
         # Handle -f/--fast/plaidMode cases
         if ard.needsattr("apps"):
-            ard.apps = astraSDK.k8s.getResources(config_context=args.v3).main("applications")
+            ard.apps = astraSDK.k8s.getResources(
+                config_context=args.v3, skip_tls_verify=args.skip_tls_verify
+            ).main("applications")
         if args.subcommand == "clone":
             doV3Clone(
                 args.v3,
                 args.dry_run,
+                args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
                 parser,
@@ -503,7 +526,9 @@ def main(args, parser, ard):
                 args.sourceApp,
                 args.appName,
                 args.cluster,
-                not helpers.sameK8sCluster(args.v3, args.cluster),
+                not helpers.sameK8sCluster(
+                    args.v3, args.cluster, skip_tls_verify=args.skip_tls_verify
+                ),
                 newStorageClass=args.newStorageClass,
                 newNamespace=args.newNamespace,
                 multiNsMapping=args.multiNsMapping,
@@ -512,6 +537,7 @@ def main(args, parser, ard):
             setupV3Restore(
                 args.v3,
                 args.dry_run,
+                args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
                 parser,
@@ -519,7 +545,9 @@ def main(args, parser, ard):
                 args.restoreSource,
                 args.appName,
                 args.cluster,
-                not helpers.sameK8sCluster(args.v3, args.cluster),
+                not helpers.sameK8sCluster(
+                    args.v3, args.cluster, skip_tls_verify=args.skip_tls_verify
+                ),
                 newStorageClass=args.newStorageClass,
                 newNamespace=args.newNamespace,
                 multiNsMapping=args.multiNsMapping,

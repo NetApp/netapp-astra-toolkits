@@ -25,6 +25,7 @@ from tkSrc import create, helpers
 def manageV3App(
     v3,
     dry_run,
+    skip_tls_verify,
     quiet,
     verbose,
     appName,
@@ -52,7 +53,11 @@ def manageV3App(
         print(yaml.dump(v3_dict).rstrip("\n"))
     else:
         astraSDK.k8s.createResource(
-            quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+            quiet=quiet,
+            dry_run=dry_run,
+            verbose=verbose,
+            config_context=v3,
+            skip_tls_verify=skip_tls_verify,
         ).main(
             f"{v3_dict['kind'].lower()}s",
             v3_dict["metadata"]["namespace"],
@@ -82,6 +87,7 @@ def manageBucket(provider, bucketName, storageAccount, serverURL, credential, qu
 def manageV3Bucket(
     v3,
     dry_run,
+    skip_tls_verify,
     quiet,
     verbose,
     bucketName,
@@ -96,7 +102,6 @@ def manageV3Bucket(
 ):
     """Manage a bucket via a Kubernetes custom resource"""
     # Create providerCredentials based on provider input
-    # TODO: handle AWS
     if provider == "azure":
         keyNameList = ["accountKey"]
     elif provider == "gcp":
@@ -126,6 +131,7 @@ def manageV3Bucket(
             dry_run=dry_run,
             verbose=verbose,
             config_context=v3,
+            skip_tls_verify=skip_tls_verify,
         ).main(
             f"{v3_dict['kind'].lower()}s",
             v3_dict["metadata"]["namespace"],
@@ -236,6 +242,7 @@ def main(args, parser, ard):
             manageV3App(
                 args.v3,
                 args.dry_run,
+                args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
                 args.appName,
@@ -259,7 +266,9 @@ def main(args, parser, ard):
     elif args.objectType == "bucket" or args.objectType == "appVault":
         validateBucketArgs(args, parser)
         if ard.needsattr("credentials"):
-            ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main()
+            ard.credentials = astraSDK.k8s.getSecrets(
+                config_context=args.v3, skip_tls_verify=args.skip_tls_verify
+            ).main()
         if args.v3:
             if args.accessKey or (args.json and args.provider == "aws"):
                 if args.json and args.provider == "aws":
@@ -267,6 +276,7 @@ def main(args, parser, ard):
                 crc = create.createV3S3Credential(
                     args.v3,
                     args.dry_run,
+                    args.skip_tls_verify,
                     args.quiet,
                     args.verbose,
                     args.accessKey,
@@ -277,6 +287,7 @@ def main(args, parser, ard):
                 crc = create.createV3CloudCredential(
                     args.v3,
                     args.dry_run,
+                    args.skip_tls_verify,
                     args.quiet,
                     args.verbose,
                     args.json,
@@ -291,6 +302,7 @@ def main(args, parser, ard):
             manageV3Bucket(
                 args.v3,
                 args.dry_run,
+                args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
                 args.bucketName,
@@ -345,7 +357,11 @@ def main(args, parser, ard):
             )
             # Create the astra API token secret
             apiToken = astraSDK.k8s.createAstraApiToken(
-                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main()
             # Handle the registry secret
             if not args.regCred:
@@ -354,17 +370,24 @@ def main(args, parser, ard):
                     dry_run=args.dry_run,
                     verbose=args.verbose,
                     config_context=args.v3,
+                    skip_tls_verify=args.skip_tls_verify,
                 ).main(registry=args.registry, namespace="astra-connector")
                 if not cred:
                     raise SystemExit("astraSDK.k8s.createRegCred() failed")
                 args.regCred = cred["metadata"]["name"]
             else:
                 if ard.needsattr("credentials"):
-                    ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main()
+                    ard.credentials = astraSDK.k8s.getSecrets(
+                        config_context=args.v3, skip_tls_verify=args.skip_tls_verify
+                    ).main()
                 cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
             # Create the AstraConnector CR
             connector = astraSDK.k8s.createAstraConnector(
-                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main(
                 args.clusterName,
                 args.cloudID,

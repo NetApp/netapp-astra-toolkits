@@ -78,6 +78,14 @@ class ToolkitParser:
             help="client: output YAML to standard out; server: submit request without persisting "
             "the resource",
         )
+        v3Group.add_argument(
+            "--insecure-skip-tls-verify",
+            dest="skip_tls_verify",
+            default=False,
+            action="store_true",
+            help="If specified, the server's certificate will not be checked for validity (this "
+                 "will make your HTTPS connections insecure)",
+        )
         self.acl = acl
         self.plaidMode = plaidMode
         self.v3 = v3

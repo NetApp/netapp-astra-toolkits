@@ -22,7 +22,11 @@ def main(args, parser, ard):
     if args.objectType == "backup":
         if args.v3:
             rc = astraSDK.k8s.destroyResource(
-                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main("backups", args.backup)
         else:
             rc = astraSDK.backups.destroyBackup(quiet=args.quiet, verbose=args.verbose).main(
@@ -44,7 +48,11 @@ def main(args, parser, ard):
     elif args.objectType == "credential" or args.objectType == "secret":
         if args.v3:
             astraSDK.k8s.destroySecret(
-                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main(args.credential)
         else:
             rc = astraSDK.credentials.destroyCredential(
@@ -57,7 +65,11 @@ def main(args, parser, ard):
     elif args.objectType == "hook" or args.objectType == "exechook":
         if args.v3:
             rc = astraSDK.k8s.destroyResource(
-                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main("exechooks", args.hook)
         else:
             rc = astraSDK.hooks.destroyHook(quiet=args.quiet, verbose=args.verbose).main(
@@ -70,7 +82,11 @@ def main(args, parser, ard):
     elif args.objectType == "protection" or args.objectType == "schedule":
         if args.v3:
             rc = astraSDK.k8s.destroyResource(
-                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main("schedules", args.protection)
         else:
             rc = astraSDK.protections.destroyProtectiontionpolicy(
@@ -122,7 +138,11 @@ def main(args, parser, ard):
     elif args.objectType == "snapshot":
         if args.v3:
             rc = astraSDK.k8s.destroyResource(
-                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main("snapshots", args.snapshot)
         else:
             rc = astraSDK.snapshots.destroySnapshot(quiet=args.quiet, verbose=args.verbose).main(

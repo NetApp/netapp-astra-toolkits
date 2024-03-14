@@ -89,7 +89,7 @@ def createCloudCredential(quiet, verbose, path, name, cloudType, parser):
     raise SystemExit("astraSDK.credentials.createCredential() failed")
 
 
-def createV3CloudCredential(v3, dry_run, quiet, verbose, path, name, parser):
+def createV3CloudCredential(v3, dry_run, skip_tls_verify, quiet, verbose, path, name, parser):
     """Create a public cloud (AWS/Azure/GCP) credential via a Kubernetes secret"""
     credDict = helpers.openJson(path, parser)
     encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
@@ -107,7 +107,11 @@ def createV3CloudCredential(v3, dry_run, quiet, verbose, path, name, parser):
         print("---")
         return secret_dict
     return astraSDK.k8s.createGenericSecret(
-        quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+        quiet=quiet,
+        dry_run=dry_run,
+        verbose=verbose,
+        config_context=v3,
+        skip_tls_verify=skip_tls_verify,
     ).main(f"{name}-", data, generateName=True, namespace=namespace)
 
 
@@ -124,7 +128,9 @@ def createS3Credential(quiet, verbose, accessKey, accessSecret, name):
         raise SystemExit("astraSDK.credentials.createCredential() failed")
 
 
-def createV3S3Credential(v3, dry_run, quiet, verbose, accessKey, accessSecret, name):
+def createV3S3Credential(
+    v3, dry_run, skip_tls_verify, quiet, verbose, accessKey, accessSecret, name
+):
     """Create a public cloud (AWS/Azure/GCP) credential via a Kubernetes secret"""
     encodedKey = base64.b64encode(accessKey.encode("utf-8")).decode("utf-8")
     encodedSecret = base64.b64encode(accessSecret.encode("utf-8")).decode("utf-8")
@@ -142,13 +148,18 @@ def createV3S3Credential(v3, dry_run, quiet, verbose, accessKey, accessSecret, n
         print("---")
         return secret_dict
     return astraSDK.k8s.createGenericSecret(
-        quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+        quiet=quiet,
+        dry_run=dry_run,
+        verbose=verbose,
+        config_context=v3,
+        skip_tls_verify=skip_tls_verify,
     ).main(f"{name}-", data, generateName=True, namespace=namespace)
 
 
 def createV3Backup(
     v3,
     dry_run,
+    skip_tls_verify,
     quiet,
     verbose,
     name,
@@ -175,7 +186,11 @@ def createV3Backup(
         return v3_dict
     else:
         return astraSDK.k8s.createResource(
-            quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+            quiet=quiet,
+            dry_run=dry_run,
+            verbose=verbose,
+            config_context=v3,
+            skip_tls_verify=skip_tls_verify,
         ).main(
             f"{v3_dict['kind'].lower()}s",
             v3_dict["metadata"]["namespace"],
@@ -188,6 +203,7 @@ def createV3Backup(
 def createV3Hook(
     v3,
     dry_run,
+    skip_tls_verify,
     quiet,
     verbose,
     parser,
@@ -229,7 +245,11 @@ def createV3Hook(
         print(yaml.dump(v3_dict).rstrip("\n"))
     else:
         astraSDK.k8s.createResource(
-            quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+            quiet=quiet,
+            dry_run=dry_run,
+            verbose=verbose,
+            config_context=v3,
+            skip_tls_verify=skip_tls_verify,
         ).main(
             f"{v3_dict['kind'].lower()}s",
             v3_dict["metadata"]["namespace"],
@@ -242,6 +262,7 @@ def createV3Hook(
 def createV3Protection(
     v3,
     dry_run,
+    skip_tls_verify,
     quiet,
     verbose,
     app,
@@ -274,7 +295,11 @@ def createV3Protection(
         print(yaml.dump(v3_dict).rstrip("\n"))
     else:
         astraSDK.k8s.createResource(
-            quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+            quiet=quiet,
+            dry_run=dry_run,
+            verbose=verbose,
+            config_context=v3,
+            skip_tls_verify=skip_tls_verify,
         ).main(
             f"{v3_dict['kind'].lower()}s",
             v3_dict["metadata"]["namespace"],
@@ -287,6 +312,7 @@ def createV3Protection(
 def createV3Snapshot(
     v3,
     dry_run,
+    skip_tls_verify,
     quiet,
     verbose,
     name,
@@ -315,7 +341,11 @@ def createV3Snapshot(
         return v3_dict
     else:
         return astraSDK.k8s.createResource(
-            quiet=quiet, dry_run=dry_run, verbose=verbose, config_context=v3
+            quiet=quiet,
+            dry_run=dry_run,
+            verbose=verbose,
+            config_context=v3,
+            skip_tls_verify=skip_tls_verify,
         ).main(
             f"{v3_dict['kind'].lower()}s",
             v3_dict["metadata"]["namespace"],
@@ -329,7 +359,9 @@ def main(args, parser, ard):
     if args.objectType == "backup":
         if args.v3:
             if ard.needsattr("buckets"):
-                ard.buckets = astraSDK.k8s.getResources(config_context=args.v3).main("appvaults")
+                ard.buckets = astraSDK.k8s.getResources(
+                    config_context=args.v3, skip_tls_verify=args.skip_tls_verify
+                ).main("appvaults")
             if args.bucket is None:
                 args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
                     "metadata"
@@ -337,6 +369,7 @@ def main(args, parser, ard):
             createV3Backup(
                 args.v3,
                 args.dry_run,
+                args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
                 args.name,
@@ -386,6 +419,7 @@ def main(args, parser, ard):
             createV3Hook(
                 args.v3,
                 args.dry_run,
+                args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
                 parser,
@@ -449,6 +483,7 @@ def main(args, parser, ard):
             createV3Protection(
                 args.v3,
                 args.dry_run,
+                args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
                 args.app,
@@ -546,7 +581,9 @@ def main(args, parser, ard):
     elif args.objectType == "snapshot":
         if args.v3:
             if ard.needsattr("buckets"):
-                ard.buckets = astraSDK.k8s.getResources(config_context=args.v3).main("appvaults")
+                ard.buckets = astraSDK.k8s.getResources(
+                    config_context=args.v3, skip_tls_verify=args.skip_tls_verify
+                ).main("appvaults")
             if args.bucket is None:
                 args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
                     "metadata"
@@ -554,6 +591,7 @@ def main(args, parser, ard):
             createV3Snapshot(
                 args.v3,
                 args.dry_run,
+                args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
                 args.name,

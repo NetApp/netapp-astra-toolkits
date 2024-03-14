@@ -28,7 +28,17 @@ from tkSrc import create, helpers, manage
 
 
 def deployHelm(
-    chart, appName, namespace, setValues, fileValues, bucket, verbose, quiet, v3=False, dry_run=None
+    chart,
+    appName,
+    namespace,
+    setValues,
+    fileValues,
+    bucket,
+    verbose,
+    quiet,
+    v3=False,
+    dry_run=None,
+    skip_tls_verify=False,
 ):
     """Deploy a helm chart <chart>, naming the app <appName> into <namespace>"""
     if v3:
@@ -44,7 +54,9 @@ def deployHelm(
 
     setStr = helpers.createHelmStr("set", setValues)
     valueStr = helpers.createHelmStr("values", fileValues)
-    cluster_namespaces = astraSDK.k8s.getNamespaces(config_context=v3).main(systemNS=[])
+    cluster_namespaces = astraSDK.k8s.getNamespaces(
+        config_context=v3, skip_tls_verify=skip_tls_verify
+    ).main(systemNS=[])
     if namespace in [n["metadata"]["name"] for n in cluster_namespaces["items"]]:
         raise SystemExit(f"Namespace {namespace} already exists!")
 
@@ -56,7 +68,7 @@ def deployHelm(
     if v3:
         if dry_run == "client":
             print("---")
-        manage.manageV3App(v3, dry_run, quiet, verbose, appName, namespace)
+        manage.manageV3App(v3, dry_run, skip_tls_verify, quiet, verbose, appName, namespace)
         backupRetention = "1"
         snapshotRetention = "1"
         minute = "0"
@@ -72,6 +84,7 @@ def deployHelm(
             create.createV3Protection(
                 v3,
                 dry_run,
+                skip_tls_verify,
                 quiet,
                 verbose,
                 appName,
@@ -173,7 +186,10 @@ def main(args, parser, ard):
         if args.v3:
             # Ensure the trident orchestrator is already running
             torc = astraSDK.k8s.getClusterResources(
-                quiet=args.quiet, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main("tridentorchestrators")
             if torc is None or len(torc["items"]) == 0:
                 parser.error("trident operator not found on current Kubernetes context")
@@ -186,15 +202,16 @@ def main(args, parser, ard):
                     dry_run=args.dry_run,
                     verbose=args.verbose,
                     config_context=args.v3,
+                    skip_tls_verify=args.skip_tls_verify,
                 ).main(registry=args.registry)
                 if not cred:
                     raise SystemExit("astraSDK.k8s.createRegCred() failed")
                 args.regCred = cred["metadata"]["name"]
             else:
                 if ard.needsattr("credentials"):
-                    ard.credentials = astraSDK.k8s.getSecrets(config_context=args.v3).main(
-                        namespace="trident"
-                    )
+                    ard.credentials = astraSDK.k8s.getSecrets(
+                        config_context=args.v3, skip_tls_verify=args.skip_tls_verify
+                    ).main(namespace="trident")
                 cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
             # Handle default registry
             if not args.registry:
@@ -219,7 +236,11 @@ def main(args, parser, ard):
             torc_spec["spec"]["imagePullSecrets"] = [args.regCred]
             # Make the update
             torc_update = astraSDK.k8s.updateClusterResource(
-                quiet=args.quiet, dry_run=args.dry_run, verbose=args.verbose, config_context=args.v3
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
             ).main("tridentorchestrators", torc_name, torc_spec)
             if torc_update:
                 print(f"tridentorchestrator.trident.netapp.io/{torc_name} edited")
@@ -242,4 +263,5 @@ def main(args, parser, ard):
             args.quiet,
             v3=args.v3,
             dry_run=args.dry_run,
+            skip_tls_verify=args.skip_tls_verify,
         )

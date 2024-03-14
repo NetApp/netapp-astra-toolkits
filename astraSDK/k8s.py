@@ -29,7 +29,9 @@ from .common import KubeCommon, SDKCommon
 class getResources(KubeCommon):
     """Get all namespace scoped resources of a specific CRD"""
 
-    def __init__(self, quiet=True, output="json", verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, output="json", verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         output: table: pretty print the data
                 json: (default) output in JSON
@@ -38,12 +40,15 @@ class getResources(KubeCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.output = output
         self.verbose = verbose
+        self.skip_tls_verify = skip_tls_verify
         super().__init__(config_context=config_context)
         self.api_client.configuration.debug = self.verbose
+        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
 
     def main(
         self,
@@ -106,6 +111,7 @@ class getResources(KubeCommon):
                 tablefmt="grid",
             )
         if verbose:
+            print(f"verify_ssl: {self.api_client.configuration.verify_ssl}")
             sys.stdout = sys.__stdout__
             self.verbose_log.print()
         if not quiet:
@@ -268,7 +274,9 @@ class getResources(KubeCommon):
 class getClusterResources(KubeCommon):
     """Get all cluster scoped resources of a specific CRD"""
 
-    def __init__(self, quiet=True, output="json", verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, output="json", verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
                 yaml: output in yaml
@@ -276,12 +284,15 @@ class getClusterResources(KubeCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.output = output
         self.verbose = verbose
+        self.skip_tls_verify = skip_tls_verify
         super().__init__(config_context=config_context)
         self.api_client.configuration.debug = self.verbose
+        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
 
     def main(
         self,
@@ -311,6 +322,7 @@ class getClusterResources(KubeCommon):
                 resp = yaml.dump(resp)
 
             if self.verbose:
+                print(f"verify_ssl: {self.api_client.configuration.verify_ssl}")
                 sys.stdout = sys.__stdout__
                 verbose_log.print()
             if not self.quiet:
@@ -327,7 +339,9 @@ class getClusterResources(KubeCommon):
 class createResource(KubeCommon):
     """Creates a cluster scoped Custom Resource"""
 
-    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -335,12 +349,15 @@ class createResource(KubeCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
+        self.skip_tls_verify = skip_tls_verify
         super().__init__(config_context=config_context)
         self.api_client.configuration.debug = self.verbose
+        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
 
     def main(
         self,
@@ -365,6 +382,7 @@ class createResource(KubeCommon):
             )
 
             if self.verbose:
+                print(f"verify_ssl: {self.api_client.configuration.verify_ssl}")
                 sys.stdout = sys.__stdout__
                 verbose_log.print()
             if not self.quiet:
@@ -381,7 +399,9 @@ class createResource(KubeCommon):
 class destroyResource(KubeCommon):
     """Destroys a cluster scoped Custom Resource"""
 
-    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -389,12 +409,15 @@ class destroyResource(KubeCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
+        self.skip_tls_verify = skip_tls_verify
         super().__init__(config_context=config_context)
         self.api_client.configuration.debug = self.verbose
+        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
 
     def main(
         self,
@@ -419,6 +442,7 @@ class destroyResource(KubeCommon):
             )
 
             if self.verbose:
+                print(f"verify_ssl: {self.api_client.configuration.verify_ssl}")
                 sys.stdout = sys.__stdout__
                 verbose_log.print()
             if not self.quiet:
@@ -433,7 +457,9 @@ class destroyResource(KubeCommon):
 
 
 class updateClusterResource(KubeCommon):
-    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -441,12 +467,15 @@ class updateClusterResource(KubeCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
+        self.skip_tls_verify = skip_tls_verify
         super().__init__(config_context=config_context)
         self.api_client.configuration.debug = self.verbose
+        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
 
     def main(
         self,
@@ -466,6 +495,7 @@ class updateClusterResource(KubeCommon):
             )
 
             if self.verbose:
+                print(f"verify_ssl: {self.api_client.configuration.verify_ssl}")
                 sys.stdout = sys.__stdout__
                 verbose_log.print()
             if not self.quiet:
@@ -480,7 +510,9 @@ class updateClusterResource(KubeCommon):
 
 
 class getNamespaces(KubeCommon):
-    def __init__(self, quiet=True, output="json", verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, output="json", verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
                 yaml: output in yaml
@@ -488,12 +520,15 @@ class getNamespaces(KubeCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.output = output
         self.verbose = verbose
+        self.skip_tls_verify = skip_tls_verify
         super().__init__(config_context=config_context)
         self.api_client.configuration.debug = self.verbose
+        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
 
     def main(self, systemNS=None, nameFilter=None, unassociated=False, minuteFilter=False):
         """Default behavior (systemNS=None) is to remove typical system namespaces from the
@@ -552,6 +587,7 @@ class getNamespaces(KubeCommon):
                 )
 
             if self.verbose:
+                print(f"verify_ssl: {self.api_client.configuration.verify_ssl}")
                 sys.stdout = sys.__stdout__
                 verbose_log.print()
             if not self.quiet:
@@ -566,7 +602,9 @@ class getNamespaces(KubeCommon):
 class getSecrets(KubeCommon):
     """Gets all kubernetes secrets in a specific namespace"""
 
-    def __init__(self, quiet=True, output="json", verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, output="json", verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         output: table: pretty print the data
                 json: (default) output in JSON
@@ -575,12 +613,15 @@ class getSecrets(KubeCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.output = output
         self.verbose = verbose
+        self.skip_tls_verify = skip_tls_verify
         super().__init__(config_context=config_context)
         self.api_client.configuration.debug = self.verbose
+        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
 
     def main(self, namespace="astra-connector"):
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
@@ -601,6 +642,7 @@ class getSecrets(KubeCommon):
                 )
 
             if self.verbose:
+                print(f"verify_ssl: {self.api_client.configuration.verify_ssl}")
                 sys.stdout = sys.__stdout__
                 verbose_log.print()
             if not self.quiet:
@@ -615,7 +657,9 @@ class getSecrets(KubeCommon):
 class destroySecret(KubeCommon):
     """Destroys a kubernetes secret in a specific namespace"""
 
-    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -623,12 +667,15 @@ class destroySecret(KubeCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
+        self.skip_tls_verify = skip_tls_verify
         super().__init__(config_context=config_context)
         self.api_client.configuration.debug = self.verbose
+        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
 
     def main(self, name, namespace="astra-connector"):
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
@@ -643,6 +690,7 @@ class destroySecret(KubeCommon):
             ).to_dict()
 
             if self.verbose:
+                print(f"verify_ssl: {self.api_client.configuration.verify_ssl}")
                 sys.stdout = sys.__stdout__
                 verbose_log.print()
             if not self.quiet:
@@ -655,7 +703,9 @@ class destroySecret(KubeCommon):
 
 
 class getStorageClasses(KubeCommon):
-    def __init__(self, quiet=True, output="json", verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, output="json", verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         output: json: (default) output in JSON
                 yaml: output in yaml
@@ -663,12 +713,15 @@ class getStorageClasses(KubeCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.output = output
         self.verbose = verbose
+        self.skip_tls_verify = skip_tls_verify
         super().__init__(config_context=config_context)
         self.api_client.configuration.debug = self.verbose
+        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
 
     def main(self):
         api_instance = kubernetes.client.StorageV1Api(self.api_client)
@@ -682,6 +735,7 @@ class getStorageClasses(KubeCommon):
                 resp = yaml.dump(resp)
 
             if self.verbose:
+                print(f"verify_ssl: {self.api_client.configuration.verify_ssl}")
                 sys.stdout = sys.__stdout__
                 verbose_log.print()
             if not self.quiet:
@@ -696,7 +750,9 @@ class getStorageClasses(KubeCommon):
 class createV1Secret(KubeCommon):
     """Creates a Kubernetes V1 Secret"""
 
-    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -704,12 +760,15 @@ class createV1Secret(KubeCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
+        self.skip_tls_verify = skip_tls_verify
         super().__init__(config_context=config_context)
         self.api_client.configuration.debug = self.verbose
+        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
 
     def main(self, v1SecretObj, namespace="astra-connector"):
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
@@ -724,6 +783,7 @@ class createV1Secret(KubeCommon):
             ).to_dict()
 
             if self.verbose:
+                print(f"verify_ssl: {self.api_client.configuration.verify_ssl}")
                 sys.stdout = sys.__stdout__
                 verbose_log.print()
             if not self.quiet:
@@ -738,7 +798,9 @@ class createRegCred(KubeCommon, SDKCommon):
     """Creates a docker registry credential. By default it uses fields from config.yaml,
     however any of these fields can be overridden by custom values."""
 
-    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -746,11 +808,13 @@ class createRegCred(KubeCommon, SDKCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
         self.config_context = config_context
+        self.skip_tls_verify = skip_tls_verify
         super().__init__()
 
     def main(self, name=None, registry=None, username=None, password=None, namespace="trident"):
@@ -795,13 +859,16 @@ class createRegCred(KubeCommon, SDKCommon):
             dry_run=self.dry_run,
             verbose=self.verbose,
             config_context=self.config_context,
+            skip_tls_verify=self.skip_tls_verify,
         ).main(regCredSecret, namespace=namespace)
 
 
 class createAstraApiToken(KubeCommon, SDKCommon):
     """Creates an astra-api-token secret based on the contents of config.yaml"""
 
-    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -809,11 +876,13 @@ class createAstraApiToken(KubeCommon, SDKCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
         self.config_context = config_context
+        self.skip_tls_verify = skip_tls_verify
         super().__init__()
 
     def main(self, name=None, namespace="astra-connector"):
@@ -838,13 +907,16 @@ class createAstraApiToken(KubeCommon, SDKCommon):
             dry_run=self.dry_run,
             verbose=self.verbose,
             config_context=self.config_context,
+            skip_tls_verify=self.skip_tls_verify,
         ).main(secret, namespace=namespace)
 
 
 class createGenericSecret(KubeCommon, SDKCommon):
     """Creates a basic Kubernetes secret, the passed data must already be base64 encoded"""
 
-    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -852,11 +924,13 @@ class createGenericSecret(KubeCommon, SDKCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
         self.config_context = config_context
+        self.skip_tls_verify = skip_tls_verify
         super().__init__()
 
     def main(self, name, data, generateName=False, namespace="astra-connector"):
@@ -874,13 +948,16 @@ class createGenericSecret(KubeCommon, SDKCommon):
             dry_run=self.dry_run,
             verbose=self.verbose,
             config_context=self.config_context,
+            skip_tls_verify=self.skip_tls_verify,
         ).main(secret, namespace=namespace)
 
 
 class createAstraConnector(SDKCommon):
     """Creates an AstraConnector custom resource"""
 
-    def __init__(self, quiet=True, dry_run=False, verbose=False, config_context=None):
+    def __init__(
+        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+    ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
                  True or non-empty str: submit request without persisting the resource
@@ -888,11 +965,13 @@ class createAstraConnector(SDKCommon):
         config_context: the kubeconfig:context mapping to execute against
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
-                        str "<config_file>:<context>": use specified file and context"""
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
         self.config_context = config_context
+        self.skip_tls_verify = skip_tls_verify
         super().__init__()
 
     def main(
@@ -929,6 +1008,7 @@ class createAstraConnector(SDKCommon):
             dry_run=self.dry_run,
             verbose=self.verbose,
             config_context=self.config_context,
+            skip_tls_verify=self.skip_tls_verify,
         ).main(
             body["kind"].lower() + "s",
             namespace,

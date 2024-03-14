@@ -30,6 +30,7 @@ def main(argv=sys.argv):
     ard = tkSrc.classes.AstraResourceDicts()
     plaidMode = False
     v3 = False
+    v3_skip_tls_verify = False
 
     if len(argv) > 1:
         # global_args must manually be kept in sync with __init__() parser args in tkSrc/parser.py
@@ -44,6 +45,7 @@ def main(argv=sys.argv):
             "--fast",
             "--v3",
             "--dry-run",
+            "--insecure-skip-tls-verify",
         ]
         # verbs must manually be kept in sync with top_level_commands() in tkSrc/parser.py
         verbs = {
@@ -115,6 +117,10 @@ def main(argv=sys.argv):
             ):
                 v3 = True
                 v3Position = counter
+            if ((verbPosition and counter < verbPosition) or (verbPosition is None)) and (
+                item == "--insecure-skip-tls-verify"
+            ):
+                v3_skip_tls_verify = True
 
         # Argparse cares about capitalization, kubectl does not, so transparently fix appvault
         if verbPosition and len(argv) - verbPosition >= 2 and argv[verbPosition + 1] == "appvault":
@@ -149,7 +155,9 @@ def main(argv=sys.argv):
 
         # As long as we're not --fast/plaidMode, build the argparse choices lists
         if not plaidMode:
-            tkSrc.choices.main(argv, verbs, verbPosition, ard, acl, v3)
+            tkSrc.choices.main(
+                argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=v3_skip_tls_verify
+            )
 
     else:
         raise SystemExit(
@@ -215,6 +223,8 @@ def main(argv=sys.argv):
         tkSrc.helpers.checkv3Support(args, parser, v3_dict)
     if args.dry_run and not args.v3:
         parser.error("--dry-run can only be used in conjunction with --v3")
+    elif args.skip_tls_verify and not args.v3:
+        parser.error("--insecure-skip-tls-verify can only be used in conjunction with --v3")
 
     if args.subcommand == "deploy":
         tkSrc.deploy.main(args, parser, ard)
