@@ -248,7 +248,7 @@ class SDKCommon(BaseCommon):
 
 
 class KubeCommon(BaseCommon):
-    def __init__(self, config_context=None):
+    def __init__(self, config_context=None, silently_fail=False):
         super().__init__()
 
         # Setup the config_file and context based on the config_context input
@@ -289,21 +289,25 @@ class KubeCommon(BaseCommon):
                     configuration=kubernetes.config.load_incluster_config()
                 )
             except kubernetes.config.config_exception.ConfigException:
-                self.printError(f"{err}\n")
-                self.printError(
-                    f"Please ensure '{config_context}' is either a valid kubernetes config_file, "
-                    "context, or 'context@config_file' mapping, and you have network connectivity "
-                    "to the cluster.\n"
-                )
-                raise SystemExit()
+                if not silently_fail:
+                    self.printError(f"{err}\n")
+                    self.printError(
+                        f"Please ensure '{config_context}' is either a valid kubernetes "
+                        "config_file, context, or 'context@config_file' mapping, and you have "
+                        "network connectivity to the cluster.\n"
+                    )
+                    raise SystemExit()
+                self.api_client = None
 
         # Catch other errors (like malformed files), print error message, and exit
         except Exception as err:
-            self.printError(
-                "Error loading kubeconfig, please check kubeconfig file to ensure it is valid\n"
-            )
-            self.printError(f"{err}\n")
-            raise SystemExit()
+            if not silently_fail:
+                self.printError(
+                    "Error loading kubeconfig, please check kubeconfig file to ensure it is valid\n"
+                )
+                self.printError(f"{err}\n")
+                raise SystemExit()
+            self.api_client = None
 
     def notInstalled(self, path):
         server = self.api_client.configuration.host.split("//")[-1].split(":")[0].split("/")[0]

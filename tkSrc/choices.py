@@ -62,10 +62,18 @@ def main(argv, verbs, verbPosition, ard, acl, v3):
                 and argv[verbPosition + 3] != "-h"
                 and argv[verbPosition + 3] != "--help"
             ):
-                ard.storageClasses = astraSDK.k8s.getStorageClasses(
-                    config_context=argv[verbPosition + 3]
-                ).main()
-                acl.storageClasses = ard.buildList("storageClasses", "metadata.name")
+                for arg in argv[verbPosition + 1 :]:
+                    if (
+                        astraSDK.common.KubeCommon(
+                            config_context=arg, silently_fail=True
+                        ).api_client
+                        is not None
+                    ):
+                        ard.storageClasses = astraSDK.k8s.getStorageClasses(
+                            config_context=arg
+                        ).main()
+                        acl.storageClasses = ard.buildList("storageClasses", "metadata.name")
+                        break
             else:
                 ard.storageClasses = astraSDK.k8s.getStorageClasses(config_context=v3).main()
                 acl.storageClasses = ard.buildList("storageClasses", "metadata.name")
