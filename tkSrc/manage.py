@@ -141,22 +141,10 @@ def main(args, parser, ard):
         if rc is False:
             raise SystemExit("astraSDK.clouds.manageCloud() failed")
     elif args.objectType == "ldap":
-        credential = tkSrc.create.createLdapCredential(
-            args.quiet, args.verbose, args.username, args.password, parser
-        )
         ard.settings = astraSDK.settings.getSettings().main()
         ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap", parser)
         rc = astraSDK.settings.manageLdap(quiet=args.quiet, verbose=args.verbose).main(
-            ldapSetting["id"],
-            args.url,
-            args.port,
-            credential["id"],
-            args.userBaseDN,
-            args.userSearchFilter,
-            args.userLoginAttribute,
-            args.groupBaseDN,
-            groupSearchFilter=args.groupSearchFilter,
-            secureMode=args.secure,
+            ldapSetting["id"], ldapSetting["currentConfig"]
         )
         if rc is False:
             raise SystemExit("astraSDK.settings.manageLdap() failed")

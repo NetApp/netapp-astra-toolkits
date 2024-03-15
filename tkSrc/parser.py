@@ -240,6 +240,10 @@ class ToolkitParser:
             "hook",
             help="create hook (executionHook)",
         )
+        self.subparserCreateLdap = self.subparserCreate.add_parser(
+            "ldap",
+            help="create an LDAP(S) server connection for remote authentication",
+        )
         self.subparserCreateProtection = self.subparserCreate.add_parser(
             "protection",
             aliases=["protectionpolicy"],
@@ -282,7 +286,7 @@ class ToolkitParser:
         )
         self.subparserManageLdap = self.subparserManage.add_parser(
             "ldap",
-            help="manage an LDAP(S) server for remote authentication",
+            help="manage (enable) an existing LDAP(S) server connection",
         )
 
     def sub_destroy_commands(self):
@@ -976,6 +980,55 @@ class ToolkitParser:
             help="regex filter for container names",
         )
 
+    def create_ldap_args(self):
+        """create LDAP(S) server connection args and flags"""
+        self.subparserCreateLdap.add_argument("url", help="the LDAP(S) server URL or IP address")
+        self.subparserCreateLdap.add_argument("port", type=int, help="the LDAP(S) server port")
+        self.subparserCreateLdap.add_argument(
+            "--secure",
+            default=False,
+            action="store_true",
+            help="use LDAPS instead of LDAP",
+        )
+        saGroup = self.subparserCreateLdap.add_argument_group(
+            "serviceAccountGroup", "the service account credentials in email format"
+        )
+        saGroup.add_argument(
+            "-u",
+            "--username",
+            help="the username (in email format) of the service account (required)",
+            required=True,
+        )
+        saGroup.add_argument(
+            "-p", "--password", help="the password of the service account (required)", required=True
+        )
+        umGroup = self.subparserCreateLdap.add_argument_group(
+            "userMatchGroup", "the user match settings"
+        )
+        umGroup.add_argument(
+            "--userBaseDN", help="the user search base DN (required)", required=True
+        )
+        umGroup.add_argument(
+            "--userSearchFilter",
+            default="(objectClass=Person)",
+            help="the user search filter, default: %(default)s",
+        )
+        umGroup.add_argument(
+            "--userLoginAttribute",
+            default="mail",
+            choices=["mail", "userPrincipalName"],
+            help="the user login attribute, default: %(default)s",
+        )
+        gmGroup = self.subparserCreateLdap.add_argument_group(
+            "groupMatchGroup", "the group match settings"
+        )
+        gmGroup.add_argument(
+            "--groupBaseDN", help="the group search base DN (required)", required=True
+        )
+        gmGroup.add_argument(
+            "--groupSearchFilter", default=None, help="the group search filter (optional)"
+        )
+
     def create_protection_args(self):
         """create protectionpolicy args and flags"""
         self.subparserCreateProtection.add_argument(
@@ -1293,55 +1346,6 @@ class ToolkitParser:
             help="optionally specify the default bucketID for backups",
         )
 
-    def manage_ldap_args(self):
-        """manage LDAP(S) args and flags"""
-        self.subparserManageLdap.add_argument("url", help="the LDAP(S) server URL or IP address")
-        self.subparserManageLdap.add_argument("port", type=int, help="the LDAP(S) server port")
-        self.subparserManageLdap.add_argument(
-            "--secure",
-            default=False,
-            action="store_true",
-            help="use LDAPS instead of LDAP",
-        )
-        saGroup = self.subparserManageLdap.add_argument_group(
-            "serviceAccountGroup", "the service account credentials in email format"
-        )
-        saGroup.add_argument(
-            "-u",
-            "--username",
-            help="the username (in email format) of the service account (required)",
-            required=True,
-        )
-        saGroup.add_argument(
-            "-p", "--password", help="the password of the service account (required)", required=True
-        )
-        umGroup = self.subparserManageLdap.add_argument_group(
-            "userMatchGroup", "the user match settings"
-        )
-        umGroup.add_argument(
-            "--userBaseDN", help="the user search base DN (required)", required=True
-        )
-        umGroup.add_argument(
-            "--userSearchFilter",
-            default="(objectClass=Person)",
-            help="the user search filter, default: %(default)s",
-        )
-        umGroup.add_argument(
-            "--userLoginAttribute",
-            default="mail",
-            choices=["mail", "userPrincipalName"],
-            help="the user login attribute, default: %(default)s",
-        )
-        gmGroup = self.subparserManageLdap.add_argument_group(
-            "groupMatchGroup", "the group match settings"
-        )
-        gmGroup.add_argument(
-            "--groupBaseDN", help="the group search base DN (required)", required=True
-        )
-        gmGroup.add_argument(
-            "--groupSearchFilter", default=None, help="the group search filter (optional)"
-        )
-
     def destroy_backup_args(self):
         """destroy backup args and flags"""
         self.subparserDestroyBackup.add_argument(
@@ -1611,6 +1615,7 @@ class ToolkitParser:
         self.create_backup_args()
         self.create_cluster_args()
         self.create_hook_args()
+        self.create_ldap_args()
         self.create_protection_args()
         self.create_replication_args()
         self.create_script_args()
@@ -1621,7 +1626,6 @@ class ToolkitParser:
         self.manage_bucket_args()
         self.manage_cluster_args()
         self.manage_cloud_args()
-        self.manage_ldap_args()
 
         self.destroy_backup_args()
         self.destroy_credential_args()

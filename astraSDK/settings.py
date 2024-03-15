@@ -55,8 +55,8 @@ class getSettings(SDKCommon):
             return False
 
 
-class manageLdap(SDKCommon):
-    """Class to manage an LDAP(S) server"""
+class createLdap(SDKCommon):
+    """Class to create an LDAP(S) server connection"""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -104,6 +104,56 @@ class manageLdap(SDKCommon):
         }
         if groupSearchFilter:
             data["desiredConfig"]["groupSearchCustomFilter"] = groupSearchFilter
+
+        ret = super().apicall(
+            "put",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+        if ret.ok:
+            # the settings/ endpoint doesn't return a dict for PUTs, so calling getSettings
+            results = next(x for x in getSettings().main()["items"] if x["id"] == settingID)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            return False
+
+
+class manageLdap(SDKCommon):
+    """Class to manage (aka enable) an LDAP(S) server, which uses current LDAP settings but
+    switches isEnabled to true. You must pass the 'astra.account.ldap' settingID, and the
+    currentConfig of the setting (which can be gathered via getSettings()).
+
+    If you're looking to set up an entirely new LDAP connection, use createLdap() instead."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-setting+json"
+        self.headers["Content-Type"] = "application/astra-setting+json"
+
+    def main(self, settingID, currentConfig):
+        currentConfig["isEnabled"] = "true"
+        endpoint = f"core/v1/settings/{settingID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-setting",
+            "version": "1.1.",
+            "desiredConfig": currentConfig,
+        }
 
         ret = super().apicall(
             "put",

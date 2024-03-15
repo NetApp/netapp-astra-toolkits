@@ -146,6 +146,26 @@ def main(args, parser, ard):
         )
         if rc is False:
             raise SystemExit("astraSDK.hooks.createHook() failed")
+    elif args.objectType == "ldap":
+        credential = createLdapCredential(
+            args.quiet, args.verbose, args.username, args.password, parser
+        )
+        ard.settings = astraSDK.settings.getSettings().main()
+        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap", parser)
+        rc = astraSDK.settings.createLdap(quiet=args.quiet, verbose=args.verbose).main(
+            ldapSetting["id"],
+            args.url,
+            args.port,
+            credential["id"],
+            args.userBaseDN,
+            args.userSearchFilter,
+            args.userLoginAttribute,
+            args.groupBaseDN,
+            groupSearchFilter=args.groupSearchFilter,
+            secureMode=args.secure,
+        )
+        if rc is False:
+            raise SystemExit("astraSDK.settings.createLdap() failed")
     elif args.objectType == "protection" or args.objectType == "protectionpolicy":
         if args.granularity == "hourly":
             if args.hour:

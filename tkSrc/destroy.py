@@ -49,13 +49,19 @@ def main(args, parser, ard):
         if astraSDK.settings.destroyLdap(quiet=args.quiet, verbose=args.verbose).main(
             ldapSetting["id"]
         ):
-            rc = astraSDK.credentials.destroyCredential(
-                quiet=args.quiet, verbose=args.verbose
-            ).main(ldapSetting["currentConfig"]["credentialId"])
-            if rc:
-                print(f"Credential {ldapSetting['currentConfig']['credentialId']} destroyed")
-            else:
-                raise SystemExit(f"Failed destroying credential: {args.credentialID}")
+            if ldapSetting["currentConfig"].get("credentialId"):
+                rc = astraSDK.credentials.destroyCredential(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(ldapSetting["currentConfig"]["credentialId"])
+                if rc:
+                    print(f"Credential {ldapSetting['currentConfig']['credentialId']} destroyed")
+                else:
+                    raise SystemExit(
+                        "Failed destroying credential: "
+                        f"{ldapSetting['currentConfig']['credentialId']}"
+                    )
+        else:
+            raise SystemExit(f"Failed destroying ldap: {ldapSetting['id']}")
 
     elif args.objectType == "protection":
         rc = astraSDK.protections.destroyProtectiontionpolicy(

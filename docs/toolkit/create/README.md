@@ -5,6 +5,7 @@ The `create` argument allows you to create Astra resources, including:
 * [Backups](#backup)
 * [Clusters](#cluster)
 * [Hooks](#hook)
+* [LDAP](#ldap)
 * [Protections](#protection)
 * [Replications](#replication)
 * [Scripts](#script)
@@ -15,16 +16,17 @@ Its opposite command is [destroy](../destroy/README.md), which allows you to des
 
 ```text
 $ actoolkit create -h
-usage: actoolkit create [-h] {backup,cluster,hook,protection,protectionpolicy,replication,script,snapshot,user} ...
+usage: actoolkit create [-h] {backup,cluster,hook,ldap,protection,protectionpolicy,replication,script,snapshot,user} ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {backup,cluster,hook,protection,protectionpolicy,replication,script,snapshot,user}
+  {backup,cluster,hook,ldap,protection,protectionpolicy,replication,script,snapshot,user}
     backup              create backup
     cluster             create cluster (upload a K8s cluster kubeconfig to then manage)
     hook                create hook (executionHook)
+    ldap                create an LDAP(S) server connection for remote authentication
     protection (protectionpolicy)
                         create protection policy
     replication         create replication policy
@@ -189,6 +191,41 @@ $ actoolkit create hook 187f0f70-c879-40d4-87d4-64219612bc60 mdb-presnap \
     f402940e-c9ef-4c49-b5e8-4d126ab8d072 -o pre-snapshot -i "\bmariadb\b" -n wordpress \
     -p wordpress-mariadb-0 -l "app.kubernetes.io/name=mariadb" "app.kubernetes.io/app=wordpress" -c mariadb
 {"metadata": {"labels": [], "creationTimestamp": "2022-12-22T19:59:21Z", "modificationTimestamp": "2022-12-22T19:59:21Z", "createdBy": "ebbc0fde-da6d-4939-a9ad-0f8fd0d70f1c"}, "type": "application/astra-executionHook", "version": "1.2", "id": "2f4f0b8a-b1d1-4119-a185-1850c7550aa6", "name": "mdb-presnap", "hookType": "custom", "matchingCriteria": [{"type": "containerImage", "value": "\\bmariadb\\b"}, {"type": "namespaceName", "value": "wordpress"}, {"type": "podName", "value": "wordpress-mariadb-0"}, {"type": "podLabel", "value": "app.kubernetes.io/name=mariadb"}, {"type": "podLabel", "value": "app.kubernetes.io/app=wordpress"}, {"type": "containerName", "value": "mariadb"}], "action": "snapshot", "stage": "pre", "hookSourceID": "f402940e-c9ef-4c49-b5e8-4d126ab8d072", "arguments": [], "appID": "187f0f70-c879-40d4-87d4-64219612bc60", "enabled": "true"}
+```
+
+## LDAP
+
+The `create ldap` command allows you to set up a connection to a remote authentication server. For more information on this feature, please see the [official docs](https://docs.netapp.com/us-en/astra-control-center/use/manage-remote-authentication.html). The high level command usage is:
+
+```text
+actoolkit manage ldap <url-or-ip> <port> [--secure] \
+    -u USERNAME -p PASSWORD \
+    --userBaseDN USERBASEDN [--userSearchFilter USERSEARCHFILTER] [--userLoginAttribute {mail,userPrincipalName}] \
+    --groupBaseDN GROUPBASEDN [--groupSearchFilter GROUPSEARCHFILTER]
+```
+
+Additional information on each argument is as follows:
+
+* `url-or-ip`: the URL or IP Address of the LDAP(S) server
+* `port`: the port to be used for connectiong to the LDAP(S) server (typically `389` for LDAP and `636` for LDAPS)
+* `--secure`: specify to use LDAPS instead of LDAP
+* Service Account arguments:
+  * `-u`/`--username`: the username (in email format) of the service account used to connect to the LDAP server (**required**)
+  * `-p`/`--password`: the password of the service account used to connect to the LDAP server (**required**)
+* User Match arguments:
+  * `--userBaseDN`: the user search base DN used when retrieving user information from the LDAP server (**required**)
+  * `--userSearchFilter`: the user search filter used when retrieving user information from the LDAP server
+  * `--userLoginAttribute`: the user login attribute to use (must be either `mail` or `userPrincipalName`)
+* Group Match arguments:
+  * `--groupBaseDN`: the group search base DN used when retrieving group information from the LDAP server (**required**)
+  * `--groupSearchFilter`: an optional custom group search filter
+
+This is an example command and response:
+
+```text
+$ actoolkit manage ldap 10.10.10.200 389 -u service-account@astra-example.com -p SA-Password --userBaseDN OU=e2e,DC=astra-example,DC=com --groupBaseDN OU=e2e,DC=astra-example,DC=com
+{"type": "application/astra-credential", "version": "1.1", "id": "60a77224-a02d-403a-9c30-4aecc9ef984e", "name": "ldapBindCredential-service-account", "keyType": "generic", "valid": "true", "metadata": {"creationTimestamp": "2024-03-15T14:04:43Z", "modificationTimestamp": "2024-03-15T14:04:43Z", "createdBy": "a33e249d-45c4-4f33-8483-a8b0b5b1236d", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "generic"}]}}
+{"type": "application/astra-setting", "version": "1.1", "metadata": {"creationTimestamp": "2024-03-11T13:39:50Z", "modificationTimestamp": "2024-03-15T14:04:43Z", "labels": [], "createdBy": "00000000-0000-0000-0000-000000000000", "modifiedBy": "a33e249d-45c4-4f33-8483-a8b0b5b1236d"}, "id": "32267c96-5da8-4174-bd59-1a4674aab7bf", "name": "astra.account.ldap", "desiredConfig": {"connectionHost": "10.10.10.200", "credentialId": "60a77224-a02d-403a-9c30-4aecc9ef984e", "groupBaseDN": "OU=e2e,DC=astra-example,DC=com", "isEnabled": "true", "loginAttribute": "mail", "port": 389, "secureMode": "LDAP", "userBaseDN": "OU=e2e,DC=astra-example,DC=com", "userSearchFilter": "(objectClass=Person)", "vendor": "Active Directory"}, "currentConfig": {"connectionHost": "", "credentialId": "", "groupBaseDN": "ou=groups,dc=example,dc=com", "groupSearchCustomFilter": "", "isEnabled": "false", "loginAttribute": "mail", "port": 636, "secureMode": "LDAPS", "userBaseDN": "ou=users,dc=example,dc=com", "userSearchFilter": "(objectClass=Person)", "vendor": "Active Directory"}, "configSchema": {"$schema": "http://json-schema.org/draft-07/schema#", "title": "astra.account.ldap", "type": "object", "properties": {"connectionHost": {"type": "string", "description": "The hostname or IP address of your LDAP server."}, "credentialId": {"type": "string", "description": "The ID of the Astra credential containing the bind DN and credential."}, "groupBaseDN": {"type": "string", "description": "The base DN of the tree used to start the group search. The system searches the subtree from the specified location."}, "groupSearchCustomFilter": {"type": "string", "description": "A custom LDAP filter to use to search for groups"}, "isEnabled": {"type": "string", "description": "This property determines if this setting is enabled or not."}, "loginAttribute": {"type": "string", "description": "The LDAP attribute to be used to map to user email. Only mail or userPrincipalName is allowed."}, "port": {"type": "integer", "description": "The port on which the LDAP server is listening."}, "secureMode": {"type": "string", "description": "The secure mode LDAPS or LDAP."}, "userBaseDN": {"type": "string", "description": "The base DN of the tree used to start the user search. The system searches the subtree from the specified location."}, "userSearchFilter": {"type": "string", "description": "The filter used to search for users according to a search criteria."}, "vendor": {"type": "string", "description": "The LDAP provider you are using.", "enum": ["Active Directory"]}}, "additionalProperties": false, "required": ["connectionHost", "secureMode", "credentialId", "userBaseDN", "userSearchFilter", "groupBaseDN", "vendor", "isEnabled"]}, "state": "pending", "stateUnready": []}
 ```
 
 ## Protection
