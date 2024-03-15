@@ -46,9 +46,10 @@ class getResources(KubeCommon):
         self.output = output
         self.verbose = verbose
         self.skip_tls_verify = skip_tls_verify
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
-        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
+        self.conf = kubernetes.client.Configuration()
+        self.conf.debug = self.verbose
+        self.conf.verify_ssl = not self.skip_tls_verify
+        super().__init__(config_context=config_context, client_configuration=self.conf)
 
     def main(
         self,
@@ -290,9 +291,10 @@ class getClusterResources(KubeCommon):
         self.output = output
         self.verbose = verbose
         self.skip_tls_verify = skip_tls_verify
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
-        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
+        self.conf = kubernetes.client.Configuration()
+        self.conf.debug = self.verbose
+        self.conf.verify_ssl = not self.skip_tls_verify
+        super().__init__(config_context=config_context, client_configuration=self.conf)
 
     def main(
         self,
@@ -355,9 +357,10 @@ class createResource(KubeCommon):
         self.dry_run = dry_run
         self.verbose = verbose
         self.skip_tls_verify = skip_tls_verify
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
-        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
+        self.conf = kubernetes.client.Configuration()
+        self.conf.debug = self.verbose
+        self.conf.verify_ssl = not self.skip_tls_verify
+        super().__init__(config_context=config_context, client_configuration=self.conf)
 
     def main(
         self,
@@ -415,9 +418,10 @@ class destroyResource(KubeCommon):
         self.dry_run = dry_run
         self.verbose = verbose
         self.skip_tls_verify = skip_tls_verify
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
-        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
+        self.conf = kubernetes.client.Configuration()
+        self.conf.debug = self.verbose
+        self.conf.verify_ssl = not self.skip_tls_verify
+        super().__init__(config_context=config_context, client_configuration=self.conf)
 
     def main(
         self,
@@ -473,9 +477,10 @@ class updateClusterResource(KubeCommon):
         self.dry_run = dry_run
         self.verbose = verbose
         self.skip_tls_verify = skip_tls_verify
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
-        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
+        self.conf = kubernetes.client.Configuration()
+        self.conf.debug = self.verbose
+        self.conf.verify_ssl = not self.skip_tls_verify
+        super().__init__(config_context=config_context, client_configuration=self.conf)
 
     def main(
         self,
@@ -526,9 +531,10 @@ class getNamespaces(KubeCommon):
         self.output = output
         self.verbose = verbose
         self.skip_tls_verify = skip_tls_verify
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
-        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
+        self.conf = kubernetes.client.Configuration()
+        self.conf.debug = self.verbose
+        self.conf.verify_ssl = not self.skip_tls_verify
+        super().__init__(config_context=config_context, client_configuration=self.conf)
 
     def main(self, systemNS=None, nameFilter=None, unassociated=False, minuteFilter=False):
         """Default behavior (systemNS=None) is to remove typical system namespaces from the
@@ -619,9 +625,10 @@ class getSecrets(KubeCommon):
         self.output = output
         self.verbose = verbose
         self.skip_tls_verify = skip_tls_verify
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
-        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
+        self.conf = kubernetes.client.Configuration()
+        self.conf.debug = self.verbose
+        self.conf.verify_ssl = not self.skip_tls_verify
+        super().__init__(config_context=config_context, client_configuration=self.conf)
 
     def main(self, namespace="astra-connector"):
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
@@ -673,9 +680,10 @@ class destroySecret(KubeCommon):
         self.dry_run = dry_run
         self.verbose = verbose
         self.skip_tls_verify = skip_tls_verify
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
-        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
+        self.conf = kubernetes.client.Configuration()
+        self.conf.debug = self.verbose
+        self.conf.verify_ssl = not self.skip_tls_verify
+        super().__init__(config_context=config_context, client_configuration=self.conf)
 
     def main(self, name, namespace="astra-connector"):
         api_instance = kubernetes.client.CoreV1Api(self.api_client)
@@ -719,9 +727,10 @@ class getStorageClasses(KubeCommon):
         self.output = output
         self.verbose = verbose
         self.skip_tls_verify = skip_tls_verify
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
-        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
+        self.conf = kubernetes.client.Configuration()
+        self.conf.debug = self.verbose
+        self.conf.verify_ssl = not self.skip_tls_verify
+        super().__init__(config_context=config_context, client_configuration=self.conf)
 
     def main(self):
         api_instance = kubernetes.client.StorageV1Api(self.api_client)
@@ -766,9 +775,10 @@ class createV1Secret(KubeCommon):
         self.dry_run = dry_run
         self.verbose = verbose
         self.skip_tls_verify = skip_tls_verify
-        super().__init__(config_context=config_context)
-        self.api_client.configuration.debug = self.verbose
-        self.api_client.configuration.verify_ssl = not self.skip_tls_verify
+        self.conf = kubernetes.client.Configuration()
+        self.conf.debug = self.verbose
+        self.conf.verify_ssl = not self.skip_tls_verify
+        super().__init__(config_context=config_context, client_configuration=self.conf)
 
     def main(self, v1SecretObj, namespace="astra-connector"):
         api_instance = kubernetes.client.CoreV1Api(self.api_client)

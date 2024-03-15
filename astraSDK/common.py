@@ -248,8 +248,13 @@ class SDKCommon(BaseCommon):
 
 
 class KubeCommon(BaseCommon):
-    def __init__(self, config_context=None, silently_fail=False):
+    def __init__(self, config_context=None, client_configuration=None, silently_fail=False):
         super().__init__()
+        if (
+            isinstance(client_configuration, kubernetes.client.configuration.Configuration)
+            and client_configuration.verify_ssl is False
+        ):
+            disable_warnings()
 
         # Setup the config_file and context based on the config_context input
         config_file, context = None, None
@@ -278,9 +283,10 @@ class KubeCommon(BaseCommon):
                 config_file = config_context
         try:
             # Create the api_client
-            self.api_client = kubernetes.config.new_client_from_config(
-                config_file=config_file, context=context
+            kubernetes.config.load_kube_config(
+                config_file=config_file, context=context, client_configuration=client_configuration
             )
+            self.api_client = kubernetes.client.ApiClient(configuration=client_configuration)
 
         # If that fails, then try an incluster config
         except kubernetes.config.config_exception.ConfigException as err:
