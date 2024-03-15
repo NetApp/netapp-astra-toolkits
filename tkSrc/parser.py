@@ -1288,12 +1288,12 @@ class ToolkitParser:
     def manage_ldap_args(self):
         """manage LDAP(S) args and flags"""
         self.subparserManageLdap.add_argument("url", help="the LDAP(S) server URL or IP address")
-        self.subparserManageLdap.add_argument("port", help="the LDAP(S) server port")
+        self.subparserManageLdap.add_argument("port", type=int, help="the LDAP(S) server port")
         self.subparserManageLdap.add_argument(
-            "ldap-or-ldaps",
-            choices=["ldap", "ldaps"],
-            type=str.lower,
-            help="whether to use LDAP or LDAPS",
+            "--secure",
+            default=False,
+            action="store_true",
+            help="use LDAPS instead of LDAP",
         )
         saGroup = self.subparserManageLdap.add_argument_group(
             "serviceAccountGroup", "the service account credentials in email format"
@@ -1319,7 +1319,7 @@ class ToolkitParser:
             help="the user search filter, default: %(default)s",
         )
         umGroup.add_argument(
-            "--loginAttribute",
+            "--userLoginAttribute",
             default="mail",
             choices=["mail", "userPrincipalName"],
             help="the user login attribute, default: %(default)s",
@@ -1330,7 +1330,9 @@ class ToolkitParser:
         gmGroup.add_argument(
             "--groupBaseDN", help="the group search base DN (required)", required=True
         )
-        gmGroup.add_argument("--groupSearchFilter", help="the group search filter (optional)")
+        gmGroup.add_argument(
+            "--groupSearchFilter", default=None, help="the group search filter (optional)"
+        )
 
     def destroy_backup_args(self):
         """destroy backup args and flags"""

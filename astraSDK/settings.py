@@ -53,3 +53,75 @@ class getSettings(SDKCommon):
             return results
         else:
             return False
+
+
+class manageLdap(SDKCommon):
+    """Class to manage an LDAP(S) server"""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-setting+json"
+        self.headers["Content-Type"] = "application/astra-setting+json"
+
+    def main(
+        self,
+        settingID,
+        host,
+        port,
+        credentialID,
+        userBaseDN,
+        userSearchFilter,
+        userLoginAttribute,
+        groupBaseDN,
+        groupSearchFilter=None,
+        secureMode=False,
+    ):
+        endpoint = f"core/v1/settings/{settingID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-setting",
+            "version": "1.1.",
+            "desiredConfig": {
+                "connectionHost": host,
+                "credentialId": credentialID,
+                "groupBaseDN": groupBaseDN,
+                "isEnabled": "true",
+                "loginAttribute": userLoginAttribute,
+                "port": port,
+                "secureMode": "LDAPS" if secureMode else "LDAP",
+                "userBaseDN": userBaseDN,
+                "userSearchFilter": userSearchFilter,
+                "vendor": "Active Directory",
+            },
+        }
+        if groupSearchFilter:
+            data["desiredConfig"]["groupSearchCustomFilter"] = groupSearchFilter
+
+        ret = super().apicall(
+            "put",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+        if ret.ok:
+            # the settings/ endpoint doesn't return a dict for PUTs, so calling getSettings
+            results = next(x for x in getSettings().main()["items"] if x["id"] == settingID)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            print(ret.text)
+            print(ret.reason)
+            return False

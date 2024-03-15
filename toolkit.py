@@ -416,7 +416,7 @@ def main(argv=sys.argv):
     elif args.subcommand == "create":
         tkSrc.create.main(args, parser, ard)
     elif args.subcommand == "manage" or args.subcommand == "define":
-        tkSrc.manage.main(args, parser)
+        tkSrc.manage.main(args, parser, ard)
     elif args.subcommand == "destroy":
         tkSrc.destroy.main(args, parser, ard)
     elif args.subcommand == "unmanage":
