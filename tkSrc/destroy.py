@@ -43,6 +43,20 @@ def main(args, parser, ard):
             print(f"Hook {args.hookID} destroyed")
         else:
             raise SystemExit(f"Failed destroying hook: {args.hookID}")
+    elif args.objectType == "ldap":
+        ard.settings = astraSDK.settings.getSettings().main()
+        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap", parser)
+        if astraSDK.settings.destroyLdap(quiet=args.quiet, verbose=args.verbose).main(
+            ldapSetting["id"]
+        ):
+            rc = astraSDK.credentials.destroyCredential(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(ldapSetting["currentConfig"]["credentialId"])
+            if rc:
+                print(f"Credential {ldapSetting['currentConfig']['credentialId']} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying credential: {args.credentialID}")
+
     elif args.objectType == "protection":
         rc = astraSDK.protections.destroyProtectiontionpolicy(
             quiet=args.quiet, verbose=args.verbose

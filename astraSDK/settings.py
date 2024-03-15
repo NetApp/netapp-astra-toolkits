@@ -122,6 +122,110 @@ class manageLdap(SDKCommon):
                 print(json.dumps(results))
             return results
         else:
-            print(ret.text)
-            print(ret.reason)
+            return False
+
+
+class unmanageLdap(SDKCommon):
+    """Class to unmanage (aka disable) an LDAP(S) server, which preserves current LDAP settings
+    while removing the ability for users/groups to log in. You must pass the 'astra.account.ldap'
+    settingID, and the currentConfig of the setting (which can be gathered via getSettings())."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-setting+json"
+        self.headers["Content-Type"] = "application/astra-setting+json"
+
+    def main(self, settingID, currentConfig):
+        currentConfig["isEnabled"] = "false"
+        endpoint = f"core/v1/settings/{settingID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-setting",
+            "version": "1.1.",
+            "desiredConfig": currentConfig,
+        }
+
+        ret = super().apicall(
+            "put",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+        if ret.ok:
+            # the settings/ endpoint doesn't return a dict for PUTs, so calling getSettings
+            results = next(x for x in getSettings().main()["items"] if x["id"] == settingID)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            return False
+
+
+class destroyLdap(SDKCommon):
+    """Class to destroy (aka disconnect) an LDAP(S) server, this removes all LDAP(S) settings.
+    Destroying the associated service account credential should follow."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["accept"] = "application/astra-setting+json"
+        self.headers["Content-Type"] = "application/astra-setting+json"
+
+    def main(self, settingID):
+        endpoint = f"core/v1/settings/{settingID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-setting",
+            "version": "1.1.",
+            "desiredConfig": {
+                "connectionHost": "",
+                "credentialId": "",
+                "groupBaseDN": "ou=groups,dc=example,dc=com",
+                "groupSearchCustomFilter": "",
+                "isEnabled": "false",
+                "loginAttribute": "mail",
+                "port": 636,
+                "secureMode": "LDAPS",
+                "userBaseDN": "ou=users,dc=example,dc=com",
+                "userSearchFilter": "(objectClass=Person)",
+                "vendor": "Active Directory",
+            },
+        }
+
+        ret = super().apicall(
+            "put",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+        if ret.ok:
+            # the settings/ endpoint doesn't return a dict for PUTs, so calling getSettings
+            results = next(x for x in getSettings().main()["items"] if x["id"] == settingID)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
             return False

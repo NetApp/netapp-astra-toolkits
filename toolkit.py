@@ -420,7 +420,7 @@ def main(argv=sys.argv):
     elif args.subcommand == "destroy":
         tkSrc.destroy.main(args, parser, ard)
     elif args.subcommand == "unmanage":
-        tkSrc.unmanage.main(args, ard)
+        tkSrc.unmanage.main(args, parser, ard)
     elif args.subcommand == "update":
         tkSrc.update.main(args, parser, ard)
 

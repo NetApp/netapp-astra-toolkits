@@ -299,6 +299,10 @@ class ToolkitParser:
             "hook",
             help="destroy hook (executionHook)",
         )
+        self.subparserDestroyLdap = self.subparserDestroy.add_parser(
+            "ldap",
+            help="destroy (disconnect) an LDAP(S) server",
+        )
         self.subparserDestroyProtection = self.subparserDestroy.add_parser(
             "protection",
             help="destroy protection policy",
@@ -337,6 +341,10 @@ class ToolkitParser:
         self.subparserUnmanageCluster = self.subparserUnmanage.add_parser(
             "cluster",
             help="unmanage cluster",
+        )
+        self.subparserUnmanageLdap = self.subparserUnmanage.add_parser(
+            "ldap",
+            help="unmanage (disable) an LDAP(S) server",
         )
 
     def sub_update_commands(self):
