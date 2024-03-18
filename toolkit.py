@@ -212,7 +212,7 @@ def main(argv=sys.argv):
             elif (
                 verbs["create"]
                 and len(argv) - verbPosition >= 2
-                and argv[verbPosition + 1] == "user"
+                and (argv[verbPosition + 1] == "user" or argv[verbPosition + 1] == "group")
             ):
                 ard.namespaces = astraSDK.namespaces.getNamespaces().main()
                 for namespace in ard.namespaces["items"]:
@@ -291,6 +291,9 @@ def main(argv=sys.argv):
                 elif argv[verbPosition + 1] == "credential" and len(argv) - verbPosition >= 3:
                     ard.credentials = astraSDK.credentials.getCredentials().main()
                     acl.credentials = ard.buildList("credentials", "id")
+                elif argv[verbPosition + 1] == "group" and len(argv) - verbPosition >= 3:
+                    ard.groups = astraSDK.groups.getGroups().main()
+                    acl.groups = ard.buildList("groups", "id")
                 elif argv[verbPosition + 1] == "hook" and len(argv) - verbPosition >= 3:
                     ard.apps = astraSDK.apps.getApps().main()
                     acl.apps = ard.buildList("apps", "id")

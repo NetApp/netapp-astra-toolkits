@@ -6,6 +6,7 @@ The `destroy` argument allows you to destroy Astra resources.  Its opposite comm
 
 * [Backup](#backup)
 * [Credential](#credential)
+* [Group](#group)
 * [Hook](#hook)
 * [LDAP](#ldap)
 * [Protection](#protection)
@@ -16,15 +17,16 @@ The `destroy` argument allows you to destroy Astra resources.  Its opposite comm
 
 ```text
 $ actoolkit destroy -h
-usage: actoolkit destroy [-h] {backup,credential,hook,ldap,protection,replication,script,snapshot,user} ...
+usage: actoolkit destroy [-h] {backup,credential,group,hook,ldap,protection,replication,script,snapshot,user} ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {backup,credential,hook,ldap,protection,replication,script,snapshot,user}
+  {backup,credential,group,hook,ldap,protection,replication,script,snapshot,user}
     backup              destroy backup
     credential          destroy credential
+    group               destroy group
     hook                destroy hook (executionHook)
     ldap                destroy (disconnect) an LDAP(S) server
     protection          destroy protection policy
@@ -63,6 +65,22 @@ Sample output:
 ```text
 $ actoolkit destroy credential 8c2469f3-fcc6-469a-a952-30b7c76b9dad
 Credential 8c2469f3-fcc6-469a-a952-30b7c76b9dad destroyed
+```
+
+## Group
+
+The `destroy group` command allows you to destroy a specific group. The command usage is:
+
+```text
+actoolkit destroy group <groupID>
+```
+
+Sample output:
+
+```text
+$ actoolkit destroy group 55d38501-3946-4790-8cff-bcbbe5363597
+RoleBinding f04b94b4-a751-41d2-9144-02181d5603fe destroyed
+Group 55d38501-3946-4790-8cff-bcbbe5363597 destroyed
 ```
 
 ## Hook
@@ -172,5 +190,6 @@ Sample output:
 
 ```text
 $ actoolkit destroy user 431aadcc-e568-4aef-bdd8-6df31eff1669
-User 431aadcc-e568-4aef-bdd8-6df31eff1669 / roleBinding d1501dc7-3eb0-4f78-82fa-ea0d27b77b91 destroyed
+RoleBinding d1501dc7-3eb0-4f78-82fa-ea0d27b77b91 destroyed
+User 431aadcc-e568-4aef-bdd8-6df31eff1669 destroyed
 ```

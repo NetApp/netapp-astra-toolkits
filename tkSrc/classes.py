@@ -33,6 +33,7 @@ class ArgparseChoicesLists:
             "credentials": [],
             "destApps": [],
             "destClusters": [],
+            "groups": [],
             "hooks": [],
             "labels": [],
             "namespaces": [],

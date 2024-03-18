@@ -23,6 +23,7 @@ from . import clusters
 from . import credentials
 from . import common
 from . import entitlements
+from . import groups
 from . import hooks
 from . import k8s
 from . import namespaces

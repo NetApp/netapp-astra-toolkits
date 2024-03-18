@@ -128,6 +128,28 @@ def main(args, parser, ard):
                 raise SystemExit("astraSDK.clusters.createCluster() failed")
         else:
             raise SystemExit("astraSDK.credentials.createCredential() failed")
+    elif args.objectType == "group":
+        ldapGroups = astraSDK.groups.getLdapGroups().main(dnFilter=args.dn, matchType="eq")
+        if len(ldapGroups["items"]) == 0:
+            parser.error(f"0 LDAP groups found with DN '{args.dn}'")
+        elif len(ldapGroups["items"]) > 1:
+            parser.error(f"multiple LDAP users found with DN '{args.dn}'")
+        # First create the group
+        grc = astraSDK.groups.createGroup(quiet=args.quiet, verbose=args.verbose).main(args.dn)
+        if grc:
+            # Next create the role binding
+            if not astraSDK.rolebindings.createRolebinding(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(
+                args.role,
+                groupID=grc["id"],
+                roleConstraints=tkSrc.helpers.createConstraintList(
+                    args.namespaceConstraint, args.labelConstraint
+                ),
+            ):
+                raise SystemExit("astraSDK.rolebindings.createRolebinding() failed")
+        else:
+            raise SystemExit("astraSDK.groups.createGroup() failed")
     elif args.objectType == "hook":
         rc = astraSDK.hooks.createHook(quiet=args.quiet, verbose=args.verbose).main(
             args.appID,
@@ -290,9 +312,19 @@ def main(args, parser, ard):
         if rc is False:
             raise SystemExit("doProtectionTask() failed")
     elif args.objectType == "user":
+        # Handle LDAP use cases
+        if args.ldap:
+            ldapUsers = astraSDK.users.getLdapUsers().main(emailFilter=args.email, matchType="eq")
+            if len(ldapUsers["items"]) == 0:
+                parser.error(f"0 LDAP users found with email '{args.email}'")
+            elif len(ldapUsers["items"]) > 1:
+                parser.error(f"multiple LDAP users found with email '{args.email}'")
+            args.firstName = ldapUsers["items"][0]["firstName"]
+            args.lastName = ldapUsers["items"][0]["lastName"]
+            args.ldap = "ldap"
         # First create the user
         urc = astraSDK.users.createUser(quiet=args.quiet, verbose=args.verbose).main(
-            args.email, firstName=args.firstName, lastName=args.lastName
+            args.email, firstName=args.firstName, lastName=args.lastName, authProvider=args.ldap
         )
         if urc:
             # Next create the role binding

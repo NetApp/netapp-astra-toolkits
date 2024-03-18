@@ -4,6 +4,7 @@ The `create` argument allows you to create Astra resources, including:
 
 * [Backups](#backup)
 * [Clusters](#cluster)
+* [Groups](#group)
 * [Hooks](#hook)
 * [LDAP](#ldap)
 * [Protections](#protection)
@@ -125,6 +126,41 @@ $ actoolkit create cluster ~/.kube/private-config \
     --privateRouteID 863a3c08-34e6-463a-b479-1b1bdbdf7178
 {"type": "application/astra-credential", "version": "1.1", "id": "378fcfef-f9e0-4c25-ab67-91977f8188da", "name": "api-j0rpeqpa-westeurope-aroapp-io:6443", "keyType": "kubeconfig", "valid": "true", "metadata": {"creationTimestamp": "2023-06-27T18:03:23Z", "modificationTimestamp": "2023-06-27T18:03:23Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "kubeconfig"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "private"}]}}
 {"type": "application/astra-cluster", "version": "1.5", "id": "0aa6fd87-8534-41d7-bef4-4eaedfed4ffa", "name": "api-j0rpeqpa-westeurope-aroapp-io:6443", "state": "running", "stateUnready": [], "managedState": "unmanaged", "protectionState": "full", "protectionStateDetails": [], "managedStateUnready": [], "inUse": "false", "clusterType": "openshift", "connectorCapabilities": [], "namespaces": [], "defaultStorageClass": "e78e4b0f-1e4c-46ed-976f-6f6df5ea07e4", "cloudID": "91ef340d-6ce2-4d54-846a-cf9ba3a4f4ae", "credentialID": "378fcfef-f9e0-4c25-ab67-91977f8188da", "isMultizonal": "false", "tridentManagedStateAllowed": ["unmanaged"], "tridentVersion": "", "privateRouteID": "863a3c08-34e6-463a-b479-1b1bdbdf7178", "apiServiceID": "984888f5-f345-41a1-b207-3a9bd726368f", "metadata": {"labels": [], "creationTimestamp": "2023-06-27T18:03:31Z", "modificationTimestamp": "2023-06-27T18:03:31Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab"}}
+```
+
+## Group
+
+The `create group` command allows you to create an Astra Control group from an LDAP group definition, enabling group-wide remote authentication. This is only applicable with ACC environments with an [LDAP](#ldap) server configured. The command usage is:
+
+```text
+actoolkit create group <dn> <role> \
+    <-a optional labelConstraint> <-n optional namespaceConstraint>
+```
+
+The `dn` argument must be a distinguished name present in your LDAP server (see [list ldapgroups](../list/README.md#ldapgroups) for information on how to query LDAP for groups).
+
+The role argument must be one of the following four values:
+
+* viewer
+* member
+* admin
+* owner
+
+```text
+$ actoolkit create group "CN=michael,OU=Users,OU=e2e,DC=astra-example,DC=com" member
+PI HTTP Status Code: 201
+{"type": "application/astra-group", "version": "1.1", "id": "55d38501-3946-4790-8cff-bcbbe5363597", "name": "michael", "authProvider": "ldap", "authID": "cn=michael,ou=users,ou=e2e,dc=astra-example,dc=com", "metadata": {"creationTimestamp": "2024-03-18T17:14:55Z", "modificationTimestamp": "2024-03-18T17:14:55Z", "createdBy": "a33e249d-45c4-4f33-8483-a8b0b5b1236d", "labels": []}}
+PI HTTP Status Code: 201
+{"metadata": {"creationTimestamp": "2024-03-18T17:14:55Z", "modificationTimestamp": "2024-03-18T17:14:55Z", "createdBy": "a33e249d-45c4-4f33-8483-a8b0b5b1236d", "labels": []}, "type": "application/astra-roleBinding", "principalType": "group", "version": "1.1", "id": "f04b94b4-a751-41d2-9144-02181d5603fe", "userID": "00000000-0000-0000-0000-000000000000", "groupID": "55d38501-3946-4790-8cff-bcbbe5363597", "accountID": "1792ed1d-d55f-4a98-b07d-532b17ac2e77", "role": "member", "roleConstraints": ["*"]}
+```
+
+Any number of labelConstraints (`-a`/`--labelConstraint`) and/or namespaceConstraints (`-n`/`--namespaceConstraint`) can be provided (note that multiple values can be provided, either with space separated values, or specifying the argument again).
+
+```text
+$ actoolkit create group "CN=michael,OU=Users,OU=e2e,DC=astra-example,DC=com" \
+    member -a kubernetes.io/metadata.name=wordpress -n 89a3965f-b52c-5397-9236-e214dca5a241
+{"type": "application/astra-group", "version": "1.1", "id": "e19f6b87-f788-41d6-9958-85190e77479e", "name": "michael", "authProvider": "ldap", "authID": "cn=michael,ou=users,ou=e2e,dc=astra-example,dc=com", "metadata": {"creationTimestamp": "2024-03-18T17:38:28Z", "modificationTimestamp": "2024-03-18T17:38:28Z", "createdBy": "a33e249d-45c4-4f33-8483-a8b0b5b1236d", "labels": []}}
+{"metadata": {"creationTimestamp": "2024-03-18T17:38:29Z", "modificationTimestamp": "2024-03-18T17:38:29Z", "createdBy": "a33e249d-45c4-4f33-8483-a8b0b5b1236d", "labels": []}, "type": "application/astra-roleBinding", "principalType": "group", "version": "1.1", "id": "f266bb40-e204-4543-9366-bcbec9738671", "userID": "00000000-0000-0000-0000-000000000000", "groupID": "e19f6b87-f788-41d6-9958-85190e77479e", "accountID": "1792ed1d-d55f-4a98-b07d-532b17ac2e77", "role": "member", "roleConstraints": ["namespaces:id='89a3965f-b52c-5397-9236-e214dca5a241'.*", "namespaces:kubernetesLabels='kubernetes.io/metadata.name=wordpress'.*"]}
 ```
 
 ## Hook
@@ -404,10 +440,10 @@ $ actoolkit list snapshots
 
 ## User
 
-The `create user` command allows you to create either a **local** (for ACC environments) or **cloud-central** (for ACS environments) user (and associated roleBinding).  LDAP based users are currently not supported, but will be added at some point.  The command usage is:
+The `create user` command allows you to create either a **local** (for ACC environments), **LDAP** (for ACC environments), or **cloud-central** (for ACS environments) user (and associated roleBinding). The command usage is:
 
 ```text
-actoolkit create user <email> <role> <-p tempPassword> \
+actoolkit create user <email> <role> <-p TEMPPASSWORD | --ldap> \
     <-f optional firstName> <-l optional lastName> \
     <-a optional labelConstraint> <-n optional namespaceConstraint>
 ```
@@ -419,6 +455,8 @@ The role argument must be one of the following four values:
 * admin
 * owner
 
+### Local Users (ACC)
+
 For **local** (ACC environments) users, the `-p`/`--tempPassword` argument is required.  This password must be changed after the user's first login.
 
 ```text
@@ -428,13 +466,27 @@ $ actoolkit create user jdoe@example.com member -p ThisIsAStrongPass123$ -f John
 {"type": "application/astra-credential", "version": "1.1", "id": "6117fa73-de5b-4976-b178-8d5a1e2352dc", "name": "6b1551db-b7fa-473d-a05c-43524badb11b", "keyType": "passwordHash", "metadata": {"creationTimestamp": "2022-09-30T20:46:16Z", "modificationTimestamp": "2022-09-30T20:46:16Z", "createdBy": "2b7a3f5e-c7da-4835-bfe2-6dd51c9b1444", "labels": [{"name": "astra.netapp.io/labels/read-only/credType", "value": "passwordHash"}]}}
 ```
 
-For **cloud-central** (ACS environments) users, the `-p`/`--tempPassword` argument is not needed.  Instead, the user will be emailed an invitation to join the account.
+### LDAP Users (ACC)
+
+For **LDAP** (ACC Environments) users, the `--ldap` argument must be specified, along with an email address that is present in your LDAP  server (see [list ldapusers](../list/README.md#ldapusers) for information on how to query LDAP for users).
+
+```text
+$ actoolkit create user michael1@netapp.com member --ldap
+{"metadata": {"creationTimestamp": "2024-03-18T17:09:50Z", "modificationTimestamp": "2024-03-18T17:09:50Z", "createdBy": "a33e249d-45c4-4f33-8483-a8b0b5b1236d", "labels": []}, "type": "application/astra-user", "version": "1.2", "id": "67939b62-cc2c-4b5f-9a38-7dd189630227", "authProvider": "ldap", "authID": "", "firstName": "michael", "lastName": "tester", "companyName": "", "email": "michael1@netapp.com", "postalAddress": {"addressCountry": "", "addressLocality": "", "addressRegion": "", "streetAddress1": "", "streetAddress2": "", "postalCode": ""}, "state": "active", "sendWelcomeEmail": "false", "isEnabled": "true", "isInviteAccepted": "true", "enableTimestamp": "2024-03-18T17:09:50Z", "lastActTimestamp": ""}
+{"metadata": {"creationTimestamp": "2024-03-18T17:09:50Z", "modificationTimestamp": "2024-03-18T17:09:50Z", "createdBy": "a33e249d-45c4-4f33-8483-a8b0b5b1236d", "labels": []}, "type": "application/astra-roleBinding", "principalType": "user", "version": "1.1", "id": "347c809a-3299-49b2-b15b-dfeab33cadf9", "userID": "67939b62-cc2c-4b5f-9a38-7dd189630227", "groupID": "00000000-0000-0000-0000-000000000000", "accountID": "1792ed1d-d55f-4a98-b07d-532b17ac2e77", "role": "member", "roleConstraints": ["*"]}
+```
+
+### Cloud Central (ACS)
+
+For **cloud-central** (ACS environments) users, the `-p`/`--tempPassword` and `--ldap` arguments are not needed.  Instead, the user will be emailed an invitation to join the account.
 
 ```text
 $ actoolkit create user jdoe@example.com viewer -f John -l Doe
 {"metadata": {"creationTimestamp": "2022-09-30T21:01:37Z", "modificationTimestamp": "2022-09-30T21:01:37Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": []}, "type": "application/astra-user", "version": "1.2", "id": "b7d87db3-1896-4e03-b2ad-63b873244b53", "authProvider": "cloud-central", "authID": "", "firstName": "John", "lastName": "Doe", "companyName": "", "email": "jdoe@example.com", "postalAddress": {"addressCountry": "", "addressLocality": "", "addressRegion": "", "streetAddress1": "", "streetAddress2": "", "postalCode": ""}, "state": "pending", "sendWelcomeEmail": "true", "isEnabled": "true", "isInviteAccepted": "false", "enableTimestamp": "2022-09-30T21:01:37Z", "lastActTimestamp": ""}
 {"metadata": {"creationTimestamp": "2022-09-30T21:01:38Z", "modificationTimestamp": "2022-09-30T21:01:38Z", "createdBy": "8146d293-d897-4e16-ab10-8dca934637ab", "labels": []}, "type": "application/astra-roleBinding", "principalType": "user", "version": "1.1", "id": "4d732ae4-d0cd-4c65-aee8-98efc6a88140", "userID": "b7d87db3-1896-4e03-b2ad-63b873244b53", "groupID": "00000000-0000-0000-0000-000000000000", "accountID": "fc018f3d-e807-4fa7-98d5-fbe43be9aaa0", "role": "viewer", "roleConstraints": ["*"]}
 ```
+
+### Constraints
 
 Finally, any number of labelConstraints (`-a`/`--labelConstraint`) and/or namespaceConstraints (`-n`/`--namespaceConstraint`) can be provided (note that multiple values can be provided, either with space separated values, or specifying the argument again).
 
