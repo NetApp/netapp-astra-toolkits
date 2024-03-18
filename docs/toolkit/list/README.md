@@ -11,6 +11,8 @@ The `list` command shows various resources known to Astra.
 * [Clusters](#clusters)
 * [Credentials](#credentials)
 * [Hooks](#hooks)
+* [Ldapgroups](#ldapgroups)
+* [Ldapusers](#ldapusers)
 * [Namespaces](#namespaces)
 * [Notifications](#notifications)
 * [Protections](#protections)
@@ -25,26 +27,33 @@ The `list` command shows various resources known to Astra.
 ```text
 $ actoolkit list -h
 usage: actoolkit list [-h]
-                      {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,notifications,protections,replications,rolebindings,scripts,snapshots,storagebackends,storageclasses,users}
+                      {apiresources,apps,applications,assets,backups,buckets,appVaults,clouds,clusters,credentials,secrets,groups,hooks,exechooks,ldapgroups,ldapusers,namespaces,notifications,protections,schedules,replications,rolebindings,scripts,snapshots,storagebackends,storageclasses,users}
                       ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {apiresources,apps,assets,backups,buckets,clouds,clusters,credentials,hooks,namespaces,notifications,protections,replications,rolebindings,scripts,snapshots,storagebackends,storageclasses,users}
+  {apiresources,apps,applications,assets,backups,buckets,appVaults,clouds,clusters,credentials,secrets,groups,hooks,exechooks,ldapgroups,ldapusers,namespaces,notifications,protections,schedules,replications,rolebindings,scripts,snapshots,storagebackends,storageclasses,users}
     apiresources        list api resources
-    apps                list apps
+    apps (applications)
+                        list apps
     assets              list app assets
     backups             list backups
-    buckets             list buckets
+    buckets (appVaults)
+                        list buckets
     clouds              list clouds
     clusters            list clusters
-    credentials         list credentials
-    hooks               list hooks (executionHooks)
+    credentials (secrets)
+                        list credentials
+    groups              list groups
+    hooks (exechooks)   list hooks (executionHooks)
+    ldapgroups          queries a connected LDAP(S) server and lists available groups
+    ldapusers           queries a connected LDAP(S) server and lists available users
     namespaces          list namespaces
     notifications       list notifications
-    protections         list protection policies
+    protections (schedules)
+                        list protection policies
     replications        list replication policies
     rolebindings        list role bindings
     scripts             list scripts (hookSources)
@@ -455,6 +464,133 @@ $ actoolkit list hooks --app cassandra
 +--------------------------------------+----------------------------+--------------------------------------+------------------------------------------------+
 | eebd59f2-e9b3-47b0-b0e8-1306d805f104 | cassandra-post-snap        | 50f0ece4-43c8-42a6-8826-b438e476883c | docker.io/bitnami/cassandra:4.0.5-debian-11-r4 |
 +--------------------------------------+----------------------------+--------------------------------------+------------------------------------------------+
+```
+
+## Ldapgroups
+
+`list ldapgroups` allows you to query your LDAP server to list available groups. Since responses can be quite large depending on the organization size, response size is limited by default, and using filters are recommended.
+
+Command usage:
+
+```text
+actoolkit list ldapgroups <-l LIMIT> <--continue continue-token> \
+    <--matchType {partial,exact}> <--cnFilter CNFILTER> <--dnFilter DNFILTER>
+```
+
+The available arguments are as follows:
+
+* `-l`/`--limit`: the maximum number of responses to return (default is 25)
+* `--continue`: when the number of responses from the LDAP server exceeds the `limit` specified, a `continue` token will be provided with the output. Specify this token with the `--continue` argument to have the next page of values in the response.
+* Filters (multiple filters are treated as logical AND):
+  * `--matchType`: whether the filters are treated as `partial` or `exact` matches (partial is equivalent to using `in` keyword, exact is `eq`)
+  * `--cnFilter`: filter LDAP groups by common name
+  * `--dnFilter`: filter LDAP groups by distinguished name
+
+Sample output:
+
+Limiting the response to 3 entries:
+
+```text
+$ actoolkit list ldapgroups -l 3
++--------------------------------------+--------------------------------------+---------------------------------------------------------------------------------+
+| ldapGroupID                          | cn                                   | dn                                                                              |
++======================================+======================================+=================================================================================+
+| cbd5f408-5353-4e3c-9e8b-36f05c861b5c | 01333abe-b88b-4b44-81ae-c931ed32ee6f | CN=01333abe-b88b-4b44-81ae-c931ed32ee6f,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+--------------------------------------+---------------------------------------------------------------------------------+
+| 7eafe1d4-9a73-4015-af56-988e5e5537f3 | 0169e839-3122-41cd-a268-e14551482846 | CN=0169e839-3122-41cd-a268-e14551482846,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+--------------------------------------+---------------------------------------------------------------------------------+
+| 5fbb46b9-e2e7-421a-b521-707917e49a11 | 017ea5dd-b437-49a2-9baa-8b88b9ba3ed1 | CN=017ea5dd-b437-49a2-9baa-8b88b9ba3ed1,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+--------------------------------------+---------------------------------------------------------------------------------+
+continue-token: eyJjb2xsZWN0aW9uSW5kZXgiOjZ9
+```
+
+Utilizing a continue token to list the next page:
+
+```text
+$ actoolkit list ldapgroups -l 3 --continue eyJjb2xsZWN0aW9uSW5kZXgiOjZ9
++--------------------------------------+--------------------------------------+---------------------------------------------------------------------------------+
+| ldapGroupID                          | cn                                   | dn                                                                              |
++======================================+======================================+=================================================================================+
+| 21692657-fa8b-4f84-a582-3f79af507330 | 048c8526-de0d-4e13-999d-a77b8ce70105 | CN=048c8526-de0d-4e13-999d-a77b8ce70105,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+--------------------------------------+---------------------------------------------------------------------------------+
+| 2d53fab6-f736-4e8b-bf5a-1a9f96106190 | 050ed45f-8845-4023-a43a-30b139812a01 | CN=050ed45f-8845-4023-a43a-30b139812a01,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+--------------------------------------+---------------------------------------------------------------------------------+
+| e4182157-e3ea-465d-8ff0-cd5123b7bdf9 | 052a959b-1639-4afe-ad9a-5eb317e0c558 | CN=052a959b-1639-4afe-ad9a-5eb317e0c558,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+--------------------------------------+---------------------------------------------------------------------------------+
+```
+
+Filtering by common name:
+
+```text
+$ actoolkit list ldapgroups --dn michael
++--------------------------------------+---------+----------------------------------------------------+
+| ldapGroupID                          | cn      | dn                                                 |
++======================================+=========+====================================================+
+| 3a4b7bf6-8dbf-48ac-be95-796308d6d48c | michael | CN=michael,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+---------+----------------------------------------------------+
+```
+
+## Ldapusers
+
+`list ldapusers` allows you to query your LDAP server to list available users. Since responses can be quite large depending on the organization size, response size is limited by default, and using filters are recommended.
+
+Command usage:
+
+```text
+actoolkit list ldapusers <-l LIMIT> <--continue continue-token> \
+    <--matchType {partial,exact}> <--cnFilter CNFILTER> <-e EMAILFILTER> \
+    <--firstNameFilter FIRSTNAMEFILTER> <--lastNameFilter LASTNAMEFILTER>
+```
+
+The available arguments are as follows:
+
+* `-l`/`--limit`: the maximum number of responses to return (default is 25)
+* `--continue`: when the number of responses from the LDAP server exceeds the `limit` specified, a `continue` token will be provided with the output. Specify this token with the `--continue` argument to have the next page of values in the response.
+* Filters (multiple filters are treated as logical AND):
+  * `--matchType`: whether the filters are treated as `partial` or `exact` matches (partial is equivalent to using `in` keyword, exact is `eq`)
+  * `--cnFilter`: filter LDAP users by common name
+  * `-e`/`--emailFilter`: filter LDAP users by email address
+  * `--firstNameFilter`: filter LDAP users by first name
+  * `--lastNameFilter`: filter LDAP users by last name
+
+Sample output:
+
+Limiting the response to 2 entries:
+
+```text
+$ actoolkit list ldapusers -l 2
++--------------------------------------+-------------------------------------------------+---------------+------------+--------------------------------------+---------------------------------------------------------------------------------+
+| ldapUserID                           | email                                           | firstName     | lastName   | cn                                   | dn                                                                              |
++======================================+=================================================+===============+============+======================================+=================================================================================+
+| a9ac008f-65c7-4706-9993-c5bb97df4d2f | 00a67be5-f978-45a9-9f0f-7353fc99aa8d@netapp.com | ldap-viewer-0 | group      | 00a67be5-f978-45a9-9f0f-7353fc99aa8d | CN=00a67be5-f978-45a9-9f0f-7353fc99aa8d,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+-------------------------------------------------+---------------+------------+--------------------------------------+---------------------------------------------------------------------------------+
+| b585ad27-1608-4410-8ceb-da46bdd236fe | 00d2b99f-2321-4d97-824e-f75e00af0343@netapp.com | ldap-admin-0  | group      | 00d2b99f-2321-4d97-824e-f75e00af0343 | CN=00d2b99f-2321-4d97-824e-f75e00af0343,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+-------------------------------------------------+---------------+------------+--------------------------------------+---------------------------------------------------------------------------------+
+continue-token: eyJjb2xsZWN0aW9uSW5kZXgiOjd9
+```
+
+Utilizing a continue token to list the next page:
+
+```text
+$ actoolkit list ldapusers -l 2 --continue eyJjb2xsZWN0aW9uSW5kZXgiOjd9
++--------------------------------------+-------------------------------------------------+--------------+------------+--------------------------------------+---------------------------------------------------------------------------------+
+| ldapUserID                           | email                                           | firstName    | lastName   | cn                                   | dn                                                                              |
++======================================+=================================================+==============+============+======================================+=================================================================================+
+| 3022293a-9d84-406f-9eab-059fc19121f7 | 02d81198-c93d-47e6-a58c-ef4d247c4550@netapp.com | ldap-owner-0 | no-group   | 02d81198-c93d-47e6-a58c-ef4d247c4550 | CN=02d81198-c93d-47e6-a58c-ef4d247c4550,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+-------------------------------------------------+--------------+------------+--------------------------------------+---------------------------------------------------------------------------------+
+| 36be515f-1e4d-46cb-8a0a-42d4d4a51ed8 | 02e79be7-b100-4cd0-983b-bf44e58d8876@netapp.com | ldap-owner-0 | group      | 02e79be7-b100-4cd0-983b-bf44e58d8876 | CN=02e79be7-b100-4cd0-983b-bf44e58d8876,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+-------------------------------------------------+--------------+------------+--------------------------------------+---------------------------------------------------------------------------------+
+```
+
+Filtering by email:
+
+```text
+$ actoolkit list ldapusers -e michael
++--------------------------------------+---------------------+---------------+------------+----------------+-----------------------------------------------------------+
+| ldapUserID                           | email               | firstName     | lastName   | cn             | dn                                                        |
++======================================+=====================+===============+============+================+===========================================================+
+| a880dbe5-af89-475a-8785-a9cbb54407fd | michael1@netapp.com | michael       | tester     | michael tester | CN=michael tester,OU=Users,OU=e2e,DC=astra-example,DC=com |
++--------------------------------------+---------------------+---------------+------------+----------------+-----------------------------------------------------------+
 ```
 
 ## Namespaces

@@ -138,3 +138,11 @@ def main(args, parser, ard):
                             raise SystemExit("astraSDK.credentials.destroyCredential() failed")
         else:
             raise SystemExit("astraSDK.clusters.unmanageCloud() failed")
+    elif args.objectType == "ldap":
+        ard.settings = astraSDK.settings.getSettings().main()
+        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap", parser)
+        rc = astraSDK.settings.unmanageLdap(quiet=args.quiet, verbose=args.verbose).main(
+            ldapSetting["id"], ldapSetting["currentConfig"]
+        )
+        if rc is False:
+            raise SystemExit("astraSDK.settings.unmanageLdap() failed")

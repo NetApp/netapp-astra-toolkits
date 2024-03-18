@@ -84,7 +84,7 @@ class ToolkitParser:
             default=False,
             action="store_true",
             help="If specified, the server's certificate will not be checked for validity (this "
-                 "will make your HTTPS connections insecure)",
+            "will make your HTTPS connections insecure)",
         )
         self.acl = acl
         self.plaidMode = plaidMode
@@ -223,6 +223,7 @@ class ToolkitParser:
             aliases=["secrets"],
             help="list credentials",
         )
+        self.subparserListGroups = self.subparserList.add_parser("groups", help="list groups")
         self.subparserListHooks = self.subparserList.add_parser(
             "hooks",
             aliases=["exechooks"],
@@ -237,6 +238,12 @@ class ToolkitParser:
                 aliases=["inplacerestores"],
                 help="list backup and snapshot in-place-restores",
             )
+        self.subparserListLdapgroups = self.subparserList.add_parser(
+            "ldapgroups", help="queries a connected LDAP(S) server and lists available groups"
+        )
+        self.subparserListLdapusers = self.subparserList.add_parser(
+            "ldapusers", help="queries a connected LDAP(S) server and lists available users"
+        )
         self.subparserListNamespaces = self.subparserList.add_parser(
             "namespaces",
             help="list namespaces",
@@ -301,10 +308,17 @@ class ToolkitParser:
         self.subparserCreateCluster = self.subparserCreate.add_parser(
             "cluster", help="create cluster (upload a K8s cluster kubeconfig to then manage)"
         )
+        self.subparserCreateGroup = self.subparserCreate.add_parser(
+            "group", help="create a remote group (requires LDAP)"
+        )
         self.subparserCreateHook = self.subparserCreate.add_parser(
             "hook",
             aliases=["exechook"],
             help="create execution hook",
+        )
+        self.subparserCreateLdap = self.subparserCreate.add_parser(
+            "ldap",
+            help="create an LDAP(S) server connection for remote authentication",
         )
         self.subparserCreateProtection = self.subparserCreate.add_parser(
             "protection",
@@ -348,6 +362,10 @@ class ToolkitParser:
             "cluster",
             help="manage cluster",
         )
+        self.subparserManageLdap = self.subparserManage.add_parser(
+            "ldap",
+            help="manage (enable) an existing LDAP(S) server connection",
+        )
 
     def sub_destroy_commands(self):
         """destroy 'X'"""
@@ -364,10 +382,18 @@ class ToolkitParser:
             aliases=["secret"],
             help="destroy credential",
         )
+        self.subparserDestroyGroup = self.subparserDestroy.add_parser(
+            "group",
+            help="destroy group",
+        )
         self.subparserDestroyHook = self.subparserDestroy.add_parser(
             "hook",
             aliases=["exechook"],
             help="destroy execution hook",
+        )
+        self.subparserDestroyLdap = self.subparserDestroy.add_parser(
+            "ldap",
+            help="destroy (disconnect) an LDAP(S) server",
         )
         self.subparserDestroyProtection = self.subparserDestroy.add_parser(
             "protection",
@@ -410,6 +436,10 @@ class ToolkitParser:
         self.subparserUnmanageCluster = self.subparserUnmanage.add_parser(
             "cluster",
             help="unmanage cluster",
+        )
+        self.subparserUnmanageLdap = self.subparserUnmanage.add_parser(
+            "ldap",
+            help="unmanage (disable) an LDAP(S) server",
         )
 
     def sub_update_commands(self):
@@ -823,6 +853,90 @@ class ToolkitParser:
                 "-a", "--app", default=None, help="Only show in-place-restores of this app"
             )
 
+    def list_ldapgroups_args(self):
+        """list LDAP groups args and flags"""
+        self.subparserListLdapgroups.add_argument(
+            "-l",
+            "--limit",
+            default=25,
+            type=int,
+            help="limit the response to X entries (default: %(default)s)",
+        )
+        self.subparserListLdapgroups.add_argument(
+            "--continue",
+            dest="cont",
+            default=None,
+            help="token to specify where in a list of resources to continue from",
+        )
+        groupFilterGroup = self.subparserListLdapgroups.add_argument_group(
+            title="filters",
+            description="filter LDAP groups to minimize response (multiple filters use "
+            "logical AND)",
+        )
+        groupFilterGroup.add_argument(
+            "--matchType",
+            choices=["partial", "exact"],
+            default="partial",
+            help="whether to use partial (in) match, or exact (eq) match (default: %(default)s)",
+        )
+        groupFilterGroup.add_argument(
+            "--cnFilter",
+            default=None,
+            help="filter LDAP groups by common name",
+        )
+        groupFilterGroup.add_argument(
+            "--dnFilter",
+            default=None,
+            help="filter LDAP groups by distinguished name",
+        )
+
+    def list_ldapusers_args(self):
+        """list LDAP users args and flags"""
+        self.subparserListLdapusers.add_argument(
+            "-l",
+            "--limit",
+            default=25,
+            type=int,
+            help="limit the response to X entries (default: %(default)s)",
+        )
+        self.subparserListLdapusers.add_argument(
+            "--continue",
+            dest="cont",
+            default=None,
+            help="token to specify where in a list of resources to continue from",
+        )
+        userFilterGroup = self.subparserListLdapusers.add_argument_group(
+            title="filters",
+            description="filter LDAP users to minimize response (multiple filters use logical AND)",
+        )
+        userFilterGroup.add_argument(
+            "--matchType",
+            choices=["partial", "exact"],
+            default="partial",
+            help="whether to use partial (in) match, or exact (eq) match (default: %(default)s)",
+        )
+        userFilterGroup.add_argument(
+            "--cnFilter",
+            default=None,
+            help="filter LDAP users by common name",
+        )
+        userFilterGroup.add_argument(
+            "-e",
+            "--emailFilter",
+            default=None,
+            help="filter LDAP users by email address",
+        )
+        userFilterGroup.add_argument(
+            "--firstNameFilter",
+            default=None,
+            help="filter LDAP users by first name",
+        )
+        userFilterGroup.add_argument(
+            "--lastNameFilter",
+            default=None,
+            help="filter LDAP users by last name",
+        )
+
     def list_namespaces_args(self):
         """list namespaces args and flags"""
         if not self.v3:
@@ -1069,6 +1183,36 @@ class ToolkitParser:
             "(can obtained from the Astra Connector)",
         )
 
+    def create_group_args(self):
+        """create remote group args and flags"""
+        self.subparserCreateGroup.add_argument(
+            "dn", help="The distinguished name of the group to add"
+        )
+        self.subparserCreateGroup.add_argument(
+            "role", choices=["viewer", "member", "admin", "owner"], help="The group's role"
+        )
+        constraintGroup = self.subparserCreateGroup.add_argument_group(
+            "constraintGroup", "optional group constraints"
+        )
+        constraintGroup.add_argument(
+            "-a",
+            "--labelConstraint",
+            default=None,
+            choices=(None if self.plaidMode else self.acl.labels),
+            nargs="*",
+            action="append",
+            help="Restrict group role to label constraints",
+        )
+        constraintGroup.add_argument(
+            "-n",
+            "--namespaceConstraint",
+            default=None,
+            choices=(None if self.plaidMode else self.acl.namespaces),
+            nargs="*",
+            action="append",
+            help="Restrict group role to namespace constraints",
+        )
+
     def create_hook_args(self):
         """create hooks args and flags"""
         self.subparserCreateHook.add_argument(
@@ -1163,6 +1307,55 @@ class ToolkitParser:
             action="append",
             nargs="*",
             help="regex filter for container names",
+        )
+
+    def create_ldap_args(self):
+        """create LDAP(S) server connection args and flags"""
+        self.subparserCreateLdap.add_argument("url", help="the LDAP(S) server URL or IP address")
+        self.subparserCreateLdap.add_argument("port", type=int, help="the LDAP(S) server port")
+        self.subparserCreateLdap.add_argument(
+            "--secure",
+            default=False,
+            action="store_true",
+            help="use LDAPS instead of LDAP",
+        )
+        saGroup = self.subparserCreateLdap.add_argument_group(
+            "serviceAccountGroup", "the service account credentials in email format"
+        )
+        saGroup.add_argument(
+            "-u",
+            "--username",
+            help="the username (in email format) of the service account (required)",
+            required=True,
+        )
+        saGroup.add_argument(
+            "-p", "--password", help="the password of the service account (required)", required=True
+        )
+        umGroup = self.subparserCreateLdap.add_argument_group(
+            "userMatchGroup", "the user match settings"
+        )
+        umGroup.add_argument(
+            "--userBaseDN", help="the user search base DN (required)", required=True
+        )
+        umGroup.add_argument(
+            "--userSearchFilter",
+            default="(objectClass=Person)",
+            help="the user search filter, default: %(default)s",
+        )
+        umGroup.add_argument(
+            "--userLoginAttribute",
+            default="mail",
+            choices=["mail", "userPrincipalName"],
+            help="the user login attribute, default: %(default)s",
+        )
+        gmGroup = self.subparserCreateLdap.add_argument_group(
+            "groupMatchGroup", "the group match settings"
+        )
+        gmGroup.add_argument(
+            "--groupBaseDN", help="the group search base DN (required)", required=True
+        )
+        gmGroup.add_argument(
+            "--groupSearchFilter", default=None, help="the group search filter (optional)"
         )
 
     def create_protection_args(self):
@@ -1361,12 +1554,6 @@ class ToolkitParser:
             "role", choices=["viewer", "member", "admin", "owner"], help="The user's role"
         )
         self.subparserCreateUser.add_argument(
-            "-p",
-            "--tempPassword",
-            default=None,
-            help="The temporary password for the user (ACC-only)",
-        )
-        self.subparserCreateUser.add_argument(
             "-f",
             "--firstName",
             default=None,
@@ -1375,7 +1562,24 @@ class ToolkitParser:
         self.subparserCreateUser.add_argument(
             "-l", "--lastName", default=None, help="The user's last name"
         )
-        self.subparserCreateUser.add_argument(
+        accGroup = self.subparserCreateUser.add_argument_group("accGroup", "ACC-only options")
+        accMEGroup = accGroup.add_mutually_exclusive_group()
+        accMEGroup.add_argument(
+            "-p",
+            "--tempPassword",
+            default=None,
+            help="The temporary password for the user (local users only)",
+        )
+        accMEGroup.add_argument(
+            "--ldap",
+            default=False,
+            action="store_true",
+            help="specify to add an LDAP-based user",
+        )
+        constraintGroup = self.subparserCreateUser.add_argument_group(
+            "constraintGroup", "optional user constraints"
+        )
+        constraintGroup.add_argument(
             "-a",
             "--labelConstraint",
             default=None,
@@ -1384,7 +1588,7 @@ class ToolkitParser:
             action="append",
             help="Restrict user role to label constraints",
         )
-        self.subparserCreateUser.add_argument(
+        constraintGroup.add_argument(
             "-n",
             "--namespaceConstraint",
             default=None,
@@ -1628,6 +1832,14 @@ class ToolkitParser:
             help="credential to destroy",
         )
 
+    def destroy_group_args(self):
+        """destroy group args and flags"""
+        self.subparserDestroyGroup.add_argument(
+            "groupID",
+            choices=(None if self.plaidMode else self.acl.groups),
+            help="groupID to destroy",
+        )
+
     def destroy_hook_args(self):
         """destroy hook args and flags"""
         self.subparserDestroyHook.add_argument(
@@ -1867,6 +2079,8 @@ class ToolkitParser:
         self.list_clusters_args()
         self.list_credentials_args()
         self.list_hooks_args()
+        self.list_ldapgroups_args()
+        self.list_ldapusers_args()
         self.list_hooksruns_args()
         self.list_iprs_args()
         self.list_namespaces_args()
@@ -1885,7 +2099,9 @@ class ToolkitParser:
 
         self.create_backup_args()
         self.create_cluster_args()
+        self.create_group_args()
         self.create_hook_args()
+        self.create_ldap_args()
         self.create_protection_args()
         self.create_replication_args()
         self.create_script_args()
@@ -1900,6 +2116,7 @@ class ToolkitParser:
         self.destroy_backup_args()
         self.destroy_cluster_args()
         self.destroy_credential_args()
+        self.destroy_group_args()
         self.destroy_hook_args()
         self.destroy_protection_args()
         self.destroy_replication_args()

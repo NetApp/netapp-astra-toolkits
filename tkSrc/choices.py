@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -207,7 +207,7 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False):
                 rc = astraSDK.clouds.manageCloud(quiet=True).main("private", "private")
                 if rc:
                     acl.clouds.append(rc["id"])
-        elif argv[verbPosition + 1] == "user":
+        elif argv[verbPosition + 1] == "user" or argv[verbPosition + 1] == "group":
             ard.namespaces = astraSDK.namespaces.getNamespaces().main()
             for namespace in ard.namespaces["items"]:
                 acl.namespaces.append(namespace["id"])
@@ -344,6 +344,9 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False):
             else:
                 ard.credentials = astraSDK.credentials.getCredentials().main()
                 acl.credentials = ard.buildList("credentials", "id")
+        elif argv[verbPosition + 1] == "group" and len(argv) - verbPosition >= 3:
+            ard.groups = astraSDK.groups.getGroups().main()
+            acl.groups = ard.buildList("groups", "id")
         elif (argv[verbPosition + 1] == "hook" or argv[verbPosition + 1] == "exechook") and len(
             argv
         ) - verbPosition >= 3:

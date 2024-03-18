@@ -324,6 +324,12 @@ def main(args):
             ).main(kubeconfigOnly=args.kubeconfigOnly)
             if rc is False:
                 raise SystemExit("astraSDK.credentials.getCredentials() failed")
+    elif args.objectType == "groups":
+        rc = astraSDK.groups.getGroups(
+            quiet=args.quiet, verbose=args.verbose, output=args.output
+        ).main()
+        if rc is False:
+            raise SystemExit("astraSDK.groups.getGroups() failed")
     elif args.objectType == "hooks" or args.objectType == "exechooks":
         if args.v3:
             listV3Hooks(
@@ -359,6 +365,28 @@ def main(args):
             args.verbose,
             skip_tls_verify=args.skip_tls_verify,
             app=args.app,
+        )
+    elif args.objectType == "ldapgroups":
+        rc = astraSDK.groups.getLdapGroups(
+            quiet=args.quiet, verbose=args.verbose, output=args.output
+        ).main(
+            cnFilter=args.cnFilter,
+            dnFilter=args.dnFilter,
+            limit=args.limit,
+            cont=args.cont,
+            matchType=("in" if args.matchType == "partial" else "eq"),
+        )
+    elif args.objectType == "ldapusers":
+        rc = astraSDK.users.getLdapUsers(
+            quiet=args.quiet, verbose=args.verbose, output=args.output
+        ).main(
+            emailFilter=args.emailFilter,
+            firstNameFilter=args.firstNameFilter,
+            lastNameFilter=args.lastNameFilter,
+            cnFilter=args.cnFilter,
+            limit=args.limit,
+            cont=args.cont,
+            matchType=("in" if args.matchType == "partial" else "eq"),
         )
     elif args.objectType == "protections" or args.objectType == "schedules":
         if args.v3:

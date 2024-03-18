@@ -428,3 +428,11 @@ def main(args, parser, ard):
         )
         if rc is False:
             raise SystemExit("astraSDK.clouds.manageCloud() failed")
+    elif args.objectType == "ldap":
+        ard.settings = astraSDK.settings.getSettings().main()
+        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap", parser)
+        rc = astraSDK.settings.manageLdap(quiet=args.quiet, verbose=args.verbose).main(
+            ldapSetting["id"], ldapSetting["currentConfig"]
+        )
+        if rc is False:
+            raise SystemExit("astraSDK.settings.manageLdap() failed")

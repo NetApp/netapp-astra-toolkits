@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -62,6 +62,22 @@ def main(args, parser, ard):
                 print(f"Credential {args.credential} destroyed")
             else:
                 raise SystemExit(f"Failed destroying credential: {args.credential}")
+    elif args.objectType == "group":
+        if ard.needsattr("rolebindings"):
+            ard.rolebindings = astraSDK.rolebindings.getRolebindings().main()
+        rb = ard.getSingleDict("rolebindings", "groupID", args.groupID, parser)
+        if astraSDK.rolebindings.destroyRolebinding(quiet=args.quiet, verbose=args.verbose).main(
+            rb["id"]
+        ):
+            print(f"RoleBinding {rb['id']} destroyed")
+            if astraSDK.groups.destroyGroup(quiet=args.quiet, verbose=args.verbose).main(
+                args.groupID
+            ):
+                print(f"Group {args.groupID} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying group {args.groupID}")
+        else:
+            raise SystemExit(f"Failed destroying group {args.groupID} with roleBinding {rb['id']}")
     elif args.objectType == "hook" or args.objectType == "exechook":
         if args.v3:
             rc = astraSDK.k8s.destroyResource(
@@ -79,6 +95,25 @@ def main(args, parser, ard):
                 print(f"Hook {args.hook} destroyed")
             else:
                 raise SystemExit(f"Failed destroying hook: {args.hook}")
+    elif args.objectType == "ldap":
+        ard.settings = astraSDK.settings.getSettings().main()
+        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap", parser)
+        if astraSDK.settings.destroyLdap(quiet=args.quiet, verbose=args.verbose).main(
+            ldapSetting["id"]
+        ):
+            if ldapSetting["currentConfig"].get("credentialId"):
+                rc = astraSDK.credentials.destroyCredential(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(ldapSetting["currentConfig"]["credentialId"])
+                if rc:
+                    print(f"Credential {ldapSetting['currentConfig']['credentialId']} destroyed")
+                else:
+                    raise SystemExit(
+                        "Failed destroying credential: "
+                        f"{ldapSetting['currentConfig']['credentialId']}"
+                    )
+        else:
+            raise SystemExit(f"Failed destroying ldap: {ldapSetting['id']}")
     elif args.objectType == "protection" or args.objectType == "schedule":
         if args.v3:
             rc = astraSDK.k8s.destroyResource(
@@ -153,20 +188,23 @@ def main(args, parser, ard):
             else:
                 raise SystemExit(f"Failed destroying snapshot: {args.snapshot}")
     elif args.objectType == "user":
-        userDestroyed = False
-        roleBindings = astraSDK.rolebindings.getRolebindings().main()
-        for rb in roleBindings["items"]:
-            if rb["userID"] == args.userID:
-                rc = astraSDK.rolebindings.destroyRolebinding(
-                    quiet=args.quiet, verbose=args.verbose
-                ).main(rb["id"])
-                if rc:
-                    print(f"User {args.userID} / roleBinding {rb['id']} destroyed")
-                    userDestroyed = True
-                else:
-                    raise SystemExit(
-                        f"Failed destroying user {args.userID} with roleBinding {rb['id']}"
-                    )
-        if not userDestroyed:
-            # If we reached this point, it's due to plaidMode == True and bad userID
-            parser.error(f"userID {args.userID} not found")
+        if ard.needsattr("users"):
+            ard.users = astraSDK.users.getUsers().main()
+        if ard.needsattr("rolebindings"):
+            ard.rolebindings = astraSDK.rolebindings.getRolebindings().main()
+        user = ard.getSingleDict("users", "id", args.userID, parser)
+        rb = ard.getSingleDict("rolebindings", "userID", args.userID, parser)
+        if astraSDK.rolebindings.destroyRolebinding(quiet=args.quiet, verbose=args.verbose).main(
+            rb["id"]
+        ):
+            print(f"RoleBinding {rb['id']} destroyed")
+        else:
+            raise SystemExit(f"Failed destroying user {args.userID} with roleBinding {rb['id']}")
+        # Only LDAP users also need to be destroyed
+        if user["authProvider"] == "ldap":
+            if astraSDK.users.destroyUser(quiet=args.quiet, verbose=args.verbose).main(args.userID):
+                print(f"User {args.userID} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying user {args.userID}")
+        else:
+            print(f"User {args.userID} destroyed")

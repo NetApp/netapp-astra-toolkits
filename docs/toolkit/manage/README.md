@@ -6,22 +6,24 @@ The `manage` argument allows you to manage resources that live outside of Astra 
 * [Bucket](#bucket)
 * [Cloud](#cloud)
 * [Cluster](#cluster)
+* [LDAP](#ldap)
 
 It's opposite command is [unmanage](../unmanage/README.md).  **Manage** and **unmanage** are similar to [create](../create/README.md) and [destroy](../destroy/README.md), however create/destroy objects live entirely within Astra Control, while manage/unmanage objects do not.  If you create and then destroy a [snapshot](../create/README.md#snapshot), it is gone forever.  However if you manage and then unmanage a cluster, the cluster still exists to re-manage again.
 
 ```text
 $ actoolkit manage -h
-usage: actoolkit manage [-h] {app,bucket,cloud,cluster} ...
+usage: actoolkit manage [-h] {app,application,bucket,appVault,cloud,cluster,ldap} ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {app,bucket,cloud,cluster}
-    app                 manage app
-    bucket              manage bucket
+  {app,application,bucket,appVault,cloud,cluster,ldap}
+    app (application)   manage app
+    bucket (appVault)   manage bucket (appVault in v3 context)
     cloud               manage cloud
     cluster             manage cluster
+    ldap                manage (enable) an existing LDAP(S) server connection
 ```
 
 ## App
@@ -212,4 +214,21 @@ $ actoolkit manage cluster 062728da-ef0c-4dc2-83f9-bedb07c30511
 $ actoolkit manage cluster 80d6bef8-300c-44bd-9e36-04ef874bdc29 \
     -s ba6d5a64-a321-4fd7-9842-9adce829229a
 {"type": "application/astra-managedCluster", "version": "1.1", "id": "80d6bef8-300c-44bd-9e36-04ef874bdc29", "name": "aks-eastus-cluster", "state": "pending", "stateUnready": [], "managedState": "managed", "managedStateUnready": [], "managedTimestamp": "2022-05-19T20:33:59Z", "inUse": "false", "clusterType": "aks", "clusterVersion": "1.22", "clusterVersionString": "v1.22.6", "clusterCreationTimestamp": "0001-01-01T00:00:00Z", "namespaces": [], "defaultStorageClass": "ba6d5a64-a321-4fd7-9842-9adce829229a", "cloudID": "7b8d4252-293c-4c70-b101-7fd6b7d08e15", "credentialID": "04c067b2-df55-4d9c-8a3a-c869a779c276", "location": "eastus", "isMultizonal": "false", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/hasNonTridentCSIDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/hasTridentDriverSupport", "value": "true"}, {"name": "astra.netapp.io/labels/read-only/azure/subscriptionID", "value": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxa2935"}, {"name": "astra.netapp.io/labels/read-only/cloudName", "value": "Azure"}], "creationTimestamp": "2022-05-19T20:33:59Z", "modificationTimestamp": "2022-05-19T20:34:03Z", "createdBy": "system"`
+```
+
+## LDAP
+
+The `manage ldap` command takes a previously [unmanaged LDAP server](../unmanage/README.md#ldap) and re-enables it. If you're looking to set up an entirely new connection to an LDAP server, please see the [create LDAP](../create/README.md#ldap) command.
+
+This command does not take any arguments:
+
+```text
+actoolkit manage ldap
+```
+
+Here's an example of the output:
+
+```text
+$ actoolkit manage ldap
+{"type": "application/astra-setting", "version": "1.1", "metadata": {"creationTimestamp": "2024-03-11T13:39:50Z", "modificationTimestamp": "2024-03-15T20:00:53Z", "labels": [], "createdBy": "00000000-0000-0000-0000-000000000000", "modifiedBy": "a33e249d-45c4-4f33-8483-a8b0b5b1236d"}, "id": "32267c96-5da8-4174-bd59-1a4674aab7bf", "name": "astra.account.ldap", "desiredConfig": {"connectionHost": "10.10.10.200", "credentialId": "136db44e-d4b9-4d2e-9823-1be89a629164", "groupBaseDN": "OU=e2e,DC=astra-example,DC=com", "isEnabled": "true", "loginAttribute": "mail", "port": 389, "secureMode": "LDAP", "userBaseDN": "OU=e2e,DC=astra-example,DC=com", "userSearchFilter": "(objectClass=Person)", "vendor": "Active Directory"}, "currentConfig": {"connectionHost": "10.10.10.200", "credentialId": "136db44e-d4b9-4d2e-9823-1be89a629164", "groupBaseDN": "OU=e2e,DC=astra-example,DC=com", "isEnabled": "false", "loginAttribute": "mail", "port": 389, "secureMode": "LDAP", "userBaseDN": "OU=e2e,DC=astra-example,DC=com", "userSearchFilter": "(objectClass=Person)", "vendor": "Active Directory"}, "configSchema": {"$schema": "http://json-schema.org/draft-07/schema#", "title": "astra.account.ldap", "type": "object", "properties": {"connectionHost": {"type": "string", "description": "The hostname or IP address of your LDAP server."}, "credentialId": {"type": "string", "description": "The ID of the Astra credential containing the bind DN and credential."}, "groupBaseDN": {"type": "string", "description": "The base DN of the tree used to start the group search. The system searches the subtree from the specified location."}, "groupSearchCustomFilter": {"type": "string", "description": "A custom LDAP filter to use to search for groups"}, "isEnabled": {"type": "string", "description": "This property determines if this setting is enabled or not."}, "loginAttribute": {"type": "string", "description": "The LDAP attribute to be used to map to user email. Only mail or userPrincipalName is allowed."}, "port": {"type": "integer", "description": "The port on which the LDAP server is listening."}, "secureMode": {"type": "string", "description": "The secure mode LDAPS or LDAP."}, "userBaseDN": {"type": "string", "description": "The base DN of the tree used to start the user search. The system searches the subtree from the specified location."}, "userSearchFilter": {"type": "string", "description": "The filter used to search for users according to a search criteria."}, "vendor": {"type": "string", "description": "The LDAP provider you are using.", "enum": ["Active Directory"]}}, "additionalProperties": false, "required": ["connectionHost", "secureMode", "credentialId", "userBaseDN", "userSearchFilter", "groupBaseDN", "vendor", "isEnabled"]}, "state": "pending", "stateUnready": []}
 ```
