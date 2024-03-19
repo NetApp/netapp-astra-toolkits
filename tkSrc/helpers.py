@@ -569,9 +569,13 @@ def swapAppVaultRef(sourceAppVaultRef, sourceCluster, destCluster, parser, skip_
         destAppVault = next(a for a in destAppVaults["items"] if a["status"]["uid"] == sourceUid)
         return destAppVault["metadata"]["name"]
     except StopIteration:
+        destAppVaultSum = [
+            {"name": d["metadata"]["name"], "uid": d["status"]["uid"]}
+            for d in destAppVaults["items"]
+        ]
         parser.error(
             f"An appVault with status.uid of '{sourceUid}' not found on the destination cluster,"
-            f"\n{destAppVaults=}"
+            f" destination app vaults: {destAppVaultSum}"
         )
     except KeyError as err:
         parser.error(f"{err} key not found in 'destAppVault' object,\n{destAppVaults=}")

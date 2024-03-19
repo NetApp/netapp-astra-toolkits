@@ -155,7 +155,7 @@ def deployHelm(
         backupRetention = "1"
         snapshotRetention = "1"
         minute = "0"
-        cpp = astraSDK.protections.createProtectionpolicy(quiet=True)
+        cpp = astraSDK.protections.createProtectionpolicy(quiet=quiet)
         cppData = {
             "hourly": {"dayOfWeek": "*", "dayOfMonth": "*", "hour": "*"},
             "daily": {"dayOfWeek": "*", "dayOfMonth": "*", "hour": "2"},
@@ -252,6 +252,8 @@ def main(args, parser, ard):
                 "--v3 and an optional context, kubeconfig_file, or context@kubeconfig_file mapping"
             )
     elif args.objectType == "chart":
+        if not hasattr(args, "bucket"):
+            args.bucket = None
         deployHelm(
             args.chart,
             helpers.isRFC1123(args.app, parser=parser),
