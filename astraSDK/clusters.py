@@ -275,8 +275,54 @@ class deleteCluster(SDKCommon):
 
         if ret.ok:
             if not self.quiet:
-                print("Cluster deleted")
+                print(f"Cluster {clusterID} destroyed")
             return True
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False
+
+
+class updateCluster(SDKCommon):
+    """This class updates a managed cluster, it is currently intended for updating the
+    or defaultBucketID of a cluster, but has been created in a way to allow other kinds of
+    updates in future versions."""
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["Content-Type"] = "application/astra-managedCluster+json"
+
+    def main(self, clusterID, defaultBucketID=None):
+        endpoint = f"topology/v1/managedClusters/{clusterID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-managedCluster",
+            "version": "1.6",
+        }
+        if defaultBucketID:
+            data["defaultBucketID"] = defaultBucketID
+
+        ret = super().apicall(
+            "put",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
         else:
             if not self.quiet:
                 super().printError(ret)

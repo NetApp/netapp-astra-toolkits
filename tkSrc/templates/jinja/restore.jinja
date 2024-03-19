@@ -1,0 +1,27 @@
+apiVersion: astra.netapp.io/v1
+kind: {{ kind }}Restore
+metadata:
+  generateName: {{ restoreName }}
+  namespace: astra-connector
+spec:
+  appArchivePath: {{ appArchivePath }}
+  appVaultRef: {{ appVaultRef }}
+  namespaceMapping:
+{{ namespaceMapping }}
+{%- if resourceFilter %}
+  resourceFilter:
+{{ resourceFilter }}{%- endif %}
+{%- if newStorageClass %}
+  storageClassMapping:
+    - destination: {{ newStorageClass }}
+      source: '*'
+{%- endif %}
+...
+---
+apiVersion: astra.netapp.io/v1
+kind: Application
+metadata:
+  name: {{ appName }}
+  namespace: astra-connector
+spec:
+{{ appSpec }}

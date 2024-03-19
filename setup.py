@@ -9,17 +9,18 @@ with open("requirements.txt", "r") as req:
 
 setuptools.setup(
     name="actoolkit",
-    py_modules=["toolkit", "tkParser", "tkHelpers", "astraSDK"],
+    py_modules=["toolkit"],
+    packages=["astraSDK", "tkSrc", "tkSrc.templates.jinja"],
+    include_package_data=True,
     use_scm_version=True,
-    setup_requires=['setuptools_scm'],
+    setup_requires=["setuptools_scm"],
+    install_requires=all_reqs,
     author="Michael Haigh",
     author_email="Michael.Haigh@netapp.com",
     description="Toolkit and SDK for interacting with Astra Control",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/NetApp/netapp-astra-toolkits",
-    packages=setuptools.find_packages(),
-    install_requires=all_reqs,
     python_requires=">=3.8",
     entry_points={
         "console_scripts": [

@@ -1,0 +1,17 @@
+apiVersion: astra.netapp.io/v1
+kind: ExecHook
+metadata:
+  name: {{ name }}
+  namespace: astra-connector
+spec:
+  action: {{ action }}
+  applicationRef: {{ appName }}
+{%- if arguments %}
+  arguments:
+{{ arguments }}{% endif %}
+  enabled: true
+{%- if matchingCriteria %}
+  hookSource: {{ hookSource }}
+  matchingCriteria:
+{{ matchingCriteria }}{% endif %}
+  stage: {{ stage }}

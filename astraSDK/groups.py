@@ -15,9 +15,9 @@
    limitations under the License.
 """
 
+import copy
 import yaml
 import json
-import copy
 
 from .common import SDKCommon
 
@@ -26,8 +26,8 @@ YELLOW = "\033[33m"
 ENDC = "\033[0m"
 
 
-class getUsers(SDKCommon):
-    """Get all the users in Astra Control"""
+class getGroups(SDKCommon):
+    """Get all the groups in Astra Control"""
 
     def __init__(self, quiet=True, verbose=False, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -41,7 +41,7 @@ class getUsers(SDKCommon):
         super().__init__()
 
     def main(self, nameFilter=None):
-        endpoint = "core/v1/users"
+        endpoint = "core/v1/groups"
         url = self.base + endpoint
 
         data = {}
@@ -59,29 +59,17 @@ class getUsers(SDKCommon):
         )
 
         if ret.ok:
-            users = super().jsonifyResults(ret)
-            # Add custom fullName entry
-            for user in users["items"]:
-                if not user.get("fullName"):
-                    user["fullName"] = user.get("firstName") + " " + user.get("lastName")
-            usersCooked = copy.deepcopy(users)
-            if nameFilter:
-                for counter, user in enumerate(users.get("items")):
-                    if (
-                        nameFilter.lower() not in user.get("firstName").lower()
-                        and nameFilter.lower() not in user.get("lastName").lower()
-                    ):
-                        usersCooked["items"].remove(users["items"][counter])
+            groups = super().jsonifyResults(ret)
 
             if self.output == "json":
-                dataReturn = usersCooked
+                dataReturn = groups
             elif self.output == "yaml":
-                dataReturn = yaml.dump(usersCooked)
+                dataReturn = yaml.dump(groups)
             elif self.output == "table":
                 dataReturn = self.basicTable(
-                    ["userID", "name", "email", "authProvider", "state"],
-                    ["id", "fullName", "email", "authProvider", "state"],
-                    usersCooked,
+                    ["groupID", "name", "authID", "authProvider"],
+                    ["id", "name", "authID", "authProvider"],
+                    groups,
                 )
             if not self.quiet:
                 print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
@@ -93,10 +81,9 @@ class getUsers(SDKCommon):
             return False
 
 
-class createUser(SDKCommon):
-    """Create a user within the Astra Control account.  This class does not do argument
-    verification, please reference toolkit.py which has proper guardrails (primarily
-    around the differences between Astra Control Center and Service)."""
+class createGroup(SDKCommon):
+    """Create a group within the Astra Control account.  This class does not do argument
+    verification, please reference toolkit.py which has proper guardrails"""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -104,36 +91,23 @@ class createUser(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-user+json"
-        self.headers["Content-Type"] = "application/astra-user+json"
+        self.headers["accept"] = "application/astra-group+json"
+        self.headers["Content-Type"] = "application/astra-group+json"
 
     def main(
         self,
-        email,
-        firstName=None,
-        lastName=None,
-        companyName=None,
-        phone=None,
-        authProvider=None,
+        authID,
+        authProvider="ldap",
     ):
-        endpoint = "core/v1/users"
+        endpoint = "core/v1/groups"
         url = self.base + endpoint
         params = {}
         data = {
-            "type": "application/astra-user",
-            "version": "1.2",
-            "email": email,
+            "type": "application/astra-group",
+            "version": "1.1",
+            "authID": authID,
+            "authProvider": authProvider,
         }
-        if firstName:
-            data["firstName"] = firstName
-        if lastName:
-            data["lastName"] = lastName
-        if companyName:
-            data["companyName"] = companyName
-        if phone:
-            data["phone"] = phone
-        if authProvider:
-            data["authProvider"] = authProvider
 
         ret = super().apicall(
             "post",
@@ -157,8 +131,8 @@ class createUser(SDKCommon):
             return False
 
 
-class destroyUser(SDKCommon):
-    """Destroys a users (this class is only required to be called for LDAP-based users)"""
+class destroyGroup(SDKCommon):
+    """Destroys a group"""
 
     def __init__(self, quiet=True, verbose=False):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -166,16 +140,16 @@ class destroyUser(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         super().__init__()
-        self.headers["accept"] = "application/astra-user+json"
-        self.headers["Content-Type"] = "application/astra-user+json"
+        self.headers["accept"] = "application/astra-group+json"
+        self.headers["Content-Type"] = "application/astra-group+json"
 
-    def main(self, userID):
-        endpoint = f"core/v1/users/{userID}"
+    def main(self, groupID):
+        endpoint = f"core/v1/groups/{groupID}"
         url = self.base + endpoint
         params = {}
         data = {
-            "type": "application/astra-user",
-            "version": "1.2",
+            "type": "application/astra-group",
+            "version": "1.1",
         }
 
         ret = super().apicall(
@@ -197,8 +171,8 @@ class destroyUser(SDKCommon):
             return False
 
 
-class getLdapUsers(SDKCommon):
-    """Query LDAP for a list of users"""
+class getLdapGroups(SDKCommon):
+    """Query LDAP for a list of groups"""
 
     def __init__(self, quiet=True, verbose=False, output="json"):
         """quiet: Will there be CLI output or just return (datastructure)
@@ -213,29 +187,26 @@ class getLdapUsers(SDKCommon):
 
     def main(
         self,
-        emailFilter=None,
-        firstNameFilter=None,
-        lastNameFilter=None,
         cnFilter=None,
+        dnFilter=None,
         limit=25,
         cont=None,
         matchType="in",
     ):
-        endpoint = "core/v1/ldapUsers"
+        if matchType != "in" and matchType != "eq":
+            raise SystemError("matchType must be one of: in, eq")
+        endpoint = "core/v1/ldapGroups"
         url = self.base + endpoint
 
         data = {}
         params = {}
-        if emailFilter or firstNameFilter or lastNameFilter or cnFilter:
+        if cnFilter or dnFilter:
             params["filter"] = []
-            if emailFilter:
-                params["filter"].append(f"email {matchType} '{emailFilter}'")
-            if firstNameFilter:
-                params["filter"].append(f"firstName {matchType} '{firstNameFilter}'")
-            if lastNameFilter:
-                params["filter"].append(f"lastName {matchType} '{lastNameFilter}'")
+            # Group filters are non-intuitive with 'eq', so do 'in' and apply filters post-call
             if cnFilter:
-                params["filter"].append(f"cn {matchType} '{cnFilter}'")
+                params["filter"].append(f"cn in '{cnFilter}'")
+            if dnFilter:
+                params["filter"].append(f"dn in '{dnFilter}'")
         if limit and int(limit) != 0:
             params["limit"] = limit
         if cont:
@@ -253,22 +224,25 @@ class getLdapUsers(SDKCommon):
         )
 
         if ret.ok:
-            users = super().jsonifyResults(ret)
+            groups = super().jsonifyResults(ret)
+            if matchType == "eq":
+                groupsCopy = copy.deepcopy(groups)
+                for counter, g in enumerate(groupsCopy.get("items")):
+                    if cnFilter and cnFilter != g["cn"]:
+                        groups["items"].remove(groupsCopy["items"][counter])
+                    elif dnFilter and dnFilter != g["dn"]:
+                        groups["items"].remove(groupsCopy["items"][counter])
 
             if self.output == "json":
-                dataReturn = users
+                dataReturn = groups
             elif self.output == "yaml":
-                dataReturn = yaml.dump(users)
+                dataReturn = yaml.dump(groups)
             elif self.output == "table":
                 contStr = ""
-                if users["metadata"].get("continue"):
-                    contStr = f"\n{YELLOW}continue-token: {users['metadata']['continue']}{ENDC}"
+                if groups["metadata"].get("continue"):
+                    contStr = f"\n{YELLOW}continue-token: {groups['metadata']['continue']}{ENDC}"
                 dataReturn = (
-                    self.basicTable(
-                        ["ldapUserID", "email", "firstName", "lastName", "cn", "dn"],
-                        ["id", "email", "firstName", "lastName", "cn", "dn"],
-                        users,
-                    )
+                    self.basicTable(["ldapGroupID", "cn", "dn"], ["id", "cn", "dn"], groups)
                     + contStr
                 )
             if not self.quiet:

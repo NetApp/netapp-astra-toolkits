@@ -1,0 +1,21 @@
+apiVersion: astra.netapp.io/v1
+kind: Snapshot
+metadata:
+{%- if name %}
+  name: {{ name }}
+{%- elif generateName %}
+  generateName: {{ generateName }}
+{%- endif %}
+  namespace: astra-connector
+spec:
+  applicationRef: {{ appName }}
+  appVaultRef: {{ appVaultName }}
+{%- if reclaimPolicy %}
+  reclaimPolicy: {{ reclaimPolicy }}
+{%- endif %}
+{%- if createdTimeout %}
+  volumeSnapshotsCreatedTimeout: {{ createdTimeout }}m
+{%- endif %}
+{%- if readyToUseTimeout %}
+  volumeSnapshotsReadyToUseTimeout: {{ readyToUseTimeout }}m
+{%- endif %}

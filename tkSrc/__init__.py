@@ -16,14 +16,15 @@
 
 from . import classes
 from . import clone
+from . import choices
 from . import copy
 from . import create
 from . import deploy
 from . import destroy
 from . import helpers
+from . import ipr
 from . import list
 from . import manage
 from . import parser
-from . import restore
 from . import unmanage
 from . import update

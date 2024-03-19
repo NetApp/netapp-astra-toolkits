@@ -1,0 +1,15 @@
+apiVersion: astra.netapp.io/v1
+kind: Schedule
+metadata:
+  generateName: {{ name }}
+  namespace: astra-connector
+spec:
+  appVaultRef: {{ appVaultName }}
+  applicationRef: {{ appName }}
+  backupRetention: "{{ backupRetention }}"
+  dayOfMonth: "{{ dayOfMonth }}"
+  dayOfWeek: "{{ dayOfWeek }}"
+  granularity: {{ granularity }}
+  hour: "{{ hour }}"
+  minute: "{{ minute }}"
+  snapshotRetention: "{{ snapshotRetention }}"

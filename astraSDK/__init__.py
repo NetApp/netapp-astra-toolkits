@@ -1,5 +1,5 @@
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ from . import clusters
 from . import credentials
 from . import common
 from . import entitlements
+from . import groups
 from . import hooks
 from . import k8s
 from . import namespaces
@@ -31,6 +32,7 @@ from . import protections
 from . import replications
 from . import rolebindings
 from . import scripts
+from . import settings
 from . import snapshots
 from . import storagebackends
 from . import storageclasses

@@ -1,0 +1,23 @@
+apiVersion: astra.netapp.io/v1
+kind: AppVault
+metadata:
+  name: {{ bucketName }}
+  namespace: astra-connector
+spec:
+  providerType: {{ providerType }}
+  providerConfig:
+{%- if accountName %}
+    accountName: {{ accountName }}
+{%- endif %}
+    bucketName: {{ bucketName }}
+{%- if endpoint %}
+    endpoint: {{ endpoint }}
+{%- endif %}
+{%- if secure %}
+    secure: "{{ secure }}"
+{%- endif %}
+{%- if skipCertValidation %}
+    skipCertValidation: "{{ skipCertValidation }}"
+{%- endif %}
+  providerCredentials:
+{{ providerCredentials }}

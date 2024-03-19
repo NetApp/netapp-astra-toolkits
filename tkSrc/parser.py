@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import argparse
 class ToolkitParser:
     """Creates and returns an argparse parser for use in toolkit.py"""
 
-    def __init__(self, acl, plaidMode=False):
+    def __init__(self, acl, plaidMode=False, v3=False):
         """Creates the parser object and global arguments"""
         self.parser = argparse.ArgumentParser(allow_abbrev=True, prog="actoolkit")
         self.parser.add_argument(
@@ -49,8 +49,46 @@ class ToolkitParser:
             help="prioritize speed over validation (using this will not validate arguments, which "
             + "may have unintended consequences)",
         )
+        v3Group = self.parser.add_argument_group(
+            title="v3 group",
+            description="use CR-driven Kubernetes workflows rather than the Astra Control API",
+        )
+        if v3:
+            v3Group.add_argument(
+                "--v3",
+                action="store",
+                choices=(acl.contexts if v3 else None),
+                help="create a v3 CR directly on the Kubernetes cluster (defaults to current "
+                "context, but optionally specify a different context, kubeconfig_file, or "
+                "context@kubeconfig_file mapping)",
+            )
+        else:
+            v3Group.add_argument(
+                "--v3",
+                default=False,
+                action="store_true",
+                help="create a v3 CR directly on the Kubernetes cluster (defaults to current "
+                "context, but optionally specify a different context, kubeconfig_file, or "
+                "context@kubeconfig_file mapping)",
+            )
+        v3Group.add_argument(
+            "--dry-run",
+            default=False,
+            choices=["client", "server"],
+            help="client: output YAML to standard out; server: submit request without persisting "
+            "the resource",
+        )
+        v3Group.add_argument(
+            "--insecure-skip-tls-verify",
+            dest="skip_tls_verify",
+            default=False,
+            action="store_true",
+            help="If specified, the server's certificate will not be checked for validity (this "
+            "will make your HTTPS connections insecure)",
+        )
         self.acl = acl
         self.plaidMode = plaidMode
+        self.v3 = v3
 
     def top_level_commands(self):
         """Creates the top level arguments, such as list, create, destroy, etc.
@@ -64,11 +102,15 @@ class ToolkitParser:
         )
         self.parserClone = self.subparsers.add_parser(
             "clone",
-            help="Clone an app from a backup, snapshot, or running app (live clone)",
+            help="Live clone a running app to a new namespace",
         )
         self.parserRestore = self.subparsers.add_parser(
             "restore",
-            help="In-Place Restore (IPR) an app from a backup or snapshot",
+            help="Restore an app from a backup or snapshot to a new namespace",
+        )
+        self.parserIPR = self.subparsers.add_parser(
+            "ipr",
+            help="In-Place Restore an app (destructive action for app) from a backup or snapshot",
         )
         self.parserList = self.subparsers.add_parser(
             "list",
@@ -148,6 +190,7 @@ class ToolkitParser:
         )
         self.subparserListApps = self.subparserList.add_parser(
             "apps",
+            aliases=["applications"],
             help="list apps",
         )
         self.subparserListAssets = self.subparserList.add_parser(
@@ -160,6 +203,7 @@ class ToolkitParser:
         )
         self.subparserListBuckets = self.subparserList.add_parser(
             "buckets",
+            aliases=["appVaults"],
             help="list buckets",
         )
         self.subparserListClouds = self.subparserList.add_parser(
@@ -170,12 +214,35 @@ class ToolkitParser:
             "clusters",
             help="list clusters",
         )
+        if self.v3:
+            self.subparserListConnectors = self.subparserList.add_parser(
+                "connectors", aliases=["astraconnectors"], help="list astra connectors"
+            )
         self.subparserListCredentials = self.subparserList.add_parser(
             "credentials",
+            aliases=["secrets"],
             help="list credentials",
         )
+        self.subparserListGroups = self.subparserList.add_parser("groups", help="list groups")
         self.subparserListHooks = self.subparserList.add_parser(
-            "hooks", help="list hooks (executionHooks)"
+            "hooks",
+            aliases=["exechooks"],
+            help="list hooks (executionHooks)",
+        )
+        if self.v3:
+            self.subparserListHooksruns = self.subparserList.add_parser(
+                "hooksruns", aliases=["exechooksruns"], help="list exec hooks runs"
+            )
+            self.subparserListIprs = self.subparserList.add_parser(
+                "iprs",
+                aliases=["inplacerestores"],
+                help="list backup and snapshot in-place-restores",
+            )
+        self.subparserListLdapgroups = self.subparserList.add_parser(
+            "ldapgroups", help="queries a connected LDAP(S) server and lists available groups"
+        )
+        self.subparserListLdapusers = self.subparserList.add_parser(
+            "ldapusers", help="queries a connected LDAP(S) server and lists available users"
         )
         self.subparserListNamespaces = self.subparserList.add_parser(
             "namespaces",
@@ -187,12 +254,17 @@ class ToolkitParser:
         )
         self.subparserListProtections = self.subparserList.add_parser(
             "protections",
+            aliases=["schedules"],
             help="list protection policies",
         )
         self.subparserListReplications = self.subparserList.add_parser(
             "replications",
             help="list replication policies",
         )
+        if self.v3:
+            self.subparserListRestores = self.subparserList.add_parser(
+                "restores", help="list backup and snapshot restores"
+            )
         self.subparserListRolebindings = self.subparserList.add_parser(
             "rolebindings",
             help="list role bindings",
@@ -236,13 +308,21 @@ class ToolkitParser:
         self.subparserCreateCluster = self.subparserCreate.add_parser(
             "cluster", help="create cluster (upload a K8s cluster kubeconfig to then manage)"
         )
+        self.subparserCreateGroup = self.subparserCreate.add_parser(
+            "group", help="create a remote group (requires LDAP)"
+        )
         self.subparserCreateHook = self.subparserCreate.add_parser(
             "hook",
-            help="create hook (executionHook)",
+            aliases=["exechook"],
+            help="create execution hook",
+        )
+        self.subparserCreateLdap = self.subparserCreate.add_parser(
+            "ldap",
+            help="create an LDAP(S) server connection for remote authentication",
         )
         self.subparserCreateProtection = self.subparserCreate.add_parser(
             "protection",
-            aliases=["protectionpolicy"],
+            aliases=["schedule"],
             help="create protection policy",
         )
         self.subparserCreateReplication = self.subparserCreate.add_parser(
@@ -266,11 +346,13 @@ class ToolkitParser:
         """manage 'X'"""
         self.subparserManageApp = self.subparserManage.add_parser(
             "app",
+            aliases=["application"],
             help="manage app",
         )
         self.subparserManageBucket = self.subparserManage.add_parser(
             "bucket",
-            help="manage bucket",
+            aliases=["appVault"],
+            help="manage bucket (appVault in v3 context)",
         )
         self.subparserManageCloud = self.subparserManage.add_parser(
             "cloud",
@@ -280,6 +362,10 @@ class ToolkitParser:
             "cluster",
             help="manage cluster",
         )
+        self.subparserManageLdap = self.subparserManage.add_parser(
+            "ldap",
+            help="manage (enable) an existing LDAP(S) server connection",
+        )
 
     def sub_destroy_commands(self):
         """destroy 'X'"""
@@ -287,16 +373,31 @@ class ToolkitParser:
             "backup",
             help="destroy backup",
         )
+        self.subparserDestroyCluster = self.subparserDestroy.add_parser(
+            "cluster",
+            help="destroy cluster",
+        )
         self.subparserDestroyCredential = self.subparserDestroy.add_parser(
             "credential",
+            aliases=["secret"],
             help="destroy credential",
+        )
+        self.subparserDestroyGroup = self.subparserDestroy.add_parser(
+            "group",
+            help="destroy group",
         )
         self.subparserDestroyHook = self.subparserDestroy.add_parser(
             "hook",
-            help="destroy hook (executionHook)",
+            aliases=["exechook"],
+            help="destroy execution hook",
+        )
+        self.subparserDestroyLdap = self.subparserDestroy.add_parser(
+            "ldap",
+            help="destroy (disconnect) an LDAP(S) server",
         )
         self.subparserDestroyProtection = self.subparserDestroy.add_parser(
             "protection",
+            aliases=["schedule"],
             help="destroy protection policy",
         )
         self.subparserDestroyReplication = self.subparserDestroy.add_parser(
@@ -320,10 +421,12 @@ class ToolkitParser:
         """unmanage 'X'"""
         self.subparserUnmanageApp = self.subparserUnmanage.add_parser(
             "app",
+            aliases=["application"],
             help="unmanage app",
         )
         self.subparserUnmanageBucket = self.subparserUnmanage.add_parser(
             "bucket",
+            aliases=["appVault"],
             help="unmanage bucket",
         )
         self.subparserUnmanageCloud = self.subparserUnmanage.add_parser(
@@ -333,6 +436,10 @@ class ToolkitParser:
         self.subparserUnmanageCluster = self.subparserUnmanage.add_parser(
             "cluster",
             help="unmanage cluster",
+        )
+        self.subparserUnmanageLdap = self.subparserUnmanage.add_parser(
+            "ldap",
+            help="unmanage (disable) an LDAP(S) server",
         )
 
     def sub_update_commands(self):
@@ -359,36 +466,39 @@ class ToolkitParser:
         )
 
     def clone_args(self):
-        """clone args and flags"""
+        """live clone args and flags"""
         self.parserClone.add_argument(
-            "-b",
-            "--background",
-            default=False,
-            action="store_true",
-            help="Run clone operation in the background",
+            "sourceApp",
+            choices=(None if self.plaidMode else self.acl.apps),
+            help="Source app to live clone",
         )
-        self.parserClone.add_argument(
-            "--cloneAppName",
+        self.parserClone.add_argument("appName", help="The logical name of the new app")
+        if self.v3:
+            self.parserClone.add_argument(
+                "cluster",
+                help="Cluster to live clone into (can be same as source), specify any context, "
+                "kubeconfig_file, or context@kubeconfig_file mapping, or 'None' for current "
+                "system default",
+            )
+        else:
+            self.parserClone.add_argument(
+                "cluster",
+                choices=(None if self.plaidMode else self.acl.destClusters),
+                help="Cluster to clone into (can be same as source)",
+            )
+        namespaceGroup = self.parserClone.add_argument_group(
+            title="new namespace group",
+            description="the namespace(s) to clone the app into (mutually exclusive)",
+        )
+        namespaceME = namespaceGroup.add_mutually_exclusive_group()
+        namespaceME.add_argument(
+            "--newNamespace",
             required=False,
             default=None,
-            help="Clone app name",
+            help="For single-namespace apps, specify the new namespace name (if not"
+            + " specified the 'appName' field is used)",
         )
-        self.parserClone.add_argument(
-            "--clusterID",
-            choices=(None if self.plaidMode else self.acl.destClusters),
-            required=False,
-            default=None,
-            help="Cluster to clone into (can be same as source)",
-        )
-        nsGroup = self.parserClone.add_mutually_exclusive_group()
-        nsGroup.add_argument(
-            "--cloneNamespace",
-            required=False,
-            default=None,
-            help="For single-namespace apps, specify the clone namespace name (if not"
-            + " specified cloneAppName is used)",
-        )
-        nsGroup.add_argument(
+        namespaceME.add_argument(
             "--multiNsMapping",
             required=False,
             default=None,
@@ -397,96 +507,78 @@ class ToolkitParser:
             help="For multi-namespace apps, specify matching number of sourcens1=destns1 mappings",
         )
         self.parserClone.add_argument(
-            "--cloneStorageClass",
+            "--newStorageClass",
             choices=(None if self.plaidMode else self.acl.storageClasses),
             required=False,
             default=None,
-            help="Optionally specify a different storage class for the clone",
+            help="Optionally specify a different storage class for the new app",
         )
-        sourceGroup = self.parserClone.add_mutually_exclusive_group(required=True)
-        sourceGroup.add_argument(
-            "--backupID",
-            choices=(None if self.plaidMode else self.acl.backups),
-            required=False,
-            default=None,
-            help="Source backup to clone from",
-        )
-        sourceGroup.add_argument(
-            "--snapshotID",
-            choices=(None if self.plaidMode else self.acl.snapshots),
-            required=False,
-            default=None,
-            help="Source snapshot to clone from",
-        )
-        sourceGroup.add_argument(
-            "--sourceAppID",
-            choices=(None if self.plaidMode else self.acl.apps),
-            required=False,
-            default=None,
-            help="Source app to live clone",
-        )
-        self.parserClone.add_argument(
-            "-t",
-            "--pollTimer",
-            type=int,
-            default=5,
-            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
-        )
-        filterGroup = self.parserClone.add_argument_group(
-            title="filter group", description="optionally clone a subset of resources via filters"
-        )
-        filterGroup.add_argument(
-            "--filterSelection",
-            choices=["include", "exclude"],
-            default=None,
-            help="How the resource filter(s) select resources",
-        )
-        filterGroup.add_argument(
-            "--filterSet",
-            default=None,
-            action="append",
-            nargs="*",
-            help=r"A comma separated set of key=value filter pairs, where 'key' is one of "
-            "['namespace', 'name', 'label', 'group', 'version', 'kind']. This argument can be "
-            "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
-            "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
-        )
+        if not self.v3:
+            pollingGroup = self.parserClone.add_argument_group(
+                title="polling group", description="optionally modify default polling mechanism"
+            )
+            pollingGroup.add_argument(
+                "-b",
+                "--background",
+                default=False,
+                action="store_true",
+                help="Run clone operation in the background instead of polling",
+            )
+            pollingGroup.add_argument(
+                "-t",
+                "--pollTimer",
+                type=int,
+                default=5,
+                help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+            )
 
     def restore_args(self):
         """restore args and flags"""
         self.parserRestore.add_argument(
-            "-b",
-            "--background",
-            default=False,
-            action="store_true",
-            help="Run restore operation in the background",
+            "restoreSource",
+            choices=(None if self.plaidMode else self.acl.dataProtections),
+            help="Source backup or snapshot to restore the app from",
         )
-        self.parserRestore.add_argument(
-            "appID",
-            choices=(None if self.plaidMode else self.acl.apps),
-            help="appID to restore",
+        self.parserRestore.add_argument("appName", help="The logical name of the newly defined app")
+        if self.v3:
+            self.parserRestore.add_argument(
+                "cluster",
+                help="Cluster to live clone into (can be same as source), specify any context, "
+                "kubeconfig_file, or context@kubeconfig_file mapping, or 'None' for current "
+                "system default",
+            )
+        else:
+            self.parserRestore.add_argument(
+                "cluster",
+                choices=(None if self.plaidMode else self.acl.destClusters),
+                help="Cluster to restore into (can be same as source)",
+            )
+        namespaceGroup = self.parserRestore.add_argument_group(
+            title="new namespace group",
+            description="the namespace(s) to restore the app into (mutually exclusive)",
         )
-        group = self.parserRestore.add_mutually_exclusive_group(required=True)
-        group.add_argument(
-            "--backupID",
-            choices=(None if self.plaidMode else self.acl.backups),
+        namespaceME = namespaceGroup.add_mutually_exclusive_group()
+        namespaceME.add_argument(
+            "--newNamespace",
             required=False,
             default=None,
-            help="Source backup to restore from",
+            help="For single-namespace apps, specify the new namespace name (if not"
+            + " specified the 'appName' field is used)",
         )
-        group.add_argument(
-            "--snapshotID",
-            choices=(None if self.plaidMode else self.acl.snapshots),
+        namespaceME.add_argument(
+            "--multiNsMapping",
             required=False,
             default=None,
-            help="Source snapshot to restore from",
+            action="append",
+            nargs="*",
+            help="For multi-namespace apps, specify matching number of sourcens1=destns1 mappings",
         )
         self.parserRestore.add_argument(
-            "-t",
-            "--pollTimer",
-            type=int,
-            default=5,
-            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+            "--newStorageClass",
+            choices=(None if self.plaidMode else self.acl.storageClasses),
+            required=False,
+            default=None,
+            help="Optionally specify a different storage class for the new app",
         )
         filterGroup = self.parserRestore.add_argument_group(
             title="filter group", description="optionally restore a subset of resources via filters"
@@ -507,6 +599,85 @@ class ToolkitParser:
             "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
             "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
         )
+        if not self.v3:
+            pollingGroup = self.parserRestore.add_argument_group(
+                title="polling group", description="optionally modify default polling mechanism"
+            )
+            pollingGroup.add_argument(
+                "-b",
+                "--background",
+                default=False,
+                action="store_true",
+                help="Run restore operation in the background instead of polling",
+            )
+            pollingGroup.add_argument(
+                "-t",
+                "--pollTimer",
+                type=int,
+                default=5,
+                help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+            )
+
+    def IPR_args(self):
+        """IPR args and flags"""
+        self.parserIPR.add_argument(
+            "app",
+            choices=(None if self.plaidMode else self.acl.apps),
+            help="app to in-place-restore",
+        )
+        group = self.parserIPR.add_mutually_exclusive_group(required=True)
+        group.add_argument(
+            "--backup",
+            choices=(None if self.plaidMode else self.acl.backups),
+            required=False,
+            default=None,
+            help="Source backup to in-place-restore from",
+        )
+        group.add_argument(
+            "--snapshot",
+            choices=(None if self.plaidMode else self.acl.snapshots),
+            required=False,
+            default=None,
+            help="Source snapshot to in-place-restore from",
+        )
+        filterGroup = self.parserIPR.add_argument_group(
+            title="filter group",
+            description="optionally in-place-restore a subset of resources via filters",
+        )
+        filterGroup.add_argument(
+            "--filterSelection",
+            choices=["include", "exclude"],
+            default=None,
+            help="How the resource filter(s) select resources",
+        )
+        filterGroup.add_argument(
+            "--filterSet",
+            default=None,
+            action="append",
+            nargs="*",
+            help=r"A comma separated set of key=value filter pairs, where 'key' is one of "
+            "['namespace', 'name', 'label', 'group', 'version', 'kind']. This argument can be "
+            "specified multiple times for multiple filter sets:\n--filterSet version=v1,kind="
+            "PersistentVolumeClaim --filterSet label=app.kubernetes.io/tier=backend,name=mysql",
+        )
+        if not self.v3:
+            pollingGroup = self.parserIPR.add_argument_group(
+                title="polling group", description="optionally modify default polling mechanism"
+            )
+            pollingGroup.add_argument(
+                "-b",
+                "--background",
+                default=False,
+                action="store_true",
+                help="Run restore operation in the background instead of polling",
+            )
+            pollingGroup.add_argument(
+                "-t",
+                "--pollTimer",
+                type=int,
+                default=5,
+                help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+            )
 
     def deploy_acp_args(self):
         """deploy ACP args and flags"""
@@ -535,6 +706,16 @@ class ToolkitParser:
             choices=(None if self.plaidMode else self.acl.charts),
             help="chart to deploy",
         )
+        if self.v3:
+            self.subparserDeployChart.add_argument(
+                "-u",
+                "--appVault",
+                dest="bucket",
+                default=None,
+                required=True,
+                choices=(None if self.plaidMode else self.acl.buckets),
+                help="Name of the AppVault to use as the target of the backups/snapshots",
+            )
         self.subparserDeployChart.add_argument(
             "-n",
             "--namespace",
@@ -574,9 +755,10 @@ class ToolkitParser:
             default=None,
             help="Filter app names by this value to minimize output (partial match)",
         )
-        self.subparserListApps.add_argument(
-            "-c", "--cluster", default=None, help="Only show apps from this cluster"
-        )
+        if not self.v3:
+            self.subparserListApps.add_argument(
+                "-c", "--cluster", default=None, help="Only show apps from this cluster"
+            )
 
     def list_assets_args(self):
         """list assets args and flags"""
@@ -642,13 +824,14 @@ class ToolkitParser:
 
     def list_credentials_args(self):
         """list credentials args and flags"""
-        self.subparserListCredentials.add_argument(
-            "-k",
-            "--kubeconfigOnly",
-            default=False,
-            action="store_true",
-            help="Only show kubeconfig credentials",
-        )
+        if not self.v3:
+            self.subparserListCredentials.add_argument(
+                "-k",
+                "--kubeconfigOnly",
+                default=False,
+                action="store_true",
+                help="Only show kubeconfig credentials",
+            )
 
     def list_hooks_args(self):
         """list hooks args and flags"""
@@ -656,23 +839,122 @@ class ToolkitParser:
             "-a", "--app", default=None, help="Only show execution hooks from this app"
         )
 
+    def list_hooksruns_args(self):
+        """list hooksruns args and flags"""
+        if self.v3:
+            self.subparserListHooksruns.add_argument(
+                "-a", "--app", default=None, help="Only show execution hooks runs from this app"
+            )
+
+    def list_iprs_args(self):
+        """list iprs args and flags"""
+        if self.v3:
+            self.subparserListIprs.add_argument(
+                "-a", "--app", default=None, help="Only show in-place-restores of this app"
+            )
+
+    def list_ldapgroups_args(self):
+        """list LDAP groups args and flags"""
+        self.subparserListLdapgroups.add_argument(
+            "-l",
+            "--limit",
+            default=25,
+            type=int,
+            help="limit the response to X entries (default: %(default)s)",
+        )
+        self.subparserListLdapgroups.add_argument(
+            "--continue",
+            dest="cont",
+            default=None,
+            help="token to specify where in a list of resources to continue from",
+        )
+        groupFilterGroup = self.subparserListLdapgroups.add_argument_group(
+            title="filters",
+            description="filter LDAP groups to minimize response (multiple filters use "
+            "logical AND)",
+        )
+        groupFilterGroup.add_argument(
+            "--matchType",
+            choices=["partial", "exact"],
+            default="partial",
+            help="whether to use partial (in) match, or exact (eq) match (default: %(default)s)",
+        )
+        groupFilterGroup.add_argument(
+            "--cnFilter",
+            default=None,
+            help="filter LDAP groups by common name",
+        )
+        groupFilterGroup.add_argument(
+            "--dnFilter",
+            default=None,
+            help="filter LDAP groups by distinguished name",
+        )
+
+    def list_ldapusers_args(self):
+        """list LDAP users args and flags"""
+        self.subparserListLdapusers.add_argument(
+            "-l",
+            "--limit",
+            default=25,
+            type=int,
+            help="limit the response to X entries (default: %(default)s)",
+        )
+        self.subparserListLdapusers.add_argument(
+            "--continue",
+            dest="cont",
+            default=None,
+            help="token to specify where in a list of resources to continue from",
+        )
+        userFilterGroup = self.subparserListLdapusers.add_argument_group(
+            title="filters",
+            description="filter LDAP users to minimize response (multiple filters use logical AND)",
+        )
+        userFilterGroup.add_argument(
+            "--matchType",
+            choices=["partial", "exact"],
+            default="partial",
+            help="whether to use partial (in) match, or exact (eq) match (default: %(default)s)",
+        )
+        userFilterGroup.add_argument(
+            "--cnFilter",
+            default=None,
+            help="filter LDAP users by common name",
+        )
+        userFilterGroup.add_argument(
+            "-e",
+            "--emailFilter",
+            default=None,
+            help="filter LDAP users by email address",
+        )
+        userFilterGroup.add_argument(
+            "--firstNameFilter",
+            default=None,
+            help="filter LDAP users by first name",
+        )
+        userFilterGroup.add_argument(
+            "--lastNameFilter",
+            default=None,
+            help="filter LDAP users by last name",
+        )
+
     def list_namespaces_args(self):
         """list namespaces args and flags"""
-        self.subparserListNamespaces.add_argument(
-            "-c", "--clusterID", default=None, help="Only show namespaces from this clusterID"
-        )
+        if not self.v3:
+            self.subparserListNamespaces.add_argument(
+                "-c", "--clusterID", default=None, help="Only show namespaces from this clusterID"
+            )
+            self.subparserListNamespaces.add_argument(
+                "-r",
+                "--showRemoved",
+                default=False,
+                action="store_true",
+                help="Show namespaces in a 'removed' state",
+            )
         self.subparserListNamespaces.add_argument(
             "-f",
             "--nameFilter",
             default=None,
             help="Filter namespaces by this value to minimize output (partial match)",
-        )
-        self.subparserListNamespaces.add_argument(
-            "-r",
-            "--showRemoved",
-            default=False,
-            action="store_true",
-            help="Show namespaces in a 'removed' state",
         )
         self.subparserListNamespaces.add_argument(
             "-u",
@@ -732,6 +1014,22 @@ class ToolkitParser:
         self.subparserListReplications.add_argument(
             "-a", "--app", default=None, help="Only show replication policies from this app"
         )
+
+    def list_restores_args(self):
+        """list v3 backup and snapshot restores args and flags"""
+        if self.v3:
+            self.subparserListRestores.add_argument(
+                "-s",
+                "--sourceNamespace",
+                default=None,
+                help="Only show restores involving a source namespace (partial match)",
+            )
+            self.subparserListRestores.add_argument(
+                "-d",
+                "--destNamespace",
+                default=None,
+                help="Only show restores involving a destination namespace (partial match)",
+            )
 
     def list_rolebindings_args(self):
         """list rolebindings args and flags"""
@@ -815,9 +1113,9 @@ class ToolkitParser:
     def create_backup_args(self):
         """create backups args and flags"""
         self.subparserCreateBackup.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID to backup",
+            help="app to backup",
         )
         self.subparserCreateBackup.add_argument(
             "name",
@@ -825,32 +1123,43 @@ class ToolkitParser:
         )
         self.subparserCreateBackup.add_argument(
             "-u",
-            "--bucketID",
+            "--appVault" if self.v3 else "--bucketID",
+            dest="bucket",
             default=None,
             choices=(None if self.plaidMode else self.acl.buckets),
-            help="Optionally specify which bucket to store the backup",
+            help="Specify which bucket to store the backup",
         )
         self.subparserCreateBackup.add_argument(
             "-s",
-            "--snapshotID",
+            "--snapshot" if self.v3 else "--snapshotID",
+            dest="snapshot",
             default=None,
             choices=(None if self.plaidMode else self.acl.snapshots),
             help="Optionally specify an existing snapshot as the source of the backup",
         )
-        self.subparserCreateBackup.add_argument(
-            "-b",
-            "--background",
-            default=False,
-            action="store_true",
-            help="Run backup operation in the background",
-        )
-        self.subparserCreateBackup.add_argument(
-            "-t",
-            "--pollTimer",
-            type=int,
-            default=5,
-            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
-        )
+        if self.v3:
+            self.subparserCreateBackup.add_argument(
+                "-r",
+                "--reclaimPolicy",
+                default=None,
+                choices=["Delete", "Retain"],
+                help="Define how to handle the snapshot data when the snapshot CR is deleted",
+            )
+        else:
+            self.subparserCreateBackup.add_argument(
+                "-b",
+                "--background",
+                default=False,
+                action="store_true",
+                help="Run backup operation in the background",
+            )
+            self.subparserCreateBackup.add_argument(
+                "-t",
+                "--pollTimer",
+                type=int,
+                default=5,
+                help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+            )
 
     def create_cluster_args(self):
         """create cluster args and flags"""
@@ -874,22 +1183,58 @@ class ToolkitParser:
             "(can obtained from the Astra Connector)",
         )
 
+    def create_group_args(self):
+        """create remote group args and flags"""
+        self.subparserCreateGroup.add_argument(
+            "dn", help="The distinguished name of the group to add"
+        )
+        self.subparserCreateGroup.add_argument(
+            "role", choices=["viewer", "member", "admin", "owner"], help="The group's role"
+        )
+        constraintGroup = self.subparserCreateGroup.add_argument_group(
+            "constraintGroup", "optional group constraints"
+        )
+        constraintGroup.add_argument(
+            "-a",
+            "--labelConstraint",
+            default=None,
+            choices=(None if self.plaidMode else self.acl.labels),
+            nargs="*",
+            action="append",
+            help="Restrict group role to label constraints",
+        )
+        constraintGroup.add_argument(
+            "-n",
+            "--namespaceConstraint",
+            default=None,
+            choices=(None if self.plaidMode else self.acl.namespaces),
+            nargs="*",
+            action="append",
+            help="Restrict group role to namespace constraints",
+        )
+
     def create_hook_args(self):
         """create hooks args and flags"""
         self.subparserCreateHook.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID to create an execution hook for",
+            help="app to create an execution hook for",
         )
         self.subparserCreateHook.add_argument(
             "name",
             help="Name of the execution hook to be created",
         )
-        self.subparserCreateHook.add_argument(
-            "scriptID",
-            choices=(None if self.plaidMode else self.acl.scripts),
-            help="scriptID to use for the execution hook",
-        )
+        if self.v3:
+            self.subparserCreateHook.add_argument(
+                "filePath",
+                help="the local filesystem path to the script",
+            )
+        else:
+            self.subparserCreateHook.add_argument(
+                "script",
+                choices=(None if self.plaidMode else self.acl.scripts),
+                help="script to use for the execution hook",
+            )
         self.subparserCreateHook.add_argument(
             "-o",
             "--operation",
@@ -964,13 +1309,72 @@ class ToolkitParser:
             help="regex filter for container names",
         )
 
-    def create_protection_args(self):
-        """create protectionpolicy args and flags"""
-        self.subparserCreateProtection.add_argument(
-            "appID",
-            choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of the application to create protection schedule for",
+    def create_ldap_args(self):
+        """create LDAP(S) server connection args and flags"""
+        self.subparserCreateLdap.add_argument("url", help="the LDAP(S) server URL or IP address")
+        self.subparserCreateLdap.add_argument("port", type=int, help="the LDAP(S) server port")
+        self.subparserCreateLdap.add_argument(
+            "--secure",
+            default=False,
+            action="store_true",
+            help="use LDAPS instead of LDAP",
         )
+        saGroup = self.subparserCreateLdap.add_argument_group(
+            "serviceAccountGroup", "the service account credentials in email format"
+        )
+        saGroup.add_argument(
+            "-u",
+            "--username",
+            help="the username (in email format) of the service account (required)",
+            required=True,
+        )
+        saGroup.add_argument(
+            "-p", "--password", help="the password of the service account (required)", required=True
+        )
+        umGroup = self.subparserCreateLdap.add_argument_group(
+            "userMatchGroup", "the user match settings"
+        )
+        umGroup.add_argument(
+            "--userBaseDN", help="the user search base DN (required)", required=True
+        )
+        umGroup.add_argument(
+            "--userSearchFilter",
+            default="(objectClass=Person)",
+            help="the user search filter, default: %(default)s",
+        )
+        umGroup.add_argument(
+            "--userLoginAttribute",
+            default="mail",
+            choices=["mail", "userPrincipalName"],
+            help="the user login attribute, default: %(default)s",
+        )
+        gmGroup = self.subparserCreateLdap.add_argument_group(
+            "groupMatchGroup", "the group match settings"
+        )
+        gmGroup.add_argument(
+            "--groupBaseDN", help="the group search base DN (required)", required=True
+        )
+        gmGroup.add_argument(
+            "--groupSearchFilter", default=None, help="the group search filter (optional)"
+        )
+
+    def create_protection_args(self):
+        """create protection args and flags"""
+        self.subparserCreateProtection.add_argument(
+            "app",
+            choices=(None if self.plaidMode else self.acl.apps),
+            help="the application to create protection schedule for",
+        )
+        if self.v3:
+            self.subparserCreateProtection.add_argument(
+                "-u",
+                "--appVault",
+                dest="bucket",
+                default=None,
+                required=True,
+                choices=(None if self.plaidMode else self.acl.buckets),
+                help="Name of the AppVault to use as the target of the backup/snapshot",
+            )
         self.subparserCreateProtection.add_argument(
             "-g",
             "--granularity",
@@ -1087,40 +1491,67 @@ class ToolkitParser:
     def create_snapshot_args(self):
         """create snapshot args and flags"""
         self.subparserCreateSnapshot.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID to snapshot",
+            help="app to snapshot",
         )
         self.subparserCreateSnapshot.add_argument(
             "name",
             help="Name of snapshot to be taken",
         )
-        self.subparserCreateSnapshot.add_argument(
-            "-b",
-            "--background",
-            default=False,
-            action="store_true",
-            help="Run snapshot operation in the background",
-        )
-        self.subparserCreateSnapshot.add_argument(
-            "-t",
-            "--pollTimer",
-            type=int,
-            default=5,
-            help="The frequency (seconds) to poll the operation status (default: %(default)s)",
-        )
+        if self.v3:
+            self.subparserCreateSnapshot.add_argument(
+                "-u",
+                "--appVault",
+                dest="bucket",
+                default=None,
+                choices=(None if self.plaidMode else self.acl.buckets),
+                help="Specify which appVault to store snapshot metadata",
+            )
+            self.subparserCreateSnapshot.add_argument(
+                "-r",
+                "--reclaimPolicy",
+                default=None,
+                choices=["Delete", "Retain"],
+                help="Define how to handle the snapshot data when the snapshot CR is deleted",
+            )
+            self.subparserCreateSnapshot.add_argument(
+                "-c",
+                "--createdTimeout",
+                type=int,
+                default=None,
+                help="The time (in minutes) to wait for the snapshot CreationTime to be set before "
+                "returning timeout error (default: 5)",
+            )
+            self.subparserCreateSnapshot.add_argument(
+                "-e",
+                "--readyToUseTimeout",
+                type=int,
+                default=None,
+                help="The time (in minutes) to wait for Snapshot CR to complete before returning "
+                "timeout error (default: 30)",
+            )
+        else:
+            self.subparserCreateSnapshot.add_argument(
+                "-b",
+                "--background",
+                default=False,
+                action="store_true",
+                help="Run snapshot operation in the background",
+            )
+            self.subparserCreateSnapshot.add_argument(
+                "-t",
+                "--pollTimer",
+                type=int,
+                default=5,
+                help="The frequency (seconds) to poll the operation status (default: %(default)s)",
+            )
 
     def create_user_args(self):
         """create user args and flags"""
         self.subparserCreateUser.add_argument("email", help="The email of the user to add")
         self.subparserCreateUser.add_argument(
             "role", choices=["viewer", "member", "admin", "owner"], help="The user's role"
-        )
-        self.subparserCreateUser.add_argument(
-            "-p",
-            "--tempPassword",
-            default=None,
-            help="The temporary password for the user (ACC-only)",
         )
         self.subparserCreateUser.add_argument(
             "-f",
@@ -1131,7 +1562,24 @@ class ToolkitParser:
         self.subparserCreateUser.add_argument(
             "-l", "--lastName", default=None, help="The user's last name"
         )
-        self.subparserCreateUser.add_argument(
+        accGroup = self.subparserCreateUser.add_argument_group("accGroup", "ACC-only options")
+        accMEGroup = accGroup.add_mutually_exclusive_group()
+        accMEGroup.add_argument(
+            "-p",
+            "--tempPassword",
+            default=None,
+            help="The temporary password for the user (local users only)",
+        )
+        accMEGroup.add_argument(
+            "--ldap",
+            default=False,
+            action="store_true",
+            help="specify to add an LDAP-based user",
+        )
+        constraintGroup = self.subparserCreateUser.add_argument_group(
+            "constraintGroup", "optional user constraints"
+        )
+        constraintGroup.add_argument(
             "-a",
             "--labelConstraint",
             default=None,
@@ -1140,7 +1588,7 @@ class ToolkitParser:
             action="append",
             help="Restrict user role to label constraints",
         )
-        self.subparserCreateUser.add_argument(
+        constraintGroup.add_argument(
             "-n",
             "--namespaceConstraint",
             default=None,
@@ -1160,11 +1608,12 @@ class ToolkitParser:
             choices=(None if self.plaidMode else self.acl.namespaces),
             help="The namespace to move from undefined (aka unmanaged) to defined (aka managed)",
         )
-        self.subparserManageApp.add_argument(
-            "clusterID",
-            choices=(None if self.plaidMode else self.acl.clusters),
-            help="The clusterID hosting the newly defined app",
-        )
+        if not self.v3:
+            self.subparserManageApp.add_argument(
+                "clusterID",
+                choices=(None if self.plaidMode else self.acl.clusters),
+                help="The clusterID hosting the newly defined app",
+            )
         self.subparserManageApp.add_argument(
             "-l",
             "--labelSelectors",
@@ -1191,7 +1640,7 @@ class ToolkitParser:
             nargs="*",
             action="append",
             help="Any number of clusterScopedResources (and optional labelSelectors), one set per"
-            + " argument (-c csr-kind1 -c csr-kind2 app=appname)",
+            + " argument (-c csr1 -c csr2 app=appname)",
         )
 
     def manage_bucket_args(self):
@@ -1204,27 +1653,6 @@ class ToolkitParser:
         self.subparserManageBucket.add_argument(
             "bucketName",
             help="The existing bucket name",
-        )
-        credGroup = self.subparserManageBucket.add_argument_group(
-            "credentialGroup",
-            "Either an (existing credentialID) OR (accessKey AND accessSecret)",
-        )
-        credGroup.add_argument(
-            "-c",
-            "--credentialID",
-            choices=(None if self.plaidMode else self.acl.credentials),
-            help="The ID of the credentials used to access the bucket",
-            default=None,
-        )
-        credGroup.add_argument(
-            "--accessKey",
-            help="The access key of the bucket",
-            default=None,
-        )
-        credGroup.add_argument(
-            "--accessSecret",
-            help="The access secret of the bucket",
-            default=None,
         )
         self.subparserManageBucket.add_argument(
             "-u",
@@ -1239,21 +1667,115 @@ class ToolkitParser:
             help="The  Azure storage account name (only needed for 'Azure')",
             default=None,
         )
+        if self.v3:
+            self.subparserManageBucket.add_argument(
+                "--http",
+                action="store_true",
+                default=False,
+                help="Optionally use http instead of https to connect to the bucket",
+            )
+            self.subparserManageBucket.add_argument(
+                "--skipCertValidation",
+                action="store_true",
+                default=False,
+                help="Optionally skip TLS certificate validation",
+            )
+
+        credGroup = self.subparserManageBucket.add_argument_group(
+            "credentialGroup",
+            "Either an (existing credential) OR (public cloud JSON credential) OR (accessKey AND "
+            "accessSecret)",
+        )
+        if self.v3:
+            credGroup.add_argument(
+                "-c",
+                "--secret",
+                dest="credential",
+                default=None,
+                nargs=2,
+                action="append",
+                choices=(None if self.plaidMode else self.acl.credentials + self.acl.keys),
+                help=(
+                    "The Kubernetes secret name and corresponding key name storing the credential "
+                    "(-c gcp-credential credentials.json), if specifying existing S3 access and "
+                    "secret keys, the access key *must* be specified first (-c s3-creds accessKeyID"
+                    " -c s3-creds secretAccessKey)"
+                ),
+            )
+        else:
+            credGroup.add_argument(
+                "-c",
+                "--credentialID",
+                dest="credential",
+                default=None,
+                choices=(None if self.plaidMode else self.acl.credentials),
+                help="The ID of the credentials used to access the bucket",
+            )
+        credGroup.add_argument(
+            "--json",
+            default=None,
+            help="the local filesystem path to the cloud credential",
+        )
+        credGroup.add_argument(
+            "--accessKey",
+            help="The access key of the bucket",
+            default=None,
+        )
+        credGroup.add_argument(
+            "--accessSecret",
+            help="The access secret of the bucket",
+            default=None,
+        )
 
     def manage_cluster_args(self):
         """manage cluster args and flags"""
-        self.subparserManageCluster.add_argument(
-            "clusterID",
-            choices=(None if self.plaidMode else self.acl.clusters),
-            help="clusterID of the cluster to manage",
-        )
-        self.subparserManageCluster.add_argument(
-            "-s",
-            "--defaultStorageClassID",
-            choices=(None if self.plaidMode else self.acl.storageClasses),
-            default=None,
-            help="Optionally modify the default storage class",
-        )
+        if self.v3:
+            self.subparserManageCluster.add_argument(
+                "clusterName",
+                help="The friendly name of the cluster",
+            )
+            self.subparserManageCluster.add_argument(
+                "-c",
+                "--cloudID",
+                choices=(None if self.plaidMode else self.acl.clouds),
+                default=(self.acl.clouds[0] if len(self.acl.clouds) == 1 else None),
+                required=(False if len(self.acl.clouds) == 1 else True),
+                help="The cloudID to add the cluster to (only required if # of clouds > 1)",
+            )
+            self.subparserManageCluster.add_argument(
+                "-v",
+                "--operator-version",
+                required=False,
+                default="latest",
+                help="Optionally specify the astra-connector-operator version "
+                "(default: %(default)s)",
+            )
+            self.subparserManageCluster.add_argument(
+                "--regCred",
+                choices=(None if self.plaidMode else self.acl.credentials),
+                default=None,
+                help="optionally specify the name of the existing registry credential "
+                "(rather than automatically creating a new secret)",
+            )
+            self.subparserManageCluster.add_argument(
+                "--registry",
+                default=None,
+                help="optionally specify the FQDN of the ACP image source registry "
+                "(defaults to cr.<astra-control-fqdn>)",
+            )
+        else:
+            self.subparserManageCluster.add_argument(
+                "cluster",
+                choices=(None if self.plaidMode else self.acl.clusters),
+                help="clusterID of the cluster to manage",
+            )
+            self.subparserManageCluster.add_argument(
+                "-s",
+                "--defaultStorageClassID",
+                choices=(None if self.plaidMode else self.acl.storageClasses),
+                default=None,
+                help="Optionally modify the default storage class",
+            )
 
     def manage_cloud_args(self):
         """manage cloud args and flags"""
@@ -1284,48 +1806,64 @@ class ToolkitParser:
     def destroy_backup_args(self):
         """destroy backup args and flags"""
         self.subparserDestroyBackup.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of app to destroy backups from",
+            help="app to destroy backups from",
         )
         self.subparserDestroyBackup.add_argument(
-            "backupID",
+            "backup",
             choices=(None if self.plaidMode else self.acl.backups),
-            help="backupID to destroy",
+            help="backup to destroy",
+        )
+
+    def destroy_cluster_args(self):
+        """destroy cluster args and flags"""
+        self.subparserDestroyCluster.add_argument(
+            "cluster",
+            choices=(None if self.plaidMode else self.acl.clusters),
+            help="cluster to destroy",
         )
 
     def destroy_credential_args(self):
         """destroy credential args and flags"""
         self.subparserDestroyCredential.add_argument(
-            "credentialID",
+            "credential",
             choices=(None if self.plaidMode else self.acl.credentials),
-            help="credentialID to destroy",
+            help="credential to destroy",
+        )
+
+    def destroy_group_args(self):
+        """destroy group args and flags"""
+        self.subparserDestroyGroup.add_argument(
+            "groupID",
+            choices=(None if self.plaidMode else self.acl.groups),
+            help="groupID to destroy",
         )
 
     def destroy_hook_args(self):
         """destroy hook args and flags"""
         self.subparserDestroyHook.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of app to destroy hooks from",
+            help="app to destroy hooks from",
         )
         self.subparserDestroyHook.add_argument(
-            "hookID",
+            "hook",
             choices=(None if self.plaidMode else self.acl.hooks),
-            help="hookID to destroy",
+            help="hook to destroy",
         )
 
     def destroy_protection_args(self):
         """destroy protection args and flags"""
         self.subparserDestroyProtection.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of app to destroy protection policy from",
+            help="app to destroy protection policy from",
         )
         self.subparserDestroyProtection.add_argument(
-            "protectionID",
+            "protection",
             choices=(None if self.plaidMode else self.acl.protections),
-            help="protectionID to destroy",
+            help="protection to destroy",
         )
 
     def destroy_replication_args(self):
@@ -1347,14 +1885,14 @@ class ToolkitParser:
     def destroy_snapshot_args(self):
         """destroy snapshot args and flags"""
         self.subparserDestroySnapshot.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of app to destroy snapshot from",
+            help="app to destroy snapshot from",
         )
         self.subparserDestroySnapshot.add_argument(
-            "snapshotID",
+            "snapshot",
             choices=(None if self.plaidMode else self.acl.snapshots),
-            help="snapshotID to destroy",
+            help="snapshot to destroy",
         )
 
     def destroy_user_args(self):
@@ -1368,25 +1906,25 @@ class ToolkitParser:
     def unmanage_app_args(self):
         """unmanage app args and flags"""
         self.subparserUnmanageApp.add_argument(
-            "appID",
+            "app",
             choices=(None if self.plaidMode else self.acl.apps),
-            help="appID of app to move from managed to unmanaged",
+            help="app to move from managed to unmanaged",
         )
 
     def unmanage_bucket_args(self):
         """unmanage bucket args and flags"""
         self.subparserUnmanageBucket.add_argument(
-            "bucketID",
+            "bucket",
             choices=(None if self.plaidMode else self.acl.buckets),
-            help="bucketID of bucket to unmanage",
+            help="bucket to unmanage",
         )
 
     def unmanage_cluster_args(self):
         """unmanage cluster args and flags"""
         self.subparserUnmanageCluster.add_argument(
-            "clusterID",
+            "cluster",
             choices=(None if self.plaidMode else self.acl.clusters),
-            help="clusterID of the cluster to unmanage",
+            help="the cluster to unmanage",
         )
 
     def unmanage_cloud_args(self):
@@ -1466,8 +2004,14 @@ class ToolkitParser:
             "-p",
             "--credentialPath",
             default=None,
-            required=True,  # Delete / set to False once additional updateCluster args are added
             help="the local filesystem path to the new cluster credential",
+        )
+        self.subparserUpdateCluster.add_argument(
+            "-b",
+            "--defaultBucketID",
+            choices=(None if self.plaidMode else self.acl.buckets),
+            default=None,
+            help="the new default bucket / appVault for the cluster",
         )
 
     def update_replication_args(self):
@@ -1521,6 +2065,7 @@ class ToolkitParser:
         # Create arguments for all commands
         self.clone_args()
         self.restore_args()
+        self.IPR_args()
 
         self.deploy_acp_args()
         self.deploy_chart_args()
@@ -1534,10 +2079,15 @@ class ToolkitParser:
         self.list_clusters_args()
         self.list_credentials_args()
         self.list_hooks_args()
+        self.list_ldapgroups_args()
+        self.list_ldapusers_args()
+        self.list_hooksruns_args()
+        self.list_iprs_args()
         self.list_namespaces_args()
         self.list_notifications_args()
         self.list_protections_args()
         self.list_replications_args()
+        self.list_restores_args()
         self.list_rolebindings_args()
         self.list_scripts_args()
         self.list_snapshots_args()
@@ -1549,7 +2099,9 @@ class ToolkitParser:
 
         self.create_backup_args()
         self.create_cluster_args()
+        self.create_group_args()
         self.create_hook_args()
+        self.create_ldap_args()
         self.create_protection_args()
         self.create_replication_args()
         self.create_script_args()
@@ -1562,7 +2114,9 @@ class ToolkitParser:
         self.manage_cloud_args()
 
         self.destroy_backup_args()
+        self.destroy_cluster_args()
         self.destroy_credential_args()
+        self.destroy_group_args()
         self.destroy_hook_args()
         self.destroy_protection_args()
         self.destroy_replication_args()

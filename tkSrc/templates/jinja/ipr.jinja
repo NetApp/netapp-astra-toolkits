@@ -1,0 +1,11 @@
+apiVersion: astra.netapp.io/v1
+kind: {{ kind }}InplaceRestore
+metadata:
+  name: {{ iprName }}
+  namespace: astra-connector
+spec:
+  appArchivePath: {{ appArchivePath }}
+  appVaultRef: {{ appVaultRef }}
+{%- if resourceFilter %}
+  resourceFilter:
+{{ resourceFilter }}{%- endif %}

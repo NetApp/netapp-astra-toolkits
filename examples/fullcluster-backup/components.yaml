@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: astra-fullbackup
+  namespace: astra-connector
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: astra-fullbackup
+rules:
+  - apiGroups: ["astra.netapp.io"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: astra-fullbackup
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: astra-fullbackup
+subjects:
+  - kind: ServiceAccount
+    name: astra-fullbackup
+    namespace: astra-connector
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: astra-fullbackup
+  namespace: astra-connector
+  labels:
+    app: astra-fullbackup
+spec:
+  schedule: "0 23 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: astra-fullbackup
+        spec:
+          serviceAccountName: astra-fullbackup
+          restartPolicy: Never
+          containers:
+            - name: alpine-astra-backup
+              image: python:3.10.13-alpine3.19
+              env:
+                - name: ACTOOLKIT_VERSION
+                  value: "3.0.0a12"
+                - name: IGNORE_NAMESPACES
+                  value: "astra-connector,astra-connector-operator,cattle-fleet-system,cattle-impersonation-system,cattle-system,gmp-public,gmp-system,ingress-nginx,kube-node-lease,kube-public,kube-system,local,metallb-system,netapp-acc-operator,pcloud,trident"
+                - name: BUCKET
+                  value: ""
+                - name: BACKUPS_TO_KEEP
+                  value: "1"
+                - name: SNAPSHOTS_TO_KEEP
+                  value: "2"
+                - name: HOUR
+                  value: "1"
+                - name: DAY_OF_WEEK
+                  value: "1"
+                - name: DAY_OF_MONTH
+                  value: "1"
+              command: ["/bin/sh"]
+              args:
+                - -c
+                - >
+                  apk add curl &&
+                  pip install --upgrade pip &&
+                  pip install actoolkit==$ACTOOLKIT_VERSION &&
+                  curl -sLO https://raw.githubusercontent.com/NetApp/netapp-astra-toolkits/neptune/examples/fullcluster-backup/protectCluster.py &&
+                  python protectCluster.py

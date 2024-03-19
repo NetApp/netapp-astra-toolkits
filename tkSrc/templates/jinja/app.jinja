@@ -1,0 +1,19 @@
+apiVersion: astra.netapp.io/v1
+kind: Application
+metadata:
+  name: {{ appName }}
+  namespace: astra-connector
+spec:
+  includedNamespaces:
+    - namespace: {{ namespace }}
+{%- if labelSelectors %}
+      labelSelector:
+        matchLabels:
+          {{ labelSelectors }}{% endif %}
+{%- if addNamespaces %}
+{{ addNamespaces }}
+{%- endif %}
+{%- if clusterScopedResources %}
+  includedClusterScopedResources:
+{{ clusterScopedResources }}
+{%- endif %}

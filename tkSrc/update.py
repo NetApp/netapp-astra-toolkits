@@ -101,10 +101,7 @@ def main(args, parser, ard):
         # Get the cluster information based on the clusterID input
         if ard.needsattr("clusters"):
             ard.clusters = astraSDK.clusters.getClusters().main()
-        try:
-            cluster = next(c for c in ard.clusters["items"] if c["id"] == args.clusterID)
-        except StopIteration:
-            parser.error(f"{args.clusterID} does not seem to be a valid clusterID")
+        cluster = ard.getSingleDict("clusters", "id", args.clusterID, parser)
         # Currently this is required to be True, but this will not always be the case
         if args.credentialPath:
             with open(args.credentialPath, encoding="utf8") as f:
@@ -119,6 +116,13 @@ def main(args, parser, ard):
             )
             if rc is False:
                 raise SystemExit("astraSDK.credentials.updateCredential() failed")
+        if args.defaultBucketID:
+            rc = astraSDK.clusters.updateCluster(quiet=args.quiet, verbose=args.verbose).main(
+                cluster.get("id"),
+                defaultBucketID=args.defaultBucketID,
+            )
+            if rc is False:
+                raise SystemExit("astraSDK.clusters.updateCluster() failed")
     elif args.objectType == "replication":
         # Gather replication data
         if ard.needsattr("replications"):

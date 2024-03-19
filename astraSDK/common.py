@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import os
 import sys
 import yaml
 from tabulate import tabulate
+import textwrap
 import requests
 from urllib3 import disable_warnings
 
@@ -109,27 +110,61 @@ class BaseCommon:
         except AttributeError:
             sys.stderr.write(f"{RED}{ret}{ENDC}")
 
-    def recursiveGet(self, k, item):
+    def recursiveGet(self, k, item, conCatList=None):
         """Recursion function which is just a wrapper around dict.get(key), to handle cases
-        where there's a dict within a dict. A '.' in the key name ('metadata.creationTimestamp')
-        is used for identification purposes."""
-        if len(k.split(".")) > 1:
-            return self.recursiveGet(k.split(".", 1)[1], item[k.split(".")[0]])
-        else:
+        where there's a dict or list within a dict:
+         - '.' in the key name ('metadata.creationTimestamp') is used to identify a dict
+         - '[]' in the key name ('spec.includedNamespaces[]') is used to identify a list
+         - '*' as a key represents a wildcard (returns first entry)
+         - 'KEYS' represents returning the keys rather than the vaules."""
+        if len(k.split(".")) > 1 and k.split(".")[0] == "":
+            return self.recursiveGet(k.split(".", 1)[1], item, conCatList)
+        elif (len(k.split(".")) > 1 and len(k.split("[]")) == 1) or (
+            len(k.split(".")[0]) < len(k.split("[]")[0])
+        ):
+            if k.split(".")[0] == "*":
+                return self.recursiveGet(k.split(".", 1)[1], item[next(iter(item))], conCatList)
+            elif k.split(".")[0] == "KEYS":
+                return self.recursiveGet(
+                    k.split(".", 1)[1], item[k.split(".")[0]].keys(), conCatList
+                )
+            try:
+                return self.recursiveGet(k.split(".", 1)[1], item[k.split(".")[0]], conCatList)
+            except KeyError:
+                return "None"
+        elif (len(k.split("[]")) > 1 and len(k.split(".")) == 1) or (
+            len(k.split("[]")[0]) < len(k.split(".")[0])
+        ):
+            if conCatList is None:
+                conCatList = []
+            for i in item[k.split("[]")[0]]:
+                if add := self.recursiveGet(k.split("[]", 1)[1], i, []):
+                    conCatList.append(add)
+            return ", ".join(conCatList)
+        if k == "KEYS":
+            return list(item.keys())
+        elif k == "*":
+            return item[next(iter(item))]
+        elif isinstance(item, dict) and isinstance(item.get(k), dict):
+            return str(item.get(k))
+        elif isinstance(item, dict):
             return item.get(k)
+        return ""
 
-    def basicTable(self, tabHeader, tabKeys, dataDict):
+    def basicTable(self, tabHeader, tabKeys, dataDict, tablefmt="grid"):
         """Function to create a basic tabulate table for terminal printing"""
         tabData = []
         for item in dataDict["items"]:
             # Generate a table row based on the keys list
-            row = [self.recursiveGet(k, item) for k in tabKeys]
+            row = [self.recursiveGet(k, item, []) for k in tabKeys]
             # Handle cases where table row has a nested list
             for c, r in enumerate(row):
                 if type(r) is list:
                     row[c] = ", ".join(r)
+            # Wrap text over 80 characters
+            row = [textwrap.fill(r, width=80) if isinstance(r, str) else r for r in row]
             tabData.append(row)
-        return tabulate(tabData, tabHeader, tablefmt="grid")
+        return tabulate(tabData, tabHeader, tablefmt=tablefmt)
 
 
 class SDKCommon(BaseCommon):
@@ -192,7 +227,7 @@ class SDKCommon(BaseCommon):
                 if ret.text.strip():
                     print(f"text: {ret.text}")
         if verbose:
-            print(f"API HTTP Status Code: {ret.status_code}")
+            print(f"{GREEN}API HTTP Status Code: {ret.status_code}{ENDC}")
         return ret
 
     def jsonifyResults(self, requestsObject):
@@ -213,16 +248,97 @@ class SDKCommon(BaseCommon):
 
 
 class KubeCommon(BaseCommon):
-    def __init__(self):
+    def __init__(self, config_context=None, client_configuration=None, silently_fail=False):
         super().__init__()
+        if (
+            isinstance(client_configuration, kubernetes.client.configuration.Configuration)
+            and client_configuration.verify_ssl is False
+        ):
+            disable_warnings()
+
+        # Setup the config_file and context based on the config_context input
+        config_file, context = None, None
+        # If "None" was passed, just use current kube config_file and context
+        if config_context == "None":
+            pass
+        # If a "@" is present, it must be a context@config_file mapping
+        elif config_context and "@" in config_context:
+            context, config_file = tuple(config_context.split("@"))
+            config_file = None if config_file == "None" else config_file
+        # If a "@" isn't present, we need to determine if a config_file or context was passed
+        elif config_context:
+            try:
+                # First see if the input is part of the contexts on the default kubeconfig
+                default_contexts, _ = kubernetes.config.kube_config.list_kube_config_contexts(
+                    config_file=None
+                )
+                if config_context in [c["name"] for c in default_contexts]:
+                    context = config_context
+                # If it's not, assume a config_file was passed
+                else:
+                    config_file = config_context
+            # Or if an exception occurs, the default ~/.kube/config likely doesn't exist, in which
+            # case also assume a config_file was passed
+            except kubernetes.config.config_exception.ConfigException:
+                config_file = config_context
         try:
-            self.kube_config = kubernetes.config.load_kube_config()
-        except kubernetes.config.config_exception.ConfigException as err:
-            self.printError(f"{err}\n")
-            raise SystemExit()
-        except Exception as err:
-            self.printError(
-                "Error loading kubeconfig, please check kubeconfig file to ensure it is valid\n"
+            # Create the api_client
+            kubernetes.config.load_kube_config(
+                config_file=config_file, context=context, client_configuration=client_configuration
             )
-            self.printError(f"{err}\n")
-            raise SystemExit()
+            self.api_client = kubernetes.client.ApiClient(configuration=client_configuration)
+
+        # If that fails, then try an incluster config
+        except kubernetes.config.config_exception.ConfigException as err:
+            try:
+                self.api_client = kubernetes.client.ApiClient(
+                    configuration=kubernetes.config.load_incluster_config()
+                )
+            except kubernetes.config.config_exception.ConfigException:
+                if not silently_fail:
+                    self.printError(f"{err}\n")
+                    self.printError(
+                        f"Please ensure '{config_context}' is either a valid kubernetes "
+                        "config_file, context, or 'context@config_file' mapping, and you have "
+                        "network connectivity to the cluster.\n"
+                    )
+                    raise SystemExit()
+                self.api_client = None
+
+        # Catch other errors (like malformed files), print error message, and exit
+        except Exception as err:
+            if not silently_fail:
+                self.printError(
+                    "Error loading kubeconfig, please check kubeconfig file to ensure it is valid\n"
+                )
+                self.printError(f"{err}\n")
+                raise SystemExit()
+            self.api_client = None
+
+    def notInstalled(self, path):
+        server = self.api_client.configuration.host.split("//")[-1].split(":")[0].split("/")[0]
+        self.printError(
+            f"Error: {path} not found, please ensure the AstraConnector Operator is installed on "
+            f"cluster {server}.\n"
+        )
+        raise SystemExit()
+
+    class WriteVerbose:
+        def __init__(self):
+            self.content = []
+
+        def write(self, string):
+            if string[:2] == "b'" or string[:2] == 'b"':
+                string = string[2:-1]
+            elif (string[:1] == "'" and string[-1:] == "'") or (
+                string[:1] == '"' and string[-1:] == '"'
+            ):
+                string = string[1:-1]
+            self.content.append(string)
+
+        def print(self):
+            verbose_info = "".join(self.content).replace("\\r\\n", "\n")
+            verbose_info = "\n".join(
+                [ll.rstrip() for ll in verbose_info.splitlines() if ll.strip()]
+            )
+            print(f"{GREEN}{verbose_info}{ENDC}")

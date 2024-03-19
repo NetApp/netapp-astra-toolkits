@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,37 +20,117 @@ import astraSDK
 
 def main(args, parser, ard):
     if args.objectType == "backup":
-        rc = astraSDK.backups.destroyBackup(quiet=args.quiet, verbose=args.verbose).main(
-            args.appID, args.backupID
+        if args.v3:
+            rc = astraSDK.k8s.destroyResource(
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
+            ).main("backups", args.backup)
+        else:
+            rc = astraSDK.backups.destroyBackup(quiet=args.quiet, verbose=args.verbose).main(
+                args.app, args.backup
+            )
+            if rc:
+                print(f"Backup {args.backup} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying backup: {args.backup}")
+    elif args.objectType == "cluster":
+        if ard.needsattr("clusters"):
+            ard.clusters = astraSDK.clusters.getClusters().main()
+        cluster = ard.getSingleDict("clusters", "id", args.cluster, parser)
+        rc = astraSDK.clusters.deleteCluster(quiet=args.quiet, verbose=args.verbose).main(
+            cluster["id"], cluster["cloudID"]
         )
-        if rc:
-            print(f"Backup {args.backupID} destroyed")
+        if not rc:
+            raise SystemExit(f"Failed destroying cluster: {args.cluster}")
+    elif args.objectType == "credential" or args.objectType == "secret":
+        if args.v3:
+            astraSDK.k8s.destroySecret(
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
+            ).main(args.credential)
         else:
-            raise SystemExit(f"Failed destroying backup: {args.backupID}")
-    elif args.objectType == "credential":
-        rc = astraSDK.credentials.destroyCredential(quiet=args.quiet, verbose=args.verbose).main(
-            args.credentialID
-        )
-        if rc:
-            print(f"Credential {args.credentialID} destroyed")
+            rc = astraSDK.credentials.destroyCredential(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(args.credential)
+            if rc:
+                print(f"Credential {args.credential} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying credential: {args.credential}")
+    elif args.objectType == "group":
+        if ard.needsattr("rolebindings"):
+            ard.rolebindings = astraSDK.rolebindings.getRolebindings().main()
+        rb = ard.getSingleDict("rolebindings", "groupID", args.groupID, parser)
+        if astraSDK.rolebindings.destroyRolebinding(quiet=args.quiet, verbose=args.verbose).main(
+            rb["id"]
+        ):
+            print(f"RoleBinding {rb['id']} destroyed")
+            if astraSDK.groups.destroyGroup(quiet=args.quiet, verbose=args.verbose).main(
+                args.groupID
+            ):
+                print(f"Group {args.groupID} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying group {args.groupID}")
         else:
-            raise SystemExit(f"Failed destroying credential: {args.credentialID}")
-    elif args.objectType == "hook":
-        rc = astraSDK.hooks.destroyHook(quiet=args.quiet, verbose=args.verbose).main(
-            args.appID, args.hookID
-        )
-        if rc:
-            print(f"Hook {args.hookID} destroyed")
+            raise SystemExit(f"Failed destroying group {args.groupID} with roleBinding {rb['id']}")
+    elif args.objectType == "hook" or args.objectType == "exechook":
+        if args.v3:
+            rc = astraSDK.k8s.destroyResource(
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
+            ).main("exechooks", args.hook)
         else:
-            raise SystemExit(f"Failed destroying hook: {args.hookID}")
-    elif args.objectType == "protection":
-        rc = astraSDK.protections.destroyProtectiontionpolicy(
-            quiet=args.quiet, verbose=args.verbose
-        ).main(args.appID, args.protectionID)
-        if rc:
-            print(f"Protection policy {args.protectionID} destroyed")
+            rc = astraSDK.hooks.destroyHook(quiet=args.quiet, verbose=args.verbose).main(
+                args.app, args.hook
+            )
+            if rc:
+                print(f"Hook {args.hook} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying hook: {args.hook}")
+    elif args.objectType == "ldap":
+        ard.settings = astraSDK.settings.getSettings().main()
+        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap", parser)
+        if astraSDK.settings.destroyLdap(quiet=args.quiet, verbose=args.verbose).main(
+            ldapSetting["id"]
+        ):
+            if ldapSetting["currentConfig"].get("credentialId"):
+                rc = astraSDK.credentials.destroyCredential(
+                    quiet=args.quiet, verbose=args.verbose
+                ).main(ldapSetting["currentConfig"]["credentialId"])
+                if rc:
+                    print(f"Credential {ldapSetting['currentConfig']['credentialId']} destroyed")
+                else:
+                    raise SystemExit(
+                        "Failed destroying credential: "
+                        f"{ldapSetting['currentConfig']['credentialId']}"
+                    )
         else:
-            raise SystemExit(f"Failed destroying protection policy: {args.protectionID}")
+            raise SystemExit(f"Failed destroying ldap: {ldapSetting['id']}")
+    elif args.objectType == "protection" or args.objectType == "schedule":
+        if args.v3:
+            rc = astraSDK.k8s.destroyResource(
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
+            ).main("schedules", args.protection)
+        else:
+            rc = astraSDK.protections.destroyProtectiontionpolicy(
+                quiet=args.quiet, verbose=args.verbose
+            ).main(args.app, args.protection)
+            if rc:
+                print(f"Protection policy {args.protection} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying protection policy: {args.protection}")
     elif args.objectType == "replication":
         if ard.needsattr("replications"):
             ard.replications = astraSDK.replications.getReplicationpolicies().main()
@@ -91,28 +171,40 @@ def main(args, parser, ard):
         else:
             raise SystemExit(f"Failed destroying script: {args.scriptID}")
     elif args.objectType == "snapshot":
-        rc = astraSDK.snapshots.destroySnapshot(quiet=args.quiet, verbose=args.verbose).main(
-            args.appID, args.snapshotID
-        )
-        if rc:
-            print(f"Snapshot {args.snapshotID} destroyed")
+        if args.v3:
+            rc = astraSDK.k8s.destroyResource(
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
+            ).main("snapshots", args.snapshot)
         else:
-            raise SystemExit(f"Failed destroying snapshot: {args.snapshotID}")
+            rc = astraSDK.snapshots.destroySnapshot(quiet=args.quiet, verbose=args.verbose).main(
+                args.app, args.snapshot
+            )
+            if rc:
+                print(f"Snapshot {args.snapshot} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying snapshot: {args.snapshot}")
     elif args.objectType == "user":
-        userDestroyed = False
-        roleBindings = astraSDK.rolebindings.getRolebindings().main()
-        for rb in roleBindings["items"]:
-            if rb["userID"] == args.userID:
-                rc = astraSDK.rolebindings.destroyRolebinding(
-                    quiet=args.quiet, verbose=args.verbose
-                ).main(rb["id"])
-                if rc:
-                    print(f"User {args.userID} / roleBinding {rb['id']} destroyed")
-                    userDestroyed = True
-                else:
-                    raise SystemExit(
-                        f"Failed destroying user {args.userID} with roleBinding {rb['id']}"
-                    )
-        if not userDestroyed:
-            # If we reached this point, it's due to plaidMode == True and bad userID
-            parser.error(f"userID {args.userID} not found")
+        if ard.needsattr("users"):
+            ard.users = astraSDK.users.getUsers().main()
+        if ard.needsattr("rolebindings"):
+            ard.rolebindings = astraSDK.rolebindings.getRolebindings().main()
+        user = ard.getSingleDict("users", "id", args.userID, parser)
+        rb = ard.getSingleDict("rolebindings", "userID", args.userID, parser)
+        if astraSDK.rolebindings.destroyRolebinding(quiet=args.quiet, verbose=args.verbose).main(
+            rb["id"]
+        ):
+            print(f"RoleBinding {rb['id']} destroyed")
+        else:
+            raise SystemExit(f"Failed destroying user {args.userID} with roleBinding {rb['id']}")
+        # Only LDAP users also need to be destroyed
+        if user["authProvider"] == "ldap":
+            if astraSDK.users.destroyUser(quiet=args.quiet, verbose=args.verbose).main(args.userID):
+                print(f"User {args.userID} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying user {args.userID}")
+        else:
+            print(f"User {args.userID} destroyed")
