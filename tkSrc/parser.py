@@ -1746,7 +1746,7 @@ class ToolkitParser:
                 "-v",
                 "--operator-version",
                 required=False,
-                default="latest",
+                default="24.02.0-202403151353",
                 help="Optionally specify the astra-connector-operator version "
                 "(default: %(default)s)",
             )
