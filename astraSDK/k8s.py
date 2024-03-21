@@ -23,7 +23,7 @@ import sys
 import yaml
 from datetime import datetime, timedelta, timezone
 
-from .common import KubeCommon, SDKCommon
+from .common import BaseCommon, KubeCommon, SDKCommon
 
 
 class getResources(KubeCommon):
@@ -921,7 +921,7 @@ class createAstraApiToken(KubeCommon, SDKCommon):
         ).main(secret, namespace=namespace)
 
 
-class createGenericSecret(KubeCommon, SDKCommon):
+class createGenericSecret(KubeCommon):
     """Creates a basic Kubernetes secret, the passed data must already be base64 encoded"""
 
     def __init__(
@@ -1011,6 +1011,56 @@ class createAstraConnector(SDKCommon):
                     "name": registry if registry else f"cr.{self.conf['domain']}",
                     "secret": regCred,
                 },
+            },
+        }
+        return createResource(
+            quiet=self.quiet,
+            dry_run=self.dry_run,
+            verbose=self.verbose,
+            config_context=self.config_context,
+            skip_tls_verify=self.skip_tls_verify,
+        ).main(
+            body["kind"].lower() + "s",
+            namespace,
+            body,
+            version=body["apiVersion"].split("/")[1],
+            group=body["apiVersion"].split("/")[0],
+        )
+
+
+class createHeadlessConnector(BaseCommon):
+    """Creates an AstraConnector custom resource without registering to Astra Control"""
+
+    def __init__(
+        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+    ):
+        """quiet: Will there be CLI output or just return (datastructure)
+        dry-run: False (default):       submit and persist the resource
+                 True or non-empty str: submit request without persisting the resource
+        verbose: Print all of the rest call info: URL, Method, Headers, Request Body
+        config_context: the kubeconfig:context mapping to execute against
+                        None: use system defaults
+                        str "None:<context>": use default kubeconfig w/ specified context
+                        str "<config_file>:<context>": use specified file and context
+        skip_tls_verify: Whether to skip TLS/SSL verification"""
+        self.quiet = quiet
+        self.dry_run = dry_run
+        self.verbose = verbose
+        self.config_context = config_context
+        self.skip_tls_verify = skip_tls_verify
+        super().__init__()
+
+    def main(
+        self, clusterName, regCred, registry, name="astra-connector", namespace="astra-connector"
+    ):
+        body = {
+            "apiVersion": "astra.netapp.io/v1",
+            "kind": "AstraConnector",
+            "metadata": {"name": name, "namespace": namespace},
+            "spec": {
+                "astra": {"clusterName": clusterName},
+                "natsSyncClient": {"cloudBridgeURL": "127.0.0.1"},
+                "imageRegistry": {"name": registry, "secret": regCred},
             },
         }
         return createResource(

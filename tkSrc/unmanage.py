@@ -77,17 +77,18 @@ def main(args, parser, ard):
                 version="v1",
                 group="astra.netapp.io",
             ):
-                if not astraSDK.k8s.destroySecret(
-                    quiet=args.quiet,
-                    dry_run=args.dry_run,
-                    verbose=args.verbose,
-                    config_context=args.v3,
-                    skip_tls_verify=args.skip_tls_verify,
-                ).main(
-                    connector["spec"]["astra"]["tokenRef"],
-                    namespace=connector["metadata"]["namespace"],
-                ):
-                    raise SystemExit("astraSDK.k8s.destroySecret() failed")
+                if connector["spec"]["astra"].get("tokenRef"):
+                    if not astraSDK.k8s.destroySecret(
+                        quiet=args.quiet,
+                        dry_run=args.dry_run,
+                        verbose=args.verbose,
+                        config_context=args.v3,
+                        skip_tls_verify=args.skip_tls_verify,
+                    ).main(
+                        connector["spec"]["astra"]["tokenRef"],
+                        namespace=connector["metadata"]["namespace"],
+                    ):
+                        raise SystemExit("astraSDK.k8s.destroySecret() failed")
             else:
                 raise SystemExit("astraSDK.k8s.destroyResource() failed")
         else:

@@ -1763,6 +1763,9 @@ class ToolkitParser:
                 help="optionally specify the FQDN of the ACP image source registry "
                 "(defaults to cr.<astra-control-fqdn>)",
             )
+            self.subparserManageCluster.add_argument(
+                "--headless", action="store_true", default=False, help=argparse.SUPPRESS
+            )
         else:
             self.subparserManageCluster.add_argument(
                 "cluster",

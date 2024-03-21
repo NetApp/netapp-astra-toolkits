@@ -17,6 +17,7 @@
 
 import base64
 import json
+import os
 import sys
 import time
 import yaml
@@ -72,6 +73,17 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
     for err in set([str(e) for e in err_counter]):
         protection_class.printError(err + "\n")
     return False
+
+
+def createV3ConnectorOperator(v3, dry_run, skip_tls_verify, verbose, operator_version):
+    """Creates the Arch 3.0 Astra Connector Operator"""
+    context, config_file = tuple(v3.split("@"))
+    helpers.run(
+        f"kubectl --insecure-skip-tls-verify={skip_tls_verify} --context={context} "
+        f"-v={6 if verbose else 0} apply --dry_run={dry_run if dry_run else 'none'} -f "
+        f"{helpers.getOperatorURL(operator_version)}",
+        env={"KUBECONFIG": os.path.expanduser(config_file)} if config_file != "None" else None,
+    )
 
 
 def createCloudCredential(quiet, verbose, path, name, cloudType, parser):

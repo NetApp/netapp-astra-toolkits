@@ -281,16 +281,22 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False):
                                 acl.credentials.append(credential["id"])
         elif argv[verbPosition + 1] == "cluster":
             if v3:
-                ard.clouds = astraSDK.clouds.getClouds().main()
-                if ard.clouds and ard.clouds.get("items"):
-                    for cloud in ard.clouds["items"]:
-                        if cloud["cloudType"] not in ["GCP", "Azure", "AWS"]:
-                            acl.clouds.append(cloud["id"])
-                # Add a private cloud if it doesn't already exist
-                if len(acl.clouds) == 0:
-                    rc = astraSDK.clouds.manageCloud(quiet=True).main("private", "private")
-                    if rc:
-                        acl.clouds.append(rc["id"])
+                if "--headless" in argv:
+                    acl.clouds.append("123")
+                else:
+                    try:
+                        ard.clouds = astraSDK.clouds.getClouds().main()
+                        if ard.clouds and ard.clouds.get("items"):
+                            for cloud in ard.clouds["items"]:
+                                if cloud["cloudType"] not in ["GCP", "Azure", "AWS"]:
+                                    acl.clouds.append(cloud["id"])
+                        # Add a private cloud if it doesn't already exist
+                        if len(acl.clouds) == 0:
+                            rc = astraSDK.clouds.manageCloud(quiet=True).main("private", "private")
+                            if rc:
+                                acl.clouds.append(rc["id"])
+                    except SystemExit:
+                        pass
                 ard.credentials = astraSDK.k8s.getSecrets(
                     config_context=v3, skip_tls_verify=v3_skip_tls_verify
                 ).main()

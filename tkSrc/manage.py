@@ -15,7 +15,6 @@
    limitations under the License.
 """
 
-import os
 import yaml
 
 import astraSDK
@@ -139,6 +138,71 @@ def manageV3Bucket(
             version="v1",
             group="astra.netapp.io",
         )
+
+
+def manageV3Cluster(
+    v3,
+    dry_run,
+    skip_tls_verify,
+    quiet,
+    verbose,
+    clusterName,
+    operator_version,
+    regCred,
+    registry,
+    cloudID,
+    headless,
+    ard,
+    parser,
+):
+    helpers.isRFC1123(clusterName, parser=parser)
+    create.createV3ConnectorOperator(v3, dry_run, skip_tls_verify, verbose, operator_version)
+    # Create the astra API token secret
+    if not headless:
+        apiToken = astraSDK.k8s.createAstraApiToken(
+            quiet=quiet,
+            dry_run=dry_run,
+            verbose=verbose,
+            config_context=v3,
+            skip_tls_verify=skip_tls_verify,
+        ).main()
+    # Handle the registry secret
+    if not regCred:
+        cred = astraSDK.k8s.createRegCred(
+            quiet=quiet,
+            dry_run=dry_run,
+            verbose=verbose,
+            config_context=v3,
+            skip_tls_verify=skip_tls_verify,
+        ).main(registry=registry, namespace="astra-connector")
+        if not cred:
+            raise SystemExit("astraSDK.k8s.createRegCred() failed")
+        regCred = cred["metadata"]["name"]
+    else:
+        if ard.needsattr("credentials"):
+            ard.credentials = astraSDK.k8s.getSecrets(
+                config_context=v3, skip_tls_verify=skip_tls_verify
+            ).main()
+        cred = ard.getSingleDict("credentials", "metadata.name", regCred, parser)
+    # Create the AstraConnector CR
+    if headless:
+        connector = astraSDK.k8s.createHeadlessConnector(
+            quiet=quiet,
+            dry_run=dry_run,
+            verbose=verbose,
+            config_context=v3,
+            skip_tls_verify=skip_tls_verify,
+        ).main(clusterName, regCred, registry)
+    else:
+        connector = astraSDK.k8s.createAstraConnector(
+            quiet=quiet,
+            dry_run=dry_run,
+            verbose=verbose,
+            config_context=v3,
+            skip_tls_verify=skip_tls_verify,
+        ).main(clusterName, cloudID, apiToken["metadata"]["name"], regCred, registry=registry)
+    if not connector:
+        raise SystemExit("astraSDK.k8s.createAstraConnector() failed")
 
 
 def validateBucketArgs(args, parser):
@@ -343,60 +407,21 @@ def main(args, parser, ard):
 
     elif args.objectType == "cluster":
         if args.v3:
-            # Validate the inputted cluster name conforms to RFC-1123 prior to installing resources
-            helpers.isRFC1123(args.clusterName, parser=parser)
-            # Install the operator
-            context, config_file = tuple(args.v3.split("@"))
-            helpers.run(
-                f"kubectl --context={context} -v={6 if args.verbose else 0} apply "
-                f"--dry_run={args.dry_run if args.dry_run else 'none'} -f "
-                f"{helpers.getOperatorURL(args.operator_version)}",
-                env={"KUBECONFIG": os.path.expanduser(config_file)}
-                if config_file != "None"
-                else None,
-            )
-            # Create the astra API token secret
-            apiToken = astraSDK.k8s.createAstraApiToken(
-                quiet=args.quiet,
-                dry_run=args.dry_run,
-                verbose=args.verbose,
-                config_context=args.v3,
-                skip_tls_verify=args.skip_tls_verify,
-            ).main()
-            # Handle the registry secret
-            if not args.regCred:
-                cred = astraSDK.k8s.createRegCred(
-                    quiet=args.quiet,
-                    dry_run=args.dry_run,
-                    verbose=args.verbose,
-                    config_context=args.v3,
-                    skip_tls_verify=args.skip_tls_verify,
-                ).main(registry=args.registry, namespace="astra-connector")
-                if not cred:
-                    raise SystemExit("astraSDK.k8s.createRegCred() failed")
-                args.regCred = cred["metadata"]["name"]
-            else:
-                if ard.needsattr("credentials"):
-                    ard.credentials = astraSDK.k8s.getSecrets(
-                        config_context=args.v3, skip_tls_verify=args.skip_tls_verify
-                    ).main()
-                cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
-            # Create the AstraConnector CR
-            connector = astraSDK.k8s.createAstraConnector(
-                quiet=args.quiet,
-                dry_run=args.dry_run,
-                verbose=args.verbose,
-                config_context=args.v3,
-                skip_tls_verify=args.skip_tls_verify,
-            ).main(
+            manageV3Cluster(
+                args.v3,
+                args.dry_run,
+                args.skip_tls_verify,
+                args.quiet,
+                args.verbose,
                 args.clusterName,
-                args.cloudID,
-                apiToken["metadata"]["name"],
+                args.operator_version,
                 args.regCred,
-                registry=args.registry,
+                args.registry,
+                args.cloudID,
+                args.headless,
+                ard,
+                parser,
             )
-            if not connector:
-                raise SystemExit("astraSDK.k8s.createAstraConnector() failed")
         else:
             rc = astraSDK.clusters.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
                 args.cluster, args.defaultStorageClassID
