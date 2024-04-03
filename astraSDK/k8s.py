@@ -20,6 +20,7 @@ import copy
 import json
 import kubernetes
 import sys
+import urllib3
 import yaml
 from datetime import datetime, timedelta, timezone
 
@@ -89,11 +90,11 @@ class getResources(KubeCommon):
             self.formatPrint(resp, plural)
             return resp
 
-        except kubernetes.client.rest.ApiException as e:
+        except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            if e.status == 404 and e.reason == "Not Found":
+            if hasattr(e, "status") and e.status == 404 and e.reason == "Not Found":
                 self.notInstalled(f"/apis/{group}/{version}/namespaces/{namespace}/{plural}")
-            self.printError(e)
+            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
 
     def formatPrint(self, resp, plural, quiet=None, output=None, verbose=None):
         if quiet is None:
@@ -331,11 +332,11 @@ class getClusterResources(KubeCommon):
                 print(json.dumps(resp) if type(resp) is dict else resp)
             return resp
 
-        except kubernetes.client.rest.ApiException as e:
+        except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            if e.status == 404 and e.reason == "Not Found":
+            if hasattr(e, "status") and e.status == 404 and e.reason == "Not Found":
                 self.notInstalled(f"/apis/{group}/{version}/{plural}")
-            self.printError(e)
+            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
 
 
 class createResource(KubeCommon):
@@ -392,11 +393,11 @@ class createResource(KubeCommon):
                 print(json.dumps(resp) if type(resp) is dict else resp)
             return resp
 
-        except kubernetes.client.rest.ApiException as e:
+        except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            if e.status == 404 and e.reason == "Not Found":
+            if hasattr(e, "status") and e.status == 404 and e.reason == "Not Found":
                 self.notInstalled(f"/apis/{group}/{version}/namespaces/{namespace}/{plural}")
-            self.printError(e)
+            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
 
 
 class destroyResource(KubeCommon):
@@ -453,11 +454,11 @@ class destroyResource(KubeCommon):
                 print(json.dumps(resp) if type(resp) is dict else resp)
             return resp
 
-        except kubernetes.client.rest.ApiException as e:
+        except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            if e.status == 404 and e.reason == "Not Found":
+            if hasattr(e, "status") and e.status == 404 and e.reason == "Not Found":
                 self.notInstalled(f"/apis/{group}/{version}/namespaces/{namespace}/{plural}")
-            self.printError(e)
+            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
 
 
 class updateClusterResource(KubeCommon):
@@ -507,11 +508,11 @@ class updateClusterResource(KubeCommon):
                 print(json.dumps(resp) if type(resp) is dict else resp)
             return resp
 
-        except kubernetes.client.rest.ApiException as e:
+        except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            if e.status == 404 and e.reason == "Not Found":
+            if hasattr(e, "status") and e.status == 404 and e.reason == "Not Found":
                 self.notInstalled(f"/apis/{group}/{version}/{plural}")
-            self.printError(e)
+            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
 
 
 class getNamespaces(KubeCommon):
@@ -600,9 +601,9 @@ class getNamespaces(KubeCommon):
                 print(json.dumps(resp, default=str) if type(resp) is dict else resp)
             return resp
 
-        except kubernetes.client.rest.ApiException as e:
+        except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            self.printError(e)
+            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
 
 
 class getSecrets(KubeCommon):
@@ -656,9 +657,9 @@ class getSecrets(KubeCommon):
                 print(json.dumps(resp, default=str) if type(resp) is dict else resp)
             return resp
 
-        except kubernetes.client.rest.ApiException as e:
+        except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            self.printError(e)
+            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
 
 
 class destroySecret(KubeCommon):
@@ -705,9 +706,9 @@ class destroySecret(KubeCommon):
                 print(json.dumps(resp) if type(resp) is dict else resp)
             return resp
 
-        except kubernetes.client.rest.ApiException as e:
+        except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            self.printError(e)
+            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
 
 
 class getStorageClasses(KubeCommon):
@@ -751,9 +752,9 @@ class getStorageClasses(KubeCommon):
                 print(json.dumps(resp, default=str) if type(resp) is dict else resp)
             return resp
 
-        except kubernetes.client.rest.ApiException as e:
+        except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            self.printError(e)
+            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
 
 
 class createV1Secret(KubeCommon):
@@ -799,9 +800,9 @@ class createV1Secret(KubeCommon):
             if not self.quiet:
                 print(json.dumps(resp, default=str) if type(resp) is dict else resp)
             return resp
-        except kubernetes.client.rest.ApiException as e:
+        except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            self.printError(e)
+            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
 
 
 class createRegCred(KubeCommon, SDKCommon):
