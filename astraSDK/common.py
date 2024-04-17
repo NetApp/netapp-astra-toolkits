@@ -323,6 +323,15 @@ class KubeCommon(BaseCommon):
         )
         raise SystemExit()
 
+    def printKubeError(self, e):
+        if hasattr(e, "body"):
+            e.text = e.body
+            self.printError(e)
+        elif hasattr(e, "reason"):
+            self.printError(e.reason)
+        else:
+            self.printError(e)
+
     class WriteVerbose:
         def __init__(self):
             self.content = []

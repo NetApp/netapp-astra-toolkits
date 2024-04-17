@@ -94,7 +94,7 @@ class getResources(KubeCommon):
             sys.stdout = sys.__stdout__
             if hasattr(e, "status") and e.status == 404 and e.reason == "Not Found":
                 self.notInstalled(f"/apis/{group}/{version}/namespaces/{namespace}/{plural}")
-            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
+            self.printKubeError(e)
 
     def formatPrint(self, resp, plural, quiet=None, output=None, verbose=None):
         if quiet is None:
@@ -148,7 +148,7 @@ class getResources(KubeCommon):
                     "status",
                 ]
             return [
-                "status.observedSpec.natsSyncClient.cloudBridgeURL",
+                "spec.natsSyncClient.cloudBridgeURL",
                 "status.natsSyncClient.registered",
                 "status.natsSyncClient.astraClusterID",
                 "status.natsSyncClient.astraConnectorID",
@@ -336,11 +336,11 @@ class getClusterResources(KubeCommon):
             sys.stdout = sys.__stdout__
             if hasattr(e, "status") and e.status == 404 and e.reason == "Not Found":
                 self.notInstalled(f"/apis/{group}/{version}/{plural}")
-            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
+            self.printKubeError(e)
 
 
 class createResource(KubeCommon):
-    """Creates a cluster scoped Custom Resource"""
+    """Creates a namespace scoped Custom Resource"""
 
     def __init__(
         self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
@@ -397,11 +397,11 @@ class createResource(KubeCommon):
             sys.stdout = sys.__stdout__
             if hasattr(e, "status") and e.status == 404 and e.reason == "Not Found":
                 self.notInstalled(f"/apis/{group}/{version}/namespaces/{namespace}/{plural}")
-            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
+            self.printKubeError(e)
 
 
 class destroyResource(KubeCommon):
-    """Destroys a cluster scoped Custom Resource"""
+    """Destroys a namespace scoped Custom Resource"""
 
     def __init__(
         self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
@@ -458,7 +458,7 @@ class destroyResource(KubeCommon):
             sys.stdout = sys.__stdout__
             if hasattr(e, "status") and e.status == 404 and e.reason == "Not Found":
                 self.notInstalled(f"/apis/{group}/{version}/namespaces/{namespace}/{plural}")
-            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
+            self.printKubeError(e)
 
 
 class updateClusterResource(KubeCommon):
@@ -512,7 +512,7 @@ class updateClusterResource(KubeCommon):
             sys.stdout = sys.__stdout__
             if hasattr(e, "status") and e.status == 404 and e.reason == "Not Found":
                 self.notInstalled(f"/apis/{group}/{version}/{plural}")
-            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
+            self.printKubeError(e)
 
 
 class getNamespaces(KubeCommon):
@@ -603,7 +603,7 @@ class getNamespaces(KubeCommon):
 
         except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
+            self.printKubeError(e)
 
 
 class getSecrets(KubeCommon):
@@ -659,7 +659,7 @@ class getSecrets(KubeCommon):
 
         except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
+            self.printKubeError(e)
 
 
 class destroySecret(KubeCommon):
@@ -708,7 +708,7 @@ class destroySecret(KubeCommon):
 
         except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
+            self.printKubeError(e)
 
 
 class getStorageClasses(KubeCommon):
@@ -754,7 +754,7 @@ class getStorageClasses(KubeCommon):
 
         except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
+            self.printKubeError(e)
 
 
 class createV1Secret(KubeCommon):
@@ -802,7 +802,7 @@ class createV1Secret(KubeCommon):
             return resp
         except (kubernetes.client.rest.ApiException, urllib3.exceptions.MaxRetryError) as e:
             sys.stdout = sys.__stdout__
-            self.printError(e.reason) if hasattr(e, "reason") else self.printError(e)
+            self.printKubeError(e)
 
 
 class createRegCred(KubeCommon, SDKCommon):
