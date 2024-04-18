@@ -702,7 +702,7 @@ def main(args, parser, ard):
                 args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
-                args.ame,
+                args.name,
                 args.app,
                 args.bucket,
                 reclaimPolicy=args.reclaimPolicy,
