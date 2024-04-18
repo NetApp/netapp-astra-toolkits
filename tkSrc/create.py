@@ -75,6 +75,42 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
     return False
 
 
+def monitorV3ProtectionTask(protection, pollTimer, parser, v3, skip_tls_verify):
+    name = protection["metadata"]["name"]
+    singular = protection["kind"].lower()
+    resource_class = astraSDK.k8s.getResources(config_context=v3, skip_tls_verify=skip_tls_verify)
+    print(f"Waiting for {singular} to complete.", end="")
+    sys.stdout.flush()
+    err_counter = []
+    while len(err_counter) < 3:
+        try:
+            resources = resource_class.main(
+                f"{singular}s", filters=[{"keyFilter": "metadata.name", "valFilter": name}]
+            )
+            if not resources:
+                raise Exception("astraSDK.k8s.getResources().main() failed")
+            elif not resources["items"]:
+                raise Exception(f"{singular} {name} not found")
+            elif len(resources["items"]) > 1:
+                raise Exception(f"Multiple {singular}s found with name {name}")
+            resource = resources["items"][0]
+            if resource["status"]["state"] == "Completed":
+                print("complete!")
+                sys.stdout.flush()
+                return resource
+            elif resource["status"]["state"] == "Failed" or resource["status"]["state"] == "Error":
+                print(f"{singular} failed")
+                return False
+            time.sleep(pollTimer)
+            print(".", end="")
+            sys.stdout.flush()
+        except Exception as err:
+            err_counter.append(err)
+    for err in set([str(e) for e in err_counter]):
+        resource_class.printError(err + "\n")
+    return False
+
+
 def createV3ConnectorOperator(v3, dry_run, skip_tls_verify, verbose, operator_version):
     """Creates the Arch 3.0 Astra Connector Operator"""
     context, config_file = tuple(v3.split("@"))
@@ -305,7 +341,7 @@ def createV3Protection(
     template = helpers.setupJinja("protection")
     v3_dict = yaml.safe_load(
         template.render(
-            name=helpers.isRFC1123(f"{app}-{granularity}") + "-",
+            name=helpers.isRFC1123(f"{app}-{granularity}", ignore_length=True) + "-",
             appName=app,
             appVaultName=bucket,
             backupRetention=backupRetention,
@@ -392,7 +428,7 @@ def main(args, parser, ard):
                 args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
                     "metadata"
                 ]["name"]
-            createV3Backup(
+            backup = createV3Backup(
                 args.v3,
                 args.dry_run,
                 args.skip_tls_verify,
@@ -404,6 +440,10 @@ def main(args, parser, ard):
                 args.snapshot,
                 args.reclaimPolicy,
             )
+            if not args.dry_run and not args.background:
+                monitorV3ProtectionTask(
+                    backup, args.pollTimer, parser, args.v3, args.skip_tls_verify
+                )
         else:
             protectionID = astraSDK.backups.takeBackup(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,
@@ -656,19 +696,23 @@ def main(args, parser, ard):
                 args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
                     "metadata"
                 ]["name"]
-            createV3Snapshot(
+            snapshot = createV3Snapshot(
                 args.v3,
                 args.dry_run,
                 args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
-                args.name,
+                args.ame,
                 args.app,
                 args.bucket,
                 reclaimPolicy=args.reclaimPolicy,
                 createdTimeout=args.createdTimeout,
                 readyToUseTimeout=args.readyToUseTimeout,
             )
+            if not args.dry_run and not args.background:
+                monitorV3ProtectionTask(
+                    snapshot, args.pollTimer, parser, args.v3, args.skip_tls_verify
+                )
         else:
             protectionID = astraSDK.snapshots.takeSnap(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,

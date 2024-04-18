@@ -310,11 +310,11 @@ def run(command, captureOutput=False, ignoreErrors=False, env=None):
             return True
 
 
-def isRFC1123(string, parser=None):
+def isRFC1123(string, parser=None, ignore_length=False):
     """isRFC1123 returns the input 'string' if it conforms to RFC 1123 spec,
     otherwise it throws an error and exits"""
     regex = re.compile("[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
-    if regex.match(string) is not None and len(string) < 64:
+    if regex.match(string) is not None and (len(string) < 64 or ignore_length):
         return string
     else:
         error = (
