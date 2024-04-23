@@ -243,6 +243,7 @@ class getResources(KubeCommon):
                     "dayOfMonth",
                     "snapRetention",
                     "backupRetention",
+                    "appVaultRef",
                 ]
             return [
                 "spec.applicationRef",
@@ -254,6 +255,7 @@ class getResources(KubeCommon):
                 "spec.dayOfMonth",
                 "spec.snapshotRetention",
                 "spec.backupRetention",
+                "spec.appVaultRef",
             ]
         elif plural == "snapshots":
             if headers:

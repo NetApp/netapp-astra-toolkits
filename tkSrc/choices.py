@@ -375,7 +375,9 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False):
                 acl.apps = ard.buildList("apps", "id")
                 ard.hooks = astraSDK.hooks.getHooks().main()
                 acl.hooks = ard.buildList("hooks", "id", fKey="appID", fVal=argv[verbPosition + 2])
-        elif argv[verbPosition + 1] == "protection" and len(argv) - verbPosition >= 3:
+        elif (
+            argv[verbPosition + 1] == "protection" or argv[verbPosition + 1] == "schedule"
+        ) and len(argv) - verbPosition >= 3:
             if v3:
                 ard.apps = astraSDK.k8s.getResources(
                     config_context=v3, skip_tls_verify=v3_skip_tls_verify
