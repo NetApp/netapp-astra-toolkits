@@ -341,7 +341,7 @@ def createV3Protection(
     template = helpers.setupJinja("protection")
     v3_dict = yaml.safe_load(
         template.render(
-            name=helpers.isRFC1123(f"{app}-{granularity}", ignore_length=True) + "-",
+            name=helpers.isRFC1123(f"{granularity}-{app}", ignore_length=True) + "-",
             appName=app,
             appVaultName=bucket,
             backupRetention=backupRetention,
