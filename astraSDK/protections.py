@@ -180,6 +180,7 @@ class createProtectionpolicy(SDKCommon):
         minute,
         appID,
         recurrenceRule=None,
+        bucketID=None,
     ):
         endpoint = f"k8s/v1/apps/{appID}/schedules"
         url = self.base + endpoint
@@ -200,9 +201,81 @@ class createProtectionpolicy(SDKCommon):
         if recurrenceRule:
             data["recurrenceRule"] = recurrenceRule
             data["replicate"] = "true"
+        if bucketID:
+            data["bucketID"] = bucketID
 
         ret = super().apicall(
             "post",
+            url,
+            data,
+            self.headers,
+            params,
+            self.verifySSL,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False
+
+
+class updateProtectionpolicy(SDKCommon):
+    """Update a protection policy. This class does no validation of the arguments, leaving
+    that to the API call itself. tkSrc/update.py can be used as a guide as to what the API
+    requirements are in case the swagger isn't sufficient.
+    """
+
+    def __init__(self, quiet=True, verbose=False):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__()
+        self.headers["Content-Type"] = "application/astra-schedule+json"
+
+    def main(
+        self,
+        appID,
+        protectionID,
+        granularity,
+        backupRetention,
+        snapshotRetention,
+        minute=None,
+        hour=None,
+        dayOfWeek=None,
+        dayOfMonth=None,
+        bucketID=None,
+    ):
+        endpoint = f"k8s/v1/apps/{appID}/schedules/{protectionID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-schedule",
+            "version": "1.3",
+            "granularity": granularity,
+            "backupRetention": backupRetention,
+            "snapshotRetention": snapshotRetention,
+        }
+        if minute:
+            data["minute"] = minute
+        if hour:
+            data["hour"] = hour
+        if dayOfWeek:
+            data["dayOfWeek"] = dayOfWeek
+        if dayOfMonth:
+            data["dayOfMonth"] = dayOfMonth
+        if bucketID:
+            data["bucketID"] = bucketID
+
+        ret = super().apicall(
+            "put",
             url,
             data,
             self.headers,

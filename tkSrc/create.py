@@ -588,6 +588,14 @@ def main(args, parser, ard):
                 parser.error("'monthly' granularity requires -M / --dayOfMonth")
             args.dayOfWeek = naStr
         if args.v3:
+            if ard.needsattr("buckets"):
+                ard.buckets = astraSDK.k8s.getResources(
+                    config_context=args.v3, skip_tls_verify=args.skip_tls_verify
+                ).main("appvaults")
+            if args.bucket is None:
+                args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
+                    "metadata"
+                ]["name"]
             createV3Protection(
                 args.v3,
                 args.dry_run,
@@ -616,6 +624,7 @@ def main(args, parser, ard):
                 str(args.hour),
                 str(args.minute),
                 args.app,
+                bucketID=args.bucket,
             )
             if rc is False:
                 raise SystemExit("astraSDK.protections.createProtectionpolicy() failed")

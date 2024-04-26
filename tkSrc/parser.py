@@ -446,6 +446,7 @@ class ToolkitParser:
         """update 'X'"""
         self.subparserUpdateBucket = self.subparserUpdate.add_parser(
             "bucket",
+            aliases=["appVault"],
             help="update bucket",
         )
         self.subparserUpdateCloud = self.subparserUpdate.add_parser(
@@ -455,6 +456,11 @@ class ToolkitParser:
         self.subparserUpdateCluster = self.subparserUpdate.add_parser(
             "cluster",
             help="update cluster",
+        )
+        self.subparserUpdateProtection = self.subparserUpdate.add_parser(
+            "protection",
+            aliases=["schedule"],
+            help="update protection policy",
         )
         self.subparserUpdateReplication = self.subparserUpdate.add_parser(
             "replication",
@@ -1366,16 +1372,14 @@ class ToolkitParser:
             choices=(None if self.plaidMode else self.acl.apps),
             help="the application to create protection schedule for",
         )
-        if self.v3:
-            self.subparserCreateProtection.add_argument(
-                "-u",
-                "--appVault",
-                dest="bucket",
-                default=None,
-                required=True,
-                choices=(None if self.plaidMode else self.acl.buckets),
-                help="Name of the AppVault to use as the target of the backup/snapshot",
-            )
+        self.subparserCreateProtection.add_argument(
+            "-u",
+            "--appVault" if self.v3 else "--bucket",
+            dest="bucket",
+            default=None,
+            choices=(None if self.plaidMode else self.acl.buckets),
+            help="Name of the AppVault to use as the target of the backup/snapshot",
+        )
         self.subparserCreateProtection.add_argument(
             "-g",
             "--granularity",
@@ -2020,6 +2024,52 @@ class ToolkitParser:
             help="the new default bucket / appVault for the cluster",
         )
 
+    def update_protection_args(self):
+        """update protection args and flags"""
+        self.subparserUpdateProtection.add_argument(
+            "protection",
+            choices=(None if self.plaidMode else self.acl.protections),
+            help="protection to update",
+        )
+        self.subparserUpdateProtection.add_argument(
+            "-u",
+            "--bucketID",
+            dest="bucket",
+            default=None,
+            choices=(None if self.plaidMode else self.acl.buckets),
+            help="the bucket to use as the target of the backup/snapshot",
+        )
+        self.subparserUpdateProtection.add_argument(
+            "-b",
+            "--backupRetention",
+            type=int,
+            choices=range(60),
+            help="Number of backups to retain",
+        )
+        self.subparserUpdateProtection.add_argument(
+            "-s",
+            "--snapshotRetention",
+            type=int,
+            choices=range(60),
+            help="Number of snapshots to retain",
+        )
+        self.subparserUpdateProtection.add_argument(
+            "-M", "--dayOfMonth", type=int, choices=range(1, 32), help="Day of the month"
+        )
+        self.subparserUpdateProtection.add_argument(
+            "-W",
+            "--dayOfWeek",
+            type=int,
+            choices=range(7),
+            help="0 = Sunday ... 6 = Saturday",
+        )
+        self.subparserUpdateProtection.add_argument(
+            "-H", "--hour", type=int, choices=range(24), help="Hour in military time"
+        )
+        self.subparserUpdateProtection.add_argument(
+            "-m", "--minute", default=0, type=int, choices=range(60), help="Minute"
+        )
+
     def update_replication_args(self):
         """update replication args and flags"""
         self.subparserUpdateReplication.add_argument(
@@ -2137,8 +2187,9 @@ class ToolkitParser:
 
         self.update_bucket_args()
         self.update_cloud_args()
+        self.update_cluster_args()
+        self.update_protection_args()
         self.update_replication_args()
         self.update_script_args()
-        self.update_cluster_args()
 
         return self.parser

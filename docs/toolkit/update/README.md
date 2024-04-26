@@ -5,21 +5,24 @@ The `update` argument allows you to update an Astra resource, at this time only 
 * [Bucket](#bucket)
 * [Cloud](#cloud)
 * [Cluster](#cluster)
+* [Protection](#protection)
 * [Replication](#replication)
 * [Script](#script)
 
 ```text
 $ actoolkit update -h
-usage: actoolkit update [-h] {bucket,cloud,cluster,replication,script} ...
+usage: actoolkit update [-h] {bucket,appVault,cloud,cluster,protection,schedule,replication,script} ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {bucket,cloud,cluster,replication,script}
-    bucket              update bucket
+  {bucket,appVault,cloud,cluster,protection,schedule,replication,script}
+    bucket (appVault)   update bucket
     cloud               update cloud
     cluster             update cluster
+    protection (schedule)
+                        update protection policy
     replication         update replication
     script              update script
 ```
@@ -145,6 +148,52 @@ The \<bucketID\> argument can be gathered from a [list buckets](../list/README.m
 ```text
 $ actoolkit update cluster d0e0767b-1d77-478d-8640-13272efe1e23 --defaultBucketID 78263925-c3b3-48af-97c9-32bc5bde3273
 {"type": "application/astra-managedCluster", "version": "1.6", "id": "d0e0767b-1d77-478d-8640-13272efe1e23", "name": "uscentral1", "state": "running", "stateUnready": [], "managedState": "managed", "protectionState": "full", "protectionStateDetails": [], "restoreTargetSupported": "true", "snapshotSupported": "true", "managedStateUnready": [], "managedTimestamp": "2023-11-28T14:30:42Z", "inUse": "true", "clusterType": "gke", "clusterVersion": "1.27", "clusterVersionString": "v1.27.3-gke.100", "connectorCapabilities": ["relayV1", "watcherV1", "neptuneV1"], "namespaces": [], "defaultStorageClass": "274562c4-9fff-4051-b16b-9db6db60651b", "cloudID": "d1c502e6-d410-46fc-8c15-f67c5b63dea2", "credentialID": "dcf1c466-d0fe-4bdf-b3ba-6e0e6e0ae066", "isMultizonal": "false", "tridentManagedStateAllowed": ["unmanaged"], "tridentVersion": "23.10.0-test.6d2477dfad063cd2277395663d5b06d198365c9e+6d2477dfad063cd2277395663d5b06d198365c9e", "acpVersion": "23.10.0-test.6d2477dfad063cd2277395663d5b06d198365c9e+3670363ff598b0105b8b2735323d3c0ae3ccabb8", "privateRouteID": "b68aa04d-a787-483f-9d9e-7c2930981534", "apiServiceID": "727422d9-abca-45d6-876e-3a6c62ef5664", "defaultBucketID": "", "metadata": {"labels": [{"name": "astra.netapp.io/labels/read-only/cloudName", "value": "private"}], "creationTimestamp": "2023-11-28T14:30:42Z", "modificationTimestamp": "2023-11-28T15:41:36Z", "createdBy": "45347ae2-6a07-41b0-a544-674ac4317b87"}}
+```
+
+## Protection
+
+The `update protection` command allows you to update a [protection policy](../create/README.md#protection).  The high level command usage is:
+
+```text
+actoolkit update protection <protectionID> <updateArgs>
+```
+
+The \<protectionID\> argument can be gathered from a [list protections](../list/README.md#protections) command.  The available \<updateArgs\> values are (multiple can be specified with the same command):
+
+* `-u`/`--bucketID`: modify the bucket where the backups and snapshots are storagegrid
+* `-b`/`--backupRetention`: modify the number of backups to retain
+* `-s`/`--snapshotRetention`: modify the number of snapshots to retain
+* `-M`/`--dayOfMonth`: modify the day of the month for the policy (only valid for monthly granularity)
+* `-W`/`--dayOfWeek`: modify the day of the week for the policy (only valid for weekly granularity)
+* `-H`/`--hour`: modify the hour of the policy (valid for all granularities except hourly)
+* `-m`/`--minute`: modify the minute of the policy (valid for all granularities)
+
+To update the bucket, run the following command:
+
+```text
+$ actoolkit update protection 113a3140-e95d-42c9-be74-8cd169a65ae4 -u cdd3910c-6e37-4b91-beb2-57c6ed7dc7f3
+{"type": "application/astra-schedule", "version": "1.3", "id": "113a3140-e95d-42c9-be74-8cd169a65ae4", "granularity": "hourly", "minute": "5", "snapshotRetention": "1", "backupRetention": "1", "bucketID": "cdd3910c-6e37-4b91-beb2-57c6ed7dc7f3"}
+```
+
+To modify the number of backups retained:
+
+```text
+$ actoolkit update protection 8cfbd961-04b9-4f7f-a094-0542aaee8626 -b 3
+{"type": "application/astra-schedule", "version": "1.3", "id": "8cfbd961-04b9-4f7f-a094-0542aaee8626", "granularity": "daily", "minute": "0", "hour": "2", "snapshotRetention": "1", "backupRetention": "3", "bucketID": "5f34da97-6195-4568-af77-52e01f9ae4bf"}
+```
+
+To modify the minute the policy is executed on:
+
+```text
+$ actoolkit update protection 6967981a-cfe7-4b00-b38c-640f33223a48 -m 5
+{"type": "application/astra-schedule", "version": "1.3", "id": "6967981a-cfe7-4b00-b38c-640f33223a48", "granularity": "weekly", "minute": "5", "hour": "2", "dayOfWeek": "0", "snapshotRetention": "1", "backupRetention": "1", "bucketID": "5f34da97-6195-4568-af77-52e01f9ae4bf"}
+```
+
+To modify the snapshot retention, hour, and minute of a policy:
+
+```text
+$ actoolkit update protection a3f3d02a-6c22-4d62-9436-f678d271fdc5 -m 9 -H 6 -s 3
+{"type": "application/astra-schedule", "version": "1.3", "id": "a3f3d02a-6c22-4d62-9436-f678d271fdc5", "granularity": "monthly", "minute": "9", "hour": "6", "dayOfMonth": "2", "snapshotRetention": "3", "backupRetention": "1", "bucketID": "5f34da97-6195-4568-af77-52e01f9ae4bf"}
 ```
 
 ## Replication

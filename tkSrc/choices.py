@@ -191,6 +191,9 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False):
                         config_context=v3, skip_tls_verify=v3_skip_tls_verify
                     ).main("appvaults")
                     acl.buckets = ard.buildList("buckets", "metadata.name")
+                else:
+                    ard.buckets = astraSDK.buckets.getBuckets().main()
+                    acl.buckets = ard.buildList("buckets", "id")
             if argv[verbPosition + 1] == "replication":
                 ard.destClusters = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
                 acl.destClusters = ard.buildList("destClusters", "id")
@@ -470,7 +473,7 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False):
             acl.clouds = ard.buildList("clouds", "id")
 
     elif verbs["update"] and len(argv) - verbPosition >= 2:
-        if argv[verbPosition + 1] == "bucket":
+        if argv[verbPosition + 1] == "bucket" or argv[verbPosition + 1] == "appVault":
             ard.buckets = astraSDK.buckets.getBuckets().main()
             acl.buckets = ard.buildList("buckets", "id")
             ard.credentials = astraSDK.credentials.getCredentials().main()
@@ -513,6 +516,11 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False):
                 acl.clusters = ard.buildList("clusters", "id", fKey="managedState", fVal="managed")
             else:
                 acl.clusters = ard.buildList("clusters", "id")
+        elif argv[verbPosition + 1] == "protection":
+            ard.protections = astraSDK.protections.getProtectionpolicies().main()
+            acl.protections = ard.buildList("protections", "id")
+            ard.buckets = astraSDK.buckets.getBuckets().main()
+            acl.buckets = ard.buildList("buckets", "id")
         elif argv[verbPosition + 1] == "replication":
             ard.replications = astraSDK.replications.getReplicationpolicies().main()
             if not ard.replications:  # Gracefully handle ACS env

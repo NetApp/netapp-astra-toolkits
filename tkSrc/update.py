@@ -123,6 +123,39 @@ def main(args, parser, ard):
             )
             if rc is False:
                 raise SystemExit("astraSDK.clusters.updateCluster() failed")
+    elif args.objectType == "protection" or args.objectType == "schedule":
+        if ard.needsattr("protections"):
+            ard.protections = astraSDK.protections.getProtectionpolicies().main()
+        protection = ard.getSingleDict("protections", "id", args.protection, parser)
+        granularity = protection["granularity"]
+        if granularity == "hourly" and args.hour:
+            parser.error(f"{granularity} granularity must not specify -H / --hour")
+        if granularity == "hourly" or granularity == "daily" or granularity == "monthly":
+            if args.dayOfWeek:
+                parser.error(f"{granularity} granularity must not specify -W / --dayOfWeek")
+        if granularity == "hourly" or granularity == "daily" or granularity == "weekly":
+            if args.dayOfMonth:
+                parser.error(f"{granularity} granularity must not specify -M / --dayOfMonth")
+        rc = astraSDK.protections.updateProtectionpolicy(
+            quiet=args.quiet, verbose=args.verbose
+        ).main(
+            protection["appID"],
+            protection["id"],
+            protection["granularity"],
+            str(args.backupRetention) if args.backupRetention else protection["backupRetention"],
+            (
+                str(args.snapshotRetention)
+                if args.snapshotRetention
+                else protection["snapshotRetention"]
+            ),
+            minute=str(args.minute) if args.minute else protection.get("minute"),
+            hour=str(args.hour) if args.hour else protection.get("hour"),
+            dayOfWeek=str(args.dayOfWeek) if args.dayOfWeek else protection.get("dayOfWeek"),
+            dayOfMonth=str(args.dayOfMonth) if args.dayOfMonth else protection.get("dayOfMonth"),
+            bucketID=args.bucket if args.bucket else protection.get("bucketID"),
+        )
+        if rc is False:
+            raise SystemExit("astraSDK.protection.updateProtectionpolicy() failed")
     elif args.objectType == "replication":
         # Gather replication data
         if ard.needsattr("replications"):
