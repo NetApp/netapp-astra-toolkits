@@ -440,7 +440,7 @@ def main(args, parser, ard):
                 args.snapshot,
                 args.reclaimPolicy,
             )
-            if not args.dry_run and not args.background:
+            if backup and not args.dry_run and not args.background:
                 monitorV3ProtectionTask(
                     backup, args.pollTimer, parser, args.v3, args.skip_tls_verify
                 )
@@ -709,7 +709,7 @@ def main(args, parser, ard):
                 createdTimeout=args.createdTimeout,
                 readyToUseTimeout=args.readyToUseTimeout,
             )
-            if not args.dry_run and not args.background:
+            if snapshot and not args.dry_run and not args.background:
                 monitorV3ProtectionTask(
                     snapshot, args.pollTimer, parser, args.v3, args.skip_tls_verify
                 )
