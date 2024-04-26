@@ -254,6 +254,15 @@ def main(args, parser, ard):
     elif args.objectType == "chart":
         if not hasattr(args, "bucket"):
             args.bucket = None
+        if args.v3:
+            if ard.needsattr("buckets"):
+                ard.buckets = astraSDK.k8s.getResources(
+                    config_context=args.v3, skip_tls_verify=args.skip_tls_verify
+                ).main("appvaults")
+            if args.bucket is None:
+                args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
+                    "metadata"
+                ]["name"]
         deployHelm(
             args.chart,
             helpers.isRFC1123(args.app, parser=parser),

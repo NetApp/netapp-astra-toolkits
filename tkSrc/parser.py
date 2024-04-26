@@ -712,7 +712,6 @@ class ToolkitParser:
                 "--appVault",
                 dest="bucket",
                 default=None,
-                required=True,
                 choices=(None if self.plaidMode else self.acl.buckets),
                 help="Name of the AppVault to use as the target of the backups/snapshots",
             )
