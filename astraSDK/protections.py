@@ -38,7 +38,7 @@ class getProtectionpolicies(SDKCommon):
         super().__init__()
         self.apps = getApps(quiet=True, verbose=verbose).main()
 
-    def main(self, appFilter=None):
+    def main(self, appFilter=None, clusterFilter=None):
         if self.apps is False:
             print("Call to getApps() failed")
             return False
@@ -49,6 +49,9 @@ class getProtectionpolicies(SDKCommon):
         for app in self.apps["items"]:
             if appFilter:
                 if app["name"] != appFilter and app["id"] != appFilter:
+                    continue
+            if clusterFilter:
+                if app["clusterName"] != clusterFilter and app["clusterID"] != clusterFilter:
                     continue
             endpoint = f"k8s/v1/apps/{app['id']}/schedules"
             url = self.base + endpoint

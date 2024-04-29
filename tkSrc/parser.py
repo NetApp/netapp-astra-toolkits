@@ -1013,6 +1013,13 @@ class ToolkitParser:
         self.subparserListProtections.add_argument(
             "-a", "--app", default=None, help="Only show protection policies from this app"
         )
+        if not self.v3:
+            self.subparserListProtections.add_argument(
+                "-c",
+                "--cluster",
+                default=None,
+                help="Only show protection policies from this cluster",
+            )
 
     def list_replications_args(self):
         """list replication policies args and flags"""

@@ -401,7 +401,7 @@ def main(args):
         else:
             rc = astraSDK.protections.getProtectionpolicies(
                 quiet=args.quiet, verbose=args.verbose, output=args.output
-            ).main(appFilter=args.app)
+            ).main(appFilter=args.app, clusterFilter=args.cluster)
             if rc is False:
                 raise SystemExit("astraSDK.protections.getProtectionpolicies() failed")
     elif args.objectType == "replications":
