@@ -19,24 +19,24 @@ import base64
 import json
 import yaml
 
-
+from tkSrc import helpers
 import astraSDK
 
 
-def main(args, parser, ard):
+def main(args, ard):
     if args.objectType == "bucket":
         # Validate that both credentialID and accessKey/accessSecret were not specified
         if args.credentialID is not None and (
             args.accessKey is not None or args.accessSecret is not None
         ):
-            parser.error(
+            helpers.parserError(
                 "if a credentialID is specified, neither accessKey nor accessSecret"
                 + " should be specified."
             )
         # Validate args and create credential if credentialID was not specified
         if args.credentialID is None:
             if args.accessKey is None or args.accessSecret is None:
-                parser.error(
+                helpers.parserError(
                     "if a credentialID is not specified, both accessKey and "
                     + "accessSecret arguments must be provided."
                 )
@@ -54,7 +54,7 @@ def main(args, parser, ard):
                     cloudName="s3",
                 )
             except StopIteration:
-                parser.error(f"{args.bucketID} does not seem to be a valid bucketID")
+                helpers.parserError(f"{args.bucketID} does not seem to be a valid bucketID")
             if crc:
                 args.credentialID = crc["id"]
             else:
@@ -71,14 +71,14 @@ def main(args, parser, ard):
                 try:
                     credDict = json.loads(f.read().rstrip())
                 except json.decoder.JSONDecodeError:
-                    parser.error(f"{args.credentialPath} does not seem to be valid JSON")
+                    helpers.parserError(f"{args.credentialPath} does not seem to be valid JSON")
             encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
             if ard.needsattr("clouds"):
                 ard.clouds = astraSDK.clouds.getClouds().main()
             try:
                 cloud = next(c for c in ard.clouds["items"] if c["id"] == args.cloudID)
             except StopIteration:
-                parser.error(f"{args.cloudID} does not seem to be a valid cloudID")
+                helpers.parserError(f"{args.cloudID} does not seem to be a valid cloudID")
             rc = astraSDK.credentials.createCredential(quiet=args.quiet, verbose=args.verbose).main(
                 "astra-sa@" + cloud["name"],
                 "service-account",
@@ -101,7 +101,7 @@ def main(args, parser, ard):
         # Get the cluster information based on the clusterID input
         if ard.needsattr("clusters"):
             ard.clusters = astraSDK.clusters.getClusters().main()
-        cluster = ard.getSingleDict("clusters", "id", args.clusterID, parser)
+        cluster = ard.getSingleDict("clusters", "id", args.clusterID)
         # Currently this is required to be True, but this will not always be the case
         if args.credentialPath:
             with open(args.credentialPath, encoding="utf8") as f:
@@ -126,16 +126,16 @@ def main(args, parser, ard):
     elif args.objectType == "protection" or args.objectType == "schedule":
         if ard.needsattr("protections"):
             ard.protections = astraSDK.protections.getProtectionpolicies().main()
-        protection = ard.getSingleDict("protections", "id", args.protection, parser)
+        protection = ard.getSingleDict("protections", "id", args.protection)
         granularity = protection["granularity"]
         if granularity == "hourly" and args.hour:
-            parser.error(f"{granularity} granularity must not specify -H / --hour")
+            helpers.parserError(f"{granularity} granularity must not specify -H / --hour")
         if granularity == "hourly" or granularity == "daily" or granularity == "monthly":
             if args.dayOfWeek:
-                parser.error(f"{granularity} granularity must not specify -W / --dayOfWeek")
+                helpers.parserError(f"{granularity} granularity must not specify -W / --dayOfWeek")
         if granularity == "hourly" or granularity == "daily" or granularity == "weekly":
             if args.dayOfMonth:
-                parser.error(f"{granularity} granularity must not specify -M / --dayOfMonth")
+                helpers.parserError(f"{granularity} granularity must not specify -M / --dayOfMonth")
         rc = astraSDK.protections.updateProtectionpolicy(
             quiet=args.quiet, verbose=args.verbose
         ).main(
@@ -161,19 +161,19 @@ def main(args, parser, ard):
         if ard.needsattr("replications"):
             ard.replications = astraSDK.replications.getReplicationpolicies().main()
             if not ard.replications:  # Gracefully handle ACS env
-                parser.error("'replication' commands are currently only supported in ACC.")
+                helpers.parserError("'replication' commands are currently only supported in ACC.")
         repl = None
         for replication in ard.replications["items"]:
             if args.replicationID == replication["id"]:
                 repl = replication
         if not repl:
-            parser.error(f"replicationID {args.replicationID} not found")
+            helpers.parserError(f"replicationID {args.replicationID} not found")
         # Make call based on operation type
         if args.operation == "resync":
             if not args.dataSource:
-                parser.error("--dataSource must be provided for 'resync' operations")
+                helpers.parserError("--dataSource must be provided for 'resync' operations")
             if repl["state"] != "failedOver":
-                parser.error(
+                helpers.parserError(
                     "to resync a replication, it must be in a 'failedOver' state"
                     + f", not a(n) '{repl['state']}' state"
                 )
@@ -200,7 +200,7 @@ def main(args, parser, ard):
                     destinationClusterID=repl["sourceClusterID"],
                 )
             else:
-                parser.error(
+                helpers.parserError(
                     f"dataSource '{args.dataSource}' not one of:\n"
                     + f"\t{repl['sourceAppID']}\t(original sourceAppID)\n"
                     + f"\t{repl['sourceClusterID']}\t(original sourceClusterID)\n"
@@ -209,7 +209,7 @@ def main(args, parser, ard):
                 )
         elif args.operation == "reverse":
             if repl["state"] != "established" and repl["state"] != "failedOver":
-                parser.error(
+                helpers.parserError(
                     "to reverse a replication, it must be in an `established` or "
                     + f"'failedOver' state, not a(n) '{repl['state']}' state"
                 )
@@ -225,7 +225,7 @@ def main(args, parser, ard):
             )
         else:  # failover
             if repl["state"] != "established":
-                parser.error(
+                helpers.parserError(
                     "to failover a replication, it must be in an 'established' state"
                     + f", not a(n) '{repl['state']}' state"
                 )

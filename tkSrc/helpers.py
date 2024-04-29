@@ -89,14 +89,14 @@ def createCriteriaList(images, namespaces, pods, labels, names):
     )
 
 
-def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser):
+def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping):
     """Create a list of dictionaries of source and destination namespaces for cloning an
     application, as the user can provide a variety of input.  Return object format:
     [ { "source": "sourcens1", "destination": "destns1" },
       { "source": "sourcens2", "destination": "destns2" } ]"""
     # Ensure that multiNsMapping was used for multi-namespace apps
     if multiNsMapping is None and len(appNamespaces) > 1:
-        parser.error("for multi-namespace apps, --multiNsMapping must be used.")
+        parserError("for multi-namespace apps, --multiNsMapping must be used.")
     # For single-namespace apps, the namespace mapping is **not** a required field
     elif singleNs is None and multiNsMapping is None:
         return None
@@ -105,7 +105,7 @@ def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser):
         return [
             {
                 "source": appNamespaces[0]["namespace"],
-                "destination": isRFC1123(singleNs, parser=parser),
+                "destination": isRFC1123(singleNs),
             }
         ]
     # Handle multiNsMapping cases
@@ -137,7 +137,7 @@ def createNamespaceMapping(appNamespaces, singleNs, multiNsMapping, parser):
             returnList.append(
                 {
                     "source": mapping.split("=")[0],
-                    "destination": isRFC1123(mapping.split("=")[1], parser=parser),
+                    "destination": isRFC1123(mapping.split("=")[1]),
                 }
             )
         return returnList
@@ -310,7 +310,7 @@ def run(command, captureOutput=False, ignoreErrors=False, env=None):
             return True
 
 
-def isRFC1123(string, parser=None, ignore_length=False):
+def isRFC1123(string, ignore_length=False):
     """isRFC1123 returns the input 'string' if it conforms to RFC 1123 spec,
     otherwise it throws an error and exits"""
     regex = re.compile("[a-z0-9]([-a-z0-9]*[a-z0-9])?$")
@@ -322,18 +322,15 @@ def isRFC1123(string, parser=None, ignore_length=False):
             "and end with an alphanumeric character, and must be at most 63 characters (for "
             "example 'my-name' or '123-abc')."
         )
-        if parser is not None:
-            parser.error(error)
-        else:
-            raise SystemExit(f"Error: {error}")
+        parserError(error)
 
 
-def dupeKeyError(key, parser):
+def dupeKeyError(key):
     """Print an error message if duplicate keys are used"""
-    parser.error(f"'{key}' should not be specified multiple times within a single --filterSet arg")
+    parserError(f"'{key}' should not be specified multiple times within a single --filterSet arg")
 
 
-def createSetDict(setDict, filterStr, assets, parser, v3=False):
+def createSetDict(setDict, filterStr, assets, v3=False):
     """Given a filterStr such as:
         label=app.kubernetes.io/tier=backend,name=mysql,kind=Deployment
     Return a setDict with the following format:
@@ -353,15 +350,13 @@ def createSetDict(setDict, filterStr, assets, parser, v3=False):
         elif "label" in key:
             setDict.setdefault("labelSelectors", []).append(val)
         elif "group" in key:
-            setDict["group"] = val if not setDict.get("group") else dupeKeyError("group", parser)
+            setDict["group"] = val if not setDict.get("group") else dupeKeyError("group")
         elif "version" in key:
-            setDict["version"] = (
-                val if not setDict.get("version") else dupeKeyError("version", parser)
-            )
+            setDict["version"] = val if not setDict.get("version") else dupeKeyError("version")
         elif "kind" in key:
-            setDict["kind"] = val if not setDict.get("kind") else dupeKeyError("kind", parser)
+            setDict["kind"] = val if not setDict.get("kind") else dupeKeyError("kind")
         else:
-            parser.error(
+            parserError(
                 f"'{key}' not one of ['namespace', 'name', 'label', 'group', 'version', 'kind']"
             )
     # TODO: Add v3 validation once ASTRACTL-31946 is complete
@@ -369,7 +364,7 @@ def createSetDict(setDict, filterStr, assets, parser, v3=False):
         # Validate the inputs are valid assets for this app
         for key in ["group", "version", "kind"]:
             if setDict.get(key) and setDict[key] not in [a["GVK"][key] for a in assets["items"]]:
-                parser.error(
+                parserError(
                     f"'{setDict[key]}' is not a valid '{key}' for this application, please run '"
                     f"list assets {assets['metadata']['appID']}' to view possible '{key}' choices"
                 )
@@ -382,14 +377,14 @@ def createSetDict(setDict, filterStr, assets, parser, v3=False):
                     if setDict[key1] not in [
                         a["GVK"][key1] for a in assets["items"] if a["GVK"][key2] == setDict[key2]
                     ]:
-                        parser.error(
+                        parserError(
                             f"'{key1}={setDict[key1]}' does not match with '{key2}={setDict[key2]}'"
                             f", please run 'list assets {assets['metadata']['appID']}' to view "
                             "valid GVK combinations"
                         )
 
 
-def createFilterSet(selection, filters, assets, parser, v3=False):
+def createFilterSet(selection, filters, assets, v3=False):
     """createFilterSet takes in a selection string, and a filters array of arrays, for example:
         [
             ['group=apps,version=v1,kind=Deployment'],
@@ -424,14 +419,14 @@ def createFilterSet(selection, filters, assets, parser, v3=False):
         setDict = {}
         if isinstance(fil, list):
             for f in fil:
-                createSetDict(setDict, f, assets, parser, v3=v3)
+                createSetDict(setDict, f, assets, v3=v3)
         else:
-            createSetDict(setDict, fil, assets, parser, v3=v3)
+            createSetDict(setDict, fil, assets, v3=v3)
         rFilter[filterKey].append(setDict)
     return rFilter
 
 
-def createSingleSecretKeyDict(credKeyPair, ard, parser):
+def createSingleSecretKeyDict(credKeyPair, ard):
     """Given a credKeyPair list like ['s3-creds', 'accessKeyID']
 
     Return a dict with the following format:
@@ -449,28 +444,28 @@ def createSingleSecretKeyDict(credKeyPair, ard, parser):
         cred, key = credKeyPair
     else:
         key, cred = credKeyPair
-    credDict = ard.getSingleDict("credentials", "metadata.name", cred, parser)
+    credDict = ard.getSingleDict("credentials", "metadata.name", cred)
     if key not in credDict["data"].keys():
-        parser.error(
+        parserError(
             f"'{credKeyPair[1]}' not found in '{credKeyPair[0]}' data keys: "
             f"{', '.join(credDict['data'].keys())}"
         )
     return {"valueFromSecret": {"name": cred, "key": key}}
 
 
-def createSecretKeyDict(keyNameList, credential, provider, ard, parser):
+def createSecretKeyDict(keyNameList, credential, provider, ard):
     """Use keyNameList to ensure number of credential arguments inputted is correct,
     and build the full providerCredentials dictionary"""
     # Ensure correct credential length matches keyNameList length
     if len(credential) != len(keyNameList):
-        parser.error(
+        parserError(
             f"-s/--credential must be specified {len(keyNameList)} time(s) for "
             f"'{provider}' provider"
         )
     # argparse ensures len(args.credential) is 2, but can't ensure a valid name/key pair
     providerCredentials = {}
     for i, credKeyPair in enumerate(credential):
-        providerCredentials[keyNameList[i]] = createSingleSecretKeyDict(credKeyPair, ard, parser)
+        providerCredentials[keyNameList[i]] = createSingleSecretKeyDict(credKeyPair, ard)
     return providerCredentials
 
 
@@ -483,14 +478,14 @@ def prependDump(obj, prepend, indent=2):
     return None
 
 
-def checkv3Support(args, parser, supportedDict):
+def checkv3Support(args, supportedDict):
     """Function to ensure a v3-specific actoolkit command is currently supported by v3"""
     if supported := supportedDict.get(args.subcommand):
         if supported is True:
             return True
         elif args.objectType in supported:
             return True
-    parser.error(f"'{args.subcommand} {args.objectType}' is not currently a supported --v3 command")
+    parserError(f"'{args.subcommand} {args.objectType}' is not currently a supported --v3 command")
 
 
 def setupJinja(
@@ -528,7 +523,7 @@ def sameK8sCluster(cluster1, cluster2, skip_tls_verify=False):
     return False
 
 
-def getCommonAppVault(cluster1, cluster2, parser, skip_tls_verify=False):
+def getCommonAppVault(cluster1, cluster2, skip_tls_verify=False):
     """Function which takes in two cluster contexts, and finds and returns an appVault that's
     common between the two of them, as designated by status.uid"""
     c1AppVaults = astraSDK.k8s.getResources(
@@ -543,10 +538,10 @@ def getCommonAppVault(cluster1, cluster2, parser, skip_tls_verify=False):
                 if c2av.get("status") and c2av["status"].get("uid"):
                     if c1av["status"]["uid"] == c2av["status"]["uid"]:
                         return c1av
-    parser.error(f"A common appVault was not found between cluster {cluster1} and {cluster2}")
+    parserError(f"A common appVault was not found between cluster {cluster1} and {cluster2}")
 
 
-def swapAppVaultRef(sourceAppVaultRef, sourceCluster, destCluster, parser, skip_tls_verify=False):
+def swapAppVaultRef(sourceAppVaultRef, sourceCluster, destCluster, skip_tls_verify=False):
     """Function which takes in the name of a sourceCluster's appVaultRef, and then returns
     the name of the destCluster's same appVaultRef (appVaults can be named differently across
     clusters due to Astra Control auto-appending a unique identifier)."""
@@ -562,9 +557,9 @@ def swapAppVaultRef(sourceAppVaultRef, sourceCluster, destCluster, parser, skip_
         )
         sourceUid = sourceAppVault["status"]["uid"]
     except StopIteration:
-        parser.error(f"'{sourceAppVaultRef}' not found on the source cluster,\n{sourceAppVaults=}")
+        parserError(f"'{sourceAppVaultRef}' not found on the source cluster,\n{sourceAppVaults=}")
     except KeyError as err:
-        parser.error(f"{err} key not found in '{sourceAppVaultRef}' object,\n{sourceAppVaults=}")
+        parserError(f"{err} key not found in '{sourceAppVaultRef}' object,\n{sourceAppVaults=}")
     try:
         destAppVault = next(a for a in destAppVaults["items"] if a["status"]["uid"] == sourceUid)
         return destAppVault["metadata"]["name"]
@@ -573,36 +568,36 @@ def swapAppVaultRef(sourceAppVaultRef, sourceCluster, destCluster, parser, skip_
             {"name": d["metadata"]["name"], "uid": d["status"]["uid"]}
             for d in destAppVaults["items"]
         ]
-        parser.error(
+        parserError(
             f"An appVault with status.uid of '{sourceUid}' not found on the destination cluster,"
             f" destination app vaults: {destAppVaultSum}"
         )
     except KeyError as err:
-        parser.error(f"{err} key not found in 'destAppVault' object,\n{destAppVaults=}")
+        parserError(f"{err} key not found in 'destAppVault' object,\n{destAppVaults=}")
 
 
-def openJson(path, parser):
+def openJson(path):
     """Given a file path, open the json file, and return a dict of its contents"""
     with open(path, encoding="utf8") as f:
         try:
             return json.loads(f.read().rstrip())
         except json.decoder.JSONDecodeError:
-            parser.error(f"{path} does not seem to be valid JSON")
+            parserError(f"{path} does not seem to be valid JSON")
 
 
-def openScript(path, parser):
+def openScript(path):
     """Given a file path, open the text file, and return a str of its contents"""
     with open(path, encoding="utf8") as f:
         return base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
 
 
-def openYaml(path, parser):
+def openYaml(path):
     """Given a file path, open the yaml file, and return a dict of its contents"""
     with open(path, encoding="utf8") as f:
         try:
             return yaml.load(f.read().rstrip(), Loader=yaml.SafeLoader)
         except (yaml.scanner.ScannerError, IsADirectoryError):
-            parser.error(f"{path} does not seem to be valid YAML")
+            parserError(f"{path} does not seem to be valid YAML")
 
 
 def getNestedValue(obj, key):
@@ -621,15 +616,15 @@ def getNestedValue(obj, key):
                         yield result
 
 
-def extractAwsKeys(path, parser):
+def extractAwsKeys(path):
     """Returns a tuple of the AccessKeyId, SecretAccessKey in an AWS credential JSON"""
-    awsCreds = openJson(path, parser)
+    awsCreds = openJson(path)
     accessKeyID = "".join(getNestedValue(awsCreds, "AccessKeyId"))
     secretAccessKey = "".join(getNestedValue(awsCreds, "SecretAccessKey"))
     if not accessKeyID:
-        parser.error(f"'AccessKeyId' not found in '{path}'")
+        parserError(f"'AccessKeyId' not found in '{path}'")
     if not secretAccessKey:
-        parser.error(f"'SecretAccessKey' not found in '{path}'")
+        parserError(f"'SecretAccessKey' not found in '{path}'")
     return accessKeyID, secretAccessKey
 
 
@@ -639,3 +634,14 @@ def combineResources(*args):
     for resource in args:
         base_dict["items"] += resource["items"]
     return base_dict
+
+
+def parserError(message):
+    """Prints an argparse-like generic error message"""
+    prog = "actoolkit"
+    usage = (
+        "usage: actoolkit [-h] [-v] [-o {json,yaml,table}] [-q] [-f] [--v3] "
+        "[--dry-run {client,server}] [--insecure-skip-tls-verify] "
+        "{deploy,clone,restore,ipr,list,get,copy,create,manage,define,destroy,unmanage,update} ..."
+    )
+    raise SystemExit(f"{usage}\n{prog}: error: {message}")

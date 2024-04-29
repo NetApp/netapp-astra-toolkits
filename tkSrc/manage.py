@@ -97,7 +97,6 @@ def manageV3Bucket(
     skipCertValidation,
     credential,
     ard,
-    parser,
 ):
     """Manage a bucket via a Kubernetes custom resource"""
     # Create providerCredentials based on provider input
@@ -110,14 +109,14 @@ def manageV3Bucket(
     template = helpers.setupJinja("appVault")
     v3_dict = yaml.safe_load(
         template.render(
-            bucketName=helpers.isRFC1123(bucketName, parser=parser),
+            bucketName=helpers.isRFC1123(bucketName),
             providerType=provider,
             accountName=storageAccount,
             endpoint=serverURL,
             secure=("false" if http else None),
             skipCertValidation=("true" if skipCertValidation else None),
             providerCredentials=helpers.prependDump(
-                helpers.createSecretKeyDict(keyNameList, credential, provider, ard, parser),
+                helpers.createSecretKeyDict(keyNameList, credential, provider, ard),
                 prepend=4,
             ),
         )
@@ -153,9 +152,8 @@ def manageV3Cluster(
     cloudID,
     headless,
     ard,
-    parser,
 ):
-    helpers.isRFC1123(clusterName, parser=parser)
+    helpers.isRFC1123(clusterName)
     create.createV3ConnectorOperator(v3, dry_run, skip_tls_verify, verbose, operator_version)
     # Create the astra API token secret
     if not headless:
@@ -183,7 +181,7 @@ def manageV3Cluster(
             ard.credentials = astraSDK.k8s.getSecrets(
                 config_context=v3, skip_tls_verify=skip_tls_verify
             ).main()
-        cred = ard.getSingleDict("credentials", "metadata.name", regCred, parser)
+        cred = ard.getSingleDict("credentials", "metadata.name", regCred)
     # Create the AstraConnector CR
     if headless:
         connector = astraSDK.k8s.createHeadlessConnector(
@@ -205,7 +203,7 @@ def manageV3Cluster(
         raise SystemExit("astraSDK.k8s.createAstraConnector() failed")
 
 
-def validateBucketArgs(args, parser):
+def validateBucketArgs(args):
     """Validate that user provided inputs for managing a bucket are valid"""
     # Validate serverURL and storageAccount args depending upon provider type
     if args.serverURL is None and args.provider in [
@@ -214,35 +212,37 @@ def validateBucketArgs(args, parser):
         "ontap-s3",
         "storagegrid-s3",
     ]:
-        parser.error(f"--serverURL must be provided for '{args.provider}' provider.")
+        helpers.parserError(f"--serverURL must be provided for '{args.provider}' provider.")
     if args.storageAccount is None and args.provider == "azure":
-        parser.error("--storageAccount must be provided for 'azure' provider.")
+        helpers.parserError("--storageAccount must be provided for 'azure' provider.")
     # Error if credential was specified with any other argument
     if args.credential is not None:
         if args.json is not None or args.accessKey is not None or args.accessSecret is not None:
-            parser.error(
+            helpers.parserError(
                 "if an existing credential is specified, no other credentialGroup arguments "
                 "can be specified"
             )
     # Error if json was specified with accessKey/Secret
     elif args.json is not None:
         if args.accessKey is not None or args.accessSecret is not None:
-            parser.error(
+            helpers.parserError(
                 "if a public cloud JSON credential file is specified, no other credentialGroup "
                 "arguments can be specified"
             )
     # If neither credential or json was specified, make sure both accessKey/Secret were
     elif args.accessKey is None or args.accessSecret is None:
-        parser.error(
+        helpers.parserError(
             "either an (existing credential) OR (public cloud JSON credential) OR "
             "(accessKey AND accessSecret) must be specified"
         )
     # If json was specified, ensure provider is a public cloud
     if args.json is not None and args.provider not in ["aws", "azure", "gcp"]:
-        parser.error("--json should only be specified for public cloud providers (aws, azure, gcp)")
+        helpers.parserError(
+            "--json should only be specified for public cloud providers (aws, azure, gcp)"
+        )
 
 
-def main(args, parser, ard):
+def main(args, ard):
     if args.objectType == "app" or args.objectType == "application":
         if args.additionalNamespace:
             args.additionalNamespace = helpers.createNamespaceList(
@@ -295,7 +295,7 @@ def main(args, parser, ard):
             api_res_list = [f"{a['apiVersion']}/{a['kind']}" for a in ard.apiresources["items"]]
             for csr in args.clusterScopedResource:
                 if csr[0] not in api_res_list:
-                    parser.error(
+                    helpers.parserError(
                         f"argument -c/--clusterScopedResource: invalid choice: '{csr[0]}' "
                         f"(choose from {', '.join(api_res_list)})"
                     )
@@ -317,7 +317,7 @@ def main(args, parser, ard):
             )
         else:
             rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
-                helpers.isRFC1123(args.appName, parser=parser),
+                helpers.isRFC1123(args.appName),
                 args.namespace,
                 args.clusterID,
                 args.labelSelectors,
@@ -328,7 +328,7 @@ def main(args, parser, ard):
                 raise SystemExit("astraSDK.apps.manageApp() failed")
 
     elif args.objectType == "bucket" or args.objectType == "appVault":
-        validateBucketArgs(args, parser)
+        validateBucketArgs(args)
         if ard.needsattr("credentials"):
             ard.credentials = astraSDK.k8s.getSecrets(
                 config_context=args.v3, skip_tls_verify=args.skip_tls_verify
@@ -336,7 +336,7 @@ def main(args, parser, ard):
         if args.v3:
             if args.accessKey or (args.json and args.provider == "aws"):
                 if args.json and args.provider == "aws":
-                    args.accessKey, args.accessSecret = helpers.extractAwsKeys(args.json, parser)
+                    args.accessKey, args.accessSecret = helpers.extractAwsKeys(args.json)
                 crc = create.createV3S3Credential(
                     args.v3,
                     args.dry_run,
@@ -356,7 +356,6 @@ def main(args, parser, ard):
                     args.verbose,
                     args.json,
                     args.bucketName,
-                    parser,
                 )
             if args.accessKey or args.json:
                 args.credential = []
@@ -377,7 +376,6 @@ def main(args, parser, ard):
                 args.skipCertValidation,
                 args.credential,
                 ard,
-                parser,
             )
         else:
             if args.accessKey:
@@ -392,7 +390,6 @@ def main(args, parser, ard):
                     args.json,
                     args.bucketName,
                     args.provider,
-                    parser,
                 )
                 args.credential = crc["id"]
             manageBucket(
@@ -420,7 +417,6 @@ def main(args, parser, ard):
                 args.cloudID,
                 args.headless,
                 ard,
-                parser,
             )
         else:
             rc = astraSDK.clusters.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
@@ -434,14 +430,15 @@ def main(args, parser, ard):
         # First create the credential
         if args.cloudType != "private":
             if args.credentialPath is None:
-                parser.error(f"--credentialPath is required for cloudType of {args.cloudType}")
+                helpers.parserError(
+                    f"--credentialPath is required for cloudType of {args.cloudType}"
+                )
             rc = create.createCloudCredential(
                 args.quiet,
                 args.verbose,
                 args.credentialPath,
                 args.cloudName,
                 args.cloudType,
-                parser,
             )
             credentialID = rc["id"]
         # Next manage the cloud
@@ -455,7 +452,7 @@ def main(args, parser, ard):
             raise SystemExit("astraSDK.clouds.manageCloud() failed")
     elif args.objectType == "ldap":
         ard.settings = astraSDK.settings.getSettings().main()
-        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap", parser)
+        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap")
         rc = astraSDK.settings.manageLdap(quiet=args.quiet, verbose=args.verbose).main(
             ldapSetting["id"], ldapSetting["currentConfig"]
         )

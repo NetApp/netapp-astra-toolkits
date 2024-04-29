@@ -18,7 +18,7 @@
 import astraSDK
 
 
-def main(args, parser, ard):
+def main(args, ard):
     if args.objectType == "backup":
         if args.v3:
             rc = astraSDK.k8s.destroyResource(
@@ -39,7 +39,7 @@ def main(args, parser, ard):
     elif args.objectType == "cluster":
         if ard.needsattr("clusters"):
             ard.clusters = astraSDK.clusters.getClusters().main()
-        cluster = ard.getSingleDict("clusters", "id", args.cluster, parser)
+        cluster = ard.getSingleDict("clusters", "id", args.cluster)
         rc = astraSDK.clusters.deleteCluster(quiet=args.quiet, verbose=args.verbose).main(
             cluster["id"], cluster["cloudID"]
         )
@@ -65,7 +65,7 @@ def main(args, parser, ard):
     elif args.objectType == "group":
         if ard.needsattr("rolebindings"):
             ard.rolebindings = astraSDK.rolebindings.getRolebindings().main()
-        rb = ard.getSingleDict("rolebindings", "groupID", args.groupID, parser)
+        rb = ard.getSingleDict("rolebindings", "groupID", args.groupID)
         if astraSDK.rolebindings.destroyRolebinding(quiet=args.quiet, verbose=args.verbose).main(
             rb["id"]
         ):
@@ -97,7 +97,7 @@ def main(args, parser, ard):
                 raise SystemExit(f"Failed destroying hook: {args.hook}")
     elif args.objectType == "ldap":
         ard.settings = astraSDK.settings.getSettings().main()
-        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap", parser)
+        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap")
         if astraSDK.settings.destroyLdap(quiet=args.quiet, verbose=args.verbose).main(
             ldapSetting["id"]
         ):
@@ -192,8 +192,8 @@ def main(args, parser, ard):
             ard.users = astraSDK.users.getUsers().main()
         if ard.needsattr("rolebindings"):
             ard.rolebindings = astraSDK.rolebindings.getRolebindings().main()
-        user = ard.getSingleDict("users", "id", args.userID, parser)
-        rb = ard.getSingleDict("rolebindings", "userID", args.userID, parser)
+        user = ard.getSingleDict("users", "id", args.userID)
+        rb = ard.getSingleDict("rolebindings", "userID", args.userID)
         if astraSDK.rolebindings.destroyRolebinding(quiet=args.quiet, verbose=args.verbose).main(
             rb["id"]
         ):

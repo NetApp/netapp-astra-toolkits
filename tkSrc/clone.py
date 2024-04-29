@@ -261,7 +261,6 @@ def doV3Clone(
     skip_tls_verify,
     quiet,
     verbose,
-    parser,
     ard,
     sourceApp,
     appName,
@@ -274,7 +273,7 @@ def doV3Clone(
     """Performs a live clone by first creating either a snapshot (same-cluster) or backup (cross-
     cluster) of the sourcApp, and then it calls doV3Restore for the remaining restore operation,
     which consists of a BackupRestore or SnapshotRestore and an Application definition."""
-    bucketDict = helpers.getCommonAppVault(v3, cluster, parser, skip_tls_verify=skip_tls_verify)
+    bucketDict = helpers.getCommonAppVault(v3, cluster, skip_tls_verify=skip_tls_verify)
     if dry_run == "client":
         print(f"# This must be applied on the source cluster specified by '{v3}'")
     if crossCluster:
@@ -317,7 +316,6 @@ def doV3Clone(
         skip_tls_verify,
         quiet,
         verbose,
-        parser,
         ard,
         restoreSourceDict,
         appName,
@@ -335,7 +333,6 @@ def setupV3Restore(
     skip_tls_verify,
     quiet,
     verbose,
-    parser,
     ard,
     restoreSource,
     appName,
@@ -361,9 +358,9 @@ def setupV3Restore(
         ).main("snapshots")
     # For restore, we need to figure out if a backup or a snapshot source was provided
     if restoreSource in ard.buildList("backups", "metadata.name"):
-        restoreSourceDict = ard.getSingleDict("backups", "metadata.name", restoreSource, parser)
+        restoreSourceDict = ard.getSingleDict("backups", "metadata.name", restoreSource)
     elif restoreSource in ard.buildList("snapshots", "metadata.name"):
-        restoreSourceDict = ard.getSingleDict("snapshots", "metadata.name", restoreSource, parser)
+        restoreSourceDict = ard.getSingleDict("snapshots", "metadata.name", restoreSource)
         # crossCluster requires a backup, so create a backup from the specified snapshot
         if crossCluster:
             if dry_run == "client":
@@ -391,14 +388,15 @@ def setupV3Restore(
             else:
                 restoreSourceDict = waitForDpCompletion(restoreSourceDict, v3, skip_tls_verify)
     else:
-        parser.error(f"the restoreSource '{restoreSource}' is not a valid backup or snapshot")
+        helpers.parserError(
+            f"the restoreSource '{restoreSource}' is not a valid backup or snapshot"
+        )
     doV3Restore(
         v3,
         dry_run,
         skip_tls_verify,
         quiet,
         verbose,
-        parser,
         ard,
         restoreSourceDict,
         appName,
@@ -418,7 +416,6 @@ def doV3Restore(
     skip_tls_verify,
     quiet,
     verbose,
-    parser,
     ard,
     restoreSourceDict,
     appName,
@@ -432,11 +429,9 @@ def doV3Restore(
 ):
     """Restores an app by creating a BackupRestore or SnapshotRestore (based on the contents of
     restoreSourceDict), and then creates the Application definition."""
-    oApp = ard.getSingleDict(
-        "apps", "metadata.name", restoreSourceDict["spec"]["applicationRef"], parser
-    )
+    oApp = ard.getSingleDict("apps", "metadata.name", restoreSourceDict["spec"]["applicationRef"])
     namespaceMapping = helpers.createNamespaceMapping(
-        oApp["spec"]["includedNamespaces"], newNamespace, multiNsMapping, parser
+        oApp["spec"]["includedNamespaces"], newNamespace, multiNsMapping
     )
     template = helpers.setupJinja("restore")
     try:
@@ -450,7 +445,6 @@ def doV3Restore(
                         restoreSourceDict["spec"]["appVaultRef"],
                         v3,
                         cluster,
-                        parser,
                         skip_tls_verify=skip_tls_verify,
                     )
                     if crossCluster
@@ -458,7 +452,7 @@ def doV3Restore(
                 ),
                 namespaceMapping=helpers.prependDump(namespaceMapping, prepend=4),
                 resourceFilter=helpers.prependDump(
-                    helpers.createFilterSet(filterSelection, filterSet, None, parser, v3=True),
+                    helpers.createFilterSet(filterSelection, filterSet, None, v3=True),
                     prepend=4,
                 ),
                 newStorageClass=newStorageClass,
@@ -489,19 +483,19 @@ def doV3Restore(
                 )
     except KeyError as err:
         rName = restoreSourceDict["metadata"]["name"]
-        parser.error(
+        helpers.parserError(
             f"{err} key not found in '{rName}' object, please ensure "
             f"{rName}' is a valid backup/snapshot"
         )
 
 
-def main(args, parser, ard):
+def main(args, ard):
     # Ensure proper use of resource filters
     if args.subcommand == "restore":
         if (args.filterSelection and not args.filterSet) or (
             args.filterSet and not args.filterSelection
         ):
-            parser.error(
+            helpers.parserError(
                 "either both or none of --filterSelection and --filterSet should be specified"
             )
 
@@ -521,7 +515,6 @@ def main(args, parser, ard):
                 args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
-                parser,
                 ard,
                 args.sourceApp,
                 args.appName,
@@ -540,7 +533,6 @@ def main(args, parser, ard):
                 args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
-                parser,
                 ard,
                 args.restoreSource,
                 args.appName,
@@ -583,7 +575,7 @@ def main(args, parser, ard):
                 dataProtections = ard.snapshots
                 snapshot = args.restoreSource
             else:
-                parser.error(
+                helpers.parserError(
                     f"the restoreSource '{args.restoreSource}' is not a valid backup or snapshot"
                 )
             for app in ard.apps["items"]:
@@ -592,17 +584,17 @@ def main(args, parser, ard):
                         oApp = app
         # Ensure appIDstr is not equal to "", if so bad values were passed in with plaidMode
         if not oApp:
-            parser.error(
+            helpers.parserError(
                 "the corresponding app was not found in the system, please check "
                 + "your inputs and try again."
             )
 
         doClone(
-            helpers.isRFC1123(args.appName, parser=parser),
+            helpers.isRFC1123(args.appName),
             args.cluster,
             oApp,
             helpers.createNamespaceMapping(
-                oApp["namespaceScopedResources"], args.newNamespace, args.multiNsMapping, parser
+                oApp["namespaceScopedResources"], args.newNamespace, args.multiNsMapping
             ),
             args.newStorageClass,
             backup,
@@ -612,7 +604,6 @@ def main(args, parser, ard):
                 args.filterSelection,
                 args.filterSet,
                 astraSDK.apps.getAppAssets().main(oApp["id"]),
-                parser,
             ),
             pollTimer=args.pollTimer,
             background=args.background,
