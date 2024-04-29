@@ -30,7 +30,6 @@ def doV3Ipr(
     skip_tls_verify,
     quiet,
     verbose,
-    parser,
     ard,
     backup=None,
     snapshot=None,
@@ -42,13 +41,13 @@ def doV3Ipr(
             ard.backups = astraSDK.k8s.getResources(
                 config_context=v3, skip_tls_verify=skip_tls_verify
             ).main("backups")
-        iprSourceDict = ard.getSingleDict("backups", "metadata.name", backup, parser)
+        iprSourceDict = ard.getSingleDict("backups", "metadata.name", backup)
     elif snapshot:
         if ard.needsattr("snapshots"):
             ard.snapshots = astraSDK.k8s.getResources(
                 config_context=v3, skip_tls_verify=skip_tls_verify
             ).main("snapshots")
-        iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", snapshot, parser)
+        iprSourceDict = ard.getSingleDict("snapshots", "metadata.name", snapshot)
 
     template = helpers.setupJinja("ipr")
     try:
@@ -59,7 +58,7 @@ def doV3Ipr(
                 appArchivePath=iprSourceDict["status"]["appArchivePath"],
                 appVaultRef=iprSourceDict["spec"]["appVaultRef"],
                 resourceFilter=helpers.prependDump(
-                    helpers.createFilterSet(filterSelection, filterSet, None, parser, v3=True),
+                    helpers.createFilterSet(filterSelection, filterSet, None, v3=True),
                     prepend=4,
                 ),
             )
@@ -82,17 +81,19 @@ def doV3Ipr(
             )
     except KeyError as err:
         iprSourceName = backup if backup else snapshot
-        parser.error(
+        helpers.parserError(
             f"{err} key not found in '{iprSourceName}' object, please ensure "
             f"'{iprSourceName}' is a valid backup/snapshot"
         )
 
 
-def main(args, parser, ard):
+def main(args, ard):
     if (args.filterSelection and not args.filterSet) or (
         args.filterSet and not args.filterSelection
     ):
-        parser.error("either both or none of --filterSelection and --filterSet should be specified")
+        helpers.parserError(
+            "either both or none of --filterSelection and --filterSet should be specified"
+        )
 
     if args.v3:
         doV3Ipr(
@@ -101,7 +102,6 @@ def main(args, parser, ard):
             args.skip_tls_verify,
             args.quiet,
             args.verbose,
-            parser,
             ard,
             backup=args.backup,
             snapshot=args.snapshot,
@@ -117,7 +117,6 @@ def main(args, parser, ard):
                 args.filterSelection,
                 args.filterSet,
                 astraSDK.apps.getAppAssets().main(args.app),
-                parser,
             ),
         )
         if rc:

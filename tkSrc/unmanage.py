@@ -15,10 +15,11 @@
    limitations under the License.
 """
 
+from tkSrc import helpers
 import astraSDK
 
 
-def main(args, parser, ard):
+def main(args, ard):
     if args.objectType == "app" or args.objectType == "application":
         if args.v3:
             astraSDK.k8s.destroyResource(
@@ -58,9 +59,11 @@ def main(args, parser, ard):
                     config_context=args.v3, skip_tls_verify=args.skip_tls_verify
                 ).main("astraconnectors", version="v1", group="astra.netapp.io")
             if ard.connectors is None or len(ard.connectors["items"]) == 0:
-                parser.error("AstraConnector operator not found on current Kubernetes context")
+                helpers.parserError(
+                    "AstraConnector operator not found on current Kubernetes context"
+                )
             elif len(ard.connectors["items"]) > 1:
-                parser.error(
+                helpers.parserError(
                     "multiple AstraConnector operators found on current Kubernetes context"
                 )
             connector = ard.connectors["items"][0]
@@ -141,7 +144,7 @@ def main(args, parser, ard):
             raise SystemExit("astraSDK.clusters.unmanageCloud() failed")
     elif args.objectType == "ldap":
         ard.settings = astraSDK.settings.getSettings().main()
-        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap", parser)
+        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap")
         rc = astraSDK.settings.unmanageLdap(quiet=args.quiet, verbose=args.verbose).main(
             ldapSetting["id"], ldapSetting["currentConfig"]
         )

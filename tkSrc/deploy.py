@@ -181,7 +181,7 @@ def deployHelm(
                 raise SystemExit(f"cpp.main({period}...) returned False")
 
 
-def main(args, parser, ard):
+def main(args, ard):
     if args.objectType == "acp":
         if args.v3:
             # Ensure the trident orchestrator is already running
@@ -192,9 +192,11 @@ def main(args, parser, ard):
                 skip_tls_verify=args.skip_tls_verify,
             ).main("tridentorchestrators")
             if torc is None or len(torc["items"]) == 0:
-                parser.error("trident operator not found on current Kubernetes context")
+                helpers.parserError("trident operator not found on current Kubernetes context")
             elif len(torc["items"]) > 1:
-                parser.error("multiple trident operators found on current Kubernetes context")
+                helpers.parserError(
+                    "multiple trident operators found on current Kubernetes context"
+                )
             # Handle the registry secret
             if not args.regCred:
                 cred = astraSDK.k8s.createRegCred(
@@ -212,7 +214,7 @@ def main(args, parser, ard):
                     ard.credentials = astraSDK.k8s.getSecrets(
                         config_context=args.v3, skip_tls_verify=args.skip_tls_verify
                     ).main(namespace="trident")
-                cred = ard.getSingleDict("credentials", "metadata.name", args.regCred, parser)
+                cred = ard.getSingleDict("credentials", "metadata.name", args.regCred)
             # Handle default registry
             if not args.registry:
                 try:
@@ -224,7 +226,7 @@ def main(args, parser, ard):
                         )
                     )
                 except KeyError as err:
-                    parser.error(
+                    helpers.parserError(
                         f"{args.regCred} does not appear to be a Docker secret: {err} key not found"
                     )
             # Create the patch spec
@@ -247,7 +249,7 @@ def main(args, parser, ard):
             else:
                 raise SystemExit("astraSDK.k8s.updateClusterResource() failed")
         else:
-            parser.error(
+            helpers.parserError(
                 "'deploy acp' is currently only supported as a --v3 command, please re-run with "
                 "--v3 and an optional context, kubeconfig_file, or context@kubeconfig_file mapping"
             )
@@ -260,12 +262,12 @@ def main(args, parser, ard):
                     config_context=args.v3, skip_tls_verify=args.skip_tls_verify
                 ).main("appvaults")
             if args.bucket is None:
-                args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
-                    "metadata"
-                ]["name"]
+                args.bucket = ard.getSingleDict("buckets", "status.state", "available")["metadata"][
+                    "name"
+                ]
         deployHelm(
             args.chart,
-            helpers.isRFC1123(args.app, parser=parser),
+            helpers.isRFC1123(args.app),
             args.namespace,
             args.set,
             args.values,

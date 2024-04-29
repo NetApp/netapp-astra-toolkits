@@ -170,6 +170,8 @@ def main(argv=sys.argv):
     tkParser = tkSrc.parser.ToolkitParser(acl, plaidMode=plaidMode, v3=v3)
     parser = tkParser.main()
     args = parser.parse_args(args=argv)
+    tkParser, parser = None, None  # Memory optimization
+
     if args.v3:
         v3_dict = {"deploy": ["acp", "chart"]}
         v3_dict.update(
@@ -220,32 +222,34 @@ def main(argv=sys.argv):
                 ],
             )
         )
-        tkSrc.helpers.checkv3Support(args, parser, v3_dict)
+        tkSrc.helpers.checkv3Support(args, v3_dict)
     if args.dry_run and not args.v3:
-        parser.error("--dry-run can only be used in conjunction with --v3")
+        tkSrc.helpers.parserError("--dry-run can only be used in conjunction with --v3")
     elif args.skip_tls_verify and not args.v3:
-        parser.error("--insecure-skip-tls-verify can only be used in conjunction with --v3")
+        tkSrc.helpers.parserError(
+            "--insecure-skip-tls-verify can only be used in conjunction with --v3"
+        )
 
     if args.subcommand == "deploy":
-        tkSrc.deploy.main(args, parser, ard)
+        tkSrc.deploy.main(args, ard)
     elif args.subcommand == "clone" or args.subcommand == "restore":
-        tkSrc.clone.main(args, parser, ard)
+        tkSrc.clone.main(args, ard)
     elif args.subcommand == "ipr":
-        tkSrc.ipr.main(args, parser, ard)
+        tkSrc.ipr.main(args, ard)
     elif args.subcommand == "list" or args.subcommand == "get":
         tkSrc.list.main(args)
     elif args.subcommand == "copy":
         tkSrc.copy.main(args)
     elif args.subcommand == "create":
-        tkSrc.create.main(args, parser, ard)
+        tkSrc.create.main(args, ard)
     elif args.subcommand == "manage" or args.subcommand == "define":
-        tkSrc.manage.main(args, parser, ard)
+        tkSrc.manage.main(args, ard)
     elif args.subcommand == "destroy":
-        tkSrc.destroy.main(args, parser, ard)
+        tkSrc.destroy.main(args, ard)
     elif args.subcommand == "unmanage":
-        tkSrc.unmanage.main(args, parser, ard)
+        tkSrc.unmanage.main(args, ard)
     elif args.subcommand == "update":
-        tkSrc.update.main(args, parser, ard)
+        tkSrc.update.main(args, ard)
 
 
 if __name__ == "__main__":

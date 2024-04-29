@@ -26,7 +26,7 @@ import astraSDK
 from tkSrc import helpers
 
 
-def monitorProtectionTask(protectionID, protectionType, appID, background, pollTimer, parser):
+def monitorProtectionTask(protectionID, protectionType, appID, background, pollTimer):
     """Ensure backup/snapshot task was created successfully, then monitor"""
     if protectionID is False:
         return False
@@ -35,7 +35,7 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
     elif protectionType == "snapshot":
         protection_class = astraSDK.snapshots.getSnaps()
     else:
-        parser.error(f"unknown protection type: {protectionType}")
+        helpers.parserError(f"unknown protection type: {protectionType}")
 
     print(f"Starting {protectionType} of {appID}")
     if background:
@@ -75,7 +75,7 @@ def monitorProtectionTask(protectionID, protectionType, appID, background, pollT
     return False
 
 
-def monitorV3ProtectionTask(protection, pollTimer, parser, v3, skip_tls_verify):
+def monitorV3ProtectionTask(protection, pollTimer, v3, skip_tls_verify):
     name = protection["metadata"]["name"]
     singular = protection["kind"].lower()
     resource_class = astraSDK.k8s.getResources(config_context=v3, skip_tls_verify=skip_tls_verify)
@@ -122,9 +122,9 @@ def createV3ConnectorOperator(v3, dry_run, skip_tls_verify, verbose, operator_ve
     )
 
 
-def createCloudCredential(quiet, verbose, path, name, cloudType, parser):
+def createCloudCredential(quiet, verbose, path, name, cloudType):
     """Create a public cloud (AWS/Azure/GCP) credential via the API"""
-    credDict = helpers.openJson(path, parser)
+    credDict = helpers.openJson(path)
     encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
     rc = astraSDK.credentials.createCredential(quiet=quiet, verbose=verbose).main(
         "astra-sa@" + name,
@@ -137,9 +137,9 @@ def createCloudCredential(quiet, verbose, path, name, cloudType, parser):
     raise SystemExit("astraSDK.credentials.createCredential() failed")
 
 
-def createV3CloudCredential(v3, dry_run, skip_tls_verify, quiet, verbose, path, name, parser):
+def createV3CloudCredential(v3, dry_run, skip_tls_verify, quiet, verbose, path, name):
     """Create a public cloud (AWS/Azure/GCP) credential via a Kubernetes secret"""
-    credDict = helpers.openJson(path, parser)
+    credDict = helpers.openJson(path)
     encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
     data = {"credentials.json": encodedStr}
     namespace = "astra-connector"
@@ -163,7 +163,7 @@ def createV3CloudCredential(v3, dry_run, skip_tls_verify, quiet, verbose, path, 
     ).main(f"{name}-", data, generateName=True, namespace=namespace)
 
 
-def createLdapCredential(quiet, verbose, username, password, parser):
+def createLdapCredential(quiet, verbose, username, password):
     """Create an LDAP bind credential via the API"""
     bindDn = base64.b64encode(username.encode("utf-8")).decode("utf-8")
     enpass = base64.b64encode(password.encode("utf-8")).decode("utf-8")
@@ -268,7 +268,6 @@ def createV3Hook(
     skip_tls_verify,
     quiet,
     verbose,
-    parser,
     app,
     name,
     filePath,
@@ -281,11 +280,11 @@ def createV3Hook(
     containerName=None,
 ):
     """Creates an exec hook via a Kubernetes custom resource"""
-    encodedStr = helpers.openScript(filePath, parser)
+    encodedStr = helpers.openScript(filePath)
     template = helpers.setupJinja("hook")
     v3_dict = yaml.safe_load(
         template.render(
-            name=helpers.isRFC1123(name, parser=parser),
+            name=helpers.isRFC1123(name),
             action=operation.split("-")[1],
             appName=app,
             arguments=helpers.prependDump(helpers.createHookList(hookArguments), prepend=4),
@@ -417,7 +416,7 @@ def createV3Snapshot(
         )
 
 
-def main(args, parser, ard):
+def main(args, ard):
     if args.objectType == "backup":
         if args.v3:
             if ard.needsattr("buckets"):
@@ -425,9 +424,9 @@ def main(args, parser, ard):
                     config_context=args.v3, skip_tls_verify=args.skip_tls_verify
                 ).main("appvaults")
             if args.bucket is None:
-                args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
-                    "metadata"
-                ]["name"]
+                args.bucket = ard.getSingleDict("buckets", "status.state", "available")["metadata"][
+                    "name"
+                ]
             backup = createV3Backup(
                 args.v3,
                 args.dry_run,
@@ -441,13 +440,11 @@ def main(args, parser, ard):
                 args.reclaimPolicy,
             )
             if backup and not args.dry_run and not args.background:
-                monitorV3ProtectionTask(
-                    backup, args.pollTimer, parser, args.v3, args.skip_tls_verify
-                )
+                monitorV3ProtectionTask(backup, args.pollTimer, args.v3, args.skip_tls_verify)
         else:
             protectionID = astraSDK.backups.takeBackup(quiet=args.quiet, verbose=args.verbose).main(
                 args.app,
-                helpers.isRFC1123(args.name, parser=parser),
+                helpers.isRFC1123(args.name),
                 bucketID=args.bucket,
                 snapshotID=args.snapshot,
             )
@@ -457,12 +454,11 @@ def main(args, parser, ard):
                 args.app,
                 args.background,
                 args.pollTimer,
-                parser,
             )
             if rc is False:
                 raise SystemExit("monitorProtectionTask() failed")
     elif args.objectType == "cluster":
-        kubeconfigDict = helpers.openYaml(args.filePath, parser)
+        kubeconfigDict = helpers.openYaml(args.filePath)
         encodedStr = base64.b64encode(json.dumps(kubeconfigDict).encode("utf-8")).decode("utf-8")
         rc = astraSDK.credentials.createCredential(quiet=args.quiet, verbose=args.verbose).main(
             kubeconfigDict["clusters"][0]["name"],
@@ -483,9 +479,9 @@ def main(args, parser, ard):
     elif args.objectType == "group":
         ldapGroups = astraSDK.groups.getLdapGroups().main(dnFilter=args.dn, matchType="eq")
         if len(ldapGroups["items"]) == 0:
-            parser.error(f"0 LDAP groups found with DN '{args.dn}'")
+            helpers.parserError(f"0 LDAP groups found with DN '{args.dn}'")
         elif len(ldapGroups["items"]) > 1:
-            parser.error(f"multiple LDAP users found with DN '{args.dn}'")
+            helpers.parserError(f"multiple LDAP users found with DN '{args.dn}'")
         # First create the group
         grc = astraSDK.groups.createGroup(quiet=args.quiet, verbose=args.verbose).main(args.dn)
         if grc:
@@ -510,7 +506,6 @@ def main(args, parser, ard):
                 args.skip_tls_verify,
                 args.quiet,
                 args.verbose,
-                parser,
                 args.app,
                 args.name,
                 args.filePath,
@@ -541,11 +536,9 @@ def main(args, parser, ard):
             if rc is False:
                 raise SystemExit("astraSDK.hooks.createHook() failed")
     elif args.objectType == "ldap":
-        credential = createLdapCredential(
-            args.quiet, args.verbose, args.username, args.password, parser
-        )
+        credential = createLdapCredential(args.quiet, args.verbose, args.username, args.password)
         ard.settings = astraSDK.settings.getSettings().main()
-        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap", parser)
+        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap")
         rc = astraSDK.settings.createLdap(quiet=args.quiet, verbose=args.verbose).main(
             ldapSetting["id"],
             args.url,
@@ -564,28 +557,28 @@ def main(args, parser, ard):
         naStr = "" if args.v3 else "*"
         if args.granularity == "hourly":
             if args.hour:
-                parser.error("'hourly' granularity must not specify -H / --hour")
+                helpers.parserError("'hourly' granularity must not specify -H / --hour")
             args.hour = naStr
             args.dayOfWeek = naStr
             args.dayOfMonth = naStr
         elif args.granularity == "daily":
             if not isinstance(args.hour, int) and not args.hour:
-                parser.error("'daily' granularity requires -H / --hour")
+                helpers.parserError("'daily' granularity requires -H / --hour")
             args.dayOfWeek = naStr
             args.dayOfMonth = naStr
         elif args.granularity == "weekly":
             if not isinstance(args.hour, int) and not args.hour:
-                parser.error("'weekly' granularity requires -H / --hour")
+                helpers.parserError("'weekly' granularity requires -H / --hour")
             if not isinstance(args.dayOfWeek, int) and not args.dayOfWeek:
-                parser.error("'weekly' granularity requires -W / --dayOfWeek")
+                helpers.parserError("'weekly' granularity requires -W / --dayOfWeek")
             args.dayOfMonth = naStr
         elif args.granularity == "monthly":
             if not isinstance(args.hour, int) and not args.hour:
-                parser.error("'monthly' granularity requires -H / --hour")
+                helpers.parserError("'monthly' granularity requires -H / --hour")
             if args.dayOfWeek:
-                parser.error("'monthly' granularity must not specify -W / --dayOfWeek")
+                helpers.parserError("'monthly' granularity must not specify -W / --dayOfWeek")
             if not args.dayOfMonth:
-                parser.error("'monthly' granularity requires -M / --dayOfMonth")
+                helpers.parserError("'monthly' granularity requires -M / --dayOfMonth")
             args.dayOfWeek = naStr
         if args.v3:
             if ard.needsattr("buckets"):
@@ -593,9 +586,9 @@ def main(args, parser, ard):
                     config_context=args.v3, skip_tls_verify=args.skip_tls_verify
                 ).main("appvaults")
             if args.bucket is None:
-                args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
-                    "metadata"
-                ]["name"]
+                args.bucket = ard.getSingleDict("buckets", "status.state", "available")["metadata"][
+                    "name"
+                ]
             createV3Protection(
                 args.v3,
                 args.dry_run,
@@ -637,9 +630,11 @@ def main(args, parser, ard):
             hours = "00"
             minutes = args.offset.zfill(2)
         if int(hours) < 0 or int(hours) > 23:
-            parser.error(f"offset {args.offset} hours must be between 0 and 23, inclusive")
+            helpers.parserError(f"offset {args.offset} hours must be between 0 and 23, inclusive")
         elif int(minutes) < 0 or int(minutes) > 59:
-            parser.error(f"offset '{args.offset}' minutes must be between 0 and 59, inclusive")
+            helpers.parserError(
+                f"offset '{args.offset}' minutes must be between 0 and 59, inclusive"
+            )
         dtstart = "DTSTART:20220101T" + hours + minutes + "00Z\n"
         # Create RRULE string
         rrule = "RRULE:FREQ=MINUTELY;INTERVAL="
@@ -689,7 +684,7 @@ def main(args, parser, ard):
         else:
             raise SystemExit("astraSDK.replications.createReplicationpolicy() failed")
     elif args.objectType == "script":
-        encodedStr = helpers.openScript(args.filePath, parser)
+        encodedStr = helpers.openScript(args.filePath)
         rc = astraSDK.scripts.createScript(quiet=args.quiet, verbose=args.verbose).main(
             name=args.name, source=encodedStr, description=args.description
         )
@@ -702,9 +697,9 @@ def main(args, parser, ard):
                     config_context=args.v3, skip_tls_verify=args.skip_tls_verify
                 ).main("appvaults")
             if args.bucket is None:
-                args.bucket = ard.getSingleDict("buckets", "status.state", "available", parser)[
-                    "metadata"
-                ]["name"]
+                args.bucket = ard.getSingleDict("buckets", "status.state", "available")["metadata"][
+                    "name"
+                ]
             snapshot = createV3Snapshot(
                 args.v3,
                 args.dry_run,
@@ -719,13 +714,10 @@ def main(args, parser, ard):
                 readyToUseTimeout=args.readyToUseTimeout,
             )
             if snapshot and not args.dry_run and not args.background:
-                monitorV3ProtectionTask(
-                    snapshot, args.pollTimer, parser, args.v3, args.skip_tls_verify
-                )
+                monitorV3ProtectionTask(snapshot, args.pollTimer, args.v3, args.skip_tls_verify)
         else:
             protectionID = astraSDK.snapshots.takeSnap(quiet=args.quiet, verbose=args.verbose).main(
-                args.app,
-                helpers.isRFC1123(args.name, parser=parser),
+                args.app, helpers.isRFC1123(args.name)
             )
             rc = monitorProtectionTask(
                 protectionID,
@@ -733,7 +725,6 @@ def main(args, parser, ard):
                 args.app,
                 args.background,
                 args.pollTimer,
-                parser,
             )
             if rc is False:
                 raise SystemExit("monitorProtectionTask() failed")
@@ -742,9 +733,9 @@ def main(args, parser, ard):
         if args.ldap:
             ldapUsers = astraSDK.users.getLdapUsers().main(emailFilter=args.email, matchType="eq")
             if len(ldapUsers["items"]) == 0:
-                parser.error(f"0 LDAP users found with email '{args.email}'")
+                helpers.parserError(f"0 LDAP users found with email '{args.email}'")
             elif len(ldapUsers["items"]) > 1:
-                parser.error(f"multiple LDAP users found with email '{args.email}'")
+                helpers.parserError(f"multiple LDAP users found with email '{args.email}'")
             args.firstName = ldapUsers["items"][0]["firstName"]
             args.lastName = ldapUsers["items"][0]["lastName"]
             args.ldap = "ldap"

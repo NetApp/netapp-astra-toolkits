@@ -15,6 +15,8 @@
    limitations under the License.
 """
 
+from tkSrc.helpers import parserError
+
 
 class ArgparseChoicesLists:
     """This Class defines a set of Lists which are used in the "choices" section of the Argparse
@@ -93,7 +95,7 @@ class AstraResourceDicts:
         except TypeError:
             return []
 
-    def getSingleDict(self, name, key, value, parser):
+    def getSingleDict(self, name, key, value):
         """Returns a single dict within the "items" list of the main resource dict, based on a
         matching key/value pair"""
         try:
@@ -101,6 +103,6 @@ class AstraResourceDicts:
                 x for x in getattr(self, name)["items"] if self.recursiveGet(key, x) == value
             )
         except StopIteration:
-            parser.error(
+            parserError(
                 f"A resource with a '{key}:{value}' pair in the '{name}' dict was not found"
             )
