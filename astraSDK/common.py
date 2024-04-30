@@ -79,19 +79,19 @@ class getConfig:
             self.domain = "%s.astra.netapp.io" % (self.conf.get("astra_project"))
         self.account_id = self.conf.get("uid")
         self.base = "https://%s/accounts/%s/" % (self.domain, self.account_id)
-        self.headers = self.conf.get("headers")
+        self.session = requests.Session()
+        self.session.headers.update(self.conf.get("headers"))
 
         if self.conf.get("verifySSL") is False:
             disable_warnings()
-            self.verifySSL = False
+            self.session.verify = False
         else:
-            self.verifySSL = True
+            self.session.verify = True
 
     def main(self):
         return {
             "base": self.base,
-            "headers": self.headers,
-            "verifySSL": self.verifySSL,
+            "session": self.session,
             "domain": self.domain,
             "account_id": self.account_id,
         }
@@ -168,24 +168,24 @@ class BaseCommon:
 
 
 class SDKCommon(BaseCommon):
-    def __init__(self):
+    def __init__(self, config=None):
         super().__init__()
-        self.conf = getConfig().main()
+        self.conf = getConfig().main() if config is None else config
+        self.session = self.conf.get("session")
         self.base = self.conf.get("base")
-        self.headers = self.conf.get("headers")
-        self.verifySSL = self.conf.get("verifySSL")
+        self.headers = {}
 
-    def apicall(self, method, url, data, headers, params, verify, quiet=False, verbose=False):
+    def apicall(self, method, url, data, headers, params, quiet=False, verbose=False):
         """Make a call using the requests module.
         method can be get, put, post, patch, or delete"""
         try:
-            r = getattr(requests, method)
+            r = getattr(self.session, method)
         except AttributeError as e:
             raise SystemExit(e)
         try:
             if verbose:
-                self.printVerbose(url, method, headers, data, params)
-            ret = r(url, json=data, headers=headers, params=params, verify=verify)
+                self.printVerbose(url, method, headers, data, params, self.session)
+            ret = r(url, json=data, headers=headers, params=params)
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
         if not ret.ok:
@@ -202,7 +202,6 @@ class SDKCommon(BaseCommon):
                     {},
                     self.headers,
                     {},
-                    self.verifySSL,
                     quiet=False,
                     verbose=False,
                 )
@@ -238,13 +237,15 @@ class SDKCommon(BaseCommon):
             results = None
         return results
 
-    def printVerbose(self, url, method, headers, data, params):
+    def printVerbose(self, url, method, headers, data, params, session):
         """Function to print API call details when in verbose mode"""
+        combinedHeaders = {**headers, **session.headers}
         print(f"{GREEN}API URL: {url}{ENDC}")
         print(f"{GREEN}API Method: {method}{ENDC}")
-        print(f"{GREEN}API Headers: {headers}{ENDC}")
+        print(f"{GREEN}API Headers: {combinedHeaders}{ENDC}")
         print(f"{GREEN}API data: {data}{ENDC}")
         print(f"{GREEN}API params: {params}{ENDC}")
+        print(f"{GREEN}API verifySSL: {session.verify}{ENDC}")
 
 
 class KubeCommon(BaseCommon):

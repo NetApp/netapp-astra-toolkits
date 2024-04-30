@@ -42,11 +42,12 @@ def doClone(
     verb="restore",
     verbose=False,
     quiet=False,
+    config=None,
 ):
     """Create a clone/restore."""
     # Check to see if cluster-level resources are needed to be manually created
     needsIngressclass = False
-    appAssets = astraSDK.apps.getAppAssets(verbose=verbose).main(oApp["id"])
+    appAssets = astraSDK.apps.getAppAssets(verbose=verbose, config=config).main(oApp["id"])
     for asset in appAssets["items"]:
         if (
             "nginx-ingress-controller" in asset["assetName"]
@@ -62,7 +63,7 @@ def doClone(
                         cloneNamespace = nsm["destination"]
     # Clone 'ingressclass' cluster object
     if needsIngressclass and oApp["clusterID"] != clusterID:
-        clusters = astraSDK.clusters.getClusters().main(hideUnmanaged=True)
+        clusters = astraSDK.clusters.getClusters(config=config).main(hideUnmanaged=True)
         contexts, _ = kubernetes.config.list_kube_config_contexts()
         # Loop through clusters and contexts, find matches and open api_client
         for cluster in clusters["items"]:
@@ -180,7 +181,7 @@ def doClone(
             if not (body.get("reason") == "AlreadyExists"):
                 raise SystemExit(f"Error: Kubernetes resource creation failed\n{e}")
 
-    cloneRet = astraSDK.apps.cloneApp(verbose=verbose, quiet=quiet).main(
+    cloneRet = astraSDK.apps.cloneApp(verbose=verbose, quiet=quiet, config=config).main(
         newAppName,
         clusterID,
         oApp["clusterID"],
@@ -201,7 +202,7 @@ def doClone(
         appID = cloneRet.get("id")
         state = cloneRet.get("state")
         while state != "ready":
-            apps = astraSDK.apps.getApps().main()
+            apps = astraSDK.apps.getApps(config=config).main()
             for app in apps["items"]:
                 if app["id"] == appID:
                     if app["state"] == "ready":
@@ -489,7 +490,7 @@ def doV3Restore(
         )
 
 
-def main(args, ard):
+def main(args, ard, config=None):
     # Ensure proper use of resource filters
     if args.subcommand == "restore":
         if (args.filterSelection and not args.filterSet) or (
@@ -549,7 +550,7 @@ def main(args, ard):
 
     else:
         if ard.needsattr("apps"):
-            ard.apps = astraSDK.apps.getApps().main()
+            ard.apps = astraSDK.apps.getApps(config=config).main()
         # Get the original app dictionary based on args.sourceApp/args.restoreSource,
         # as the app dict contains sourceCluster and namespaceScopedResources which we need
         oApp = {}
@@ -565,9 +566,9 @@ def main(args, ard):
         elif args.subcommand == "restore":
             args.sourceApp = None
             if ard.needsattr("backups"):
-                ard.backups = astraSDK.backups.getBackups().main()
+                ard.backups = astraSDK.backups.getBackups(config=config).main()
             if ard.needsattr("snapshots"):
-                ard.snapshots = astraSDK.snapshots.getSnaps().main()
+                ard.snapshots = astraSDK.snapshots.getSnaps(config=config).main()
             if args.restoreSource in ard.buildList("backups", "id"):
                 dataProtections = ard.backups
                 backup = args.restoreSource
@@ -603,11 +604,12 @@ def main(args, ard):
             helpers.createFilterSet(
                 args.filterSelection,
                 args.filterSet,
-                astraSDK.apps.getAppAssets().main(oApp["id"]),
+                astraSDK.apps.getAppAssets(config=config).main(oApp["id"]),
             ),
             pollTimer=args.pollTimer,
             background=args.background,
             verb=args.subcommand,
             verbose=args.verbose,
             quiet=args.quiet,
+            config=config,
         )

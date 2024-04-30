@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,17 +24,18 @@ from .clusters import getClusters
 
 
 class getApiResources(SDKCommon):
-    def __init__(self, quiet=True, verbose=False, output="json"):
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
         output: table: pretty print the data
                 json: (default) output in JSON
-                yaml: output in yaml"""
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
         self.output = output
-        super().__init__()
-        self.clusters = getClusters(quiet=True, verbose=verbose).main()
+        super().__init__(config=config)
+        self.clusters = getClusters(quiet=True, verbose=verbose, config=config).main()
 
     def main(self, cluster=None):
         if self.clusters is False:
@@ -62,7 +63,6 @@ class getApiResources(SDKCommon):
                 data,
                 self.headers,
                 params,
-                self.verifySSL,
                 quiet=self.quiet,
                 verbose=self.verbose,
             )

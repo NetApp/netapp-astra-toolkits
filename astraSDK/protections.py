@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,17 +26,18 @@ class getProtectionpolicies(SDKCommon):
     """Get all the Protection policies (aka backup / snapshot schedules) for each app, unless an
     optional appFilter is passed (can be either app name or app ID, but must be an exact match."""
 
-    def __init__(self, quiet=True, verbose=False, output="json"):
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
         output: table: pretty print the data
                 json: (default) output in JSON
-                yaml: output in yaml"""
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
         self.output = output
-        super().__init__()
-        self.apps = getApps(quiet=True, verbose=verbose).main()
+        super().__init__(config=config)
+        self.apps = getApps(quiet=True, verbose=verbose, config=config).main()
 
     def main(self, appFilter=None, clusterFilter=None):
         if self.apps is False:
@@ -65,7 +66,6 @@ class getProtectionpolicies(SDKCommon):
                 data,
                 self.headers,
                 params,
-                self.verifySSL,
                 quiet=self.quiet,
                 verbose=self.verbose,
             )
@@ -163,12 +163,13 @@ class createProtectionpolicy(SDKCommon):
     what the API requirements are in case the swagger isn't sufficient.
     """
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-schedule+json"
         self.headers["Content-Type"] = "application/astra-schedule+json"
 
@@ -213,7 +214,6 @@ class createProtectionpolicy(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -235,12 +235,13 @@ class updateProtectionpolicy(SDKCommon):
     requirements are in case the swagger isn't sufficient.
     """
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["Content-Type"] = "application/astra-schedule+json"
 
     def main(
@@ -283,7 +284,6 @@ class updateProtectionpolicy(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -302,12 +302,13 @@ class updateProtectionpolicy(SDKCommon):
 class destroyProtectiontionpolicy(SDKCommon):
     """This class destroys a protection policy"""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-schedule+json"
         self.headers["Content-Type"] = "application/astra-schedule+json"
 
@@ -323,7 +324,6 @@ class destroyProtectiontionpolicy(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )

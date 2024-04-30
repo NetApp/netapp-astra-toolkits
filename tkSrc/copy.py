@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,10 +18,12 @@
 import astraSDK
 
 
-def main(args):
+def main(args, config=None):
     if args.objectType == "hooks":
-        for hook in astraSDK.hooks.getHooks().main(appFilter=args.sourceApp)["items"]:
-            rc = astraSDK.hooks.createHook(quiet=args.quiet, verbose=args.verbose).main(
+        for hook in astraSDK.hooks.getHooks(config=config).main(appFilter=args.sourceApp)["items"]:
+            rc = astraSDK.hooks.createHook(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(
                 args.destinationApp,
                 hook["name"],
                 hook["hookSourceID"],
@@ -33,11 +35,11 @@ def main(args):
             if rc is False:
                 raise SystemExit("astraSDK.hooks.createHook() failed")
     elif args.objectType == "protections":
-        for protection in astraSDK.protections.getProtectionpolicies().main(
+        for protection in astraSDK.protections.getProtectionpolicies(config=config).main(
             appFilter=args.sourceApp
         )["items"]:
             rc = astraSDK.protections.createProtectionpolicy(
-                quiet=args.quiet, verbose=args.verbose
+                quiet=args.quiet, verbose=args.verbose, config=config
             ).main(
                 protection["granularity"],
                 protection["backupRetention"],

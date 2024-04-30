@@ -29,16 +29,17 @@ ENDC = "\033[0m"
 class getGroups(SDKCommon):
     """Get all the groups in Astra Control"""
 
-    def __init__(self, quiet=True, verbose=False, output="json"):
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
         output: table: pretty print the data
                 json: (default) output in JSON
-                yaml: output in yaml"""
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
         self.output = output
-        super().__init__()
+        super().__init__(config=config)
 
     def main(self, nameFilter=None):
         endpoint = "core/v1/groups"
@@ -53,7 +54,6 @@ class getGroups(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -85,12 +85,13 @@ class createGroup(SDKCommon):
     """Create a group within the Astra Control account.  This class does not do argument
     verification, please reference toolkit.py which has proper guardrails"""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-group+json"
         self.headers["Content-Type"] = "application/astra-group+json"
 
@@ -115,7 +116,6 @@ class createGroup(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -134,12 +134,13 @@ class createGroup(SDKCommon):
 class destroyGroup(SDKCommon):
     """Destroys a group"""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-group+json"
         self.headers["Content-Type"] = "application/astra-group+json"
 
@@ -158,7 +159,6 @@ class destroyGroup(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -174,16 +174,17 @@ class destroyGroup(SDKCommon):
 class getLdapGroups(SDKCommon):
     """Query LDAP for a list of groups"""
 
-    def __init__(self, quiet=True, verbose=False, output="json"):
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
         output: table: pretty print the data
                 json: (default) output in JSON
-                yaml: output in yaml"""
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
         self.output = output
-        super().__init__()
+        super().__init__(config=config)
 
     def main(
         self,
@@ -218,7 +219,6 @@ class getLdapGroups(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )

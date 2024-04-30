@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ def deployHelm(
     v3=False,
     dry_run=None,
     skip_tls_verify=False,
+    config=None,
 ):
     """Deploy a helm chart <chart>, naming the app <appName> into <namespace>"""
     if v3:
@@ -98,7 +99,7 @@ def deployHelm(
                 protectionData[granularity]["dayOfMonth"],
             )
     else:
-        nsObj = astraSDK.namespaces.getNamespaces(verbose=verbose)
+        nsObj = astraSDK.namespaces.getNamespaces(verbose=verbose, config=config)
         print("Waiting for Astra to discover the namespace", end="")
         sys.stdout.flush()
 
@@ -129,7 +130,7 @@ def deployHelm(
                     time.sleep(3)
                     print(f"Managing app: {ns['name']}.", end="")
                     sys.stdout.flush()
-                    rc = astraSDK.apps.manageApp(verbose=verbose).main(
+                    rc = astraSDK.apps.manageApp(verbose=verbose, config=config).main(
                         ns["name"], ns["name"], ns["clusterID"]
                     )
                     if rc:
@@ -140,9 +141,9 @@ def deployHelm(
                     else:
                         sys.stdout.flush()
                         print("\nERROR managing app, trying one more time:")
-                        rc = astraSDK.apps.manageApp(quiet=quiet, verbose=verbose).main(
-                            ns["name"], ns["name"], ns["clusterID"]
-                        )
+                        rc = astraSDK.apps.manageApp(
+                            quiet=quiet, verbose=verbose, config=config
+                        ).main(ns["name"], ns["name"], ns["clusterID"])
                         if rc:
                             appID = rc["id"]
                             print("Success!")
@@ -155,7 +156,7 @@ def deployHelm(
         backupRetention = "1"
         snapshotRetention = "1"
         minute = "0"
-        cpp = astraSDK.protections.createProtectionpolicy(quiet=quiet)
+        cpp = astraSDK.protections.createProtectionpolicy(quiet=quiet, config=config)
         cppData = {
             "hourly": {"dayOfWeek": "*", "dayOfMonth": "*", "hour": "*"},
             "daily": {"dayOfWeek": "*", "dayOfMonth": "*", "hour": "2"},
@@ -181,7 +182,7 @@ def deployHelm(
                 raise SystemExit(f"cpp.main({period}...) returned False")
 
 
-def main(args, ard):
+def main(args, ard, config=None):
     if args.objectType == "acp":
         if args.v3:
             # Ensure the trident orchestrator is already running
@@ -205,6 +206,7 @@ def main(args, ard):
                     verbose=args.verbose,
                     config_context=args.v3,
                     skip_tls_verify=args.skip_tls_verify,
+                    config=config,
                 ).main(registry=args.registry)
                 if not cred:
                     raise SystemExit("astraSDK.k8s.createRegCred() failed")
@@ -277,4 +279,5 @@ def main(args, ard):
             v3=args.v3,
             dry_run=args.dry_run,
             skip_tls_verify=args.skip_tls_verify,
+            config=config,
         )

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -35,16 +35,17 @@ class getApps(SDKCommon):
     Therefore this class cannot list all of the managed and unmanaged apps.
     """
 
-    def __init__(self, quiet=True, verbose=False, output="json"):
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
         output: table: pretty print the data
                 json: (default) output in JSON
-                yaml: output in yaml"""
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
         self.output = output
-        super().__init__()
+        super().__init__(config=config)
 
     def main(
         self,
@@ -66,7 +67,6 @@ class getApps(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -194,12 +194,13 @@ class manageApp(SDKCommon):
 
     There is no validation of this input, that instead is left to the calling method."""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-app+json"
         self.headers["Content-Type"] = "application/astra-app+json"
 
@@ -235,7 +236,6 @@ class manageApp(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -254,12 +254,13 @@ class manageApp(SDKCommon):
 class unmanageApp(SDKCommon):
     """This class undefines a managed application."""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-app+json"
         self.headers["Content-Type"] = "application/astra-app+json"
 
@@ -275,7 +276,6 @@ class unmanageApp(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -303,12 +303,13 @@ class cloneApp(SDKCommon):
     for any parameters the clone operation will fail.
     """
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-app+json"
         self.headers["Content-Type"] = "application/astra-app+json"
 
@@ -355,7 +356,6 @@ class cloneApp(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -383,12 +383,13 @@ class restoreApp(SDKCommon):
     "restoring" to "running" or "failed".
     """
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return True/False
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-app+json"
         self.headers["Content-Type"] = "application/astra-app+json"
         self.headers["ForceUpdate"] = "true"
@@ -422,7 +423,6 @@ class restoreApp(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -436,16 +436,17 @@ class restoreApp(SDKCommon):
 
 
 class getAppAssets(SDKCommon):
-    def __init__(self, quiet=True, verbose=False, output="json"):
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
         output: table: pretty print the data
                 json: (default) output in JSON
-                yaml: output in yaml"""
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
         self.output = output
-        super().__init__()
+        super().__init__(config=config)
 
     def main(self, appID):
         endpoint = f"k8s/v1/apps/{appID}/appAssets"
@@ -460,7 +461,6 @@ class getAppAssets(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -25,17 +25,18 @@ from .clouds import getClouds
 class getClusters(SDKCommon):
     """Iterate over the clouds and list the clusters in each."""
 
-    def __init__(self, quiet=True, verbose=False, output="json"):
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
         output: table: pretty print the data
                 json: (default) output in JSON
-                yaml: output in yaml"""
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
         self.output = output
-        super().__init__()
-        self.clouds = getClouds(quiet=True, verbose=verbose).main()
+        super().__init__(config=config)
+        self.clouds = getClouds(quiet=True, verbose=verbose, config=config).main()
 
     def main(self, hideManaged=False, hideUnmanaged=False, nameFilter=None):
         clusters = {}
@@ -58,7 +59,6 @@ class getClusters(SDKCommon):
                 data,
                 self.headers,
                 params,
-                self.verifySSL,
                 quiet=self.quiet,
                 verbose=self.verbose,
             )
@@ -113,12 +113,13 @@ class getClusters(SDKCommon):
 class manageCluster(SDKCommon):
     """This class switches an unmanaged cluster to a managed cluster"""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-managedCluster+json"
         self.headers["Content-Type"] = "application/managedCluster+json"
 
@@ -140,7 +141,6 @@ class manageCluster(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -159,12 +159,13 @@ class manageCluster(SDKCommon):
 class unmanageCluster(SDKCommon):
     """This class switches a managed cluster to an un managed cluster"""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-managedCluster+json"
         self.headers["Content-Type"] = "application/managedCluster+json"
         self.clusters = getClusters().main()
@@ -181,7 +182,6 @@ class unmanageCluster(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -200,12 +200,13 @@ class addCluster(SDKCommon):
     """This class adds an (ACC) Kubernetes cluster into the 'unmanaged' cluster list,
     after which it can then be changed from an unmanged to a managed cluster."""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-cluster+json"
         self.headers["Content-Type"] = "application/astra-cluster+json"
 
@@ -227,7 +228,6 @@ class addCluster(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -247,12 +247,13 @@ class deleteCluster(SDKCommon):
     """This class deletes a cluster.  It's meant for ACC environments only, and should
     be called after unmanageCluster if it's an ACC-managed cluster."""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-cluster+json"
         self.headers["Content-Type"] = "application/astra-cluster+json"
 
@@ -268,7 +269,6 @@ class deleteCluster(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -288,12 +288,13 @@ class updateCluster(SDKCommon):
     or defaultBucketID of a cluster, but has been created in a way to allow other kinds of
     updates in future versions."""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["Content-Type"] = "application/astra-managedCluster+json"
 
     def main(self, clusterID, defaultBucketID=None):
@@ -313,7 +314,6 @@ class updateCluster(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
