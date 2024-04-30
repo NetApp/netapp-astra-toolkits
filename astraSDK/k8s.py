@@ -807,7 +807,7 @@ class createV1Secret(KubeCommon):
             self.printKubeError(e)
 
 
-class createRegCred(KubeCommon, SDKCommon):
+class createRegCred(SDKCommon, KubeCommon):
     """Creates a docker registry credential. By default it uses fields from config.yaml,
     however any of these fields can be overridden by custom values."""
 
@@ -883,7 +883,7 @@ class createRegCred(KubeCommon, SDKCommon):
         ).main(regCredSecret, namespace=namespace)
 
 
-class createAstraApiToken(KubeCommon, SDKCommon):
+class createAstraApiToken(SDKCommon, KubeCommon):
     """Creates an astra-api-token secret based on the contents of config.yaml"""
 
     def __init__(
