@@ -15,6 +15,7 @@
    limitations under the License.
 """
 
+import gc
 import sys
 
 import tkSrc
@@ -167,10 +168,11 @@ def main(argv=sys.argv):
 
     # Manually passing args into argparse via parse_args() shouldn't include the function name
     argv = argv[1:] if "toolkit" in argv[0] else argv
-    tkParser = tkSrc.parser.ToolkitParser(acl, plaidMode=plaidMode, v3=v3)
-    parser = tkParser.main()
-    args = parser.parse_args(args=argv)
-    tkParser, parser = None, None  # Memory optimization
+    tkParser = tkSrc.parser.ToolkitParser(acl, plaidMode=plaidMode, v3=v3).main()
+    args = tkParser.parse_args(args=argv)
+    # Memory optimization
+    tkParser = None
+    gc.collect()
 
     if args.v3:
         v3_dict = {"deploy": ["acp", "chart"]}
