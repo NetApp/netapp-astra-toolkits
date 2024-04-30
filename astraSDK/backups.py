@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,17 +29,18 @@ class getBackups(SDKCommon):
     for that app.
     """
 
-    def __init__(self, quiet=True, verbose=False, output="json"):
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
         output: table: pretty print the data
                 json: (default) output in JSON
-                yaml: output in yaml"""
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
         self.output = output
-        super().__init__()
-        self.apps = getApps(quiet=True, verbose=verbose).main()
+        super().__init__(config=config)
+        self.apps = getApps(quiet=True, verbose=verbose, config=config).main()
 
     def main(self, appFilter=None):
         if self.apps is False:
@@ -80,7 +81,6 @@ class getBackups(SDKCommon):
                 data,
                 self.headers,
                 params,
-                self.verifySSL,
                 quiet=self.quiet,
                 verbose=self.verbose,
             )
@@ -136,12 +136,13 @@ class takeBackup(SDKCommon):
     a bucketID and snpshotID are optional fields, and either the result JSON is
     returned or the backupID of the newly created backup is returned."""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
@@ -165,7 +166,6 @@ class takeBackup(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -185,12 +185,13 @@ class destroyBackup(SDKCommon):
     """Given an appID and backupID destroy the backup.  Note that this doesn't
     unmanage a backup, it actively destroys it. There is no coming back from this."""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-appBackup+json"
         self.headers["Content-Type"] = "application/astra-appBackup+json"
 
@@ -209,7 +210,6 @@ class destroyBackup(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )

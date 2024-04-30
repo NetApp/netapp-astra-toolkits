@@ -812,7 +812,13 @@ class createRegCred(KubeCommon, SDKCommon):
     however any of these fields can be overridden by custom values."""
 
     def __init__(
-        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+        self,
+        quiet=True,
+        dry_run=False,
+        verbose=False,
+        config_context=None,
+        skip_tls_verify=False,
+        config=None,
     ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
@@ -822,13 +828,14 @@ class createRegCred(KubeCommon, SDKCommon):
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
                         str "<config_file>:<context>": use specified file and context
-        skip_tls_verify: Whether to skip TLS/SSL verification"""
+        skip_tls_verify: Whether to skip TLS/SSL verification
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
         self.config_context = config_context
         self.skip_tls_verify = skip_tls_verify
-        super().__init__()
+        super().__init__(config=config)
 
     def main(self, name=None, registry=None, username=None, password=None, namespace="trident"):
         if (not username and password) or (username and not password):
@@ -839,7 +846,7 @@ class createRegCred(KubeCommon, SDKCommon):
             registry = f"cr.{self.conf['domain']}"
         if not username and not password:
             username = self.conf["account_id"]
-            password = self.conf["headers"].get("Authorization").split(" ")[-1]
+            password = self.conf["session"].headers.get("Authorization").split(" ")[-1]
 
         regCred = {
             "auths": {
@@ -880,7 +887,13 @@ class createAstraApiToken(KubeCommon, SDKCommon):
     """Creates an astra-api-token secret based on the contents of config.yaml"""
 
     def __init__(
-        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+        self,
+        quiet=True,
+        dry_run=False,
+        verbose=False,
+        config_context=None,
+        skip_tls_verify=False,
+        config=None,
     ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
@@ -890,20 +903,21 @@ class createAstraApiToken(KubeCommon, SDKCommon):
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
                         str "<config_file>:<context>": use specified file and context
-        skip_tls_verify: Whether to skip TLS/SSL verification"""
+        skip_tls_verify: Whether to skip TLS/SSL verification
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
         self.config_context = config_context
         self.skip_tls_verify = skip_tls_verify
-        super().__init__()
+        super().__init__(config=config)
 
     def main(self, name=None, namespace="astra-connector"):
         # Handle case sensitivity
         authorization = (
-            self.conf["headers"].get("Authorization")
-            if self.conf["headers"].get("Authorization")
-            else self.conf["headers"].get("authorization")
+            self.conf["session"].headers.get("Authorization")
+            if self.conf["session"].headers.get("Authorization")
+            else self.conf["session"].headers.get("authorization")
         )
         token = authorization.split(" ")[-1]
         secret = kubernetes.client.V1Secret(
@@ -969,7 +983,13 @@ class createAstraConnector(SDKCommon):
     """Creates an AstraConnector custom resource"""
 
     def __init__(
-        self, quiet=True, dry_run=False, verbose=False, config_context=None, skip_tls_verify=False
+        self,
+        quiet=True,
+        dry_run=False,
+        verbose=False,
+        config_context=None,
+        skip_tls_verify=False,
+        config=None,
     ):
         """quiet: Will there be CLI output or just return (datastructure)
         dry-run: False (default):       submit and persist the resource
@@ -979,13 +999,14 @@ class createAstraConnector(SDKCommon):
                         None: use system defaults
                         str "None:<context>": use default kubeconfig w/ specified context
                         str "<config_file>:<context>": use specified file and context
-        skip_tls_verify: Whether to skip TLS/SSL verification"""
+        skip_tls_verify: Whether to skip TLS/SSL verification
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.dry_run = dry_run
         self.verbose = verbose
         self.config_context = config_context
         self.skip_tls_verify = skip_tls_verify
-        super().__init__()
+        super().__init__(config=config)
 
     def main(
         self,
@@ -1006,7 +1027,7 @@ class createAstraConnector(SDKCommon):
                     "accountId": self.conf["account_id"],
                     "cloudId": cloudID,
                     "clusterName": clusterName,
-                    "skipTLSValidation": not self.conf["verifySSL"],
+                    "skipTLSValidation": not self.conf["session"].verify,
                     "tokenRef": apiToken,
                 },
                 "natsSyncClient": {"cloudBridgeURL": f"https://{self.conf['domain']}"},

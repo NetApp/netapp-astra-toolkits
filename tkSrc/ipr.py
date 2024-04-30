@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -87,7 +87,7 @@ def doV3Ipr(
         )
 
 
-def main(args, ard):
+def main(args, ard, config=None):
     if (args.filterSelection and not args.filterSet) or (
         args.filterSet and not args.filterSelection
     ):
@@ -109,14 +109,14 @@ def main(args, ard):
             filterSet=args.filterSet,
         )
     else:
-        rc = astraSDK.apps.restoreApp(quiet=args.quiet, verbose=args.verbose).main(
+        rc = astraSDK.apps.restoreApp(quiet=args.quiet, verbose=args.verbose, config=config).main(
             args.app,
             backupID=args.backup,
             snapshotID=args.snapshot,
             resourceFilter=helpers.createFilterSet(
                 args.filterSelection,
                 args.filterSet,
-                astraSDK.apps.getAppAssets().main(args.app),
+                astraSDK.apps.getAppAssets(config=config).main(args.app),
             ),
         )
         if rc:
@@ -127,7 +127,7 @@ def main(args, ard):
             print("In-Place-Restore job in progress", end="")
             sys.stdout.flush()
             while True:
-                restoreApps = astraSDK.apps.getApps().main()
+                restoreApps = astraSDK.apps.getApps(config=config).main()
                 state = None
                 for restoreApp in restoreApps["items"]:
                     if restoreApp["id"] == args.app:

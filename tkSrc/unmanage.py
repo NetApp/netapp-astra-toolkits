@@ -19,7 +19,7 @@ from tkSrc import helpers
 import astraSDK
 
 
-def main(args, ard):
+def main(args, ard, config=None):
     if args.objectType == "app" or args.objectType == "application":
         if args.v3:
             astraSDK.k8s.destroyResource(
@@ -30,7 +30,9 @@ def main(args, ard):
                 skip_tls_verify=args.skip_tls_verify,
             ).main("applications", args.app)
         else:
-            rc = astraSDK.apps.unmanageApp(quiet=args.quiet, verbose=args.verbose).main(args.app)
+            rc = astraSDK.apps.unmanageApp(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(args.app)
             if rc is False:
                 raise SystemExit("astraSDK.apps.unmanageApp() failed")
     elif args.objectType == "bucket" or args.objectType == "appVault":
@@ -43,9 +45,9 @@ def main(args, ard):
                 skip_tls_verify=args.skip_tls_verify,
             ).main("appvaults", args.bucket)
         else:
-            rc = astraSDK.buckets.unmanageBucket(quiet=args.quiet, verbose=args.verbose).main(
-                args.bucket
-            )
+            rc = astraSDK.buckets.unmanageBucket(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(args.bucket)
             if rc is False:
                 raise SystemExit("astraSDK.buckets.unmanageBucket() failed")
     elif args.objectType == "cluster":
@@ -95,12 +97,12 @@ def main(args, ard):
             else:
                 raise SystemExit("astraSDK.k8s.destroyResource() failed")
         else:
-            if astraSDK.clusters.unmanageCluster(quiet=args.quiet, verbose=args.verbose).main(
-                args.cluster
-            ):
+            if astraSDK.clusters.unmanageCluster(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(args.cluster):
                 # "Private" cloud clusters+credentials also should be deleted
                 if ard.needsattr("clusters"):
-                    ard.clusters = astraSDK.clusters.getClusters().main()
+                    ard.clusters = astraSDK.clusters.getClusters(config=config).main()
                 for cluster in ard.clusters["items"]:
                     for label in cluster["metadata"]["labels"]:
                         if (
@@ -109,10 +111,10 @@ def main(args, ard):
                             and label["value"] == "private"
                         ):
                             if astraSDK.clusters.deleteCluster(
-                                quiet=args.quiet, verbose=args.verbose
+                                quiet=args.quiet, verbose=args.verbose, config=config
                             ).main(args.cluster, cluster["cloudID"]):
                                 if astraSDK.credentials.destroyCredential(
-                                    quiet=args.quiet, verbose=args.verbose
+                                    quiet=args.quiet, verbose=args.verbose, config=config
                                 ).main(cluster.get("credentialID")):
                                     print("Credential deleted")
                                 else:
@@ -125,17 +127,17 @@ def main(args, ard):
                 raise SystemExit("astraSDK.clusters.unmanageCluster() failed")
     elif args.objectType == "cloud":
         if ard.needsattr("cloud"):
-            ard.clouds = astraSDK.clouds.getClouds().main()
-        rc = astraSDK.clouds.unmanageCloud(quiet=args.quiet, verbose=args.verbose).main(
-            args.cloudID
-        )
+            ard.clouds = astraSDK.clouds.getClouds(config=config).main()
+        rc = astraSDK.clouds.unmanageCloud(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(args.cloudID)
         if rc:
             # Cloud credentials also should be deleted
             for cloud in ard.clouds["items"]:
                 if cloud["id"] == args.cloudID:
                     if cloud.get("credentialID"):
                         if astraSDK.credentials.destroyCredential(
-                            quiet=args.quiet, verbose=args.verbose
+                            quiet=args.quiet, verbose=args.verbose, config=config
                         ).main(cloud.get("credentialID")):
                             print("Credential deleted")
                         else:
@@ -143,10 +145,10 @@ def main(args, ard):
         else:
             raise SystemExit("astraSDK.clusters.unmanageCloud() failed")
     elif args.objectType == "ldap":
-        ard.settings = astraSDK.settings.getSettings().main()
+        ard.settings = astraSDK.settings.getSettings(config=config).main()
         ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap")
-        rc = astraSDK.settings.unmanageLdap(quiet=args.quiet, verbose=args.verbose).main(
-            ldapSetting["id"], ldapSetting["currentConfig"]
-        )
+        rc = astraSDK.settings.unmanageLdap(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(ldapSetting["id"], ldapSetting["currentConfig"])
         if rc is False:
             raise SystemExit("astraSDK.settings.unmanageLdap() failed")

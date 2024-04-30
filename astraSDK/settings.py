@@ -24,12 +24,13 @@ class getSettings(SDKCommon):
     """List the Astra Control settings, which contain UUIDs which are needed to modify any
     of the settings."""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
-        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body"""
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
 
     def main(self):
         endpoint = "core/v1/settings"
@@ -42,7 +43,6 @@ class getSettings(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -58,15 +58,13 @@ class getSettings(SDKCommon):
 class createLdap(SDKCommon):
     """Class to create an LDAP(S) server connection"""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
-        output: table: pretty print the data
-                json: (default) output in JSON
-                yaml: output in yaml"""
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-setting+json"
         self.headers["Content-Type"] = "application/astra-setting+json"
 
@@ -111,7 +109,6 @@ class createLdap(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -132,15 +129,13 @@ class manageLdap(SDKCommon):
 
     If you're looking to set up an entirely new LDAP connection, use createLdap() instead."""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
-        output: table: pretty print the data
-                json: (default) output in JSON
-                yaml: output in yaml"""
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-setting+json"
         self.headers["Content-Type"] = "application/astra-setting+json"
 
@@ -161,7 +156,6 @@ class manageLdap(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -180,15 +174,13 @@ class unmanageLdap(SDKCommon):
     while removing the ability for users/groups to log in. You must pass the 'astra.account.ldap'
     settingID, and the currentConfig of the setting (which can be gathered via getSettings())."""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
-        output: table: pretty print the data
-                json: (default) output in JSON
-                yaml: output in yaml"""
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-setting+json"
         self.headers["Content-Type"] = "application/astra-setting+json"
 
@@ -209,7 +201,6 @@ class unmanageLdap(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )
@@ -227,15 +218,13 @@ class destroyLdap(SDKCommon):
     """Class to destroy (aka disconnect) an LDAP(S) server, this removes all LDAP(S) settings.
     Destroying the associated service account credential should follow."""
 
-    def __init__(self, quiet=True, verbose=False):
+    def __init__(self, quiet=True, verbose=False, config=None):
         """quiet: Will there be CLI output or just return (datastructure)
         verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
-        output: table: pretty print the data
-                json: (default) output in JSON
-                yaml: output in yaml"""
+        config: optionally provide a pre-populated common.getConfig().main() object"""
         self.quiet = quiet
         self.verbose = verbose
-        super().__init__()
+        super().__init__(config=config)
         self.headers["accept"] = "application/astra-setting+json"
         self.headers["Content-Type"] = "application/astra-setting+json"
 
@@ -267,7 +256,6 @@ class destroyLdap(SDKCommon):
             data,
             self.headers,
             params,
-            self.verifySSL,
             quiet=self.quiet,
             verbose=self.verbose,
         )

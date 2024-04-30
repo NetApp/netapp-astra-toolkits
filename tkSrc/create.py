@@ -26,14 +26,14 @@ import astraSDK
 from tkSrc import helpers
 
 
-def monitorProtectionTask(protectionID, protectionType, appID, background, pollTimer):
+def monitorProtectionTask(protectionID, protectionType, appID, background, pollTimer, config=None):
     """Ensure backup/snapshot task was created successfully, then monitor"""
     if protectionID is False:
         return False
     if protectionType == "backup":
-        protection_class = astraSDK.backups.getBackups()
+        protection_class = astraSDK.backups.getBackups(config=config)
     elif protectionType == "snapshot":
-        protection_class = astraSDK.snapshots.getSnaps()
+        protection_class = astraSDK.snapshots.getSnaps(config=config)
     else:
         helpers.parserError(f"unknown protection type: {protectionType}")
 
@@ -122,11 +122,11 @@ def createV3ConnectorOperator(v3, dry_run, skip_tls_verify, verbose, operator_ve
     )
 
 
-def createCloudCredential(quiet, verbose, path, name, cloudType):
+def createCloudCredential(quiet, verbose, path, name, cloudType, config=None):
     """Create a public cloud (AWS/Azure/GCP) credential via the API"""
     credDict = helpers.openJson(path)
     encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
-    rc = astraSDK.credentials.createCredential(quiet=quiet, verbose=verbose).main(
+    rc = astraSDK.credentials.createCredential(quiet=quiet, verbose=verbose, config=config).main(
         "astra-sa@" + name,
         "service-account",
         {"base64": encodedStr},
@@ -163,11 +163,11 @@ def createV3CloudCredential(v3, dry_run, skip_tls_verify, quiet, verbose, path, 
     ).main(f"{name}-", data, generateName=True, namespace=namespace)
 
 
-def createLdapCredential(quiet, verbose, username, password):
+def createLdapCredential(quiet, verbose, username, password, config=None):
     """Create an LDAP bind credential via the API"""
     bindDn = base64.b64encode(username.encode("utf-8")).decode("utf-8")
     enpass = base64.b64encode(password.encode("utf-8")).decode("utf-8")
-    rc = astraSDK.credentials.createCredential(quiet=quiet, verbose=verbose).main(
+    rc = astraSDK.credentials.createCredential(quiet=quiet, verbose=verbose, config=config).main(
         "ldapBindCredential-" + username.split("@")[0],
         "generic",
         {"bindDn": bindDn, "password": enpass},
@@ -177,11 +177,11 @@ def createLdapCredential(quiet, verbose, username, password):
     raise SystemExit("astraSDK.credentials.createCredential() failed")
 
 
-def createS3Credential(quiet, verbose, accessKey, accessSecret, name):
+def createS3Credential(quiet, verbose, accessKey, accessSecret, name, config=None):
     """Create an S3 (accessKey and accessSecret) bucket credential via the API"""
     encodedKey = base64.b64encode(accessKey.encode("utf-8")).decode("utf-8")
     encodedSecret = base64.b64encode(accessSecret.encode("utf-8")).decode("utf-8")
-    rc = astraSDK.credentials.createCredential(quiet=quiet, verbose=verbose).main(
+    rc = astraSDK.credentials.createCredential(quiet=quiet, verbose=verbose, config=config).main(
         name, "s3", {"accessKey": encodedKey, "accessSecret": encodedSecret}, cloudName="s3"
     )
     if rc:
@@ -416,7 +416,7 @@ def createV3Snapshot(
         )
 
 
-def main(args, ard):
+def main(args, ard, config=None):
     if args.objectType == "backup":
         if args.v3:
             if ard.needsattr("buckets"):
@@ -442,7 +442,9 @@ def main(args, ard):
             if backup and not args.dry_run and not args.background:
                 monitorV3ProtectionTask(backup, args.pollTimer, args.v3, args.skip_tls_verify)
         else:
-            protectionID = astraSDK.backups.takeBackup(quiet=args.quiet, verbose=args.verbose).main(
+            protectionID = astraSDK.backups.takeBackup(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(
                 args.app,
                 helpers.isRFC1123(args.name),
                 bucketID=args.bucket,
@@ -454,20 +456,25 @@ def main(args, ard):
                 args.app,
                 args.background,
                 args.pollTimer,
+                config=config,
             )
             if rc is False:
                 raise SystemExit("monitorProtectionTask() failed")
     elif args.objectType == "cluster":
         kubeconfigDict = helpers.openYaml(args.filePath)
         encodedStr = base64.b64encode(json.dumps(kubeconfigDict).encode("utf-8")).decode("utf-8")
-        rc = astraSDK.credentials.createCredential(quiet=args.quiet, verbose=args.verbose).main(
+        rc = astraSDK.credentials.createCredential(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(
             kubeconfigDict["clusters"][0]["name"],
             "kubeconfig",
             {"base64": encodedStr},
             cloudName="private",
         )
         if rc:
-            rc = astraSDK.clusters.addCluster(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.clusters.addCluster(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(
                 args.cloudID,
                 rc["id"],
                 privateRouteID=args.privateRouteID,
@@ -477,17 +484,21 @@ def main(args, ard):
         else:
             raise SystemExit("astraSDK.credentials.createCredential() failed")
     elif args.objectType == "group":
-        ldapGroups = astraSDK.groups.getLdapGroups().main(dnFilter=args.dn, matchType="eq")
+        ldapGroups = astraSDK.groups.getLdapGroups(config=config).main(
+            dnFilter=args.dn, matchType="eq"
+        )
         if len(ldapGroups["items"]) == 0:
             helpers.parserError(f"0 LDAP groups found with DN '{args.dn}'")
         elif len(ldapGroups["items"]) > 1:
             helpers.parserError(f"multiple LDAP users found with DN '{args.dn}'")
         # First create the group
-        grc = astraSDK.groups.createGroup(quiet=args.quiet, verbose=args.verbose).main(args.dn)
+        grc = astraSDK.groups.createGroup(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(args.dn)
         if grc:
             # Next create the role binding
             if not astraSDK.rolebindings.createRolebinding(
-                quiet=args.quiet, verbose=args.verbose
+                quiet=args.quiet, verbose=args.verbose, config=config
             ).main(
                 args.role,
                 groupID=grc["id"],
@@ -518,7 +529,9 @@ def main(args, ard):
                 containerName=args.containerName,
             )
         else:
-            rc = astraSDK.hooks.createHook(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.hooks.createHook(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(
                 args.app,
                 args.name,
                 args.script,
@@ -536,10 +549,14 @@ def main(args, ard):
             if rc is False:
                 raise SystemExit("astraSDK.hooks.createHook() failed")
     elif args.objectType == "ldap":
-        credential = createLdapCredential(args.quiet, args.verbose, args.username, args.password)
-        ard.settings = astraSDK.settings.getSettings().main()
+        credential = createLdapCredential(
+            args.quiet, args.verbose, args.username, args.password, config=config
+        )
+        ard.settings = astraSDK.settings.getSettings(config=config).main()
         ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap")
-        rc = astraSDK.settings.createLdap(quiet=args.quiet, verbose=args.verbose).main(
+        rc = astraSDK.settings.createLdap(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(
             ldapSetting["id"],
             args.url,
             args.port,
@@ -607,7 +624,7 @@ def main(args, ard):
             )
         else:
             rc = astraSDK.protections.createProtectionpolicy(
-                quiet=args.quiet, verbose=args.verbose
+                quiet=args.quiet, verbose=args.verbose, config=config
             ).main(
                 args.granularity,
                 str(args.backupRetention),
@@ -644,7 +661,7 @@ def main(args, ard):
             rrule += str(int(args.replicationFrequency.strip("h")) * 60)
         # Get Source ClusterID
         if ard.needsattr("apps"):
-            ard.apps = astraSDK.apps.getApps().main()
+            ard.apps = astraSDK.apps.getApps(config=config).main()
         for app in ard.apps["items"]:
             if app["id"] == args.appID:
                 sourceClusterID = app["clusterID"]
@@ -658,7 +675,7 @@ def main(args, ard):
                 {"storageClassName": args.destStorageClass, "clusterID": args.destClusterID}
             ]
         rc = astraSDK.replications.createReplicationpolicy(
-            quiet=args.quiet, verbose=args.verbose
+            quiet=args.quiet, verbose=args.verbose, config=config
         ).main(
             args.appID,
             args.destClusterID,
@@ -667,7 +684,7 @@ def main(args, ard):
         )
         if rc:
             prc = astraSDK.protections.createProtectionpolicy(
-                quiet=args.quiet, verbose=args.verbose
+                quiet=args.quiet, verbose=args.verbose, config=config
             ).main(
                 "custom",
                 "0",
@@ -685,9 +702,9 @@ def main(args, ard):
             raise SystemExit("astraSDK.replications.createReplicationpolicy() failed")
     elif args.objectType == "script":
         encodedStr = helpers.openScript(args.filePath)
-        rc = astraSDK.scripts.createScript(quiet=args.quiet, verbose=args.verbose).main(
-            name=args.name, source=encodedStr, description=args.description
-        )
+        rc = astraSDK.scripts.createScript(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(name=args.name, source=encodedStr, description=args.description)
         if rc is False:
             raise SystemExit("astraSDK.scripts.createScript() failed")
     elif args.objectType == "snapshot":
@@ -716,22 +733,25 @@ def main(args, ard):
             if snapshot and not args.dry_run and not args.background:
                 monitorV3ProtectionTask(snapshot, args.pollTimer, args.v3, args.skip_tls_verify)
         else:
-            protectionID = astraSDK.snapshots.takeSnap(quiet=args.quiet, verbose=args.verbose).main(
-                args.app, helpers.isRFC1123(args.name)
-            )
+            protectionID = astraSDK.snapshots.takeSnap(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(args.app, helpers.isRFC1123(args.name))
             rc = monitorProtectionTask(
                 protectionID,
                 args.objectType,
                 args.app,
                 args.background,
                 args.pollTimer,
+                config=config,
             )
             if rc is False:
                 raise SystemExit("monitorProtectionTask() failed")
     elif args.objectType == "user":
         # Handle LDAP use cases
         if args.ldap:
-            ldapUsers = astraSDK.users.getLdapUsers().main(emailFilter=args.email, matchType="eq")
+            ldapUsers = astraSDK.users.getLdapUsers(config=config).main(
+                emailFilter=args.email, matchType="eq"
+            )
             if len(ldapUsers["items"]) == 0:
                 helpers.parserError(f"0 LDAP users found with email '{args.email}'")
             elif len(ldapUsers["items"]) > 1:
@@ -740,13 +760,13 @@ def main(args, ard):
             args.lastName = ldapUsers["items"][0]["lastName"]
             args.ldap = "ldap"
         # First create the user
-        urc = astraSDK.users.createUser(quiet=args.quiet, verbose=args.verbose).main(
+        urc = astraSDK.users.createUser(quiet=args.quiet, verbose=args.verbose, config=config).main(
             args.email, firstName=args.firstName, lastName=args.lastName, authProvider=args.ldap
         )
         if urc:
             # Next create the role binding
             rrc = astraSDK.rolebindings.createRolebinding(
-                quiet=args.quiet, verbose=args.verbose
+                quiet=args.quiet, verbose=args.verbose, config=config
             ).main(
                 args.role,
                 userID=urc["id"],
@@ -757,14 +777,14 @@ def main(args, ard):
             if rrc:
                 # Delete+error "local" users where a tempPassword wasn't provided
                 if urc["authProvider"] == "local" and not args.tempPassword:
-                    drc = astraSDK.rolebindings.destroyRolebinding(quiet=True).main(rrc["id"])
+                    drc = astraSDK.rolebindings.destroyRolebinding(config=config).main(rrc["id"])
                     if not drc:
                         raise SystemExit("astraSDK.rolebindings.destroyRolebinding() failed")
                     raise SystemExit("Error: --tempPassword is required for ACC+localAuth")
                 # Finally, create the credential if local user
                 if urc["authProvider"] == "local":
                     crc = astraSDK.credentials.createCredential(
-                        quiet=args.quiet, verbose=args.verbose
+                        quiet=args.quiet, verbose=args.verbose, config=config
                     ).main(
                         urc["id"],
                         "passwordHash",

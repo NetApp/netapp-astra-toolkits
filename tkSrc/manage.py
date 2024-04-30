@@ -66,7 +66,9 @@ def manageV3App(
         )
 
 
-def manageBucket(provider, bucketName, storageAccount, serverURL, credential, quiet, verbose):
+def manageBucket(
+    provider, bucketName, storageAccount, serverURL, credential, quiet, verbose, config=None
+):
     """Manage a bucket via an API call"""
     if provider == "azure":
         bucketParameters = {"azure": {"bucketName": bucketName, "storageAccount": storageAccount}}
@@ -75,7 +77,7 @@ def manageBucket(provider, bucketName, storageAccount, serverURL, credential, qu
     else:
         bucketParameters = {"s3": {"bucketName": bucketName, "serverURL": serverURL}}
     # Call manageBucket class
-    rc = astraSDK.buckets.manageBucket(quiet=quiet, verbose=verbose).main(
+    rc = astraSDK.buckets.manageBucket(quiet=quiet, verbose=verbose, config=config).main(
         bucketName, credential, provider, bucketParameters
     )
     if rc:
@@ -152,6 +154,7 @@ def manageV3Cluster(
     cloudID,
     headless,
     ard,
+    config=None,
 ):
     helpers.isRFC1123(clusterName)
     create.createV3ConnectorOperator(v3, dry_run, skip_tls_verify, verbose, operator_version)
@@ -163,6 +166,7 @@ def manageV3Cluster(
             verbose=verbose,
             config_context=v3,
             skip_tls_verify=skip_tls_verify,
+            config=config,
         ).main()
     # Handle the registry secret
     if not regCred:
@@ -172,6 +176,7 @@ def manageV3Cluster(
             verbose=verbose,
             config_context=v3,
             skip_tls_verify=skip_tls_verify,
+            config=config,
         ).main(registry=registry, namespace="astra-connector")
         if not cred:
             raise SystemExit("astraSDK.k8s.createRegCred() failed")
@@ -198,6 +203,7 @@ def manageV3Cluster(
             verbose=verbose,
             config_context=v3,
             skip_tls_verify=skip_tls_verify,
+            config=config,
         ).main(clusterName, cloudID, apiToken["metadata"]["name"], regCred, registry=registry)
     if not connector:
         raise SystemExit("astraSDK.k8s.createAstraConnector() failed")
@@ -242,7 +248,7 @@ def validateBucketArgs(args):
         )
 
 
-def main(args, ard):
+def main(args, ard, config=None):
     if args.objectType == "app" or args.objectType == "application":
         if args.additionalNamespace:
             args.additionalNamespace = helpers.createNamespaceList(
@@ -288,7 +294,7 @@ def main(args, ard):
                     ]
                 }
             else:
-                ard.apiresources = astraSDK.apiresources.getApiResources().main(
+                ard.apiresources = astraSDK.apiresources.getApiResources(config=config).main(
                     cluster=args.clusterID
                 )
             # Validate input as argparse+choices is unable to only validate the first input
@@ -316,7 +322,9 @@ def main(args, ard):
                 clusterScopedResource=args.clusterScopedResource,
             )
         else:
-            rc = astraSDK.apps.manageApp(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.apps.manageApp(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(
                 helpers.isRFC1123(args.appName),
                 args.namespace,
                 args.clusterID,
@@ -380,7 +388,12 @@ def main(args, ard):
         else:
             if args.accessKey:
                 crc = create.createS3Credential(
-                    args.quiet, args.verbose, args.accessKey, args.accessSecret, args.bucketName
+                    args.quiet,
+                    args.verbose,
+                    args.accessKey,
+                    args.accessSecret,
+                    args.bucketName,
+                    config=config,
                 )
                 args.credential = crc["id"]
             elif args.json:
@@ -390,6 +403,7 @@ def main(args, ard):
                     args.json,
                     args.bucketName,
                     args.provider,
+                    config=config,
                 )
                 args.credential = crc["id"]
             manageBucket(
@@ -400,6 +414,7 @@ def main(args, ard):
                 args.credential,
                 args.quiet,
                 args.verbose,
+                config=config,
             )
 
     elif args.objectType == "cluster":
@@ -417,11 +432,12 @@ def main(args, ard):
                 args.cloudID,
                 args.headless,
                 ard,
+                config=config,
             )
         else:
-            rc = astraSDK.clusters.manageCluster(quiet=args.quiet, verbose=args.verbose).main(
-                args.cluster, args.defaultStorageClassID
-            )
+            rc = astraSDK.clusters.manageCluster(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(args.cluster, args.defaultStorageClassID)
             if rc is False:
                 raise SystemExit("astraSDK.clusters.manageCluster() failed")
 
@@ -439,10 +455,13 @@ def main(args, ard):
                 args.credentialPath,
                 args.cloudName,
                 args.cloudType,
+                config=config,
             )
             credentialID = rc["id"]
         # Next manage the cloud
-        rc = astraSDK.clouds.manageCloud(quiet=args.quiet, verbose=args.verbose).main(
+        rc = astraSDK.clouds.manageCloud(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(
             args.cloudName,
             args.cloudType,
             credentialID=credentialID,
@@ -451,10 +470,10 @@ def main(args, ard):
         if rc is False:
             raise SystemExit("astraSDK.clouds.manageCloud() failed")
     elif args.objectType == "ldap":
-        ard.settings = astraSDK.settings.getSettings().main()
+        ard.settings = astraSDK.settings.getSettings(config=config).main()
         ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap")
-        rc = astraSDK.settings.manageLdap(quiet=args.quiet, verbose=args.verbose).main(
-            ldapSetting["id"], ldapSetting["currentConfig"]
-        )
+        rc = astraSDK.settings.manageLdap(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(ldapSetting["id"], ldapSetting["currentConfig"])
         if rc is False:
             raise SystemExit("astraSDK.settings.manageLdap() failed")

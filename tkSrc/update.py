@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-   Copyright 2023 NetApp, Inc
+   Copyright 2024 NetApp, Inc
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from tkSrc import helpers
 import astraSDK
 
 
-def main(args, ard):
+def main(args, ard, config=None):
     if args.objectType == "bucket":
         # Validate that both credentialID and accessKey/accessSecret were not specified
         if args.credentialID is not None and (
@@ -41,12 +41,12 @@ def main(args, ard):
                     + "accessSecret arguments must be provided."
                 )
             if ard.needsattr("buckets"):
-                ard.buckets = astraSDK.buckets.getBuckets().main()
+                ard.buckets = astraSDK.buckets.getBuckets(config=config).main()
             encodedKey = base64.b64encode(args.accessKey.encode("utf-8")).decode("utf-8")
             encodedSecret = base64.b64encode(args.accessSecret.encode("utf-8")).decode("utf-8")
             try:
                 crc = astraSDK.credentials.createCredential(
-                    quiet=args.quiet, verbose=args.verbose
+                    quiet=args.quiet, verbose=args.verbose, config=config
                 ).main(
                     next(b for b in ard.buckets["items"] if b["id"] == args.bucketID)["name"],
                     "s3",
@@ -60,9 +60,9 @@ def main(args, ard):
             else:
                 raise SystemExit("astraSDK.credentials.createCredential() failed")
         # Call updateBucket class
-        rc = astraSDK.buckets.updateBucket(quiet=args.quiet, verbose=args.verbose).main(
-            args.bucketID, credentialID=args.credentialID
-        )
+        rc = astraSDK.buckets.updateBucket(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(args.bucketID, credentialID=args.credentialID)
         if rc is False:
             raise SystemExit("astraSDK.buckets.updateBucket() failed")
     elif args.objectType == "cloud":
@@ -74,12 +74,14 @@ def main(args, ard):
                     helpers.parserError(f"{args.credentialPath} does not seem to be valid JSON")
             encodedStr = base64.b64encode(json.dumps(credDict).encode("utf-8")).decode("utf-8")
             if ard.needsattr("clouds"):
-                ard.clouds = astraSDK.clouds.getClouds().main()
+                ard.clouds = astraSDK.clouds.getClouds(config=config).main()
             try:
                 cloud = next(c for c in ard.clouds["items"] if c["id"] == args.cloudID)
             except StopIteration:
                 helpers.parserError(f"{args.cloudID} does not seem to be a valid cloudID")
-            rc = astraSDK.credentials.createCredential(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.credentials.createCredential(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(
                 "astra-sa@" + cloud["name"],
                 "service-account",
                 {"base64": encodedStr},
@@ -90,7 +92,9 @@ def main(args, ard):
             else:
                 raise SystemExit("astraSDK.credentials.createCredential() failed")
         # Next update the cloud
-        rc = astraSDK.clouds.updateCloud(quiet=args.quiet, verbose=args.verbose).main(
+        rc = astraSDK.clouds.updateCloud(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(
             args.cloudID,
             credentialID=args.credentialID,
             defaultBucketID=args.defaultBucketID,
@@ -100,7 +104,7 @@ def main(args, ard):
     elif args.objectType == "cluster":
         # Get the cluster information based on the clusterID input
         if ard.needsattr("clusters"):
-            ard.clusters = astraSDK.clusters.getClusters().main()
+            ard.clusters = astraSDK.clusters.getClusters(config=config).main()
         cluster = ard.getSingleDict("clusters", "id", args.clusterID)
         # Currently this is required to be True, but this will not always be the case
         if args.credentialPath:
@@ -109,7 +113,9 @@ def main(args, ard):
                 encodedStr = base64.b64encode(json.dumps(kubeconfigDict).encode("utf-8")).decode(
                     "utf-8"
                 )
-            rc = astraSDK.credentials.updateCredential(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.credentials.updateCredential(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(
                 cluster.get("credentialID"),
                 kubeconfigDict["clusters"][0]["name"],
                 keyStore={"base64": encodedStr},
@@ -117,7 +123,9 @@ def main(args, ard):
             if rc is False:
                 raise SystemExit("astraSDK.credentials.updateCredential() failed")
         if args.defaultBucketID:
-            rc = astraSDK.clusters.updateCluster(quiet=args.quiet, verbose=args.verbose).main(
+            rc = astraSDK.clusters.updateCluster(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(
                 cluster.get("id"),
                 defaultBucketID=args.defaultBucketID,
             )
@@ -125,7 +133,7 @@ def main(args, ard):
                 raise SystemExit("astraSDK.clusters.updateCluster() failed")
     elif args.objectType == "protection" or args.objectType == "schedule":
         if ard.needsattr("protections"):
-            ard.protections = astraSDK.protections.getProtectionpolicies().main()
+            ard.protections = astraSDK.protections.getProtectionpolicies(config=config).main()
         protection = ard.getSingleDict("protections", "id", args.protection)
         granularity = protection["granularity"]
         if granularity == "hourly" and args.hour:
@@ -137,7 +145,7 @@ def main(args, ard):
             if args.dayOfMonth:
                 helpers.parserError(f"{granularity} granularity must not specify -M / --dayOfMonth")
         rc = astraSDK.protections.updateProtectionpolicy(
-            quiet=args.quiet, verbose=args.verbose
+            quiet=args.quiet, verbose=args.verbose, config=config
         ).main(
             protection["appID"],
             protection["id"],
@@ -159,7 +167,7 @@ def main(args, ard):
     elif args.objectType == "replication":
         # Gather replication data
         if ard.needsattr("replications"):
-            ard.replications = astraSDK.replications.getReplicationpolicies().main()
+            ard.replications = astraSDK.replications.getReplicationpolicies(config=config).main()
             if not ard.replications:  # Gracefully handle ACS env
                 helpers.parserError("'replication' commands are currently only supported in ACC.")
         repl = None
@@ -179,7 +187,7 @@ def main(args, ard):
                 )
             if args.dataSource in [repl["sourceAppID"], repl["sourceClusterID"]]:
                 rc = astraSDK.replications.updateReplicationpolicy(
-                    quiet=args.quiet, verbose=args.verbose
+                    quiet=args.quiet, verbose=args.verbose, config=config
                 ).main(
                     args.replicationID,
                     "established",
@@ -190,7 +198,7 @@ def main(args, ard):
                 )
             elif args.dataSource in [repl["destinationAppID"], repl["destinationClusterID"]]:
                 rc = astraSDK.replications.updateReplicationpolicy(
-                    quiet=args.quiet, verbose=args.verbose
+                    quiet=args.quiet, verbose=args.verbose, config=config
                 ).main(
                     args.replicationID,
                     "established",
@@ -214,7 +222,7 @@ def main(args, ard):
                     + f"'failedOver' state, not a(n) '{repl['state']}' state"
                 )
             rc = astraSDK.replications.updateReplicationpolicy(
-                quiet=args.quiet, verbose=args.verbose
+                quiet=args.quiet, verbose=args.verbose, config=config
             ).main(
                 args.replicationID,
                 "established",
@@ -230,7 +238,7 @@ def main(args, ard):
                     + f", not a(n) '{repl['state']}' state"
                 )
             rc = astraSDK.replications.updateReplicationpolicy(
-                quiet=args.quiet, verbose=args.verbose
+                quiet=args.quiet, verbose=args.verbose, config=config
             ).main(args.replicationID, "failedOver")
         # Exit based on response
         if rc:
@@ -240,8 +248,8 @@ def main(args, ard):
     elif args.objectType == "script":
         with open(args.filePath, encoding="utf8") as f:
             encodedStr = base64.b64encode(f.read().rstrip().encode("utf-8")).decode("utf-8")
-        rc = astraSDK.scripts.updateScript(quiet=args.quiet, verbose=args.verbose).main(
-            args.scriptID, source=encodedStr
-        )
+        rc = astraSDK.scripts.updateScript(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(args.scriptID, source=encodedStr)
         if rc is False:
             raise SystemExit("astraSDK.scripts.updateScript() failed")

@@ -19,9 +19,10 @@ import gc
 import sys
 
 import tkSrc
+from astraSDK.common import getConfig
 
 
-def main(argv=sys.argv):
+def main(argv=sys.argv, config=None):
     # The various functions to populate the lists used for choices() in the options are
     # expensive. argparse provides no way to know what subcommand was selected prior to
     # parsing the options. By then it's too late to decide which functions to run to
@@ -143,6 +144,9 @@ def main(argv=sys.argv):
             v3, verbPosition = tkSrc.choices.kube_config(
                 argv, acl, verbPosition, v3Position, global_args
             )
+        # If not v3, set up the Astra Control config, which includes a requests Session
+        elif config is None:
+            config = getConfig().main()
 
         # Enabling comma separated listing of objects, like:
         # 'toolkit.py list apps,backups,snapshots'
@@ -151,13 +155,20 @@ def main(argv=sys.argv):
                 listTypeArray = argv[verbPosition + 1].split(",")
                 for lt in listTypeArray:
                     argv[verbPosition + 1] = lt
-                    main(argv=argv)
+                    main(argv=argv, config=config)
                 sys.exit(0)
 
         # As long as we're not --fast/plaidMode, build the argparse choices lists
         if not plaidMode:
             tkSrc.choices.main(
-                argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=v3_skip_tls_verify
+                argv,
+                verbs,
+                verbPosition,
+                ard,
+                acl,
+                v3,
+                v3_skip_tls_verify=v3_skip_tls_verify,
+                config=config,
             )
 
     else:
@@ -233,25 +244,25 @@ def main(argv=sys.argv):
         )
 
     if args.subcommand == "deploy":
-        tkSrc.deploy.main(args, ard)
+        tkSrc.deploy.main(args, ard, config=config)
     elif args.subcommand == "clone" or args.subcommand == "restore":
-        tkSrc.clone.main(args, ard)
+        tkSrc.clone.main(args, ard, config=config)
     elif args.subcommand == "ipr":
-        tkSrc.ipr.main(args, ard)
+        tkSrc.ipr.main(args, ard, config=config)
     elif args.subcommand == "list" or args.subcommand == "get":
-        tkSrc.list.main(args)
+        tkSrc.list.main(args, config=config)
     elif args.subcommand == "copy":
-        tkSrc.copy.main(args)
+        tkSrc.copy.main(args, config=config)
     elif args.subcommand == "create":
-        tkSrc.create.main(args, ard)
+        tkSrc.create.main(args, ard, config=config)
     elif args.subcommand == "manage" or args.subcommand == "define":
-        tkSrc.manage.main(args, ard)
+        tkSrc.manage.main(args, ard, config=config)
     elif args.subcommand == "destroy":
-        tkSrc.destroy.main(args, ard)
+        tkSrc.destroy.main(args, ard, config=config)
     elif args.subcommand == "unmanage":
-        tkSrc.unmanage.main(args, ard)
+        tkSrc.unmanage.main(args, ard, config=config)
     elif args.subcommand == "update":
-        tkSrc.update.main(args, ard)
+        tkSrc.update.main(args, ard, config=config)
 
 
 if __name__ == "__main__":
