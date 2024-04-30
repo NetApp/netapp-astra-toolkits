@@ -171,7 +171,7 @@ def main(argv=sys.argv):
     tkParser = tkSrc.parser.ToolkitParser(acl, plaidMode=plaidMode, v3=v3).main()
     args = tkParser.parse_args(args=argv)
     # Memory optimization
-    tkParser = None
+    tkParser, acl = None, None
     gc.collect()
 
     if args.v3:
