@@ -476,7 +476,7 @@ def main(args, ard, config=None):
                 quiet=args.quiet, verbose=args.verbose, config=config
             ).main(
                 args.cloudID,
-                rc["id"],
+                credentialID=rc["id"],
                 privateRouteID=args.privateRouteID,
             )
             if rc is False:
