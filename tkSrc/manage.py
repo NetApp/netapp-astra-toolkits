@@ -197,6 +197,11 @@ def manageV3Cluster(
             skip_tls_verify=skip_tls_verify,
         ).main(clusterName, regCred, registry)
     else:
+        rc = astraSDK.clusters.addCluster(quiet=quiet, verbose=verbose, config=config).main(
+            cloudID, name=clusterName, connectorInstall=True
+        )
+        if not rc:
+            raise SystemExit("astraSDK.clusters.addCluster() failed")
         connector = astraSDK.k8s.createAstraConnector(
             quiet=quiet,
             dry_run=dry_run,
@@ -204,7 +209,14 @@ def manageV3Cluster(
             config_context=v3,
             skip_tls_verify=skip_tls_verify,
             config=config,
-        ).main(clusterName, cloudID, apiToken["metadata"]["name"], regCred, registry=registry)
+        ).main(
+            clusterName,
+            rc["id"],
+            cloudID,
+            apiToken["metadata"]["name"],
+            regCred,
+            registry=registry,
+        )
     if not connector:
         raise SystemExit("astraSDK.k8s.createAstraConnector() failed")
 

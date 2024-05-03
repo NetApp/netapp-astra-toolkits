@@ -210,17 +210,28 @@ class addCluster(SDKCommon):
         self.headers["accept"] = "application/astra-cluster+json"
         self.headers["Content-Type"] = "application/astra-cluster+json"
 
-    def main(self, cloudID, credentialID, privateRouteID=None):
+    def main(
+        self, cloudID, credentialID=None, privateRouteID=None, name=None, connectorInstall=False
+    ):
+        if (not credentialID) and (not name or not connectorInstall):
+            raise SystemExit(
+                "Either credentialID or both of (name and connectorInstall) should be specified"
+            )
         endpoint = f"topology/v1/clouds/{cloudID}/clusters"
         url = self.base + endpoint
         params = {}
         data = {
             "type": "application/astra-cluster",
-            "version": "1.5",
-            "credentialID": credentialID,
+            "version": "1.6",
         }
+        if credentialID:
+            data["credentialID"] = credentialID
         if privateRouteID:
             data["privateRouteID"] = privateRouteID
+        if name:
+            data["name"] = name
+        if connectorInstall:
+            data["connectorInstall"] = "pending"
 
         ret = super().apicall(
             "post",

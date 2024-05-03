@@ -1011,6 +1011,7 @@ class createAstraConnector(SDKCommon):
     def main(
         self,
         clusterName,
+        clusterID,
         cloudID,
         apiToken,
         regCred,
@@ -1026,6 +1027,7 @@ class createAstraConnector(SDKCommon):
                 "astra": {
                     "accountId": self.conf["account_id"],
                     "cloudId": cloudID,
+                    "clusterId": clusterID,
                     "clusterName": clusterName,
                     "skipTLSValidation": not self.conf["session"].verify,
                     "tokenRef": apiToken,
@@ -1082,7 +1084,12 @@ class createHeadlessConnector(BaseCommon):
             "kind": "AstraConnector",
             "metadata": {"name": name, "namespace": namespace},
             "spec": {
-                "astra": {"clusterName": clusterName},
+                "astra": {
+                    "clusterName": clusterName,
+                    "clusterId": "123",
+                    "cloudId": "123",
+                    "accountId": "123",
+                },
                 "natsSyncClient": {"cloudBridgeURL": "127.0.0.1"},
                 "imageRegistry": {"name": registry, "secret": regCred},
             },
