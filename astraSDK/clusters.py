@@ -15,6 +15,7 @@
    limitations under the License.
 """
 
+import copy
 import yaml
 import json
 
@@ -35,10 +36,15 @@ class getClusters(SDKCommon):
         self.quiet = quiet
         self.verbose = verbose
         self.output = output
+        self.config = config
         super().__init__(config=config)
         self.clouds = getClouds(quiet=True, verbose=verbose, config=config).main()
 
     def main(self, hideManaged=False, hideUnmanaged=False, nameFilter=None):
+        if hideUnmanaged:
+            return getManagedClusters(
+                quiet=self.quiet, verbose=self.verbose, output=self.output, config=self.config
+            ).main(nameFilter=nameFilter)
         clusters = {}
         clusters["items"] = []
         if self.clouds is False:
@@ -70,8 +76,6 @@ class getClusters(SDKCommon):
                         continue
                     if hideManaged and item.get("managedState") == "managed":
                         continue
-                    if hideUnmanaged and item.get("managedState") == "unmanaged":
-                        continue
                     clusters["items"].append(item)
             else:
                 if not self.quiet:
@@ -91,7 +95,7 @@ class getClusters(SDKCommon):
                     "location",
                     "state",
                     "managedState",
-                    "tridentStateAllowed",
+                    "defaultBucketID",
                 ],
                 [
                     "name",
@@ -100,7 +104,7 @@ class getClusters(SDKCommon):
                     "location",
                     "state",
                     "managedState",
-                    "tridentManagedStateAllowed",
+                    "defaultBucketID",
                 ],
                 clusters,
             )
@@ -108,6 +112,82 @@ class getClusters(SDKCommon):
         if not self.quiet:
             print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
         return dataReturn
+
+
+class getManagedClusters(SDKCommon):
+    """Call the managedClusters endpoint to get all managed clusters"""
+
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        super().__init__(config=config)
+
+    def main(self, nameFilter=None):
+        endpoint = "topology/v1/managedClusters"
+        url = self.base + endpoint
+        data = {}
+        params = {}
+
+        ret = super().apicall(
+            "get",
+            url,
+            data,
+            self.headers,
+            params,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+
+        if ret.ok:
+            clusters = super().jsonifyResults(ret)
+            if nameFilter:
+                filterCopy = copy.deepcopy(clusters)
+                for counter, r in enumerate(filterCopy.get("items")):
+                    if nameFilter not in self.recursiveGet("name", r):
+                        clusters["items"].remove(filterCopy["items"][counter])
+
+            if self.output == "json":
+                dataReturn = clusters
+            elif self.output == "yaml":
+                dataReturn = yaml.dump(clusters)
+            elif self.output == "table":
+                dataReturn = self.basicTable(
+                    [
+                        "clusterName",
+                        "clusterID",
+                        "clusterType",
+                        "location",
+                        "state",
+                        "managedState",
+                        "tridentStateAllowed",
+                    ],
+                    [
+                        "name",
+                        "id",
+                        "clusterType",
+                        "location",
+                        "state",
+                        "managedState",
+                        "tridentManagedStateAllowed",
+                    ],
+                    clusters,
+                )
+
+            if not self.quiet:
+                print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+            return dataReturn
+
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False
 
 
 class manageCluster(SDKCommon):
