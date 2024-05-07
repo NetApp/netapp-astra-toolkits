@@ -64,8 +64,8 @@ class getClouds(SDKCommon):
                 dataReturn = yaml.dump(cloudsCooked)
             elif self.output == "table":
                 dataReturn = self.basicTable(
-                    ["cloudName", "cloudID", "cloudType", "credentialID"],
-                    ["name", "id", "cloudType", "credentialID"],
+                    ["cloudName", "cloudID", "cloudType", "credentialID", "defaultBucketID"],
+                    ["name", "id", "cloudType", "credentialID", "defaultBucketID"],
                     cloudsCooked,
                 )
             if not self.quiet:
