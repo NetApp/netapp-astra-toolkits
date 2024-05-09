@@ -22,7 +22,7 @@ import tkSrc
 from astraSDK.common import getConfig
 
 
-def main(argv=sys.argv, config=None):
+def tkMain(argv=sys.argv, config=None):
     # The various functions to populate the lists used for choices() in the options are
     # expensive. argparse provides no way to know what subcommand was selected prior to
     # parsing the options. By then it's too late to decide which functions to run to
@@ -265,8 +265,12 @@ def main(argv=sys.argv, config=None):
         tkSrc.update.main(args, ard, config=config)
 
 
-if __name__ == "__main__":
+def main(argv=sys.argv, config=None):
     try:
-        main()
+        tkMain(argv=argv, config=config)
     except KeyboardInterrupt:
         pass
+
+
+if __name__ == "__main__":
+    main()
