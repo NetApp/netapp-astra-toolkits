@@ -227,12 +227,16 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False, conf
             acl.labels = list(set(acl.labels))
 
     elif verbs["copy"]:
-        ard.apps = astraSDK.apps.getApps(config=config).main()
-        acl.apps = ard.buildList("apps", "id")
-        if len(argv) - verbPosition > 2 and argv[verbPosition + 2] in acl.apps:
-            acl.destApps = [x for x in acl.apps if x != argv[verbPosition + 2]]
+        if argv[verbPosition + 1] == "asup":
+            ard.asups = astraSDK.asups.getAsups(config=config).main()
+            acl.asups = ard.buildList("asups", "id")
         else:
-            acl.destApps = [x for x in acl.apps]
+            ard.apps = astraSDK.apps.getApps(config=config).main()
+            acl.apps = ard.buildList("apps", "id")
+            if len(argv) - verbPosition > 2 and argv[verbPosition + 2] in acl.apps:
+                acl.destApps = [x for x in acl.apps if x != argv[verbPosition + 2]]
+            else:
+                acl.destApps = [x for x in acl.apps]
 
     elif verbs["list"] and len(argv) - verbPosition >= 2:
         if argv[verbPosition + 1] == "assets":

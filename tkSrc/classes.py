@@ -26,6 +26,7 @@ class ArgparseChoicesLists:
     def __init__(self):
         resources = {
             "apps": [],
+            "asups": [],
             "backups": [],
             "buckets": [],
             "charts": [],

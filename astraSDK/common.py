@@ -18,11 +18,12 @@
 import json
 import kubernetes
 import os
+import requests
+import shutil
 import sys
+import textwrap
 import yaml
 from tabulate import tabulate
-import textwrap
-import requests
 from urllib3 import disable_warnings
 
 RED = "\033[31m"
@@ -228,6 +229,19 @@ class SDKCommon(BaseCommon):
         if verbose:
             print(f"{GREEN}API HTTP Status Code: {ret.status_code}{ENDC}")
         return ret
+
+    def downloadFile(self, url, data, headers, params, filetype="tgz", quiet=False, verbose=False):
+        """Download a file using the requests module"""
+        try:
+            if verbose:
+                self.printVerbose(url, "get", headers, data, params, self.session)
+            filename = f"{url.split('/')[-1]}.{filetype}"
+            with self.session.get(url, json=data, headers=headers, params=params, stream=True) as s:
+                with open(filename, "wb") as f:
+                    shutil.copyfileobj(s.raw, f)
+            return filename
+        except requests.exceptions.RequestException as e:
+            raise SystemExit(e)
 
     def jsonifyResults(self, requestsObject):
         try:

@@ -21,6 +21,7 @@ import os
 import re
 import subprocess
 import yaml
+from datetime import datetime
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -645,3 +646,17 @@ def parserError(message):
         "{deploy,clone,restore,ipr,list,get,copy,create,manage,define,destroy,unmanage,update} ..."
     )
     raise SystemExit(f"{usage}\n{prog}: error: {message}")
+
+
+def checkISO8601(datetimeStr):
+    """Ensures a passed date is in valid ISO-8601 format"""
+    try:
+        return datetime.strptime(datetimeStr, "%Y-%m-%dT%H:%M%z").isoformat()
+    except ValueError:
+        try:
+            return datetime.strptime(datetimeStr, "%Y-%m-%dT%H:%M:%S%z").isoformat()
+        except ValueError:
+            try:
+                return datetime.strptime(datetimeStr, "%Y-%m-%dT%H:%M:%S.%f%z").isoformat()
+            except ValueError:
+                parserError(f"{datetimeStr} does not appear to be a valid ISO-8601 date")

@@ -21,6 +21,7 @@ import os
 import sys
 import time
 import yaml
+from datetime import datetime, timedelta, timezone
 
 import astraSDK
 from tkSrc import helpers
@@ -109,6 +110,32 @@ def monitorV3ProtectionTask(protection, pollTimer, v3, skip_tls_verify):
     for err in set([str(e) for e in err_counter]):
         resource_class.printError(err + "\n")
     return False
+
+
+def createAsup(
+    quiet,
+    verbose,
+    config,
+    upload=False,
+    hours=None,
+    days=None,
+    dataWindowStart=None,
+    dataWindowEnd=None,
+):
+    """Creates an Astra Control ASUP (auto-support bundle)"""
+    if dataWindowStart:
+        dataWindowStart = helpers.checkISO8601(dataWindowStart)
+    if dataWindowEnd:
+        dataWindowEnd = helpers.checkISO8601(dataWindowEnd)
+    if hours:
+        dataWindowStart = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+    elif days:
+        dataWindowStart = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    if rc := astraSDK.asups.createAsup(quiet=quiet, verbose=verbose, config=config).main(
+        "true" if upload else "false", dataWindowStart=dataWindowStart, dataWindowEnd=dataWindowEnd
+    ):
+        return rc
+    raise SystemExit("astraSDK.asups.createAsup() failed")
 
 
 def createV3ConnectorOperator(v3, dry_run, skip_tls_verify, verbose, operator_version):
@@ -417,7 +444,22 @@ def createV3Snapshot(
 
 
 def main(args, ard, config=None):
-    if args.objectType == "backup":
+    if args.objectType == "asup":
+        if args.hours and (args.dataWindowStart or args.dataWindowEnd):
+            helpers.parserError("--hours cannot be used with --dataWindowStart or --dataWindowEnd")
+        elif args.days and (args.dataWindowStart or args.dataWindowEnd):
+            helpers.parserError("--days cannot be used with --dataWindowStart or --dataWindowEnd")
+        createAsup(
+            args.quiet,
+            args.verbose,
+            config,
+            args.upload,
+            args.hours,
+            args.days,
+            args.dataWindowStart,
+            args.dataWindowEnd,
+        )
+    elif args.objectType == "backup":
         if args.v3:
             if ard.needsattr("buckets"):
                 ard.buckets = astraSDK.k8s.getResources(

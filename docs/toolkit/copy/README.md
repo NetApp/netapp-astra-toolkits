@@ -1,26 +1,52 @@
 # Copy
 
-The `copy` argument allows you to copy application resources from one app to another. This can be useful when cloning an application, as by default these resources are not currently copied.
+The `copy` argument allows you to copy application resources from one app to another, or copy Astra Control resources to your local workstation.
 
+* [Asup](#asup)
 * [Hooks](#hooks)
 * [Protections](#protections)
 
 ```text
 $ actoolkit copy -h
-usage: actoolkit copy [-h] {hooks,protections} ...
+usage: actoolkit copy [-h] {asup,hooks,protections} ...
 
 options:
-  -h, --help           show this help message and exit
+  -h, --help            show this help message and exit
 
 objectType:
-  {hooks,protections}
-    hooks              copy hooks (executionHooks) from one app to another
-    protections        copy protections from one app to another
+  {asup,hooks,protections}
+    asup                copy auto-support bundle to local workstation
+    hooks               copy all hooks (executionHooks) from one app to another
+    protections         copy all protections from one app to another
+```
+
+## Asup
+
+The `copy asup` command allows you to copy / download an existing auto-support bundle to your local workstation. To create an auto-support bundle, please see the [create asup](../create/README.md#asup) command.
+
+It requires a single argument, the `asupID`, which can be gathered via the [list asups](../list/README.md#asups) command. The command usage is:
+
+```text
+actoolkit copy asup <asupID>
+```
+
+Example output:
+
+```text
+$ actoolkit copy asup b1398002-f2ad-4d73-a0e4-aed33d3e05e0
+'b1398002-f2ad-4d73-a0e4-aed33d3e05e0.tgz' downloaded to current directory successfully.
+```
+
+You can then view the downloaded auto-support bundle:
+
+```text
+$ ls -l b1398002*
+-rw-r--r--  1 mhaigh  staff    13M May  9 10:04 b1398002-f2ad-4d73-a0e4-aed33d3e05e0.tgz
 ```
 
 ## Hooks
 
-The `copy hooks` command allows you to copy all execution hooks from a source app to a destination app.  The command usage is:
+The `copy hooks` command allows you to copy all execution hooks from a source app to a destination app. This can be useful when cloning an application, as by default these resources are not currently copied. The command usage is:
 
 ```text
 actoolkit copy hooks <sourceAppID> <destinationAppID>
@@ -36,7 +62,7 @@ $ actoolkit copy hooks 1c252557-b5d3-4446-b5fe-c41ed2b0595c 6676813f-4f6c-4487-9
 
 ## Protections
 
-The `copy protections` command allows you to copy all protection policies from a source app to a destination app.  The command usage is:
+The `copy protections` command allows you to copy all protection policies from a source app to a destination app. This can be useful when cloning an application, as by default these resources are not currently copied. The command usage is:
 
 ```text
 actoolkit copy protections <sourceAppID> <destinationAppID>

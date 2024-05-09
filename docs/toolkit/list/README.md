@@ -5,6 +5,7 @@ The `list` command shows various resources known to Astra.
 * [Apiresources](#apiresources)
 * [Apps](#apps)
 * [Assets](#assets)
+* [Asups](#asups)
 * [Backups](#backups)
 * [Buckets](#buckets)
 * [Clouds](#clouds)
@@ -27,18 +28,19 @@ The `list` command shows various resources known to Astra.
 ```text
 $ actoolkit list -h
 usage: actoolkit list [-h]
-                      {apiresources,apps,applications,assets,backups,buckets,appVaults,clouds,clusters,credentials,secrets,groups,hooks,exechooks,ldapgroups,ldapusers,namespaces,notifications,protections,schedules,replications,rolebindings,scripts,snapshots,storagebackends,storageclasses,users}
+                      {apiresources,apps,applications,assets,asups,backups,buckets,appVaults,clouds,clusters,credentials,secrets,groups,hooks,exechooks,ldapgroups,ldapusers,namespaces,notifications,protections,schedules,replications,rolebindings,scripts,snapshots,storagebackends,storageclasses,users}
                       ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {apiresources,apps,applications,assets,backups,buckets,appVaults,clouds,clusters,credentials,secrets,groups,hooks,exechooks,ldapgroups,ldapusers,namespaces,notifications,protections,schedules,replications,rolebindings,scripts,snapshots,storagebackends,storageclasses,users}
+  {apiresources,apps,applications,assets,asups,backups,buckets,appVaults,clouds,clusters,credentials,secrets,groups,hooks,exechooks,ldapgroups,ldapusers,namespaces,notifications,protections,schedules,replications,rolebindings,scripts,snapshots,storagebackends,storageclasses,users}
     apiresources        list api resources
     apps (applications)
                         list apps
     assets              list app assets
+    asups               list auto-support bundles
     backups             list backups
     buckets (appVaults)
                         list buckets
@@ -221,6 +223,38 @@ $ actoolkit list assets fad776eb-f80f-4a2b-b297-c4d4ff255b14
 +---------------------------------+---------+-----------+-----------------------+
 | default                         |         | v1        | ServiceAccount        |
 +---------------------------------+---------+-----------+-----------------------+
+```
+
+## Asups
+
+`list asups` shows all auto-support bundles. They can be filtered by triggerType and whether they were automatically updloaded. Auto-support bundles can be initiated via the [create asup](../create/README.md#asup) command, and can also by copied to your local workstation with the [copy asup](../copy/README.md#asup) command.
+
+Command usage:
+
+```text
+actoolkit list asups <optional-arguments>
+```
+
+Sample output:
+
+```text
+$ actoolkit list asups
++--------------------------------------+-----------+----------+---------------+---------------+----------------------+---------------------------+
+| asupID                               | state     | upload   | uploadState   | triggerType   | dataWindowStart      | dataWindowEnd             |
++======================================+===========+==========+===============+===============+======================+===========================+
+| 22339089-caff-4fe7-b1e0-0357f481ae8c | completed | false    |               | manual        | 2024-05-03T01:01:00Z | 2024-05-07T20:38:31+10:00 |
++--------------------------------------+-----------+----------+---------------+---------------+----------------------+---------------------------+
+| 1c135518-ffd7-4db6-bce9-bc9ce8a15799 | completed | true     | completed     | scheduled     | 2024-05-08T00:10:00Z | 2024-05-09T00:10:00Z      |
++--------------------------------------+-----------+----------+---------------+---------------+----------------------+---------------------------+
+```
+
+```text
+$ actoolkit list asups --triggerTypeFilter manual
++--------------------------------------+-----------+----------+---------------+---------------+----------------------+---------------------------+
+| asupID                               | state     | upload   | uploadState   | triggerType   | dataWindowStart      | dataWindowEnd             |
++======================================+===========+==========+===============+===============+======================+===========================+
+| 22339089-caff-4fe7-b1e0-0357f481ae8c | completed | false    |               | manual        | 2024-05-03T01:01:00Z | 2024-05-07T20:38:31+10:00 |
++--------------------------------------+-----------+----------+---------------+---------------+----------------------+---------------------------+
 ```
 
 ## Backups

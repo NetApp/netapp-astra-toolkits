@@ -16,6 +16,7 @@
 
 from . import apiresources
 from . import apps
+from . import asups
 from . import backups
 from . import buckets
 from . import clouds
