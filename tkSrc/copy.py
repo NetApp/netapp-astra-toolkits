@@ -18,8 +18,17 @@
 import astraSDK
 
 
+def downloadAsup(quiet, verbose, config, asupID):
+    """Download/copy an auto-support bundle to your local workstation"""
+    if rc := astraSDK.asups.downloadAsup(quiet=quiet, verbose=verbose, config=config).main(asupID):
+        return rc
+    raise SystemExit("astraSDK.asups.downloadAsup() failed")
+
+
 def main(args, config=None):
-    if args.objectType == "hooks":
+    if args.objectType == "asup":
+        downloadAsup(args.quiet, args.verbose, config, args.asupID)
+    elif args.objectType == "hooks":
         for hook in astraSDK.hooks.getHooks(config=config).main(appFilter=args.sourceApp)["items"]:
             rc = astraSDK.hooks.createHook(
                 quiet=args.quiet, verbose=args.verbose, config=config

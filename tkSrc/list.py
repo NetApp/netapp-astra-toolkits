@@ -22,6 +22,14 @@ import astraSDK
 from tkSrc import helpers
 
 
+def listAsups(quiet, output, verbose, config, triggerTypeFilter=None, uploadFilter=None):
+    if rc := astraSDK.asups.getAsups(quiet=quiet, verbose=verbose, output=output).main(
+        triggerTypeFilter=triggerTypeFilter, uploadFilter=uploadFilter
+    ):
+        return rc
+    raise SystemExit("astraSDK.asups.getAsups() failed")
+
+
 def listV3Apps(v3, quiet, output, verbose, skip_tls_verify=False, nameFilter=None, namespace=None):
     """List applications Kubernetes custom resources"""
     return astraSDK.k8s.getResources(
@@ -260,6 +268,15 @@ def main(args, config=None):
         ).main(args.appID)
         if rc is False:
             raise SystemExit("astraSDK.apps.getAppAssets() failed")
+    elif args.objectType == "asups":
+        return listAsups(
+            args.quiet,
+            args.output,
+            args.verbose,
+            config,
+            triggerTypeFilter=args.triggerTypeFilter,
+            uploadFilter=args.uploadFilter,
+        )
     elif args.objectType == "backups":
         if args.v3:
             listV3Backups(

@@ -1,29 +1,31 @@
 # Create
 
-The `create` argument allows you to create Astra resources, including:
+The `create` argument allows you to create an Astra resource, including:
 
-* [Backups](#backup)
-* [Clusters](#cluster)
-* [Groups](#group)
-* [Hooks](#hook)
+* [Asup](#asup)
+* [Backup](#backup)
+* [Cluster](#cluster)
+* [Group](#group)
+* [Hook](#hook)
 * [LDAP](#ldap)
-* [Protections](#protection)
-* [Replications](#replication)
-* [Scripts](#script)
-* [Snapshots](#snapshot)
-* [Users](#user)
+* [Protection](#protection)
+* [Replication](#replication)
+* [Script](#script)
+* [Snapshot](#snapshot)
+* [User](#user)
 
 Its opposite command is [destroy](../destroy/README.md), which allows you to destroy these same resources.  **Create** and **destroy** are similar to [manage](../manage/README.md) and [unmanage](../unmanage/README.md), however create/destroy objects live entirely within Astra Control, while manage/unmanage objects do not.  If you create and then destroy a [snapshot](../create/README.md#snapshot), it is gone forever.  However if you manage and then unmanage a cluster, the cluster still exists to re-manage again.
 
 ```text
 $ actoolkit create -h
-usage: actoolkit create [-h] {backup,cluster,group,hook,exechook,ldap,protection,schedule,replication,script,snapshot,user} ...
+usage: actoolkit create [-h] {asup,backup,cluster,group,hook,exechook,ldap,protection,schedule,replication,script,snapshot,user} ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {backup,cluster,group,hook,exechook,ldap,protection,schedule,replication,script,snapshot,user}
+  {asup,backup,cluster,group,hook,exechook,ldap,protection,schedule,replication,script,snapshot,user}
+    asup                create auto-support bundle
     backup              create backup
     cluster             create cluster (upload a K8s cluster kubeconfig to then manage)
     group               create a remote group (requires LDAP)
@@ -35,6 +37,45 @@ objectType:
     script              create script (hookSource)
     snapshot            create snapshot
     user                create a user
+```
+
+## Asup
+
+The `create asup` command allows you to manually trigger an auto-support bundle. The command usage is:
+
+```text
+actoolkit create asup <optionalArguments>
+```
+
+Additional information on each argument is as follows:
+
+* `-u`/`--upload`: specify this flag to have the auto-support bundle automatically uploaded to the NetApp Support Site when generated (default is to not have it uploaded)
+* Custom Time Frame (cannot be used in conjunction with Quick Time Frame):
+  * `--dataWindowStart`: an ISO-8601 timestamp, like `2024-05-08T14:11:07Z`. You must include a timezone, either via `Z` (UTC) or an offset `+04:00`. This argument defaults to 24 hours before `--dateWindowEnd`, and the maximum value is 7 days before the current time.
+  * `--dataWindowEnd`: an ISO-8601 timestamp, like `2024-05-09T14:11:07Z`. You must include a timezone, either via `Z` (UTC) or an offset `+04:00`. This argument defaults to the current time of request.
+* Quick Time Frame (cannot be used in conjunction with Custom Time Frame):
+  * `-H`/`--hours`: specify the auto-support bundle to span the last X hours (anywhere from 1 to 24, inclusive). This field is mutually exclusive with `--days`.
+  * `-d`/`--days`: specify the auto-support bundle to span the last X days (anywhere from 1 to 7, inclusive). This field is mutually exclusive with `--hours`.
+
+To create an auto-support bundle covering the last 24 hours, and not upload it to the NetApp Support Site:
+
+```text
+$ actoolkit create asup
+{"metadata": {"creationTimestamp": "2024-05-08T15:56:19Z", "modificationTimestamp": "2024-05-08T15:56:19Z", "createdBy": "62f49133-da54-4ce5-a4bb-9a20b5d9b000", "labels": []}, "type": "application/astra-asup", "version": "1.0", "id": "9bc7e099-ff24-4255-bd48-65167b087cec", "upload": "false", "creationState": "running", "triggerType": "manual", "dataWindowStart": "2024-05-07T15:56:19Z", "dataWindowEnd": "2024-05-08T15:56:19Z"}
+```
+
+To create an auto-support bundle covering the last 2 days, and upload it to the NetApp Support Site:
+
+```text
+$ actoolkit create asup --upload -d 2
+{"metadata": {"creationTimestamp": "2024-05-09T15:01:35Z", "modificationTimestamp": "2024-05-09T15:01:35Z", "createdBy": "62f49133-da54-4ce5-a4bb-9a20b5d9b000", "labels": []}, "type": "application/astra-asup", "version": "1.0", "id": "3d395cd3-5fa8-43ba-a882-805eb4e6741b", "upload": "true", "creationState": "running", "uploadState": "pending", "triggerType": "manual", "dataWindowStart": "2024-05-07T15:01:35Z", "dataWindowEnd": "2024-05-09T15:01:35Z"}
+```
+
+To create an auto-support bundle covering May 7th, 2024 in the EDT timezone, and not have it automatically upload to the NetApp Support Site:
+
+```text
+$ actoolkit create asup --dataWindowStart 2024-05-07T00:00:00+04:00 --dataWindowEnd 2024-05-07T23:59:59+04:00
+{"metadata": {"creationTimestamp": "2024-05-09T15:21:39Z", "modificationTimestamp": "2024-05-09T15:21:39Z", "createdBy": "62f49133-da54-4ce5-a4bb-9a20b5d9b000", "labels": []}, "type": "application/astra-asup", "version": "1.0", "id": "649de606-2b9d-4f82-88b9-239b45e7f24c", "upload": "false", "creationState": "running", "triggerType": "manual", "dataWindowStart": "2024-05-07T00:00:00+04:00", "dataWindowEnd": "2024-05-07T23:59:59+04:00"}
 ```
 
 ## Backup

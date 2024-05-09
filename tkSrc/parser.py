@@ -16,6 +16,7 @@
 """
 
 import argparse
+from datetime import datetime, timedelta, timezone
 
 
 class ToolkitParser:
@@ -119,7 +120,7 @@ class ToolkitParser:
         )
         self.parserCopy = self.subparsers.add_parser(
             "copy",
-            help="Copy resources from one app to another app",
+            help="Copy resources from app to app, or to your local workstation",
         )
         self.parserCreate = self.subparsers.add_parser(
             "create",
@@ -196,6 +197,10 @@ class ToolkitParser:
         self.subparserListAssets = self.subparserList.add_parser(
             "assets",
             help="list app assets",
+        )
+        self.subparserListAsups = self.subparserList.add_parser(
+            "asups",
+            help="list auto-support bundles",
         )
         self.subparserListBackups = self.subparserList.add_parser(
             "backups",
@@ -292,15 +297,22 @@ class ToolkitParser:
 
     def sub_copy_commands(self):
         """copy 'X'"""
+        self.subparserCopyAsup = self.subparserCopy.add_parser(
+            "asup", help="copy auto-support bundle to local workstation"
+        )
         self.subparserCopyHooks = self.subparserCopy.add_parser(
-            "hooks", help="copy hooks (executionHooks) from one app to another"
+            "hooks", help="copy all hooks (executionHooks) from one app to another"
         )
         self.subparserCopyProtections = self.subparserCopy.add_parser(
-            "protections", help="copy protections from one app to another"
+            "protections", help="copy all protections from one app to another"
         )
 
     def sub_create_commands(self):
         """create 'X'"""
+        self.subparserCreateAsup = self.subparserCreate.add_parser(
+            "asup",
+            help="create auto-support bundle",
+        )
         self.subparserCreateBackup = self.subparserCreate.add_parser(
             "backup",
             help="create backup",
@@ -773,6 +785,21 @@ class ToolkitParser:
             help="The appID from which to display the assets",
         )
 
+    def list_asups_args(self):
+        """list auto-support bundles args and flags"""
+        self.subparserListAsups.add_argument(
+            "-t",
+            "--triggerTypeFilter",
+            choices=["manual", "scheduled"],
+            help="filter results by what triggered the creation of the ASUP",
+        )
+        self.subparserListAsups.add_argument(
+            "-u",
+            "--uploadFilter",
+            choices=["true", "false"],
+            help="filter results by whether an ASUP upload was requested",
+        )
+
     def list_backups_args(self):
         """list backups args and flags"""
         self.subparserListBackups.add_argument(
@@ -1096,6 +1123,14 @@ class ToolkitParser:
             help="Filter users by this value to minimize output (partial match)",
         )
 
+    def copy_asup_args(self):
+        """copy auto-support bundle args and flags"""
+        self.subparserCopyAsup.add_argument(
+            "asupID",
+            choices=(None if self.plaidMode else self.acl.asups),
+            help="the asup ID to copy to your local workstation",
+        )
+
     def copy_hooks_args(self):
         """copy hooks args and flags"""
         self.subparserCopyHooks.add_argument(
@@ -1120,6 +1155,57 @@ class ToolkitParser:
             "destinationApp",
             choices=(None if self.plaidMode else self.acl.destApps),
             help="the app to copy the protections into",
+        )
+
+    def create_asup_args(self):
+        """create auto-support bundle args and flags"""
+        self.subparserCreateAsup.add_argument(
+            "-u",
+            "--upload",
+            default=False,
+            action="store_true",
+            help="upload the bundle to the NetApp Support Site when generated",
+        )
+        now = datetime.now(timezone.utc)
+        customTime = self.subparserCreateAsup.add_argument_group(
+            "Custom Time Frame",
+            "Optionally specify a start and/or end timestamp for the auto-support bundle "
+            "(cannot be used with Quick Time Group)",
+        )
+        customTime.add_argument(
+            "--dataWindowStart",
+            default=None,
+            help="specify an ISO-8601 timestamp, like: "
+            f"{(now-timedelta(days=1)).isoformat(timespec='seconds')} (defaults to 24 hours before "
+            "--dateWindowEnd, max is 7 days before current time)",
+        )
+        customTime.add_argument(
+            "--dataWindowEnd",
+            default=None,
+            help=f"specify an ISO-8601 timestamp, like: {now.isoformat(timespec='seconds')}"
+            " (defaults to current time of request)"
+        )
+        quickTime = self.subparserCreateAsup.add_argument_group(
+            "Quick Time Frame",
+            "Optionally specify the previous X hours/days for the auto-support bundle "
+            "(mutually exclusive; cannot be used with Custom Time Group)",
+        )
+        qTimeME = quickTime.add_mutually_exclusive_group()
+        qTimeME.add_argument(
+            "-H",
+            "--hours",
+            default=None,
+            choices=range(1, 25),
+            type=int,
+            help="create an auto-support bundle spanning the last X hours",
+        )
+        qTimeME.add_argument(
+            "-d",
+            "--days",
+            default=None,
+            choices=range(1, 8),
+            type=int,
+            help="create an auto-support bundle spanning the last X days",
         )
 
     def create_backup_args(self):
@@ -2136,6 +2222,7 @@ class ToolkitParser:
         self.list_apiresources_args()
         self.list_apps_args()
         self.list_assets_args()
+        self.list_asups_args()
         self.list_backups_args()
         self.list_buckets_args()
         self.list_clouds_args()
@@ -2157,9 +2244,11 @@ class ToolkitParser:
         self.list_storageclasses_args()
         self.list_users_args()
 
+        self.copy_asup_args()
         self.copy_hooks_args()
         self.copy_protections_args()
 
+        self.create_asup_args()
         self.create_backup_args()
         self.create_cluster_args()
         self.create_group_args()
