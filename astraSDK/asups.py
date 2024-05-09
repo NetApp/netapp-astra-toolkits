@@ -127,14 +127,14 @@ class downloadAsup(SDKCommon):
         data = {}
         params = {}
 
-        ret = super().downloadFile(
+        ret, filename = super().downloadFile(
             url, data, self.headers, params, quiet=self.quiet, verbose=self.verbose
         )
 
-        if ret:
+        if ret.ok:
             if not self.quiet:
-                print(f"'{ret}' downloaded to current directory successfully.")
-            return ret
+                print(f"'{filename}' downloaded to current directory successfully.")
+            return filename
 
         else:
             if not self.quiet:
@@ -204,5 +204,8 @@ class createAsup(SDKCommon):
             return results
         else:
             if not self.quiet:
-                super().printError(ret)
+                if ret.status_code == 404:
+                    super().printError("Error: the core/v1/asups API is only supported on ACC.\n")
+                else:
+                    super().printError(ret)
             return False

@@ -71,7 +71,7 @@ $ actoolkit create asup --upload -d 2
 {"metadata": {"creationTimestamp": "2024-05-09T15:01:35Z", "modificationTimestamp": "2024-05-09T15:01:35Z", "createdBy": "62f49133-da54-4ce5-a4bb-9a20b5d9b000", "labels": []}, "type": "application/astra-asup", "version": "1.0", "id": "3d395cd3-5fa8-43ba-a882-805eb4e6741b", "upload": "true", "creationState": "running", "uploadState": "pending", "triggerType": "manual", "dataWindowStart": "2024-05-07T15:01:35Z", "dataWindowEnd": "2024-05-09T15:01:35Z"}
 ```
 
-To create an auto-support bundle covering March 7th, 2023 in the EDT timezone, and not have it automatically upload to the NetApp Support Site:
+To create an auto-support bundle covering May 7th, 2024 in the EDT timezone, and not have it automatically upload to the NetApp Support Site:
 
 ```text
 $ actoolkit create asup --dataWindowStart 2024-05-07T00:00:00+04:00 --dataWindowEnd 2024-05-07T23:59:59+04:00

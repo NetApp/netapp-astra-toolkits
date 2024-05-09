@@ -237,9 +237,12 @@ class SDKCommon(BaseCommon):
                 self.printVerbose(url, "get", headers, data, params, self.session)
             filename = f"{url.split('/')[-1]}.{filetype}"
             with self.session.get(url, json=data, headers=headers, params=params, stream=True) as s:
-                with open(filename, "wb") as f:
-                    shutil.copyfileobj(s.raw, f)
-            return filename
+                if s.ok:
+                    with open(filename, "wb") as f:
+                        shutil.copyfileobj(s.raw, f)
+                else:
+                    filename = False
+            return s, filename
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
 
