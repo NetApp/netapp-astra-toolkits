@@ -185,6 +185,7 @@ class createProtectionpolicy(SDKCommon):
         appID,
         recurrenceRule=None,
         bucketID=None,
+        customNonReplicate=False,
     ):
         endpoint = f"k8s/v1/apps/{appID}/schedules"
         url = self.base + endpoint
@@ -204,7 +205,8 @@ class createProtectionpolicy(SDKCommon):
         }
         if recurrenceRule:
             data["recurrenceRule"] = recurrenceRule
-            data["replicate"] = "true"
+            if customNonReplicate is False:
+                data["replicate"] = "true"
         if bucketID:
             data["bucketID"] = bucketID
 
