@@ -73,5 +73,5 @@ spec:
                   apk add curl &&
                   pip install --upgrade pip &&
                   pip install actoolkit==$ACTOOLKIT_VERSION &&
-                  curl -sLO https://raw.githubusercontent.com/NetApp/netapp-astra-toolkits/neptune/examples/labelbased-backup/protectCluster.py &&
+                  curl -sLO https://raw.githubusercontent.com/NetApp/netapp-astra-toolkits/main/examples/labelbased-backup/protectCluster.py &&
                   python protectCluster.py
