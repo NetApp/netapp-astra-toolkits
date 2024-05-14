@@ -1,0 +1,8 @@
+FROM python:3.12.3-alpine3.19
+RUN apk add --no-cache jq curl
+RUN adduser -D worker
+USER worker
+WORKDIR /home/worker
+ENV PATH="/home/worker/.local/bin:${PATH}"
+RUN pip install --user actoolkit
+CMD ["/bin/sh"]
