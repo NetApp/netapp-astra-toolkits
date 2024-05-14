@@ -48,9 +48,12 @@ jobs:
           DOCKERIMAGE_TAG: ${{ steps.vars.outputs.tag }}
         run: |
           docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
-          docker buildx build . --push --file Dockerfile \
-          --tag netapp/astra-toolkits:latest --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG \
-          --platform linux/amd64,linux/arm64
           docker buildx build . --push --file Dockerfile.minimal \
           --tag netapp/astra-toolkits:latest-minimal --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG-minimal \
+          --platform linux/amd64,linux/arm64
+          docker buildx build . --push --file Dockerfile.minimal-unprivileged \
+          --tag netapp/astra-toolkits:latest-minimal-unprivileged --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG-minimal-unprivileged \
+          --platform linux/amd64,linux/arm64
+          docker buildx build . --push --file Dockerfile \
+          --tag netapp/astra-toolkits:latest --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG \
           --platform linux/amd64,linux/arm64

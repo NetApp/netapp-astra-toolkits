@@ -2,7 +2,7 @@
 # It's only meant to be manually invoked when the automated python-docker-publish.yml
 # file errors out and the image needs to be rebuilt.
 
-name: Manual Docker Min Build
+name: Manual Docker Min Unprivileged Build
 
 on:
   workflow_dispatch:
