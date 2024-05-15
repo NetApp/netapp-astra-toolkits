@@ -1,0 +1,13 @@
+apiVersion: astra.netapp.io/v1
+kind: AutoSupportBundle
+metadata:
+  generateName: {{ generateName }}
+  namespace: astra-connector
+spec:
+  triggerType: Manual
+{%- if dataWindowStart %}
+  dataWindowStart: {{ dataWindowStart }}
+{%- endif %}
+{%- if uploadEnabled %}
+  uploadEnabled: true
+{%- endif %}

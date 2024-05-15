@@ -21,7 +21,6 @@ import os
 import sys
 import time
 import yaml
-from datetime import datetime, timedelta, timezone
 
 import astraSDK
 from tkSrc import helpers
@@ -112,30 +111,46 @@ def monitorV3ProtectionTask(protection, pollTimer, v3, skip_tls_verify):
     return False
 
 
-def createAsup(
-    quiet,
-    verbose,
-    config,
-    upload=False,
-    hours=None,
-    days=None,
-    dataWindowStart=None,
-    dataWindowEnd=None,
-):
+def createAsup(quiet, verbose, config, upload=False, dataWindowStart=None, dataWindowEnd=None):
     """Creates an Astra Control ASUP (auto-support bundle)"""
-    if dataWindowStart:
-        dataWindowStart = helpers.checkISO8601(dataWindowStart)
-    if dataWindowEnd:
-        dataWindowEnd = helpers.checkISO8601(dataWindowEnd)
-    if hours:
-        dataWindowStart = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
-    elif days:
-        dataWindowStart = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    # Add clusterID arg with default of None
+    # if clusterID:
+    #    call new createClusterAsup class
+    # else:
     if rc := astraSDK.asups.createAsup(quiet=quiet, verbose=verbose, config=config).main(
         "true" if upload else "false", dataWindowStart=dataWindowStart, dataWindowEnd=dataWindowEnd
     ):
         return rc
     raise SystemExit("astraSDK.asups.createAsup() failed")
+
+
+def createV3Asup(v3, dry_run, skip_tls_verify, quiet, verbose, upload=False, dataWindowStart=None):
+    """Create a cluster auto-support bundle via a Kubernetes custom resource"""
+    template = helpers.setupJinja("autosupportbundle")
+    v3_dict = yaml.safe_load(
+        template.render(
+            generateName=helpers.getClusterNameViaConnector(v3, skip_tls_verify) + "-",
+            dataWindowStart=dataWindowStart,
+            upload=upload,
+        )
+    )
+    if dry_run == "client":
+        print(yaml.dump(v3_dict).rstrip("\n"))
+        return v3_dict
+    else:
+        return astraSDK.k8s.createResource(
+            quiet=quiet,
+            dry_run=dry_run,
+            verbose=verbose,
+            config_context=v3,
+            skip_tls_verify=skip_tls_verify,
+        ).main(
+            f"{v3_dict['kind'].lower()}s",
+            v3_dict["metadata"]["namespace"],
+            v3_dict,
+            version="v1",
+            group="astra.netapp.io",
+        )
 
 
 def createV3ConnectorOperator(v3, dry_run, skip_tls_verify, verbose, operator_version):
@@ -445,20 +460,37 @@ def createV3Snapshot(
 
 def main(args, ard, config=None):
     if args.objectType == "asup":
+        if not hasattr(args, "dataWindowEnd"):
+            args.dataWindowEnd = None
         if args.hours and (args.dataWindowStart or args.dataWindowEnd):
             helpers.parserError("--hours cannot be used with --dataWindowStart or --dataWindowEnd")
         elif args.days and (args.dataWindowStart or args.dataWindowEnd):
             helpers.parserError("--days cannot be used with --dataWindowStart or --dataWindowEnd")
-        createAsup(
-            args.quiet,
-            args.verbose,
-            config,
-            args.upload,
-            args.hours,
-            args.days,
-            args.dataWindowStart,
-            args.dataWindowEnd,
+        args.dataWindowStart, args.dataWindowEnd = helpers.createDataWindows(
+            hours=args.hours,
+            days=args.days,
+            dataWindowStart=args.dataWindowStart,
+            dataWindowEnd=args.dataWindowEnd,
         )
+        if args.v3:
+            createV3Asup(
+                args.v3,
+                args.dry_run,
+                args.skip_tls_verify,
+                args.quiet,
+                args.verbose,
+                upload=args.upload,
+                dataWindowStart=args.dataWindowStart,
+            )
+        else:
+            createAsup(
+                args.quiet,
+                args.verbose,
+                config,
+                args.upload,
+                args.dataWindowStart,
+                args.dataWindowEnd,
+            )
     elif args.objectType == "backup":
         if args.v3:
             if ard.needsattr("buckets"):

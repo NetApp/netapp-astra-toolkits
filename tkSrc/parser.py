@@ -1166,6 +1166,8 @@ class ToolkitParser:
             action="store_true",
             help="upload the bundle to the NetApp Support Site when generated",
         )
+        # if not self.v3:
+        #    self.subparserCreateAsup.add_argument("-c", "--clusterID", choices=v3-only clusters)
         now = datetime.now(timezone.utc)
         customTime = self.subparserCreateAsup.add_argument_group(
             "Custom Time Frame",
@@ -1175,16 +1177,23 @@ class ToolkitParser:
         customTime.add_argument(
             "--dataWindowStart",
             default=None,
-            help="specify an ISO-8601 timestamp, like: "
-            f"{(now-timedelta(days=1)).isoformat(timespec='seconds')} (defaults to 24 hours before "
-            "--dateWindowEnd, max is 7 days before current time)",
+            help=(
+                "specify an ISO-8601 timestamp, like: "
+                f"{(now-timedelta(days=1)).isoformat(timespec='seconds')} (defaults to 24 hours "
+                "ago if not specified)"
+                if self.v3
+                else "specify an ISO-8601 timestamp, like: "
+                f"{(now-timedelta(days=1)).isoformat(timespec='seconds')} (defaults to 24 hours "
+                "before --dateWindowEnd, max is 7 days before current time)"
+            ),
         )
-        customTime.add_argument(
-            "--dataWindowEnd",
-            default=None,
-            help=f"specify an ISO-8601 timestamp, like: {now.isoformat(timespec='seconds')}"
-            " (defaults to current time of request)"
-        )
+        if not self.v3:
+            customTime.add_argument(
+                "--dataWindowEnd",
+                default=None,
+                help=f"specify an ISO-8601 timestamp, like: {now.isoformat(timespec='seconds')}"
+                " (defaults to current time of request)",
+            )
         quickTime = self.subparserCreateAsup.add_argument_group(
             "Quick Time Frame",
             "Optionally specify the previous X hours/days for the auto-support bundle "

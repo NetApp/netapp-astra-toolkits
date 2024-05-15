@@ -191,6 +191,7 @@ def tkMain(argv=sys.argv, config=None):
             dict.fromkeys(
                 ["create", "destroy"],
                 [
+                    "asup",
                     "backup",
                     "exechok",
                     "hook",
@@ -215,6 +216,7 @@ def tkMain(argv=sys.argv, config=None):
                     "apps",
                     "applications",
                     "appVaults",
+                    "asups",
                     "astraconnectors",
                     "backups",
                     "buckets",

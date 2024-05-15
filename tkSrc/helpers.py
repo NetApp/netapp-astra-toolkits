@@ -21,7 +21,7 @@ import os
 import re
 import subprocess
 import yaml
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -660,3 +660,34 @@ def checkISO8601(datetimeStr):
                 return datetime.strptime(datetimeStr, "%Y-%m-%dT%H:%M:%S.%f%z").isoformat()
             except ValueError:
                 parserError(f"{datetimeStr} does not appear to be a valid ISO-8601 date")
+
+
+def createDataWindows(hours=None, days=None, dataWindowStart=None, dataWindowEnd=None):
+    """Given either (hours) or (days) or (dataWindowStart) or (dataWindowEnd) or (dataWindowStart
+    and dataWindowEnd), return ISO-8601 compliant dataWindowStart and dataWindowEnd"""
+    if dataWindowStart:
+        dataWindowStart = checkISO8601(dataWindowStart)
+    if dataWindowEnd:
+        dataWindowEnd = checkISO8601(dataWindowEnd)
+    if hours:
+        dataWindowStart = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+    elif days:
+        dataWindowStart = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    return dataWindowStart, dataWindowEnd
+
+
+def getClusterNameViaConnector(v3, skip_tls_verify):
+    connectors = astraSDK.k8s.getResources(config_context=v3, skip_tls_verify=skip_tls_verify).main(
+        "astraconnectors"
+    )
+    try:
+        return next(
+            x["spec"]["astra"]["clusterName"]
+            for x in connectors["items"]
+            if x["spec"]["astra"].get("clusterName")
+        )
+    except StopIteration:
+        parserError(
+            "An 'astraconnector' resource with the spec.astra.clusterName field populated was not "
+            "found"
+        )
