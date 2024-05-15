@@ -26,6 +26,6 @@ jobs:
           DOCKERIMAGE_TAG: ${{ inputs.tag }}
         run: |
           docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
-          docker buildx build . --push --file Dockerfile.minimal \
+          docker buildx build . --push --file dockerfiles/Dockerfile.minimal \
           --tag netapp/astra-toolkits:latest-minimal --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG-minimal \
           --platform linux/amd64,linux/arm64

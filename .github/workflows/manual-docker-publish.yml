@@ -26,6 +26,6 @@ jobs:
           DOCKERIMAGE_TAG: ${{ inputs.tag }}
         run: |
           docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
-          docker buildx build . --push --file Dockerfile \
+          docker buildx build . --push --file dockerfiles/Dockerfile \
           --tag netapp/astra-toolkits:latest --tag netapp/astra-toolkits:$DOCKERIMAGE_TAG \
           --platform linux/amd64,linux/arm64
