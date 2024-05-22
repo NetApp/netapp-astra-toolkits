@@ -138,6 +138,16 @@ class getResources(KubeCommon):
                 "spec.providerType",
                 "status.state",
             ]
+        elif plural == "autosupportbundles":
+            if headers:
+                return ["name", "generationState", "uploadState", "triggerType", "dataWindowStart"]
+            return [
+                "metadata.name",
+                "status.generationState",
+                "status.uploadState",
+                "spec.triggerType",
+                "status.dataWindowStart",
+            ]
         elif plural == "astraconnectors":
             if headers:
                 return [

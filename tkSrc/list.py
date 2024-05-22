@@ -22,14 +22,6 @@ import astraSDK
 from tkSrc import helpers
 
 
-def listAsups(quiet, output, verbose, config, triggerTypeFilter=None, uploadFilter=None):
-    if rc := astraSDK.asups.getAsups(quiet=quiet, verbose=verbose, output=output).main(
-        triggerTypeFilter=triggerTypeFilter, uploadFilter=uploadFilter
-    ):
-        return rc
-    raise SystemExit("astraSDK.asups.getAsups() failed")
-
-
 def listV3Apps(v3, quiet, output, verbose, skip_tls_verify=False, nameFilter=None, namespace=None):
     """List applications Kubernetes custom resources"""
     return astraSDK.k8s.getResources(
@@ -66,6 +58,34 @@ def listV3Appvaults(
         filters=[
             {"keyFilter": "spec.providerType", "valFilter": provider},
             {"keyFilter": "metadata.name", "valFilter": nameFilter, "inMatch": True},
+        ],
+    )
+
+
+def listAsups(quiet, output, verbose, config, triggerTypeFilter=None, uploadFilter=None):
+    """List ACC Auto-Support Bundles via API"""
+    if rc := astraSDK.asups.getAsups(quiet=quiet, verbose=verbose, output=output).main(
+        triggerTypeFilter=triggerTypeFilter, uploadFilter=uploadFilter
+    ):
+        return rc
+    raise SystemExit("astraSDK.asups.getAsups() failed")
+
+
+def listV3Asups(
+    v3, quiet, output, verbose, skip_tls_verify=False, triggerTypeFilter=None, uploadFilter=None
+):
+    """List autosupportbundles Kubernetes custom resources"""
+    return astraSDK.k8s.getResources(
+        quiet=quiet,
+        output=output,
+        verbose=verbose,
+        config_context=v3,
+        skip_tls_verify=skip_tls_verify,
+    ).main(
+        "autosupportbundles",
+        filters=[
+            {"keyFilter": "spec.triggerType", "valFilter": triggerTypeFilter},
+            {"keyFilter": "spec.upload", "valFilter": uploadFilter},
         ],
     )
 
@@ -269,14 +289,25 @@ def main(args, config=None):
         if rc is False:
             raise SystemExit("astraSDK.apps.getAppAssets() failed")
     elif args.objectType == "asups":
-        return listAsups(
-            args.quiet,
-            args.output,
-            args.verbose,
-            config,
-            triggerTypeFilter=args.triggerTypeFilter,
-            uploadFilter=args.uploadFilter,
-        )
+        if args.v3:
+            listV3Asups(
+                args.v3,
+                args.quiet,
+                args.output,
+                args.verbose,
+                skip_tls_verify=args.skip_tls_verify,
+                triggerTypeFilter=args.triggerTypeFilter,
+                uploadFilter=args.uploadFilter,
+            )
+        else:
+            return listAsups(
+                args.quiet,
+                args.output,
+                args.verbose,
+                config,
+                triggerTypeFilter=args.triggerTypeFilter,
+                uploadFilter=args.uploadFilter,
+            )
     elif args.objectType == "backups":
         if args.v3:
             listV3Backups(
