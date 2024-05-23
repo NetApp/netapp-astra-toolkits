@@ -228,8 +228,14 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False, conf
 
     elif verbs["copy"]:
         if argv[verbPosition + 1] == "asup":
-            ard.asups = astraSDK.asups.getAsups(config=config).main()
-            acl.asups = ard.buildList("asups", "id")
+            if v3:
+                ard.asups = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("autosupportbundles")
+                acl.asups = ard.buildList("asups", "metadata.name")
+            else:
+                ard.asups = astraSDK.asups.getAsups(config=config).main()
+                acl.asups = ard.buildList("asups", "id")
         else:
             ard.apps = astraSDK.apps.getApps(config=config).main()
             acl.apps = ard.buildList("apps", "id")

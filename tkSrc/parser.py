@@ -1126,9 +1126,9 @@ class ToolkitParser:
     def copy_asup_args(self):
         """copy auto-support bundle args and flags"""
         self.subparserCopyAsup.add_argument(
-            "asupID",
+            "asup",
             choices=(None if self.plaidMode else self.acl.asups),
-            help="the asup ID to copy to your local workstation",
+            help="the asup to copy to your local workstation",
         )
 
     def copy_hooks_args(self):

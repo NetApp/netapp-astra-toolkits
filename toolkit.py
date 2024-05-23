@@ -186,7 +186,7 @@ def tkMain(argv=sys.argv, config=None):
     gc.collect()
 
     if args.v3:
-        v3_dict = {"deploy": ["acp", "chart"]}
+        v3_dict = {"copy": "asup", "deploy": ["acp", "chart"]}
         v3_dict.update(
             dict.fromkeys(
                 ["create", "destroy"],
@@ -254,7 +254,7 @@ def tkMain(argv=sys.argv, config=None):
     elif args.subcommand == "list" or args.subcommand == "get":
         tkSrc.list.main(args, config=config)
     elif args.subcommand == "copy":
-        tkSrc.copy.main(args, config=config)
+        tkSrc.copy.main(args, ard, config=config)
     elif args.subcommand == "create":
         tkSrc.create.main(args, ard, config=config)
     elif args.subcommand == "manage" or args.subcommand == "define":
