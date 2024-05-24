@@ -76,7 +76,7 @@ class AstraResourceDicts:
         else:
             return item.get(k)
 
-    def buildList(self, name, key, fKey=None, fVal=None):
+    def buildList(self, name, key, fKey=None, fVal=None, inMatch=False):
         """Generates a list for use in argparse choices"""
         try:
             # return a list of resource values based on 'key'
@@ -87,11 +87,18 @@ class AstraResourceDicts:
                     if self.recursiveGet(key, x)
                 ]
             # return a list of resource values based on 'key' only if some other 'fKey' == 'fVal'
+            # 'in' comparision
+            if inMatch:
+                return [
+                    self.recursiveGet(key, x)
+                    for x in getattr(self, name)["items"]
+                    if self.recursiveGet(fKey, x) and fVal in self.recursiveGet(fKey, x)
+                ]
+            # '==' comparision
             return [
                 self.recursiveGet(key, x)
-                for x in (
-                    y for y in getattr(self, name)["items"] if self.recursiveGet(fKey, y) == fVal
-                )
+                for x in getattr(self, name)["items"]
+                if self.recursiveGet(fKey, x) == fVal
             ]
         except TypeError:
             return []

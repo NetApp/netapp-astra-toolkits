@@ -248,6 +248,11 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False, conf
         if argv[verbPosition + 1] == "assets":
             ard.apps = astraSDK.apps.getApps(config=config).main()
             acl.apps = ard.buildList("apps", "id")
+        elif argv[verbPosition + 1] == "asups":
+            ard.clusters = astraSDK.clusters.getManagedClusters(config=config).main()
+            acl.clusters = ard.buildList(
+                "clusters", "id", fKey="connectorCapabilities", fVal="neptuneV1", inMatch=True
+            )
 
     elif (verbs["manage"] or verbs["define"]) and len(argv) - verbPosition >= 2:
         if argv[verbPosition + 1] == "app" or argv[verbPosition + 1] == "application":

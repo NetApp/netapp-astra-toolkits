@@ -62,13 +62,21 @@ def listV3Appvaults(
     )
 
 
-def listAsups(quiet, output, verbose, config, triggerTypeFilter=None, uploadFilter=None):
-    """List ACC Auto-Support Bundles via API"""
-    if rc := astraSDK.asups.getAsups(quiet=quiet, verbose=verbose, output=output).main(
-        triggerTypeFilter=triggerTypeFilter, uploadFilter=uploadFilter
-    ):
+def listAsups(
+    quiet, output, verbose, config, triggerTypeFilter=None, uploadFilter=None, clusterID=None
+):
+    """List all Auto-Support Bundles (both ACC and V3-managed clusters) via API"""
+    if clusterID:
+        if rc := astraSDK.asups.getClusterAsups(
+            quiet=quiet, verbose=verbose, output=output, config=config
+        ).main(clusterID=clusterID, triggerTypeFilter=triggerTypeFilter, uploadFilter=uploadFilter):
+            return rc
+        raise SystemExit("astraSDK.asups.getClusterAsups() failed")
+    if rc := astraSDK.asups.getAllAsups(
+        quiet=quiet, verbose=verbose, output=output, config=config
+    ).main(clusterID=clusterID, triggerTypeFilter=triggerTypeFilter, uploadFilter=uploadFilter):
         return rc
-    raise SystemExit("astraSDK.asups.getAsups() failed")
+    raise SystemExit("astraSDK.asups.getAllAsups() failed")
 
 
 def listV3Asups(
@@ -307,6 +315,7 @@ def main(args, config=None):
                 config,
                 triggerTypeFilter=args.triggerTypeFilter,
                 uploadFilter=args.uploadFilter,
+                clusterID=args.clusterID,
             )
     elif args.objectType == "backups":
         if args.v3:

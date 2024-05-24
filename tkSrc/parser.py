@@ -799,6 +799,14 @@ class ToolkitParser:
             choices=["true", "false"],
             help="filter results by whether an ASUP upload was requested",
         )
+        if not self.v3:
+            self.subparserListAsups.add_argument(
+                "-c",
+                "--clusterID",
+                choices=(None if self.plaidMode else self.acl.clusters),
+                help="only show managed-cluster ASUPs of a particular cluster (requires CR-driven "
+                "architecture)",
+            )
 
     def list_backups_args(self):
         """list backups args and flags"""

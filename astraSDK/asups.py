@@ -18,8 +18,10 @@
 import copy
 import yaml
 import json
+from tabulate import tabulate
 
 from .common import SDKCommon
+from .clusters import getManagedClusters
 
 
 class getAsups(SDKCommon):
@@ -209,3 +211,215 @@ class createAsup(SDKCommon):
                 else:
                     super().printError(ret)
             return False
+
+
+class getClusterAsups(SDKCommon):
+    """This class gets Astra Control V3 cluster auto-support bundles for a single cluster via the
+    topology/v1/managedClusters/<clusterID>/clusterAutoSupports endpoint."""
+
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        super().__init__(config=config)
+
+    def main(self, clusterID, triggerTypeFilter=None, uploadFilter=None):
+        endpoint = f"topology/v1/managedClusters/{clusterID}/clusterAutoSupports"
+        url = self.base + endpoint
+
+        data = {}
+        params = {}
+
+        ret = super().apicall(
+            "get",
+            url,
+            data,
+            self.headers,
+            params,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if triggerTypeFilter or uploadFilter:
+                asupsCopy = copy.deepcopy(results)
+                for counter, asup in enumerate(asupsCopy.get("items")):
+                    if triggerTypeFilter and triggerTypeFilter != asup["triggerType"]:
+                        results["items"].remove(asupsCopy["items"][counter])
+                    elif uploadFilter and uploadFilter != asup["upload"]:
+                        results["items"].remove(asupsCopy["items"][counter])
+            if self.output == "json":
+                dataReturn = results
+            elif self.output == "yaml":
+                dataReturn = yaml.dump(results)
+            elif self.output == "table":
+                dataReturn = self.basicTable(
+                    [
+                        "asupID",
+                        "state",
+                        "upload",
+                        "uploadState",
+                        "triggerType",
+                        "dataWindowStart",
+                    ],
+                    [
+                        "id",
+                        "generationState",
+                        "upload",
+                        "uploadState",
+                        "triggerType",
+                        "dataWindowStart",
+                    ],
+                    results,
+                )
+            if not self.quiet:
+                print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+            return dataReturn
+
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False
+
+
+class getAllClusterAsups(SDKCommon):
+    """This class gets Astra Control V3 cluster auto-support bundles for all managed clusters via
+    getClusterAsups (which uses the topology/v1/managedClusters/<clusterID>/clusterAutoSupports
+    endpoint)."""
+
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        self.config = config
+        super().__init__(config=config)
+        self.clusters = getManagedClusters(verbose=verbose, config=config).main()
+
+    def main(self, triggerTypeFilter=None, uploadFilter=None):
+        asups = {"items": []}
+        if self.clusters is False:
+            return asups
+        for cluster in self.clusters["items"]:
+            if (
+                cluster.get("connectorCapabilities")
+                and "neptuneV1" in cluster["connectorCapabilities"]
+            ):
+                clusterAsups = getClusterAsups(verbose=self.verbose, config=self.config).main(
+                    clusterID=cluster["id"],
+                    triggerTypeFilter=triggerTypeFilter,
+                    uploadFilter=uploadFilter,
+                )
+                asups["items"] += clusterAsups["items"]
+        if self.output == "json":
+            dataReturn = asups
+        elif self.output == "yaml":
+            dataReturn = yaml.dump(asups)
+        elif self.output == "table":
+            dataReturn = self.basicTable(
+                [
+                    "asupID",
+                    "state",
+                    "upload",
+                    "uploadState",
+                    "triggerType",
+                    "dataWindowStart",
+                ],
+                [
+                    "id",
+                    "generationState",
+                    "upload",
+                    "uploadState",
+                    "triggerType",
+                    "dataWindowStart",
+                ],
+                asups,
+            )
+        if not self.quiet:
+            print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+        return dataReturn
+
+
+class getAllAsups(SDKCommon):
+    """This class gets all auto-support bundles in an Astra Control environment, both ACC-focused
+    ASUPs via the getAsups class, and V3 managed cluster ASUPs via the getAllClusterAsups class."""
+
+    def __init__(self, quiet=True, verbose=False, output="json", config=None):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        output: table: pretty print the data
+                json: (default) output in JSON
+                yaml: output in yaml
+        config: optionally provide a pre-populated common.getConfig().main() object"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.output = output
+        self.config = config
+        super().__init__(config=config)
+
+    def main(self, triggerTypeFilter=None, uploadFilter=None):
+        asups = {"items": []}
+        accAsups = getAsups(verbose=self.verbose, config=self.config).main(
+            triggerTypeFilter=triggerTypeFilter, uploadFilter=uploadFilter
+        )
+        clusterAsups = getAllClusterAsups(verbose=self.verbose, config=self.config).main(
+            triggerTypeFilter=triggerTypeFilter, uploadFilter=uploadFilter
+        )
+        if accAsups:
+            asups["items"] += accAsups["items"]
+        if clusterAsups:
+            asups["items"] += clusterAsups["items"]
+        if self.output == "json":
+            dataReturn = asups
+        elif self.output == "yaml":
+            dataReturn = yaml.dump(asups)
+        elif self.output == "table":
+            tabHeader = [
+                "asupID",
+                "state",
+                "upload",
+                "uploadState",
+                "triggerType",
+                "dataWindowStart",
+                "dataWindowEnd",
+            ]
+            tabData = []
+            for item in asups["items"]:
+                if item.get("generationState"):
+                    tabKeys = [
+                        "id",
+                        "generationState",
+                        "upload",
+                        "uploadState",
+                        "triggerType",
+                        "dataWindowStart",
+                        "dataWindowEnd",
+                    ]
+                else:
+                    tabKeys = [
+                        "id",
+                        "creationState",
+                        "upload",
+                        "uploadState",
+                        "triggerType",
+                        "dataWindowStart",
+                        "dataWindowEnd",
+                    ]
+                row = [item.get(k) for k in tabKeys]
+                tabData.append(row)
+            dataReturn = tabulate(tabData, tabHeader, tablefmt="grid")
+        if not self.quiet:
+            print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
+        return dataReturn

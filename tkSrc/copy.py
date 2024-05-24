@@ -41,6 +41,7 @@ def downloadV3Asup(v3, dry_run, skip_tls_verify, verbose, asupDict):
         f"-v={6 if verbose else 0} {cpCmd} {asupDict['metadata']['name']}.7z",
         env={"KUBECONFIG": os.path.expanduser(config_file)} if config_file != "None" else None,
     )
+    print(f"'{asupDict['metadata']['name']}.7z' downloaded to current directory successfully.")
 
 
 def main(args, ard, config=None):
