@@ -143,8 +143,8 @@ def createV3ConnectorOperator(v3, dry_run, skip_tls_verify, verbose, operator_ve
     context, config_file = tuple(v3.split("@"))
     helpers.run(
         f"kubectl --insecure-skip-tls-verify={skip_tls_verify} --context={context} "
-        f"-v={6 if verbose else 0} apply --dry_run={dry_run if dry_run else 'none'} -f "
-        f"{helpers.getOperatorURL(operator_version)}",
+        f"-v={6 if verbose else 0} apply --dry_run={dry_run if dry_run else 'none'} "
+        f"-f {operator_version}",
         env={"KUBECONFIG": os.path.expanduser(config_file)} if config_file != "None" else None,
     )
 
@@ -314,7 +314,7 @@ def createV3Hook(
             name=helpers.isRFC1123(name),
             action=operation.split("-")[1],
             appName=app,
-            arguments=helpers.prependDump(helpers.createHookList(hookArguments), prepend=4),
+            arguments=helpers.prependDump(helpers.createNargsList(hookArguments), prepend=4),
             hookSource=encodedStr,
             matchingCriteria=helpers.prependDump(
                 helpers.createCriteriaList(
@@ -579,7 +579,7 @@ def main(args, ard, config=None):
                 args.script,
                 args.operation.split("-")[0],
                 args.operation.split("-")[1],
-                helpers.createHookList(args.hookArguments),
+                helpers.createNargsList(args.hookArguments),
                 matchingCriteria=helpers.createCriteriaList(
                     args.containerImage,
                     args.namespace,

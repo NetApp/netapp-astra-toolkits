@@ -1016,6 +1016,7 @@ class createAstraConnector(SDKCommon):
         apiToken,
         regCred,
         registry=None,
+        label=None,  # should be of 'acs.example.com/policy=allowed' format
         name="astra-connector",
         namespace="astra-connector",
     ):
@@ -1039,6 +1040,8 @@ class createAstraConnector(SDKCommon):
                 },
             },
         }
+        if label:
+            body["spec"]["labels"] = {label.split("=")[0]: label.split("=")[1]}
         return createResource(
             quiet=self.quiet,
             dry_run=self.dry_run,

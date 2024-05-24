@@ -42,20 +42,22 @@ def createHelmStr(flagName, values):
     return returnStr
 
 
-def createHookList(hookArguments):
-    """Create a list of strings to be used for --hookArguments, as nargs="*" can provide
-    a variety of different types of lists of lists depending on how the user uses it.
-    User Input                    argParse Value                      createHookList Return
-    ----------                    --------------                      ---------------------
+def createNargsList(arguments):
+    """Create a list of strings to be used for --hookArguments and --labels, as nargs="*" can
+    provide a variety of different types of lists of lists depending on how the user uses it.
+    User Input                    argParse Value                      createNargsList Return
+    ----------                    --------------                      ----------------------
     -a arg1                       [['arg1']]                          ['arg1']
     -a arg1 arg2                  [['arg1', 'arg2']]                  ['arg1', 'arg2']
     -a arg1 -a arg2               [['arg1'], ['arg2']]                ['arg1', 'arg2']
     -a "arg1 s_arg" arg2          [['arg1 s_arg', 'arg2']]            ['arg1 s_arg', 'arg2']
     -a "arg1 s_arg" arg2 -a arg3  [['arg1 s_arg', 'arg2'], ['arg3']]  ['arg1 s_arg', 'arg2', 'arg3']
     """
+    if arguments is None:
+        return None
     returnList = []
-    if hookArguments:
-        for arg in hookArguments:
+    if arguments:
+        for arg in arguments:
             if isinstance(arg, list):
                 for a in arg:
                     returnList.append(a)

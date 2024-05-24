@@ -1183,7 +1183,7 @@ class ToolkitParser:
             "--dataWindowEnd",
             default=None,
             help=f"specify an ISO-8601 timestamp, like: {now.isoformat(timespec='seconds')}"
-            " (defaults to current time of request)"
+            " (defaults to current time of request)",
         )
         quickTime = self.subparserCreateAsup.add_argument_group(
             "Quick Time Frame",
@@ -1843,14 +1843,6 @@ class ToolkitParser:
                 help="The cloudID to add the cluster to (only required if # of clouds > 1)",
             )
             self.subparserManageCluster.add_argument(
-                "-v",
-                "--operator-version",
-                required=False,
-                default="24.02.0-202403151353",
-                help="Optionally specify the astra-connector-operator version "
-                "(default: %(default)s)",
-            )
-            self.subparserManageCluster.add_argument(
                 "--regCred",
                 choices=(None if self.plaidMode else self.acl.credentials),
                 default=None,
@@ -1864,7 +1856,33 @@ class ToolkitParser:
                 "(defaults to cr.<astra-control-fqdn>)",
             )
             self.subparserManageCluster.add_argument(
+                "-l",
+                "--label",
+                default=None,
+                help="optionally specify a label to be added to the AstraConnector CR, for "
+                "example: 'acs.example.com/policy=allowed'",
+            )
+            self.subparserManageCluster.add_argument(
                 "--headless", action="store_true", default=False, help=argparse.SUPPRESS
+            )
+            versionGroup = self.subparserManageCluster.add_argument_group(
+                "operatorGroup", "Astra Connector Operator Version to install"
+            )
+            verMEGroup = versionGroup.add_mutually_exclusive_group()
+            verMEGroup.add_argument(
+                "-v",
+                "--operator-version",
+                required=False,
+                default="24.02.0-202403151353",
+                help="Optionally specify the astra-connector-operator version to install from "
+                "GitHub (default: %(default)s)",
+            )
+            verMEGroup.add_argument(
+                "-f",
+                "--filename",
+                required=False,
+                default=None,
+                help="Optionally specify the local astra-connector-operator file to install",
             )
         else:
             self.subparserManageCluster.add_argument(

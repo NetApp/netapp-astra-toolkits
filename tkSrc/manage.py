@@ -154,6 +154,7 @@ def manageV3Cluster(
     cloudID,
     headless,
     ard,
+    label=None,
     config=None,
 ):
     helpers.isRFC1123(clusterName)
@@ -216,6 +217,7 @@ def manageV3Cluster(
             apiToken["metadata"]["name"],
             regCred,
             registry=registry,
+            label=label,
         )
     if not connector:
         raise SystemExit("astraSDK.k8s.createAstraConnector() failed")
@@ -438,12 +440,13 @@ def main(args, ard, config=None):
                 args.quiet,
                 args.verbose,
                 args.clusterName,
-                args.operator_version,
+                args.filename if args.filename else helpers.getOperatorURL(args.operator_version),
                 args.regCred,
                 args.registry,
                 args.cloudID,
                 args.headless,
                 ard,
+                label=args.label,
                 config=config,
             )
         else:
