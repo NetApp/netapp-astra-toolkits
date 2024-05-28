@@ -381,6 +381,10 @@ class ToolkitParser:
 
     def sub_destroy_commands(self):
         """destroy 'X'"""
+        self.subparserDestroyAsup = self.subparserDestroy.add_parser(
+            "asup",
+            help="destroy managed-cluster auto-support bundle",
+        )
         self.subparserDestroyBackup = self.subparserDestroy.add_parser(
             "backup",
             help="destroy backup",
@@ -1929,6 +1933,12 @@ class ToolkitParser:
             help="optionally specify the default bucketID for backups",
         )
 
+    def destroy_asup_args(self):
+        """destroy asup args and flags"""
+        self.subparserDestroyAsup.add_argument(
+            "asup", choices=(None if self.plaidMode else self.acl.asups), help="asup to destroy"
+        )
+
     def destroy_backup_args(self):
         """destroy backup args and flags"""
         self.subparserDestroyBackup.add_argument(
@@ -2288,6 +2298,7 @@ class ToolkitParser:
         self.manage_cluster_args()
         self.manage_cloud_args()
 
+        self.destroy_asup_args()
         self.destroy_backup_args()
         self.destroy_cluster_args()
         self.destroy_credential_args()

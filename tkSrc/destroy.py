@@ -19,7 +19,26 @@ import astraSDK
 
 
 def main(args, ard, config=None):
-    if args.objectType == "backup":
+    if args.objectType == "asup":
+        if args.v3:
+            rc = astraSDK.k8s.destroyResource(
+                quiet=args.quiet,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
+                config_context=args.v3,
+                skip_tls_verify=args.skip_tls_verify,
+            ).main("autosupportbundles", args.asup)
+        else:
+            if ard.needsattr("asups"):
+                ard.asups = astraSDK.asups.getAllClusterAsups(config=config).main()
+            asup = ard.getSingleDict("asups", "id", args.asup)
+            if astraSDK.asups.destroyClusterAsup(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(asup["clusterID"], asup["id"]):
+                print(f"Asup {args.asup} destroyed")
+            else:
+                raise SystemExit(f"Failed destroying asup: {args.asup}")
+    elif args.objectType == "backup":
         if args.v3:
             rc = astraSDK.k8s.destroyResource(
                 quiet=args.quiet,

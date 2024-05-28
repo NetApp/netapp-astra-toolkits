@@ -4,6 +4,7 @@ The `destroy` argument allows you to destroy Astra resources.  Its opposite comm
 
 **Use with caution**, as there is no confirmation required for these commands.
 
+* [Asup](#asup)
 * [Backup](#backup)
 * [Credential](#credential)
 * [Group](#group)
@@ -17,13 +18,14 @@ The `destroy` argument allows you to destroy Astra resources.  Its opposite comm
 
 ```text
 $ actoolkit destroy -h
-usage: actoolkit destroy [-h] {backup,cluster,credential,secret,group,hook,exechook,ldap,protection,schedule,replication,script,snapshot,user} ...
+usage: actoolkit destroy [-h] {asup,backup,cluster,credential,secret,group,hook,exechook,ldap,protection,schedule,replication,script,snapshot,user} ...
 
 options:
   -h, --help            show this help message and exit
 
 objectType:
-  {backup,cluster,credential,secret,group,hook,exechook,ldap,protection,schedule,replication,script,snapshot,user}
+  {asup,backup,cluster,credential,secret,group,hook,exechook,ldap,protection,schedule,replication,script,snapshot,user}
+    asup                destroy managed-cluster auto-support bundle
     backup              destroy backup
     cluster             destroy cluster
     credential (secret)
@@ -37,6 +39,21 @@ objectType:
     script              destroy script (hookSource)
     snapshot            destroy snapshot
     user                destroy user
+```
+
+## Asup
+
+The `destroy asup` command allows you to destroy a managed-cluster auto-support bundle. The command usage is:
+
+```text
+actoolkit destroy asup <asupID>
+```
+
+Sample output:
+
+```text
+$ actoolkit destroy asup f0510a66-0c89-483c-83dd-feba9add9d6e
+Asup f0510a66-0c89-483c-83dd-feba9add9d6e destroyed
 ```
 
 ## Backup

@@ -343,6 +343,15 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False, conf
             acl.buckets = ard.buildList("buckets", "id")
 
     elif verbs["destroy"] and len(argv) - verbPosition >= 2:
+        if argv[verbPosition + 1] == "asup":
+            if v3:
+                ard.asups = astraSDK.k8s.getResources(
+                    config_context=v3, skip_tls_verify=v3_skip_tls_verify
+                ).main("autosupportbundles")
+                acl.asups = ard.buildList("asups", "metadata.name")
+            else:
+                ard.asups = astraSDK.asups.getAllClusterAsups(config=config).main()
+                acl.asups = ard.buildList("asups", "id")
         if argv[verbPosition + 1] == "backup" and len(argv) - verbPosition >= 3:
             if v3:
                 ard.apps = astraSDK.k8s.getResources(

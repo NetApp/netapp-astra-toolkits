@@ -322,6 +322,8 @@ class getAllClusterAsups(SDKCommon):
                     triggerTypeFilter=triggerTypeFilter,
                     uploadFilter=uploadFilter,
                 )
+                for c in clusterAsups["items"]:
+                    c["clusterID"] = cluster["id"]
                 asups["items"] += clusterAsups["items"]
         if self.output == "json":
             dataReturn = asups
@@ -473,6 +475,47 @@ class createClusterAsup(SDKCommon):
             if not self.quiet:
                 print(json.dumps(results))
             return results
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False
+
+
+class destroyClusterAsup(SDKCommon):
+    """This class deletes an Astra Control V3 cluster auto-support bundle via
+    the topology/v1/managedClusters/<clusterID>/clusterAutoSupports endpoint."""
+
+    def __init__(self, quiet=True, verbose=False, config=None):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__(config=config)
+        self.headers["accept"] = "application/astra-clusterAutoSupport+json"
+        self.headers["Content-Type"] = "application/astra-clusterAutoSupport+json"
+
+    def main(self, clusterID, asupID):
+        endpoint = f"topology/v1/managedClusters/{clusterID}/clusterAutoSupports/{asupID}"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "type": "application/astra-clusterAutoSupport",
+            "version": "1.0",
+        }
+
+        ret = super().apicall(
+            "delete",
+            url,
+            data,
+            self.headers,
+            params,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+
+        if ret.ok:
+            return True
         else:
             if not self.quiet:
                 super().printError(ret)
