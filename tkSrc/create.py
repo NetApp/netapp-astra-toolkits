@@ -111,12 +111,16 @@ def monitorV3ProtectionTask(protection, pollTimer, v3, skip_tls_verify):
     return False
 
 
-def createAsup(quiet, verbose, config, upload=False, dataWindowStart=None, dataWindowEnd=None):
+def createAsup(
+    quiet, verbose, config, upload=False, dataWindowStart=None, dataWindowEnd=None, clusterID=None
+):
     """Creates an Astra Control ASUP (auto-support bundle)"""
-    # Add clusterID arg with default of None
-    # if clusterID:
-    #    call new createClusterAsup class
-    # else:
+    if clusterID:
+        if rc := astraSDK.asups.createClusterAsup(quiet=quiet, verbose=verbose, config=config).main(
+            clusterID, "true" if upload else "false", dataWindowStart=dataWindowStart
+        ):
+            return rc
+        raise SystemExit("astraSDK.asups.createClusterAsup() failed")
     if rc := astraSDK.asups.createAsup(quiet=quiet, verbose=verbose, config=config).main(
         "true" if upload else "false", dataWindowStart=dataWindowStart, dataWindowEnd=dataWindowEnd
     ):
@@ -483,13 +487,16 @@ def main(args, ard, config=None):
                 dataWindowStart=args.dataWindowStart,
             )
         else:
+            if args.dataWindowEnd and args.clusterID:
+                helpers.parserError("--dataWindowEnd cannot be used with --clusterID")
             createAsup(
                 args.quiet,
                 args.verbose,
                 config,
-                args.upload,
-                args.dataWindowStart,
-                args.dataWindowEnd,
+                upload=args.upload,
+                dataWindowStart=args.dataWindowStart,
+                dataWindowEnd=args.dataWindowEnd,
+                clusterID=args.clusterID,
             )
     elif args.objectType == "backup":
         if args.v3:

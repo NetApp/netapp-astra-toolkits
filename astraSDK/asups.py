@@ -423,3 +423,57 @@ class getAllAsups(SDKCommon):
         if not self.quiet:
             print(json.dumps(dataReturn) if type(dataReturn) is dict else dataReturn)
         return dataReturn
+
+
+class createClusterAsup(SDKCommon):
+    """This class creates an Astra Control V3 cluster auto-support bundles for a single cluster via
+    the topology/v1/managedClusters/<clusterID>/clusterAutoSupports endpoint.
+
+    upload: should be one of "true" or "false" (str, not bool).
+    dataWindowStart: JSON string containing a timestamp indicating the start time of the ASUP.
+        Defaults to 24 hours before the current time of the request.
+    dataWindowStart must conform to the ISO-8601 Date Time Schema.
+
+    There is no validation of this input, that instead is left to the calling method."""
+
+    def __init__(self, quiet=True, verbose=False, config=None):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
+        self.quiet = quiet
+        self.verbose = verbose
+        super().__init__(config=config)
+        self.headers["accept"] = "application/astra-clusterAutoSupport+json"
+        self.headers["Content-Type"] = "application/astra-clusterAutoSupport+json"
+
+    def main(self, clusterID, upload, dataWindowStart=None):
+        endpoint = f"topology/v1/managedClusters/{clusterID}/clusterAutoSupports"
+        url = self.base + endpoint
+        params = {}
+        data = {
+            "upload": upload,
+            "type": "application/astra-clusterAutoSupport",
+            "version": "1.0",
+        }
+        if dataWindowStart:
+            data["dataWindowStart"] = dataWindowStart
+
+        ret = super().apicall(
+            "post",
+            url,
+            data,
+            self.headers,
+            params,
+            quiet=self.quiet,
+            verbose=self.verbose,
+        )
+
+        if ret.ok:
+            results = super().jsonifyResults(ret)
+            if not self.quiet:
+                print(json.dumps(results))
+            return results
+        else:
+            if not self.quiet:
+                super().printError(ret)
+            return False

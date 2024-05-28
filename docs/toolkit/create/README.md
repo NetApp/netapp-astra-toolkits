@@ -49,29 +49,37 @@ actoolkit create asup <optionalArguments>
 
 Additional information on each argument is as follows:
 
+* `-c`/`--clusterID`: optionally specify an AstraConnector-managed cluster ID to create a managed cluster auto-support bundle, instead of an entire ACC support bundle (managed cluster auto-support bundles are supported on both ACC and ACS, but the cluster must be managed via an AstraConnector)
 * `-u`/`--upload`: specify this flag to have the auto-support bundle automatically uploaded to the NetApp Support Site when generated (default is to not have it uploaded)
 * Custom Time Frame (cannot be used in conjunction with Quick Time Frame):
   * `--dataWindowStart`: an ISO-8601 timestamp, like `2024-05-08T14:11:07Z`. You must include a timezone, either via `Z` (UTC) or an offset `+04:00`. This argument defaults to 24 hours before `--dateWindowEnd`, and the maximum value is 7 days before the current time.
-  * `--dataWindowEnd`: an ISO-8601 timestamp, like `2024-05-09T14:11:07Z`. You must include a timezone, either via `Z` (UTC) or an offset `+04:00`. This argument defaults to the current time of request.
+  * `--dataWindowEnd`: (only supported for ACC bundles) an ISO-8601 timestamp, like `2024-05-09T14:11:07Z`. You must include a timezone, either via `Z` (UTC) or an offset `+04:00`. This argument defaults to the current time of request.
 * Quick Time Frame (cannot be used in conjunction with Custom Time Frame):
   * `-H`/`--hours`: specify the auto-support bundle to span the last X hours (anywhere from 1 to 24, inclusive). This field is mutually exclusive with `--days`.
   * `-d`/`--days`: specify the auto-support bundle to span the last X days (anywhere from 1 to 7, inclusive). This field is mutually exclusive with `--hours`.
 
-To create an auto-support bundle covering the last 24 hours, and not upload it to the NetApp Support Site:
+To create an ACC auto-support bundle covering the last 24 hours, and not upload it to the NetApp Support Site:
 
 ```text
 $ actoolkit create asup
 {"metadata": {"creationTimestamp": "2024-05-08T15:56:19Z", "modificationTimestamp": "2024-05-08T15:56:19Z", "createdBy": "62f49133-da54-4ce5-a4bb-9a20b5d9b000", "labels": []}, "type": "application/astra-asup", "version": "1.0", "id": "9bc7e099-ff24-4255-bd48-65167b087cec", "upload": "false", "creationState": "running", "triggerType": "manual", "dataWindowStart": "2024-05-07T15:56:19Z", "dataWindowEnd": "2024-05-08T15:56:19Z"}
 ```
 
-To create an auto-support bundle covering the last 2 days, and upload it to the NetApp Support Site:
+To create a managed cluster auto-support bundle covering the last 24 hours, and not upload it to the NetApp Support Site:
+
+```text
+$ actoolkit create asup --clusterID 93687487-0367-4ce1-9021-79466b2ec0f0
+{"type": "application/astra-clusterAutoSupport", "version": "1.0", "id": "396a4a7a-8c13-4f5f-9b9a-72b1ef79cc7d", "metadata": {"createdBy": "d7635a1b-e248-4345-a5a7-68176443567d", "creationTimestamp": "2024-05-28T15:29:32Z", "labels": [], "modificationTimestamp": "2024-05-28T15:29:32Z", "modifiedBy": "d7635a1b-e248-4345-a5a7-68176443567d"}, "name": "autosupport-bundle-20240528152932", "generationState": "pending", "uploadState": "disabled", "triggerType": "manual", "dataWindowStart": "2024-05-28T15:29:32Z", "upload": "false", "autoSupportLocation": {}, "links": [{"rel": "canonical", "href": "http://localhost:8080/accounts/7e23173a-4f5f-4d2b-a8a9-bcd424c09cd7/topology/v1/managedClusters/93687487-0367-4ce1-9021-79466b2ec0f0/clusterAutoSupports/396a4a7a-8c13-4f5f-9b9a-72b1ef79cc7d"}, {"rel": "collection", "href": "http://localhost:8080/accounts/7e23173a-4f5f-4d2b-a8a9-bcd424c09cd7/topology/v1/managedClusters/93687487-0367-4ce1-9021-79466b2ec0f0/clusterAutoSupports"}]}
+```
+
+To create an ACC auto-support bundle covering the last 2 days, and upload it to the NetApp Support Site:
 
 ```text
 $ actoolkit create asup --upload -d 2
 {"metadata": {"creationTimestamp": "2024-05-09T15:01:35Z", "modificationTimestamp": "2024-05-09T15:01:35Z", "createdBy": "62f49133-da54-4ce5-a4bb-9a20b5d9b000", "labels": []}, "type": "application/astra-asup", "version": "1.0", "id": "3d395cd3-5fa8-43ba-a882-805eb4e6741b", "upload": "true", "creationState": "running", "uploadState": "pending", "triggerType": "manual", "dataWindowStart": "2024-05-07T15:01:35Z", "dataWindowEnd": "2024-05-09T15:01:35Z"}
 ```
 
-To create an auto-support bundle covering May 7th, 2024 in the EDT timezone, and not have it automatically upload to the NetApp Support Site:
+To create an ACC auto-support bundle covering May 7th, 2024 in the EDT timezone, and not have it automatically upload to the NetApp Support Site:
 
 ```text
 $ actoolkit create asup --dataWindowStart 2024-05-07T00:00:00+04:00 --dataWindowEnd 2024-05-07T23:59:59+04:00

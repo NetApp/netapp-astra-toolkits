@@ -74,15 +74,17 @@ def listAsups(
         raise SystemExit("astraSDK.asups.getClusterAsups() failed")
     if rc := astraSDK.asups.getAllAsups(
         quiet=quiet, verbose=verbose, output=output, config=config
-    ).main(clusterID=clusterID, triggerTypeFilter=triggerTypeFilter, uploadFilter=uploadFilter):
+    ).main(triggerTypeFilter=triggerTypeFilter, uploadFilter=uploadFilter):
         return rc
     raise SystemExit("astraSDK.asups.getAllAsups() failed")
 
 
-def listV3Asups(
-    v3, quiet, output, verbose, skip_tls_verify=False, triggerTypeFilter=None, uploadFilter=None
-):
+def listV3Asups(v3, quiet, output, verbose, skip_tls_verify=False, triggerTypeFilter=None):
     """List autosupportbundles Kubernetes custom resources"""
+    if triggerTypeFilter == "manual":
+        triggerTypeFilter = "Manual"
+    elif triggerTypeFilter == "scheduled":
+        triggerTypeFilter = "Scheduled"
     return astraSDK.k8s.getResources(
         quiet=quiet,
         output=output,
@@ -91,10 +93,7 @@ def listV3Asups(
         skip_tls_verify=skip_tls_verify,
     ).main(
         "autosupportbundles",
-        filters=[
-            {"keyFilter": "spec.triggerType", "valFilter": triggerTypeFilter},
-            {"keyFilter": "spec.upload", "valFilter": uploadFilter},
-        ],
+        filters=[{"keyFilter": "spec.triggerType", "valFilter": triggerTypeFilter}],
     )
 
 
@@ -305,7 +304,6 @@ def main(args, config=None):
                 args.verbose,
                 skip_tls_verify=args.skip_tls_verify,
                 triggerTypeFilter=args.triggerTypeFilter,
-                uploadFilter=args.uploadFilter,
             )
         else:
             return listAsups(

@@ -204,6 +204,11 @@ def main(argv, verbs, verbPosition, ard, acl, v3, v3_skip_tls_verify=False, conf
                 ard.storageClasses = astraSDK.storageclasses.getStorageClasses(config=config).main()
                 acl.storageClasses = ard.buildList("storageClasses", "name")
                 acl.storageClasses = list(set(acl.storageClasses))
+        elif argv[verbPosition + 1] == "asup":
+            ard.clusters = astraSDK.clusters.getManagedClusters(config=config).main()
+            acl.clusters = ard.buildList(
+                "clusters", "id", fKey="connectorCapabilities", fVal="neptuneV1", inMatch=True
+            )
         elif argv[verbPosition + 1] == "cluster":
             ard.clouds = astraSDK.clouds.getClouds(config=config).main()
             for cloud in ard.clouds["items"]:

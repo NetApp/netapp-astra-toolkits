@@ -793,13 +793,13 @@ class ToolkitParser:
             choices=["manual", "scheduled"],
             help="filter results by what triggered the creation of the ASUP",
         )
-        self.subparserListAsups.add_argument(
-            "-u",
-            "--uploadFilter",
-            choices=["true", "false"],
-            help="filter results by whether an ASUP upload was requested",
-        )
         if not self.v3:
+            self.subparserListAsups.add_argument(
+                "-u",
+                "--uploadFilter",
+                choices=["true", "false"],
+                help="filter results by whether an ASUP upload was requested",
+            )
             self.subparserListAsups.add_argument(
                 "-c",
                 "--clusterID",
@@ -1167,6 +1167,14 @@ class ToolkitParser:
 
     def create_asup_args(self):
         """create auto-support bundle args and flags"""
+        if not self.v3:
+            self.subparserCreateAsup.add_argument(
+                "-c",
+                "--clusterID",
+                default=None,
+                choices=(None if self.plaidMode else self.acl.clusters),
+                help="optionally create a connector-managed-cluster auto-support bundle",
+            )
         self.subparserCreateAsup.add_argument(
             "-u",
             "--upload",
@@ -1174,8 +1182,6 @@ class ToolkitParser:
             action="store_true",
             help="upload the bundle to the NetApp Support Site when generated",
         )
-        # if not self.v3:
-        #    self.subparserCreateAsup.add_argument("-c", "--clusterID", choices=v3-only clusters)
         now = datetime.now(timezone.utc)
         customTime = self.subparserCreateAsup.add_argument_group(
             "Custom Time Frame",
