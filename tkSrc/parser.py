@@ -1862,6 +1862,12 @@ class ToolkitParser:
                 help="optionally specify a label to be added to the AstraConnector CR, for "
                 "example: 'acs.example.com/policy=allowed'",
             )
+            self.subparserManageCluster.add_argument(
+                "--disableAutoSupport",
+                default=False,
+                action="store_true",
+                help="specify to opt-out of automatic upload of auto support bundles",
+            )
             versionGroup = self.subparserManageCluster.add_argument_group(
                 "operatorGroup", "Astra Connector Operator Version to install"
             )
