@@ -611,6 +611,9 @@ def main(args, ard, config=None):
             secureMode=args.secure,
         )
         if rc is False:
+            astraSDK.credentials.destroyCredential(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(credential["id"])
             raise SystemExit("astraSDK.settings.createLdap() failed")
     elif args.objectType == "protection" or args.objectType == "schedule":
         naStr = "" if args.v3 else "*"

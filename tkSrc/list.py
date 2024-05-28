@@ -393,6 +393,10 @@ def main(args, config=None):
             cont=args.cont,
             matchType=("in" if args.matchType == "partial" else "eq"),
         )
+    elif args.objectType == "ldapsettings":
+        rc = astraSDK.settings.getLdapSettings(
+            quiet=args.quiet, verbose=args.verbose, output=args.output, config=config
+        ).main()
     elif args.objectType == "ldapusers":
         rc = astraSDK.users.getLdapUsers(
             quiet=args.quiet, verbose=args.verbose, output=args.output, config=config

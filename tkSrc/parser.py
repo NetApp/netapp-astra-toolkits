@@ -246,6 +246,9 @@ class ToolkitParser:
         self.subparserListLdapgroups = self.subparserList.add_parser(
             "ldapgroups", help="queries a connected LDAP(S) server and lists available groups"
         )
+        self.subparserListLdapsettings = self.subparserList.add_parser(
+            "ldapsettings", help="lists the current LDAP settings"
+        )
         self.subparserListLdapusers = self.subparserList.add_parser(
             "ldapusers", help="queries a connected LDAP(S) server and lists available users"
         )
