@@ -560,6 +560,9 @@ def kube_config(argv, acl, verbPosition, v3Position, global_args):
     verbPosition.
     """
     desired_context = ""
+    # Catch "actoolkit --v3" command (without any other arguments)
+    if v3Position + 1 == len(argv):
+        return None, verbPosition
     v3_arg = argv[v3Position + 1]
     # This is only needed to properly generate help text ("actoolkit --v3 --help")
     if verbPosition is None:

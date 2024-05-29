@@ -155,6 +155,7 @@ def manageV3Cluster(
     ard,
     label=None,
     disableAutoSupport=False,
+    asupURL=None,
     config=None,
 ):
     helpers.isRFC1123(clusterName)
@@ -210,6 +211,7 @@ def manageV3Cluster(
         registry=registry,
         label=label,
         disableAutoSupport=disableAutoSupport,
+        asupURL=asupURL,
     )
     if not connector:
         raise SystemExit("astraSDK.k8s.createAstraConnector() failed")
@@ -440,6 +442,7 @@ def main(args, ard, config=None):
                 ard,
                 label=args.label,
                 disableAutoSupport=args.disableAutoSupport,
+                asupURL=args.asupURL,
                 config=config,
             )
         else:

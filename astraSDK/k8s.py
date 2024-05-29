@@ -1018,6 +1018,7 @@ class createAstraConnector(SDKCommon):
         registry=None,
         label=None,  # should be of 'acs.example.com/policy=allowed' format
         disableAutoSupport=False,
+        asupURL=None,
         name="astra-connector",
         namespace="astra-connector",
     ):
@@ -1045,6 +1046,9 @@ class createAstraConnector(SDKCommon):
             body["spec"]["labels"] = {label.split("=")[0]: label.split("=")[1]}
         if disableAutoSupport:
             body["spec"]["autoSupport"] = {"enrolled": False}
+        elif asupURL:
+            body["spec"]["autoSupport"] = {"url": asupURL}
+
         return createResource(
             quiet=self.quiet,
             dry_run=self.dry_run,

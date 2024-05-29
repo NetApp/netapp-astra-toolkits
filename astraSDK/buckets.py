@@ -56,6 +56,8 @@ class getBuckets(SDKCommon):
 
         if ret.ok:
             buckets = super().jsonifyResults(ret)
+            if buckets is None:
+                return False
             bucketsCooked = copy.deepcopy(buckets)
             for counter, bucket in enumerate(buckets.get("items")):
                 if nameFilter and nameFilter.lower() not in bucket.get("name").lower():
