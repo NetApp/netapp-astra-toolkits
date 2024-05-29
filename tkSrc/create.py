@@ -591,11 +591,12 @@ def main(args, ard, config=None):
             if rc is False:
                 raise SystemExit("astraSDK.hooks.createHook() failed")
     elif args.objectType == "ldap":
+        settingName = "astra.account.ldap"
         credential = createLdapCredential(
             args.quiet, args.verbose, args.username, args.password, config=config
         )
         ard.settings = astraSDK.settings.getSettings(config=config).main()
-        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap")
+        ldapSetting = ard.getSingleDict("settings", "name", settingName)
         rc = astraSDK.settings.createLdap(
             quiet=args.quiet, verbose=args.verbose, config=config
         ).main(
@@ -615,6 +616,13 @@ def main(args, ard, config=None):
                 quiet=args.quiet, verbose=args.verbose, config=config
             ).main(credential["id"])
             raise SystemExit("astraSDK.settings.createLdap() failed")
+        if not astraSDK.settings.pollSettingState(
+            quiet=args.quiet, verbose=args.verbose, config=config
+        ).main(settingName):
+            raise SystemExit(
+                f"{settingName} failed to enter a valid state, please run 'actoolkit unmanage "
+                "ldap' to revert."
+            )
     elif args.objectType == "protection" or args.objectType == "schedule":
         naStr = "" if args.v3 else "*"
         if args.granularity == "hourly":

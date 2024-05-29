@@ -96,17 +96,30 @@ def main(args, ard, config=None):
             else:
                 raise SystemExit(f"Failed destroying hook: {args.hook}")
     elif args.objectType == "ldap":
+        settingName = "astra.account.ldap"
         ard.settings = astraSDK.settings.getSettings(config=config).main()
-        ldapSetting = ard.getSingleDict("settings", "name", "astra.account.ldap")
+        ldapSetting = ard.getSingleDict("settings", "name", settingName)
+        if ldapSetting["state"] == "pending":
+            raise SystemExit(
+                f"Error: {settingName} currently in 'pending' state. Please wait for its 'state' "
+                "to come out of 'pending' and try again."
+            )
         if astraSDK.settings.destroyLdap(
             quiet=args.quiet, verbose=args.verbose, config=config
         ).main(ldapSetting["id"]):
+            if not astraSDK.settings.pollSettingState(
+                quiet=args.quiet, verbose=args.verbose, config=config
+            ).main(settingName):
+                raise SystemExit(f"{settingName} failed to enter a valid state.")
             if ldapSetting["currentConfig"].get("credentialId"):
                 rc = astraSDK.credentials.destroyCredential(
                     quiet=args.quiet, verbose=args.verbose, config=config
                 ).main(ldapSetting["currentConfig"]["credentialId"])
                 if rc:
-                    print(f"Credential {ldapSetting['currentConfig']['credentialId']} destroyed")
+                    if not args.quiet:
+                        print(
+                            f"Credential {ldapSetting['currentConfig']['credentialId']} destroyed"
+                        )
                 else:
                     raise SystemExit(
                         "Failed destroying credential: "

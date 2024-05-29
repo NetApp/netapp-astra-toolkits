@@ -16,6 +16,8 @@
 """
 
 import json
+import sys
+import time
 import yaml
 
 from .common import SDKCommon
@@ -63,6 +65,46 @@ class getSettings(SDKCommon):
             return False
 
 
+class pollSettingState(SDKCommon):
+    """Get a single setting, and poll against its state field. The settings API is a bit unique
+    compared to other Astra Control APIs, and must be polled against to ensure the various settings
+    are in an expected state before moving on to other operations."""
+
+    def __init__(self, quiet=True, verbose=False, config=None):
+        """quiet: Will there be CLI output or just return (datastructure)
+        verbose: Print all of the ReST call info: URL, Method, Headers, Request Body
+        config: optionally provide a pre-populated common.getConfig().main() object"""
+        self.quiet = quiet
+        self.verbose = verbose
+        self.config = config
+        super().__init__(config=config)
+
+    def main(self, settingName, desiredState="valid", interval=5, retries=60):
+        if not self.quiet:
+            print(f"Waiting for '{settingName}' to enter '{desiredState}' state.", end="")
+            sys.stdout.flush()
+        for _ in range(retries):
+            time.sleep(interval)
+            settings = getSettings(verbose=self.verbose, config=self.config).main()
+            try:
+                setting = next(x for x in settings["items"] if x["name"] == settingName)
+            except StopIteration:
+                if not self.quiet:
+                    print(f"failed to find setting '{settingName}'")
+                    sys.stdout.flush()
+                return False
+            if setting["state"] == desiredState:
+                if not self.quiet:
+                    print("complete!")
+                    sys.stdout.flush()
+                    print(setting)
+                return setting
+            if not self.quiet:
+                print(".", end="")
+                sys.stdout.flush()
+        return False
+
+
 class getLdapSettings(SDKCommon):
     """Get LDAP settings, this class calls the generic getSettings and modifies the output"""
 
@@ -91,6 +133,7 @@ class getLdapSettings(SDKCommon):
                     [
                         "isEnabled",
                         "connectionHost",
+                        "state",
                         "credentialId",
                         "groupBaseDN",
                         "groupSearchCustomFilter",
@@ -100,6 +143,7 @@ class getLdapSettings(SDKCommon):
                     [
                         "currentConfig.isEnabled",
                         "currentConfig.connectionHost",
+                        "state",
                         "currentConfig.credentialId",
                         "currentConfig.groupBaseDN",
                         "currentConfig.groupSearchCustomFilter",
