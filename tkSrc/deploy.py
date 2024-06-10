@@ -264,7 +264,7 @@ def main(args, ard, config=None):
                     config_context=args.v3, skip_tls_verify=args.skip_tls_verify
                 ).main("appvaults")
             if args.bucket is None:
-                args.bucket = ard.getSingleDict("buckets", "status.state", "available")["metadata"][
+                args.bucket = ard.getSingleDict("buckets", "status.state", "Available")["metadata"][
                     "name"
                 ]
         deployHelm(
