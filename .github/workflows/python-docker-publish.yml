@@ -40,7 +40,7 @@ jobs:
       - name: wait for actoolkit
         run: sleep 300
       - name: Docker Setup Buildx
-        uses: docker/setup-buildx-action@v3.3.0
+        uses: docker/setup-buildx-action@v3.7.1
       - name: Build and push the Docker images
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
